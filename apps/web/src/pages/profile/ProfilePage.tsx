@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import api from '../../api/client';
+import api, { getFileUrl } from '../../api/client';
 import {
   IconUser,
   IconBriefcase,
@@ -141,11 +141,11 @@ export const ProfilePage: React.FC = () => {
     if (!url) return undefined;
     if (url.includes('.amazonaws.com/image/')) {
       const filename = url.split('.amazonaws.com/image/')[1];
-      return `/image/${filename}`;
+      return getFileUrl(`/image/${filename}`);
     }
     if (url.includes('.amazonaws.com/uploads/')) {
       const filename = url.split('.amazonaws.com/uploads/')[1];
-      return `/uploads/${filename}`;
+      return getFileUrl(`/uploads/${filename}`);
     }
     return url;
   };

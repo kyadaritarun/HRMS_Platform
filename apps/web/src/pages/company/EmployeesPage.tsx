@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import api from '../../api/client';
+import api, { getFileUrl } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import {
   IconUsers,
@@ -435,9 +435,9 @@ export const EmployeesPage: React.FC = () => {
                               <img
                                 src={
                                   emp.profilePhoto.includes('.amazonaws.com/image/')
-                                    ? `/image/${emp.profilePhoto.split('.amazonaws.com/image/')[1]}`
+                                    ? getFileUrl(`/image/${emp.profilePhoto.split('.amazonaws.com/image/')[1]}`)
                                     : emp.profilePhoto.includes('.amazonaws.com/uploads/')
-                                    ? `/uploads/${emp.profilePhoto.split('.amazonaws.com/uploads/')[1]}`
+                                    ? getFileUrl(`/uploads/${emp.profilePhoto.split('.amazonaws.com/uploads/')[1]}`)
                                     : emp.profilePhoto
                                 }
                                 alt={emp.firstName}

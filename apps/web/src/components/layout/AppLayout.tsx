@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { useAuth } from '../../context/AuthContext';
+import { getFileUrl } from '../../api/client';
 import {
   IconBell,
   IconLogout,
@@ -184,9 +185,9 @@ export const AppLayout: React.FC = () => {
                     <img
                       src={
                         user.profilePhoto.includes('.amazonaws.com/image/')
-                          ? `/image/${user.profilePhoto.split('.amazonaws.com/image/')[1]}`
+                          ? getFileUrl(`/image/${user.profilePhoto.split('.amazonaws.com/image/')[1]}`)
                           : user.profilePhoto.includes('.amazonaws.com/uploads/')
-                          ? `/uploads/${user.profilePhoto.split('.amazonaws.com/uploads/')[1]}`
+                          ? getFileUrl(`/uploads/${user.profilePhoto.split('.amazonaws.com/uploads/')[1]}`)
                           : user.profilePhoto
                       }
                       alt="Avatar"

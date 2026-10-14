@@ -39,20 +39,34 @@ app.use(helmet({
   },
 }));
 
+const configuredOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
-  process.env.CORS_ORIGIN || 'http://localhost:3000',
+  'https://hrms.tarunkyadari.in',
+  'http://hrms.tarunkyadari.in',
+  ...configuredOrigins,
 ];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, postman) or localhost subdomains
-      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.localhost:3000')) {
+      // Allow requests with no origin (e.g. server-to-server, curl, mobile) or matching origins
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        origin.endsWith('.localhost:3000') ||
+        origin.endsWith('.tarunkyadari.in') ||
+        origin === 'https://hrms.tarunkyadari.in' ||
+        origin === 'http://hrms.tarunkyadari.in'
+      ) {
         callback(null, true);
       } else {
-        callback(null, true); // Dev-friendly
+        callback(null, true); // Permissive fallback
       }
     },
     credentials: true,

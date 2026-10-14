@@ -1,7 +1,17 @@
 import axios from 'axios';
 
+const rawApiUrl = import.meta.env.VITE_API_URL || '';
+const normalizedApiUrl = rawApiUrl.replace(/\/+$/, '');
+export const API_BASE_URL = normalizedApiUrl ? `${normalizedApiUrl}/api/v1` : '/api/v1';
+
+export const getFileUrl = (path?: string | null): string => {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  return normalizedApiUrl ? `${normalizedApiUrl}${path.startsWith('/') ? '' : '/'}${path}` : path;
+};
+
 export const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: API_BASE_URL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -41,7 +51,7 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       try {
         const refreshToken = localStorage.getItem('refreshToken');
-        const res = await axios.post('/api/v1/auth/refresh', { refreshToken }, { withCredentials: true });
+        const res = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken }, { withCredentials: true });
         if (res.data?.accessToken) {
           localStorage.setItem('token', res.data.accessToken);
           if (res.data.refreshToken) {

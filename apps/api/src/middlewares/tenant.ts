@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma.js';
 import { AppError } from './errorHandler.js';
 
-const RESERVED_SUBDOMAINS = ['app', 'api', 'admin', 'www'];
+const RESERVED_SUBDOMAINS = ['app', 'api', 'admin', 'www', 'hrms', 'hrms_server', 'hrms-server', 'server'];
 
 export async function tenantMiddleware(req: Request, _res: Response, next: NextFunction) {
   try {
