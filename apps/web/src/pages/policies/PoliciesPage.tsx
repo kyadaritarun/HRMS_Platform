@@ -90,7 +90,7 @@ export const PoliciesPage: React.FC = () => {
               <IconFileText className="w-4 h-4" />
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Company Policies & Compliance
+              Policies
             </h1>
           </div>
           <p className="text-xs text-slate-500 font-medium mt-1">

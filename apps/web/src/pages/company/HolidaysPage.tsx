@@ -279,7 +279,7 @@ export const HolidaysPage: React.FC = () => {
               <IconCalendarEvent className="w-5 h-5" />
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Company Holidays Calendar
+              Holiday Calendar
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-[#5E4BE2] border border-indigo-100 shrink-0">
               Calendar 2026

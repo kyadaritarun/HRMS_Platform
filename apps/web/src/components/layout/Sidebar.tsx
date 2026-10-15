@@ -397,9 +397,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
   return (
     <>
       <aside
-        className={`${
-          collapsed ? 'w-20' : 'w-64'
-        } bg-white border-r border-slate-200/80 flex flex-col h-screen fixed left-0 top-0 z-30 select-none transition-all duration-200 shadow-2xs`}
+        className={`${collapsed ? 'w-20' : 'w-64'
+          } bg-white border-r border-slate-200/80 flex flex-col h-screen fixed left-0 top-0 z-30 select-none transition-all duration-200 shadow-2xs`}
       >
         {/* Brand Header */}
         <div className="h-16 flex items-center justify-center px-4 border-b border-slate-100 shrink-0">
@@ -438,13 +437,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
                 <button
                   onClick={() => handleCategoryClick(cat)}
                   title={collapsed ? cat.label : undefined}
-                  className={`w-full flex items-center ${
-                    collapsed ? 'justify-center px-2' : 'justify-between px-3'
-                  } py-2.5 rounded-xl transition-all duration-150 group cursor-pointer text-left relative ${
-                    isHighlighted
+                  className={`w-full flex items-center ${collapsed ? 'justify-center px-2' : 'justify-between px-3'
+                    } py-2.5 rounded-xl transition-all duration-150 group cursor-pointer text-left relative ${isHighlighted
                       ? 'bg-[#F0EEFF] text-[#5E4BE2] font-bold'
                       : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50 font-medium'
-                  }`}
+                    }`}
                 >
                   {/* Purple Vertical Accent Bar for active item */}
                   {isHighlighted && !collapsed && (
@@ -453,9 +450,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
 
                   <div className="flex items-center gap-3 min-w-0">
                     <Icon
-                      className={`w-5 h-5 shrink-0 transition-colors ${
-                        isHighlighted ? 'text-[#5E4BE2]' : 'text-slate-600 group-hover:text-slate-900'
-                      }`}
+                      className={`w-5 h-5 shrink-0 transition-colors ${isHighlighted ? 'text-[#5E4BE2]' : 'text-slate-600 group-hover:text-slate-900'
+                        }`}
                     />
                     {!collapsed && (
                       <span className="text-[13px] truncate tracking-tight">
@@ -472,11 +468,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
                           <IconChevronDown className="w-4 h-4 shrink-0 text-[#5E4BE2] transition-transform" />
                         ) : (
                           <IconChevronRight
-                            className={`w-4 h-4 shrink-0 transition-colors ${
-                              isHighlighted
+                            className={`w-4 h-4 shrink-0 transition-colors ${isHighlighted
                                 ? 'text-[#5E4BE2]'
                                 : 'text-slate-400 group-hover:text-slate-600'
-                            }`}
+                              }`}
                           />
                         )
                       ) : isHighlighted ? (
@@ -528,11 +523,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
                           end
                           className={({ isActive }) => {
                             const active = isActive || isApprovalsActive;
-                            return `flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all group ${
-                              active
+                            return `flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all group ${active
                                 ? 'bg-[#5E4BE2] text-white shadow-xs shadow-indigo-600/20'
                                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                            }`;
+                              }`;
                           }}
                         >
                           {({ isActive }) => {
@@ -541,9 +535,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
                               <>
                                 <div className="flex items-center gap-2 min-w-0">
                                   <SubIcon
-                                    className={`w-3.5 h-3.5 shrink-0 transition-colors ${
-                                      active ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'
-                                    }`}
+                                    className={`w-3.5 h-3.5 shrink-0 transition-colors ${active ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'
+                                      }`}
                                   />
                                   <span className="truncate">{subItem.label}</span>
                                 </div>

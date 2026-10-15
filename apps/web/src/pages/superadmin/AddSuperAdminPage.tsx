@@ -58,7 +58,7 @@ export const AddSuperAdminPage: React.FC = () => {
       <div>
         <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
           <IconShieldLock className="w-7 h-7 text-brand-600" />
-          Provision Platform Super Administrator
+          Super Administrators
         </h1>
         <p className="text-sm text-slate-500 mt-1">
           Grant full platform-wide administrative privileges with tenant lifecycle management authority.

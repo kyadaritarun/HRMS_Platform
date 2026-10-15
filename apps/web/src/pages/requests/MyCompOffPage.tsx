@@ -163,6 +163,23 @@ export const MyCompOffPage: React.FC = () => {
 
   return (
     <div className="space-y-5 max-w-7xl mx-auto pb-10">
+      {/* ===================== TOP HEADER BAR ===================== */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0">
+              <IconCalendar className="w-4 h-4" />
+            </div>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Comp Off
+            </h1>
+          </div>
+          <p className="text-xs text-slate-500 font-medium mt-1">
+            Apply for compensatory off days worked on public or company holidays.
+          </p>
+        </div>
+      </div>
+
       {/* Top Card: Request Comp Off */}
       <div className="bg-white rounded-2xl border border-slate-200/70 p-6 shadow-xs">
         <div className="flex items-center gap-3 mb-5">

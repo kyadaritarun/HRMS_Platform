@@ -255,7 +255,7 @@ export const TicketsPage: React.FC = () => {
               <IconHeadset className="w-4 h-4" />
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Support & Helpdesk Desk
+              Tickets
             </h1>
           </div>
           <p className="text-xs text-slate-500 font-medium mt-1">
@@ -269,7 +269,7 @@ export const TicketsPage: React.FC = () => {
           className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 active:scale-[0.98] transition-all cursor-pointer self-stretch sm:self-auto justify-center"
         >
           <IconPlus className="w-4 h-4" />
-          <span>Create Support Ticket</span>
+          <span>Create Ticket</span>
         </button>
       </div>
 

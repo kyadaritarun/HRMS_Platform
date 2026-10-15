@@ -245,7 +245,7 @@ export const OrgStructurePage: React.FC = () => {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Organization Hierarchy
+            Org Structure
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
             Interactive reporting structure from executive leadership down to functional squad teams.

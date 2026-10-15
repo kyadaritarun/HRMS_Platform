@@ -41,6 +41,7 @@ interface Department {
 export const CompanyAttendancePage: React.FC = () => {
   const [logs, setLogs] = useState<CompanyAttendanceLog[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [totalWorkforce, setTotalWorkforce] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [search, setSearch] = useState('');
@@ -69,8 +70,18 @@ export const CompanyAttendancePage: React.FC = () => {
     }
   };
 
+  const fetchWorkforceCount = async () => {
+    try {
+      const res = await api.get('/employees');
+      setTotalWorkforce(res.data?.items?.length || res.data?.total || 0);
+    } catch (err) {
+      console.error('Failed to load workforce count:', err);
+    }
+  };
+
   useEffect(() => {
     fetchDepartments();
+    fetchWorkforceCount();
   }, []);
 
   useEffect(() => {
@@ -103,7 +114,7 @@ export const CompanyAttendancePage: React.FC = () => {
 
   // KPI Attendance Metrics calculated live from records
   const kpiStats = useMemo(() => {
-    const totalPunchedIn = logs.length;
+    const presentCount = logs.length;
     const activeNow = logs.filter((l) => !l.checkOut).length;
     const completedShifts = logs.filter((l) => Boolean(l.checkOut));
 
@@ -115,16 +126,19 @@ export const CompanyAttendancePage: React.FC = () => {
     const remoteCount = logs.filter((l) => l.workMode === 'WFH').length;
     const onSiteCount = logs.filter((l) => l.workMode === 'WFO' || l.workMode === 'ON_SITE' || !l.workMode).length;
     const hybridCount = logs.filter((l) => l.workMode === 'HYBRID').length;
+    const attendanceRate = totalWorkforce > 0 ? Math.round((presentCount / totalWorkforce) * 100) : null;
 
     return {
-      totalPunchedIn,
+      presentCount,
       activeNow,
+      completedCount: completedShifts.length,
       avgHours,
       remoteCount,
       onSiteCount,
       hybridCount,
+      attendanceRate,
     };
-  }, [logs]);
+  }, [logs, totalWorkforce]);
 
   // Filter logs by search, department, and work mode
   const filteredLogs = useMemo(() => {
@@ -187,7 +201,7 @@ export const CompanyAttendancePage: React.FC = () => {
               <IconClock className="w-4 h-4" />
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Company Attendance Desk
+              Employee Attendance
             </h1>
           </div>
           <p className="text-xs text-slate-500 font-medium mt-1">
@@ -208,16 +222,20 @@ export const CompanyAttendancePage: React.FC = () => {
 
       {/* ===================== ROW 1: 4 KPI STAT CARDS ===================== */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Punched In Today */}
+        {/* Card 1: Attendance Rate & Present Count */}
         <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
-            <span className="text-xs font-bold text-slate-500">Punched In Today</span>
+            <span className="text-xs font-bold text-slate-500">Attendance Rate</span>
             <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-              {kpiStats.totalPunchedIn.toLocaleString()}
+              {kpiStats.attendanceRate !== null ? `${kpiStats.attendanceRate}%` : `${kpiStats.presentCount}`}
             </div>
             <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-2">
               <span>●</span>
-              <span>Logged records for selected date</span>
+              <span>
+                {totalWorkforce > 0
+                  ? `${kpiStats.presentCount} of ${totalWorkforce} employees present`
+                  : `${kpiStats.presentCount} present on selected date`}
+              </span>
             </div>
           </div>
           <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2]">
@@ -370,8 +388,8 @@ export const CompanyAttendancePage: React.FC = () => {
               <tr>
                 <th className="px-6 py-3.5">Employee</th>
                 <th className="px-6 py-3.5">Department</th>
-                <th className="px-6 py-3.5">Clock In</th>
-                <th className="px-6 py-3.5">Clock Out</th>
+                <th className="px-6 py-3.5">Check-In</th>
+                <th className="px-6 py-3.5">Check-Out</th>
                 <th className="px-6 py-3.5">Work Mode</th>
                 <th className="px-6 py-3.5">Duration</th>
                 <th className="px-6 py-3.5 text-right">Status</th>
@@ -473,12 +491,12 @@ export const CompanyAttendancePage: React.FC = () => {
                         )}
                       </td>
 
-                      {/* Clock In */}
+                      {/* Check-In */}
                       <td className="px-6 py-3.5 font-mono text-xs font-semibold text-slate-800">
                         {checkInDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </td>
 
-                      {/* Clock Out */}
+                      {/* Check-Out */}
                       <td className="px-6 py-3.5 font-mono text-xs font-semibold text-slate-800">
                         {checkOutDate ? (
                           checkOutDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })

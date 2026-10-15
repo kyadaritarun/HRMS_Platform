@@ -187,7 +187,7 @@ export const EmployeesPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Employees Directory
+              Employees
             </h1>
           </div>
           <p className="text-xs text-slate-500 font-medium mt-0.5">
@@ -245,7 +245,7 @@ export const EmployeesPage: React.FC = () => {
         {/* Card 3: Hybrid & Remote */}
         <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
-            <span className="text-xs font-bold text-slate-500">Flexible Work</span>
+            <span className="text-xs font-bold text-slate-500">Hybrid &amp; Remote</span>
             <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
               {(kpiStats.remoteCount + kpiStats.hybridCount).toLocaleString()}
             </div>

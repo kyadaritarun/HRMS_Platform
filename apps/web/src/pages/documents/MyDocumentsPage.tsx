@@ -186,7 +186,7 @@ export const MyDocumentsPage: React.FC = () => {
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              My KYC & Documents Vault
+              My Documents
             </h1>
             <p className="text-xs text-slate-500 font-medium mt-1">
               Secure digital vault for your national identity cards, educational qualifications, and company compliance files.

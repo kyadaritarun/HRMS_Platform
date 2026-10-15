@@ -25,6 +25,7 @@ import {
   IconPlayerStop,
   IconMoodSmile,
   IconArrowRight,
+  IconSmartHome,
 } from '@tabler/icons-react';
 import api from '../../api/client';
 
@@ -36,8 +37,8 @@ export const EmployeeDashboard: React.FC = () => {
   const [seconds, setSeconds] = useState(0);
   const [workMode, setWorkMode] = useState<'WFO' | 'WFH' | 'HYBRID'>('WFO');
   const [activeSession, setActiveSession] = useState<{ id?: number; checkIn?: string; checkInGeo?: any } | null>(null);
-  const [loadingPunch, setLoadingPunch] = useState(false);
-  const [punchMessage, setPunchMessage] = useState<string | null>(null);
+  const [loadingCheck, setLoadingCheck] = useState(false);
+  const [attendanceMessage, setAttendanceMessage] = useState<string | null>(null);
 
   // Leave balances matching design
   const [leaveBalances] = useState([
@@ -131,25 +132,25 @@ export const EmployeeDashboard: React.FC = () => {
     return `${hrs}:${mins}:${secs}`;
   };
 
-  const handlePunch = async (action: 'check-in' | 'check-out') => {
-    setLoadingPunch(true);
-    setPunchMessage(null);
+  const handleCheckAction = async (action: 'check-in' | 'check-out') => {
+    setLoadingCheck(true);
+    setAttendanceMessage(null);
 
     const performCall = async (latitude: number, longitude: number) => {
       try {
         if (action === 'check-in') {
           const res = await api.post('/attendance/check-in', { latitude, longitude, workMode });
           setActiveSession(res.data?.attendance || { checkIn: new Date().toISOString() });
-          setPunchMessage('Successfully punched in!');
+          setAttendanceMessage('Successfully checked in!');
         } else {
           await api.post('/attendance/check-out', { latitude, longitude });
           setActiveSession(null);
-          setPunchMessage('Successfully punched out! Good work.');
+          setAttendanceMessage('Successfully checked out! Have a good day.');
         }
       } catch (err: any) {
-        setPunchMessage(err.response?.data?.error || `Failed to ${action}`);
+        setAttendanceMessage(err.response?.data?.error || `Failed to ${action}`);
       } finally {
-        setLoadingPunch(false);
+        setLoadingCheck(false);
       }
     };
 
@@ -166,10 +167,26 @@ export const EmployeeDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
+      {/* ===================== TOP HEADER BAR ===================== */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0">
+              <IconSmartHome className="w-4 h-4" />
+            </div>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Dashboard
+            </h1>
+          </div>
+          <p className="text-xs text-slate-500 font-medium mt-1">
+            Welcome back{user?.firstName ? `, ${user.firstName}` : ''}! Here is your personal activity, shift status, and shortcuts.
+          </p>
+        </div>
+      </div>
 
-      {/* 2. Grid: Time & Attendance Punch + Quick Actions & Shortcuts */}
+      {/* 2. Grid: Time & Attendance Check-In + Quick Actions & Shortcuts */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Time & Attendance Punch (Left Box) */}
+        {/* Time & Attendance Check-In (Left Box) */}
         <div className="lg:col-span-6 xl:col-span-7 bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-7 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
@@ -179,7 +196,7 @@ export const EmployeeDashboard: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-tight">
-                    Time & Attendance Punch
+                    Time & Attendance Check-In
                   </h3>
                   <p className="text-xs text-slate-400 font-medium mt-0.5">
                     Shift: General (09:00 AM – 06:00 PM)
@@ -188,16 +205,18 @@ export const EmployeeDashboard: React.FC = () => {
               </div>
 
               <span
-                className={`text-[11px] px-3 py-1 rounded-full font-bold flex items-center gap-1.5 transition-all ${activeSession
+                className={`text-[11px] px-3 py-1 rounded-full font-bold flex items-center gap-1.5 transition-all ${
+                  activeSession
                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                     : 'bg-slate-100 text-slate-600'
-                  }`}
+                }`}
               >
                 <span
-                  className={`w-2 h-2 rounded-full ${activeSession ? 'bg-emerald-500 animate-ping' : 'bg-slate-400'
-                    }`}
+                  className={`w-2 h-2 rounded-full ${
+                    activeSession ? 'bg-emerald-500 animate-ping' : 'bg-slate-400'
+                  }`}
                 />
-                {activeSession ? 'ON CLOCK' : 'OFF CLOCK'}
+                {activeSession ? 'CHECKED IN' : 'CHECKED OUT'}
               </span>
             </div>
 
@@ -214,10 +233,10 @@ export const EmployeeDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Work Mode Toggle: Office, Remote, Hybrid */}
+            {/* Work Mode Toggle: On-site, Remote, Hybrid */}
             <div className="grid grid-cols-3 gap-3 my-4">
               {[
-                { mode: 'WFO', label: 'Office', icon: IconBuilding },
+                { mode: 'WFO', label: 'On-site', icon: IconBuilding },
                 { mode: 'WFH', label: 'Remote', icon: IconHome },
                 { mode: 'HYBRID', label: 'Hybrid', icon: IconRefresh },
               ].map((m) => {
@@ -228,10 +247,11 @@ export const EmployeeDashboard: React.FC = () => {
                     key={m.mode}
                     type="button"
                     onClick={() => setWorkMode(m.mode as any)}
-                    className={`py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${isSelected
+                    className={`py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      isSelected
                         ? 'bg-blue-50/70 border-2 border-indigo-600 text-indigo-700 shadow-2xs'
                         : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                      }`}
+                    }`}
                   >
                     <ModeIcon className={`w-4 h-4 ${isSelected ? 'text-indigo-600' : 'text-slate-400'}`} />
                     <span>{m.label}</span>
@@ -240,10 +260,10 @@ export const EmployeeDashboard: React.FC = () => {
               })}
             </div>
 
-            {punchMessage && (
+            {attendanceMessage && (
               <div className="text-xs p-3 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700 font-medium mb-4 flex items-center gap-2">
                 <IconCheck className="w-4 h-4 text-indigo-600 shrink-0" />
-                <span>{punchMessage}</span>
+                <span>{attendanceMessage}</span>
               </div>
             )}
           </div>
@@ -251,21 +271,21 @@ export const EmployeeDashboard: React.FC = () => {
           {/* Action Button */}
           {activeSession ? (
             <button
-              onClick={() => handlePunch('check-out')}
-              disabled={loadingPunch}
+              onClick={() => handleCheckAction('check-out')}
+              disabled={loadingCheck}
               className="w-full py-3.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 active:scale-[0.99] transition-all shadow-md shadow-rose-600/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               <IconPlayerStop className="w-4 h-4 fill-white" />
-              <span>{loadingPunch ? 'Recording Punch Out...' : 'Clock Out (Finish Shift)'}</span>
+              <span>{loadingCheck ? 'Recording Check-Out...' : 'Check Out (End Shift)'}</span>
             </button>
           ) : (
             <button
-              onClick={() => handlePunch('check-in')}
-              disabled={loadingPunch}
+              onClick={() => handleCheckAction('check-in')}
+              disabled={loadingCheck}
               className="w-full py-3.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#4338ca] hover:bg-[#3730a3] active:scale-[0.99] transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               <IconPlayerPlay className="w-4 h-4 fill-white" />
-              <span>{loadingPunch ? 'Recording Punch In...' : 'Clock In (Start Working)'}</span>
+              <span>{loadingCheck ? 'Recording Check-In...' : 'Check In (Start Shift)'}</span>
             </button>
           )}
         </div>

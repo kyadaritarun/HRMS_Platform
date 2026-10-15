@@ -219,7 +219,7 @@ export const NewEmployeePage: React.FC = () => {
               <IconUserPlus className="w-4 h-4" />
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Onboard New Employee
+              Create Employee
             </h1>
           </div>
           <p className="text-xs text-slate-500 font-medium mt-1">
@@ -232,7 +232,7 @@ export const NewEmployeePage: React.FC = () => {
         <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 flex items-start gap-3 text-xs animate-in fade-in shadow-xs">
           <IconAlertCircle className="w-5 h-5 shrink-0 text-rose-500 mt-0.5" />
           <div>
-            <p className="font-bold text-sm">Onboarding Failed</p>
+            <p className="font-bold text-sm">Employee Creation Failed</p>
             <p className="mt-0.5 text-rose-600 font-medium">{error}</p>
           </div>
         </div>
@@ -240,574 +240,591 @@ export const NewEmployeePage: React.FC = () => {
 
       {/* ===================== 2-COLUMN LAYOUT: FORM + LIVE PREVIEW ===================== */}
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Form Sections (8 Cols) */}
-        <div className="lg:col-span-8 space-y-6">
-          {/* Section 1: Identity & Contact */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow space-y-5">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-              <div className="w-7 h-7 rounded-lg bg-indigo-50 text-[#5E4BE2] flex items-center justify-center shrink-0">
-                <IconUser className="w-4 h-4" />
-              </div>
-              <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                Identity & Contact
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">First Name *</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#5E4BE2]">
-                    <IconUser className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="text"
-                    name="firstName"
-                    required
-                    value={form.firstName}
-                    onChange={handleChange}
-                    placeholder="Jane"
-                    className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all placeholder:text-slate-400"
-                  />
+        {/* Left Column: Single Unified Screen Form Container with Line Separations (8 Cols) */}
+        <div className="lg:col-span-8">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-6">
+            {/* Section 1: Identity & Contact */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2.5 pb-2">
+                <div className="w-7 h-7 rounded-lg bg-indigo-50 text-[#5E4BE2] flex items-center justify-center shrink-0">
+                  <IconUser className="w-4 h-4" />
                 </div>
+                <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  Identity & Contact
+                </h2>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Last Name</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#5E4BE2]">
-                    <IconUser className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="text"
-                    name="lastName"
-                    value={form.lastName}
-                    onChange={handleChange}
-                    placeholder="Doe"
-                    className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all placeholder:text-slate-400"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Work Email *</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-blue-600">
-                    <IconMail className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="email"
-                    name="email"
-                    required
-                    value={form.email}
-                    onChange={handleChange}
-                    placeholder="jane.doe@acme.com"
-                    className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all placeholder:text-slate-400"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">System Username *</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-purple-600">
-                    <IconAt className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="text"
-                    name="username"
-                    required
-                    value={form.username}
-                    onChange={handleChange}
-                    placeholder="jane.doe"
-                    className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all placeholder:text-slate-400"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Phone Number</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-600">
-                    <IconPhone className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={form.phone}
-                    onChange={handleChange}
-                    placeholder="+91 9876543210"
-                    className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all placeholder:text-slate-400"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Joining Date</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-indigo-600">
-                    <IconCalendar className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="date"
-                    name="joiningDate"
-                    value={form.joiningDate}
-                    onChange={handleChange}
-                    className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 2: Role & Reporting Structure */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow space-y-5">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-              <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-                <IconBuildingSkyscraper className="w-4 h-4" />
-              </div>
-              <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                Role & Reporting
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">System Role *</label>
-                <select
-                  name="role"
-                  value={form.role}
-                  onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer"
-                >
-                  <option value="EMPLOYEE">Staff Employee</option>
-                  <option value="HR">HR Manager</option>
-                  <option value="COMPANY_ADMIN">Company Admin</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Job Title</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-purple-600">
-                    <IconBriefcase className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="text"
-                    name="jobTitle"
-                    value={form.jobTitle}
-                    onChange={handleChange}
-                    placeholder="Senior Full Stack Engineer"
-                    className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all placeholder:text-slate-400"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Department</label>
-                <select
-                  name="departmentId"
-                  value={form.departmentId}
-                  onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer"
-                >
-                  <option value="">Unassigned</option>
-                  {departments.map((d) => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Reporting Manager</label>
-                <select
-                  name="managerId"
-                  value={form.managerId}
-                  onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer"
-                >
-                  <option value="">Direct to CEO / None</option>
-                  {managers.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.firstName} {m.lastName} ({m.jobTitle || 'Team'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Work Mode</label>
-                <select
-                  name="workMode"
-                  value={form.workMode}
-                  onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer"
-                >
-                  <option value="WFO">Work From Office (WFO)</option>
-                  <option value="WFH">Remote / Work From Home (WFH)</option>
-                  <option value="HYBRID">Hybrid</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Employment Type</label>
-                <select
-                  name="employmentType"
-                  value={form.employmentType}
-                  onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer"
-                >
-                  <option value="FULL_TIME">Full-time Regular</option>
-                  <option value="PART_TIME">Part-time / Contractor</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 3: Salary Master Configuration */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow space-y-5">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-              <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                <IconCash className="w-4 h-4" />
-              </div>
-              <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                Salary Master Configuration
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Monthly Gross Salary (CTC) *</label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-black text-xs text-emerald-600">
-                    {form.currency}
-                  </span>
-                  <input
-                    type="number"
-                    name="monthlySalary"
-                    min="0"
-                    required
-                    value={form.monthlySalary}
-                    onChange={handleChange}
-                    placeholder="60000"
-                    className="w-full pl-14 pr-4 py-2.5 text-xs font-bold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Currency</label>
-                <select
-                  name="currency"
-                  value={form.currency}
-                  onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer"
-                >
-                  <option value="INR">INR (₹)</option>
-                  <option value="USD">USD ($)</option>
-                  <option value="EUR">EUR (€)</option>
-                  <option value="GBP">GBP (£)</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 4: Employee Documents & File Attachments (Input Files) */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                  <IconPaperclip className="w-4 h-4" />
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                    Documents &amp; File Attachments
-                  </h2>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    Upload employee onboarding records, identification proof, headshot, and contract files
-                  </p>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">First Name *</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#5E4BE2]">
+                      <IconUser className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="text"
+                      name="firstName"
+                      required
+                      value={form.firstName}
+                      onChange={handleChange}
+                      placeholder="Jane"
+                      className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all placeholder:text-slate-400"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Last Name</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#5E4BE2]">
+                      <IconUser className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="text"
+                      name="lastName"
+                      value={form.lastName}
+                      onChange={handleChange}
+                      placeholder="Doe"
+                      className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all placeholder:text-slate-400"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Work Email *</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-blue-600">
+                      <IconMail className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="email"
+                      name="email"
+                      required
+                      value={form.email}
+                      onChange={handleChange}
+                      placeholder="jane.doe@acme.com"
+                      className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all placeholder:text-slate-400"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">System Username *</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-purple-600">
+                      <IconAt className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="text"
+                      name="username"
+                      required
+                      value={form.username}
+                      onChange={handleChange}
+                      placeholder="jane.doe"
+                      className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all placeholder:text-slate-400"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Phone Number</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-600">
+                      <IconPhone className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={form.phone}
+                      onChange={handleChange}
+                      placeholder="+91 9876543210"
+                      className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all placeholder:text-slate-400"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Joining Date</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-indigo-600">
+                      <IconCalendar className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="date"
+                      name="joiningDate"
+                      value={form.joiningDate}
+                      onChange={handleChange}
+                      className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer"
+                    />
+                  </div>
                 </div>
               </div>
-              <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100/60">
-                Optional
-              </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* 1. Profile Picture / Avatar */}
-              <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                    <IconPhoto className="w-4 h-4 text-indigo-600" />
-                    <span>Profile Photo / Headshot</span>
-                  </label>
-                  {uploadedFiles.avatar.file && (
-                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1">
-                      <IconCheck className="w-3 h-3" /> Attached
-                    </span>
-                  )}
-                </div>
+            {/* Line Separation */}
+            <hr className="border-slate-200/80" />
 
-                {uploadedFiles.avatar.file ? (
-                  <div className="flex items-center justify-between p-2.5 bg-white border border-emerald-200 rounded-xl shadow-2xs">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      {uploadedFiles.avatar.previewUrl ? (
-                        <img
-                          src={uploadedFiles.avatar.previewUrl}
-                          alt="Avatar"
-                          className="w-9 h-9 rounded-lg object-cover border border-slate-200 shrink-0"
-                        />
-                      ) : (
-                        <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 font-bold text-xs">
-                          IMG
-                        </div>
-                      )}
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-800 truncate">{uploadedFiles.avatar.name}</p>
-                        <p className="text-[10px] text-slate-400">{uploadedFiles.avatar.size}</p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleFileUpload('avatar', null)}
-                      className="p-1 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
-                      title="Remove file"
-                    >
-                      <IconX className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center p-3.5 border-2 border-dashed border-slate-300 hover:border-indigo-500 bg-white rounded-xl cursor-pointer group transition-all">
-                    <IconUpload className="w-5 h-5 text-slate-400 group-hover:text-indigo-600 transition-colors mb-1" />
-                    <span className="text-xs font-bold text-slate-700 group-hover:text-indigo-600 transition-colors">
-                      Click to upload headshot
-                    </span>
-                    <span className="text-[10px] text-slate-400 mt-0.5">PNG, JPG or WebP (max 5MB)</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => handleFileUpload('avatar', e.target.files?.[0] || null)}
-                    />
-                  </label>
-                )}
+            {/* Section 2: Role & Reporting Structure */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2.5 pb-2">
+                <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                  <IconBuildingSkyscraper className="w-4 h-4" />
+                </div>
+                <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  Role & Reporting
+                </h2>
               </div>
 
-              {/* 2. Resume / Curriculum Vitae (CV) */}
-              <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                    <IconFileText className="w-4 h-4 text-purple-600" />
-                    <span>Resume / Curriculum Vitae</span>
-                  </label>
-                  {uploadedFiles.resume.file && (
-                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1">
-                      <IconCheck className="w-3 h-3" /> Attached
-                    </span>
-                  )}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">System Role *</label>
+                  <select
+                    name="role"
+                    value={form.role}
+                    onChange={handleChange}
+                    className="w-full px-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer"
+                  >
+                    <option value="EMPLOYEE">Staff Employee</option>
+                    <option value="HR">HR Manager</option>
+                    <option value="COMPANY_ADMIN">Company Admin</option>
+                  </select>
                 </div>
 
-                {uploadedFiles.resume.file ? (
-                  <div className="flex items-center justify-between p-2.5 bg-white border border-emerald-200 rounded-xl shadow-2xs">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-9 h-9 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-                        <IconFileText className="w-5 h-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-800 truncate">{uploadedFiles.resume.name}</p>
-                        <p className="text-[10px] text-slate-400">{uploadedFiles.resume.size}</p>
-                      </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Job Title</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-purple-600">
+                      <IconBriefcase className="w-4 h-4" />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleFileUpload('resume', null)}
-                      className="p-1 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
-                      title="Remove file"
-                    >
-                      <IconX className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center p-3.5 border-2 border-dashed border-slate-300 hover:border-purple-500 bg-white rounded-xl cursor-pointer group transition-all">
-                    <IconUpload className="w-5 h-5 text-slate-400 group-hover:text-purple-600 transition-colors mb-1" />
-                    <span className="text-xs font-bold text-slate-700 group-hover:text-purple-600 transition-colors">
-                      Click to upload Resume / CV
-                    </span>
-                    <span className="text-[10px] text-slate-400 mt-0.5">PDF or DOCX (max 10MB)</span>
                     <input
-                      type="file"
-                      accept=".pdf,.doc,.docx"
-                      className="hidden"
-                      onChange={(e) => handleFileUpload('resume', e.target.files?.[0] || null)}
+                      type="text"
+                      name="jobTitle"
+                      value={form.jobTitle}
+                      onChange={handleChange}
+                      placeholder="Senior Full Stack Engineer"
+                      className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all placeholder:text-slate-400"
                     />
-                  </label>
-                )}
-              </div>
-
-              {/* 3. National ID Proof (Aadhaar / Passport / SSN) */}
-              <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                    <IconId className="w-4 h-4 text-blue-600" />
-                    <span>Government ID (Aadhaar / Passport)</span>
-                  </label>
-                  {uploadedFiles.idProof.file && (
-                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1">
-                      <IconCheck className="w-3 h-3" /> Attached
-                    </span>
-                  )}
+                  </div>
                 </div>
 
-                {uploadedFiles.idProof.file ? (
-                  <div className="flex items-center justify-between p-2.5 bg-white border border-emerald-200 rounded-xl shadow-2xs">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                        <IconId className="w-5 h-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-800 truncate">{uploadedFiles.idProof.name}</p>
-                        <p className="text-[10px] text-slate-400">{uploadedFiles.idProof.size}</p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleFileUpload('idProof', null)}
-                      className="p-1 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
-                      title="Remove file"
-                    >
-                      <IconX className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center p-3.5 border-2 border-dashed border-slate-300 hover:border-blue-500 bg-white rounded-xl cursor-pointer group transition-all">
-                    <IconUpload className="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition-colors mb-1" />
-                    <span className="text-xs font-bold text-slate-700 group-hover:text-blue-600 transition-colors">
-                      Click to upload ID document
-                    </span>
-                    <span className="text-[10px] text-slate-400 mt-0.5">PDF, PNG, JPG (max 10MB)</span>
-                    <input
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      className="hidden"
-                      onChange={(e) => handleFileUpload('idProof', e.target.files?.[0] || null)}
-                    />
-                  </label>
-                )}
-              </div>
-
-              {/* 4. Signed Offer Letter / Agreement */}
-              <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                    <IconFileCheck className="w-4 h-4 text-emerald-600" />
-                    <span>Offer Letter / Contract</span>
-                  </label>
-                  {uploadedFiles.offerLetter.file && (
-                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1">
-                      <IconCheck className="w-3 h-3" /> Attached
-                    </span>
-                  )}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Department</label>
+                  <select
+                    name="departmentId"
+                    value={form.departmentId}
+                    onChange={handleChange}
+                    className="w-full px-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer"
+                  >
+                    <option value="">Unassigned</option>
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
                 </div>
 
-                {uploadedFiles.offerLetter.file ? (
-                  <div className="flex items-center justify-between p-2.5 bg-white border border-emerald-200 rounded-xl shadow-2xs">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                        <IconFileCheck className="w-5 h-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-800 truncate">{uploadedFiles.offerLetter.name}</p>
-                        <p className="text-[10px] text-slate-400">{uploadedFiles.offerLetter.size}</p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleFileUpload('offerLetter', null)}
-                      className="p-1 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
-                      title="Remove file"
-                    >
-                      <IconX className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center p-3.5 border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-white rounded-xl cursor-pointer group transition-all">
-                    <IconUpload className="w-5 h-5 text-slate-400 group-hover:text-emerald-600 transition-colors mb-1" />
-                    <span className="text-xs font-bold text-slate-700 group-hover:text-emerald-600 transition-colors">
-                      Click to upload Offer Letter
-                    </span>
-                    <span className="text-[10px] text-slate-400 mt-0.5">PDF or DOCX (max 10MB)</span>
-                    <input
-                      type="file"
-                      accept=".pdf,.doc,.docx"
-                      className="hidden"
-                      onChange={(e) => handleFileUpload('offerLetter', e.target.files?.[0] || null)}
-                    />
-                  </label>
-                )}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Reporting Manager</label>
+                  <select
+                    name="managerId"
+                    value={form.managerId}
+                    onChange={handleChange}
+                    className="w-full px-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer"
+                  >
+                    <option value="">Direct to CEO / None</option>
+                    {managers.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.firstName} {m.lastName} ({m.jobTitle || 'Team'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Work Mode</label>
+                  <select
+                    name="workMode"
+                    value={form.workMode}
+                    onChange={handleChange}
+                    className="w-full px-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer"
+                  >
+                    <option value="WFO">Work From Office (WFO)</option>
+                    <option value="WFH">Remote / Work From Home (WFH)</option>
+                    <option value="HYBRID">Hybrid</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Employment Type</label>
+                  <select
+                    name="employmentType"
+                    value={form.employmentType}
+                    onChange={handleChange}
+                    className="w-full px-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer"
+                  >
+                    <option value="FULL_TIME">Full-time Regular</option>
+                    <option value="PART_TIME">Part-time / Contractor</option>
+                  </select>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Section 5: HR Granular Sub-Permissions (Only if HR role selected) */}
-          {form.role === 'HR' && (
-            <div className="bg-indigo-50/40 rounded-2xl border border-indigo-100 p-6 space-y-3">
-              <div className="flex items-center gap-2">
-                <IconShieldLock className="w-4 h-4 text-[#5E4BE2]" />
-                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                  Granular HR Privileges
-                </h3>
+            {/* Line Separation */}
+            <hr className="border-slate-200/80" />
+
+            {/* Section 3: Salary Master Configuration */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2.5 pb-2">
+                <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                  <IconCash className="w-4 h-4" />
+                </div>
+                <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  Salary Master Configuration
+                </h2>
               </div>
-              <p className="text-xs text-slate-600 font-medium">
-                Select specific administrative modules this HR manager can access and operate.
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
-                {HR_PERMISSIONS.map((perm) => {
-                  const checked = form.hrPermissions.includes(perm.key);
-                  return (
-                    <label
-                      key={perm.key}
-                      className={`flex items-center gap-2.5 text-xs font-semibold p-2.5 rounded-xl border transition-all cursor-pointer select-none ${
-                        checked
-                          ? 'bg-white border-[#5E4BE2] text-[#5E4BE2] shadow-2xs'
-                          : 'bg-white/80 border-slate-200 text-slate-600 hover:bg-white hover:text-slate-800'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => handlePermissionToggle(perm.key)}
-                        className="rounded-sm text-[#5E4BE2] focus:ring-[#5E4BE2] w-3.5 h-3.5"
-                      />
-                      <span>{perm.label}</span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Monthly Gross Salary (CTC) *</label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-black text-xs text-emerald-600">
+                      {form.currency}
+                    </span>
+                    <input
+                      type="number"
+                      name="monthlySalary"
+                      min="0"
+                      required
+                      value={form.monthlySalary}
+                      onChange={handleChange}
+                      placeholder="60000"
+                      className="w-full pl-14 pr-4 py-2.5 text-xs font-bold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Currency</label>
+                  <select
+                    name="currency"
+                    value={form.currency}
+                    onChange={handleChange}
+                    className="w-full px-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer"
+                  >
+                    <option value="INR">INR (₹)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="GBP">GBP (£)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Line Separation */}
+            <hr className="border-slate-200/80" />
+
+            {/* Section 4: Employee Documents & File Attachments */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                    <IconPaperclip className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                      Documents &amp; File Attachments
+                    </h2>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Upload employee onboarding records, identification proof, headshot, and contract files
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100/60">
+                  Optional
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* 1. Profile Picture / Avatar */}
+                <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                      <IconPhoto className="w-4 h-4 text-indigo-600" />
+                      <span>Profile Photo / Headshot</span>
                     </label>
-                  );
-                })}
+                    {uploadedFiles.avatar.file && (
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1">
+                        <IconCheck className="w-3 h-3" /> Attached
+                      </span>
+                    )}
+                  </div>
+
+                  {uploadedFiles.avatar.file ? (
+                    <div className="flex items-center justify-between p-2.5 bg-white border border-emerald-200 rounded-xl shadow-2xs">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {uploadedFiles.avatar.previewUrl ? (
+                          <img
+                            src={uploadedFiles.avatar.previewUrl}
+                            alt="Avatar"
+                            className="w-9 h-9 rounded-lg object-cover border border-slate-200 shrink-0"
+                          />
+                        ) : (
+                          <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 font-bold text-xs">
+                            IMG
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-800 truncate">{uploadedFiles.avatar.name}</p>
+                          <p className="text-[10px] text-slate-400">{uploadedFiles.avatar.size}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleFileUpload('avatar', null)}
+                        className="p-1 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                        title="Remove file"
+                      >
+                        <IconX className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center p-3.5 border-2 border-dashed border-slate-300 hover:border-indigo-500 bg-white rounded-xl cursor-pointer group transition-all">
+                      <IconUpload className="w-5 h-5 text-slate-400 group-hover:text-indigo-600 transition-colors mb-1" />
+                      <span className="text-xs font-bold text-slate-700 group-hover:text-indigo-600 transition-colors">
+                        Click to upload headshot
+                      </span>
+                      <span className="text-[10px] text-slate-400 mt-0.5">PNG, JPG or WebP (max 5MB)</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleFileUpload('avatar', e.target.files?.[0] || null)}
+                      />
+                    </label>
+                  )}
+                </div>
+
+                {/* 2. Resume / Curriculum Vitae (CV) */}
+                <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                      <IconFileText className="w-4 h-4 text-purple-600" />
+                      <span>Resume / Curriculum Vitae</span>
+                    </label>
+                    {uploadedFiles.resume.file && (
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1">
+                        <IconCheck className="w-3 h-3" /> Attached
+                      </span>
+                    )}
+                  </div>
+
+                  {uploadedFiles.resume.file ? (
+                    <div className="flex items-center justify-between p-2.5 bg-white border border-emerald-200 rounded-xl shadow-2xs">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-9 h-9 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                          <IconFileText className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-800 truncate">{uploadedFiles.resume.name}</p>
+                          <p className="text-[10px] text-slate-400">{uploadedFiles.resume.size}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleFileUpload('resume', null)}
+                        className="p-1 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                        title="Remove file"
+                      >
+                        <IconX className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center p-3.5 border-2 border-dashed border-slate-300 hover:border-purple-500 bg-white rounded-xl cursor-pointer group transition-all">
+                      <IconUpload className="w-5 h-5 text-slate-400 group-hover:text-purple-600 transition-colors mb-1" />
+                      <span className="text-xs font-bold text-slate-700 group-hover:text-purple-600 transition-colors">
+                        Click to upload Resume / CV
+                      </span>
+                      <span className="text-[10px] text-slate-400 mt-0.5">PDF or DOCX (max 10MB)</span>
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        className="hidden"
+                        onChange={(e) => handleFileUpload('resume', e.target.files?.[0] || null)}
+                      />
+                    </label>
+                  )}
+                </div>
+
+                {/* 3. National ID Proof (Aadhaar / Passport / SSN) */}
+                <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                      <IconId className="w-4 h-4 text-blue-600" />
+                      <span>Government ID (Aadhaar / Passport)</span>
+                    </label>
+                    {uploadedFiles.idProof.file && (
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1">
+                        <IconCheck className="w-3 h-3" /> Attached
+                      </span>
+                    )}
+                  </div>
+
+                  {uploadedFiles.idProof.file ? (
+                    <div className="flex items-center justify-between p-2.5 bg-white border border-emerald-200 rounded-xl shadow-2xs">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                          <IconId className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-800 truncate">{uploadedFiles.idProof.name}</p>
+                          <p className="text-[10px] text-slate-400">{uploadedFiles.idProof.size}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleFileUpload('idProof', null)}
+                        className="p-1 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                        title="Remove file"
+                      >
+                        <IconX className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center p-3.5 border-2 border-dashed border-slate-300 hover:border-blue-500 bg-white rounded-xl cursor-pointer group transition-all">
+                      <IconUpload className="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition-colors mb-1" />
+                      <span className="text-xs font-bold text-slate-700 group-hover:text-blue-600 transition-colors">
+                        Click to upload ID document
+                      </span>
+                      <span className="text-[10px] text-slate-400 mt-0.5">PDF, PNG, JPG (max 10MB)</span>
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        className="hidden"
+                        onChange={(e) => handleFileUpload('idProof', e.target.files?.[0] || null)}
+                      />
+                    </label>
+                  )}
+                </div>
+
+                {/* 4. Signed Offer Letter / Agreement */}
+                <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                      <IconFileCheck className="w-4 h-4 text-emerald-600" />
+                      <span>Offer Letter / Contract</span>
+                    </label>
+                    {uploadedFiles.offerLetter.file && (
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1">
+                        <IconCheck className="w-3 h-3" /> Attached
+                      </span>
+                    )}
+                  </div>
+
+                  {uploadedFiles.offerLetter.file ? (
+                    <div className="flex items-center justify-between p-2.5 bg-white border border-emerald-200 rounded-xl shadow-2xs">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                          <IconFileCheck className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-800 truncate">{uploadedFiles.offerLetter.name}</p>
+                          <p className="text-[10px] text-slate-400">{uploadedFiles.offerLetter.size}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleFileUpload('offerLetter', null)}
+                        className="p-1 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                        title="Remove file"
+                      >
+                        <IconX className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center p-3.5 border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-white rounded-xl cursor-pointer group transition-all">
+                      <IconUpload className="w-5 h-5 text-slate-400 group-hover:text-emerald-600 transition-colors mb-1" />
+                      <span className="text-xs font-bold text-slate-700 group-hover:text-emerald-600 transition-colors">
+                        Click to upload Offer Letter
+                      </span>
+                      <span className="text-[10px] text-slate-400 mt-0.5">PDF or DOCX (max 10MB)</span>
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        className="hidden"
+                        onChange={(e) => handleFileUpload('offerLetter', e.target.files?.[0] || null)}
+                      />
+                    </label>
+                  )}
+                </div>
               </div>
             </div>
-          )}
 
-          {/* Action Buttons Row */}
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <Link
-              to="/company/employees"
-              className="px-5 py-2.5 rounded-xl text-xs font-bold border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer shadow-2xs"
-            >
-              Cancel
-            </Link>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
-            >
-              {isSubmitting ? (
-                'Onboarding Employee...'
-              ) : (
-                <>
-                  <IconCheck className="w-4 h-4" />
-                  <span>Complete Onboarding</span>
-                </>
-              )}
-            </button>
+            {/* Section 5: HR Granular Sub-Permissions (Only if HR role selected) */}
+            {form.role === 'HR' && (
+              <>
+                <hr className="border-slate-200/80" />
+                <div className="bg-indigo-50/40 rounded-xl border border-indigo-100 p-5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <IconShieldLock className="w-4 h-4 text-[#5E4BE2]" />
+                    <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                      Granular HR Privileges
+                    </h3>
+                  </div>
+                  <p className="text-xs text-slate-600 font-medium">
+                    Select specific administrative modules this HR manager can access and operate.
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+                    {HR_PERMISSIONS.map((perm) => {
+                      const checked = form.hrPermissions.includes(perm.key);
+                      return (
+                        <label
+                          key={perm.key}
+                          className={`flex items-center gap-2.5 text-xs font-semibold p-2.5 rounded-xl border transition-all cursor-pointer select-none ${
+                            checked
+                              ? 'bg-white border-[#5E4BE2] text-[#5E4BE2] shadow-2xs'
+                              : 'bg-white/80 border-slate-200 text-slate-600 hover:bg-white hover:text-slate-800'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => handlePermissionToggle(perm.key)}
+                            className="rounded-sm text-[#5E4BE2] focus:ring-[#5E4BE2] w-3.5 h-3.5"
+                          />
+                          <span>{perm.label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Line Separation */}
+            <hr className="border-slate-200/80" />
+
+            {/* Action Buttons Row */}
+            <div className="flex items-center justify-end gap-3 pt-1">
+              <Link
+                to="/company/employees"
+                className="px-5 py-2.5 rounded-xl text-xs font-bold border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer shadow-2xs"
+              >
+                Cancel
+              </Link>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
+              >
+                {isSubmitting ? (
+                  'Creating Employee...'
+                ) : (
+                  <>
+                    <IconCheck className="w-4 h-4" />
+                    <span>Create Employee</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 

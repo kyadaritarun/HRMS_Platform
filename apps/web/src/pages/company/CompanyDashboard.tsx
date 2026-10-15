@@ -412,9 +412,16 @@ export const CompanyDashboard: React.FC = () => {
       {/* ===================== TOP BAR ===================== */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            {company?.name || 'Company'} Dashboard
-          </h1>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Company Dashboard
+            </h1>
+            {company?.name && (
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-[#5E4BE2] border border-indigo-100/80">
+                {company.name}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-slate-500 font-medium mt-0.5">
             Real-time workforce intelligence and operations center
           </p>

@@ -144,7 +144,7 @@ export const CompanyBillingPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2.5">
             <IconReceipt2 className="w-7 h-7 text-[#5E4BE2]" />
-            Invoices & Billing History
+            Billing
           </h1>
           <p className="text-sm text-slate-500 mt-1">
             Official GST tax receipts and corporate subscription invoices.

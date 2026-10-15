@@ -102,7 +102,7 @@ export const MyAttendancePage: React.FC = () => {
       setNote('');
       fetchAttendance();
     } catch (err: any) {
-      setError(err.response?.data?.message || err.response?.data?.error || 'Clock in failed');
+      setError(err.response?.data?.message || err.response?.data?.error || 'Check-in failed');
     } finally {
       setActionLoading(false);
     }
@@ -122,7 +122,7 @@ export const MyAttendancePage: React.FC = () => {
       setNote('');
       fetchAttendance();
     } catch (err: any) {
-      setError(err.response?.data?.message || err.response?.data?.error || 'Clock out failed');
+      setError(err.response?.data?.message || err.response?.data?.error || 'Check-out failed');
     } finally {
       setActionLoading(false);
     }
@@ -191,11 +191,11 @@ export const MyAttendancePage: React.FC = () => {
               <IconClock className="w-4 h-4" />
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Attendance & Time Tracker
+              Attendance
             </h1>
           </div>
           <p className="text-xs text-slate-500 font-medium mt-1">
-            Real-time geofenced clock-in, duration calculation, and regularization desk.
+            Real-time geofenced check-in, duration calculation, and regularization desk.
           </p>
         </div>
 
@@ -207,7 +207,7 @@ export const MyAttendancePage: React.FC = () => {
               className="flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
             >
               <IconPlayerStop className="w-4 h-4" />
-              <span>{actionLoading ? 'Clocking Out...' : 'Clock Out Now'}</span>
+              <span>{actionLoading ? 'Checking Out...' : 'Check Out Now'}</span>
             </button>
           ) : (
             <button
@@ -216,7 +216,7 @@ export const MyAttendancePage: React.FC = () => {
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
             >
               <IconPlayerPlay className="w-4 h-4 fill-white" />
-              <span>{actionLoading ? 'Clocking In...' : 'Clock In with Geolocation'}</span>
+              <span>{actionLoading ? 'Checking In...' : 'Check In with Geolocation'}</span>
             </button>
           )}
 
@@ -248,7 +248,7 @@ export const MyAttendancePage: React.FC = () => {
             </div>
             <div className="text-[11px] font-bold text-slate-500 mt-2 flex items-center gap-1.5">
               <span className={`w-2 h-2 rounded-full ${activeSession ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
-              <span>{activeSession ? `${activeSession.workMode} Shift Active` : 'Not clocked in'}</span>
+              <span>{activeSession ? `${activeSession.workMode} Shift Active` : 'Not checked in'}</span>
             </div>
           </div>
           <div className={`w-11 h-11 rounded-2xl border flex items-center justify-center ${activeSession ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
@@ -356,8 +356,8 @@ export const MyAttendancePage: React.FC = () => {
             <thead className="bg-slate-50/60 text-[11px] font-bold text-slate-400 tracking-wider uppercase border-b border-slate-100">
               <tr>
                 <th className="px-6 py-3.5">DATE</th>
-                <th className="px-6 py-3.5">CLOCK IN</th>
-                <th className="px-6 py-3.5">CLOCK OUT</th>
+                <th className="px-6 py-3.5">CHECK-IN</th>
+                <th className="px-6 py-3.5">CHECK-OUT</th>
                 <th className="px-6 py-3.5">WORK MODE</th>
                 <th className="px-6 py-3.5">DURATION</th>
                 <th className="px-6 py-3.5">NOTE</th>

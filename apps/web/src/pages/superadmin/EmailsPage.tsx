@@ -222,7 +222,7 @@ export const EmailsPage: React.FC = () => {
             <div className="p-2 bg-brand-50 text-brand-600 rounded-xl border border-brand-100">
               <IconMail className="w-6 h-6 stroke-[2]" />
             </div>
-            System Email Notification Logs
+            Email Notifications
           </h1>
           <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-1 font-medium">
             <Link to="/super-admin/dashboard" className="hover:text-brand-600 flex items-center gap-1">

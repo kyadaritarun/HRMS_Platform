@@ -104,7 +104,7 @@ export const ClaimCategoriesPage: React.FC = () => {
               <IconReceipt2 className="w-4 h-4" />
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Expense Claim Categories
+              Claim Categories
             </h1>
           </div>
           <p className="text-xs text-slate-500 font-medium mt-1">

@@ -142,7 +142,7 @@ export const RolesHierarchyPage: React.FC = () => {
     },
     {
       module: 'Self Service',
-      feature: 'Clock-In, Apply Leaves & View Payslips',
+      feature: 'Check-In, Apply Leaves & View Payslips',
       superAdmin: false,
       companyAdmin: true,
       hr: true,
@@ -256,7 +256,7 @@ export const RolesHierarchyPage: React.FC = () => {
               <IconNetwork className="w-4 h-4" />
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Roles & Organizational Hierarchy
+              Roles & Hierarchy
             </h1>
           </div>
           <p className="text-xs text-slate-500 font-medium mt-1">

@@ -211,27 +211,36 @@ export const LeaveTypesPage: React.FC = () => {
   return (
     <div className="space-y-6 pb-12">
       {/* Top Banner (Hero Banner) */}
-     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0">
-              <IconUserPlus className="w-4 h-4" />
+              <IconFileCertificate className="w-4 h-4" />
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Leave Policies & Quotas
+              Leave Types
             </h1>
           </div>
           <p className="text-xs text-slate-500 font-medium mt-1">
-            Define leave quotas, encashment, carry-forward caps, and auto-provisioning rules for employees.
+            Configure leave types, annual quotas, carry-forward rules, and approval policies.
           </p>
         </div>
+
+        {/* Primary CTA: Add Leave Type */}
+        <button
+          onClick={handleOpenAdd}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white text-xs font-bold shadow-xs hover:shadow-md transition-all cursor-pointer shrink-0"
+        >
+          <IconPlus className="w-4 h-4" />
+          <span>Add Leave Type</span>
+        </button>
       </div>
 
       {/* KPI Overview Metrics Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Total Policies</span>
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Total Leave Types</span>
             <span className="text-2xl font-bold text-slate-900 mt-1 block">{totalPolicies}</span>
           </div>
           <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
@@ -279,7 +288,7 @@ export const LeaveTypesPage: React.FC = () => {
               <IconCalendar className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-900">All Leave Policies</h2>
+              <h2 className="text-sm font-bold text-slate-900">All Leave Types</h2>
               <p className="text-xs text-slate-400 mt-0.5">View and manage leave types, annual quotas, and approval rules.</p>
             </div>
           </div>
@@ -291,7 +300,7 @@ export const LeaveTypesPage: React.FC = () => {
               <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search policies by name or code..."
+                placeholder="Search leave types by name or code..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-9 pr-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-800 placeholder-slate-400"
@@ -305,7 +314,7 @@ export const LeaveTypesPage: React.FC = () => {
                 onChange={(e) => setFilterType(e.target.value)}
                 className="appearance-none pl-8 pr-7 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-700 cursor-pointer"
               >
-                <option value="ALL">All Policies</option>
+                <option value="ALL">All Leave Types</option>
                 <option value="PAID">Paid Leave Only</option>
                 <option value="UNPAID">Unpaid (LOP)</option>
                 <option value="CARRY">Carry Forward Allowed</option>
@@ -321,10 +330,10 @@ export const LeaveTypesPage: React.FC = () => {
           <table className="w-full text-left text-xs">
             <thead className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 bg-slate-50/50">
               <tr>
-                <th className="px-4 py-3">POLICY NAME & CODE</th>
+                <th className="px-4 py-3">LEAVE TYPE & CODE</th>
                 <th className="px-4 py-3">ANNUAL QUOTA</th>
                 <th className="px-4 py-3">TYPE</th>
-                <th className="px-4 py-3">POLICY RULES</th>
+                <th className="px-4 py-3">RULES & APPROVAL</th>
                 <th className="px-4 py-3">CARRY FORWARD</th>
                 <th className="px-4 py-3">STATUS</th>
                 <th className="px-4 py-3 text-right">ACTIONS</th>
@@ -335,7 +344,7 @@ export const LeaveTypesPage: React.FC = () => {
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400">
                     <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-indigo-600 border-t-transparent mb-2" />
-                    <p className="text-xs">Loading leave policies...</p>
+                    <p className="text-xs">Loading leave types...</p>
                   </td>
                 </tr>
               ) : filteredLeaveTypes.length === 0 ? (
@@ -344,9 +353,9 @@ export const LeaveTypesPage: React.FC = () => {
                     <div className="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-2">
                       <IconFileCertificate className="w-6 h-6" />
                     </div>
-                    <h4 className="text-sm font-bold text-slate-800">No leave policies found</h4>
+                    <h4 className="text-sm font-bold text-slate-800">No leave types found</h4>
                     <p className="text-xs text-slate-400 mt-1">
-                      {search ? 'Try modifying your search or filter.' : 'Click "Add Leave Policy" to configure your first policy.'}
+                      {search ? 'Try modifying your search or filter.' : 'Click "Add Leave Type" to configure your first leave type.'}
                     </p>
                   </td>
                 </tr>
@@ -476,7 +485,7 @@ export const LeaveTypesPage: React.FC = () => {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                 <IconFileCertificate className="w-5 h-5 text-indigo-600" />
-                {editingPolicy ? 'Edit Leave Policy' : 'New Leave Policy'}
+                {editingPolicy ? 'Edit Leave Type' : 'Create Leave Type'}
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -495,7 +504,7 @@ export const LeaveTypesPage: React.FC = () => {
 
             <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Policy Name *</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Leave Type Name *</label>
                 <input
                   type="text"
                   required
@@ -508,7 +517,7 @@ export const LeaveTypesPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Policy Code *</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Leave Code *</label>
                   <input
                     type="text"
                     required
@@ -621,7 +630,7 @@ export const LeaveTypesPage: React.FC = () => {
                   disabled={isSubmitting}
                   className="px-5 py-2 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm disabled:opacity-50 cursor-pointer"
                 >
-                  {isSubmitting ? 'Saving...' : editingPolicy ? 'Update Policy' : 'Create Policy'}
+                  {isSubmitting ? 'Saving...' : editingPolicy ? 'Update Leave Type' : 'Create Leave Type'}
                 </button>
               </div>
             </form>

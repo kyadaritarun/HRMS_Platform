@@ -156,7 +156,7 @@ export const RenewalsPage: React.FC = () => {
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Renewal &amp; Expired Billing
+            Renewals &amp; Billing
           </h1>
           <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-1 font-medium">
             <Link to="/super-admin/dashboard" className="hover:text-brand-600 flex items-center gap-1">

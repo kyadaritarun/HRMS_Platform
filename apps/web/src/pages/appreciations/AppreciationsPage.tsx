@@ -191,7 +191,7 @@ export const AppreciationsPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
             <IconHeartHandshake className="w-7 h-7 text-brand-600" />
-            Peer Kudos & Recognition Wall
+            Appreciations
           </h1>
           <p className="text-sm text-slate-500 mt-1">
             Celebrate colleagues, foster positive company culture, and recognize outstanding contributions.

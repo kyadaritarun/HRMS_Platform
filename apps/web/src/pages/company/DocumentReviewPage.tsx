@@ -177,7 +177,7 @@ export const DocumentReviewPage: React.FC = () => {
               <IconFolderCheck className="w-4 h-4" />
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              KYC Document Verification Desk
+              Document Review
             </h1>
           </div>
           <p className="text-xs text-slate-500 font-medium mt-1">
