@@ -469,8 +469,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
                         ) : (
                           <IconChevronRight
                             className={`w-4 h-4 shrink-0 transition-colors ${isHighlighted
-                                ? 'text-[#5E4BE2]'
-                                : 'text-slate-400 group-hover:text-slate-600'
+                              ? 'text-[#5E4BE2]'
+                              : 'text-slate-400 group-hover:text-slate-600'
                               }`}
                           />
                         )
@@ -524,8 +524,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
                           className={({ isActive }) => {
                             const active = isActive || isApprovalsActive;
                             return `flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all group ${active
-                                ? 'bg-[#5E4BE2] text-white shadow-xs shadow-indigo-600/20'
-                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                              ? 'bg-[#5E4BE2] text-white shadow-xs shadow-indigo-600/20'
+                              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                               }`;
                           }}
                         >

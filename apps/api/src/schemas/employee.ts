@@ -12,7 +12,7 @@ export const CreateEmployeeSchema = z.object({
   jobTitle: z.string().default(''),
   shiftId: z.string().nullable().optional(),
   workMode: z.enum(['WFO', 'WFH', 'HYBRID']).default('WFO'),
-  employmentType: z.enum(['FULL_TIME', 'PART_TIME']).default('FULL_TIME'),
+  employmentType: z.string().default('PERMANENT'),
   employeeNumber: z.string().default(''),
   joiningDate: z.string().optional(),
   dateOfBirth: z.string().optional(),
@@ -40,6 +40,9 @@ export const CreateEmployeeSchema = z.object({
     .default({ paymentMode: 'BANK_TRANSFER', bankName: '', accountNumber: '', ifscCode: '', panNumber: '' }),
   hrPermissions: z.array(z.string()).nullable().optional(),
   canManagePerformance: z.boolean().default(false),
+  password: z.string().min(6).optional(),
+  passwordMode: z.enum(['AUTO', 'MANUAL']).default('AUTO').optional(),
+  mustChangePassword: z.boolean().default(true).optional(),
 });
 
 export const UpdateEmployeeSchema = CreateEmployeeSchema.partial();

@@ -482,11 +482,9 @@ export const ProfilePage: React.FC = () => {
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1.5">Work Mode</label>
                 <div className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/90 bg-[#fafafa] text-xs text-slate-700 font-normal">
-                  {user?.workMode === 'WFH'
+                  {user?.workMode === 'WFH' || user?.workMode === 'REMOTE'
                     ? 'Work From Home'
-                    : user?.workMode === 'HYBRID'
-                    ? 'Hybrid'
-                    : 'Work From Office'}
+                    : 'Office'}
                 </div>
               </div>
 

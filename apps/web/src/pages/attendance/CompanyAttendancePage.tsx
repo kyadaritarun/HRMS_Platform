@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import api from '../../api/client';
 import {
   IconClock,
@@ -13,6 +13,7 @@ import {
   IconX,
   IconFileSpreadsheet,
   IconSparkles,
+  IconChevronDown,
 } from '@tabler/icons-react';
 
 interface CompanyAttendanceLog {
@@ -46,8 +47,37 @@ export const CompanyAttendancePage: React.FC = () => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [search, setSearch] = useState('');
   const [selectedDept, setSelectedDept] = useState<string>('');
-  const [selectedWorkMode, setSelectedWorkMode] = useState<string>('ALL');
+  const [selectedWorkMode, setSelectedWorkMode] = useState<'ALL' | 'OFFICE' | 'WFH'>('ALL');
   const [isExporting, setIsExporting] = useState(false);
+
+  // Export dropdown & range state
+  const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'xlsx' | 'csv'>('xlsx');
+  const [exportFromMonth, setExportFromMonth] = useState(() => {
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    return `${now.getFullYear()}-${mm}`;
+  });
+  const [exportToMonth, setExportToMonth] = useState(() => {
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    return `${now.getFullYear()}-${mm}`;
+  });
+  const exportDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (exportDropdownRef.current && !exportDropdownRef.current.contains(e.target as Node)) {
+        setIsExportDropdownOpen(false);
+      }
+    };
+    if (isExportDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isExportDropdownOpen]);
 
   const fetchLogs = async () => {
     setIsLoading(true);
@@ -88,25 +118,31 @@ export const CompanyAttendancePage: React.FC = () => {
     fetchLogs();
   }, [date]);
 
-  const handleExportExcel = async () => {
+  const handleExport = async (formatOverride?: 'xlsx' | 'csv') => {
+    const fmt = formatOverride || exportFormat;
     setIsExporting(true);
     try {
-      const year = new Date(date).getFullYear();
-      const month = new Date(date).getMonth() + 1;
       const res = await api.get('/company/attendance/export', {
-        params: { month, year },
+        params: {
+          format: fmt,
+          fromMonth: exportFromMonth,
+          toMonth: exportToMonth,
+        },
         responseType: 'blob',
       });
+      const ext = fmt === 'csv' ? 'csv' : 'xlsx';
+      const filename = `Attendance_Report_${exportFromMonth}_to_${exportToMonth}.${ext}`;
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `Attendance_Report_${month}_${year}.xlsx`);
+      link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
       link.remove();
+      setIsExportDropdownOpen(false);
     } catch (err) {
-      console.error('Failed to export excel:', err);
-      alert('Failed to export attendance Excel spreadsheet.');
+      console.error('Failed to export attendance:', err);
+      alert(`Failed to export attendance ${fmt.toUpperCase()} file.`);
     } finally {
       setIsExporting(false);
     }
@@ -123,9 +159,8 @@ export const CompanyAttendancePage: React.FC = () => {
     }, 0);
 
     const avgHours = completedShifts.length > 0 ? (totalDuration / completedShifts.length).toFixed(1) : '—';
-    const remoteCount = logs.filter((l) => l.workMode === 'WFH').length;
-    const onSiteCount = logs.filter((l) => l.workMode === 'WFO' || l.workMode === 'ON_SITE' || !l.workMode).length;
-    const hybridCount = logs.filter((l) => l.workMode === 'HYBRID').length;
+    const remoteCount = logs.filter((l) => l.workMode === 'WFH' || l.workMode === 'REMOTE').length;
+    const onSiteCount = logs.filter((l) => l.workMode !== 'WFH' && l.workMode !== 'REMOTE').length;
     const attendanceRate = totalWorkforce > 0 ? Math.round((presentCount / totalWorkforce) * 100) : null;
 
     return {
@@ -135,7 +170,6 @@ export const CompanyAttendancePage: React.FC = () => {
       avgHours,
       remoteCount,
       onSiteCount,
-      hybridCount,
       attendanceRate,
     };
   }, [logs, totalWorkforce]);
@@ -157,10 +191,20 @@ export const CompanyAttendancePage: React.FC = () => {
       }
 
       if (selectedWorkMode !== 'ALL') {
-        if (selectedWorkMode === 'WFH' && log.workMode !== 'WFH') return false;
-        if (selectedWorkMode === 'HYBRID' && log.workMode !== 'HYBRID') return false;
-        if (selectedWorkMode === 'ON_SITE') {
-          if (log.workMode !== 'WFO' && log.workMode !== 'ON_SITE' && log.workMode) return false;
+        if (selectedWorkMode === 'WFH') {
+          if (log.workMode !== 'WFH' && log.workMode !== 'REMOTE') return false;
+        }
+        if (selectedWorkMode === 'OFFICE') {
+          if (
+            log.workMode !== 'WFO' &&
+            log.workMode !== 'ON_SITE' &&
+            log.workMode !== 'ONSITE' &&
+            log.workMode !== 'OFFICE' &&
+            log.workMode !== 'HYBRID' &&
+            Boolean(log.workMode)
+          ) {
+            return false;
+          }
         }
       }
 
@@ -169,26 +213,18 @@ export const CompanyAttendancePage: React.FC = () => {
   }, [logs, search, selectedDept, selectedWorkMode]);
 
   const getWorkModeBadge = (mode: string) => {
-    switch (mode) {
-      case 'WFH':
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/70 shadow-2xs">
-            Remote
-          </span>
-        );
-      case 'HYBRID':
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/70 shadow-2xs">
-            Hybrid
-          </span>
-        );
-      default:
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200/70 shadow-2xs">
-            On-site
-          </span>
-        );
+    if (mode === 'WFH' || mode === 'REMOTE') {
+      return (
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/70 shadow-2xs">
+          Work From Home
+        </span>
+      );
     }
+    return (
+      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200/70 shadow-2xs">
+        Office
+      </span>
+    );
   };
 
   return (
@@ -209,87 +245,216 @@ export const CompanyAttendancePage: React.FC = () => {
           </p>
         </div>
 
-        {/* Right CTA Button */}
-        <button
-          onClick={handleExportExcel}
-          disabled={isExporting}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer self-stretch sm:self-auto justify-center"
-        >
-          <IconFileSpreadsheet className="w-4 h-4" />
-          <span>{isExporting ? 'Generating Report...' : 'Export to Excel (.xlsx)'}</span>
-        </button>
-      </div>
+        {/* Export Dropdown Trigger & Panel */}
+        <div className="relative self-stretch sm:self-auto" ref={exportDropdownRef}>
+          <button
+            onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
+            className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2.5 px-4 py-2.5 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 active:scale-[0.98] transition-all cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <IconDownload className="w-4 h-4" />
+              <span>Export</span>
+            </div>
+            <IconChevronDown
+              className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                isExportDropdownOpen ? 'rotate-180' : ''
+              }`}
+            />
+          </button>
 
-      {/* ===================== ROW 1: 4 KPI STAT CARDS ===================== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Attendance Rate & Present Count */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
-          <div>
-            <span className="text-xs font-bold text-slate-500">Attendance Rate</span>
-            <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-              {kpiStats.attendanceRate !== null ? `${kpiStats.attendanceRate}%` : `${kpiStats.presentCount}`}
-            </div>
-            <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-2">
-              <span>●</span>
-              <span>
-                {totalWorkforce > 0
-                  ? `${kpiStats.presentCount} of ${totalWorkforce} employees present`
-                  : `${kpiStats.presentCount} present on selected date`}
-              </span>
-            </div>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2]">
-            <IconUserCheck className="w-5 h-5" />
-          </div>
-        </div>
+          {isExportDropdownOpen && (
+            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200/90 p-5 z-50 animate-in fade-in zoom-in-95 duration-150">
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-indigo-50 text-[#5E4BE2] flex items-center justify-center shrink-0">
+                    <IconFileSpreadsheet className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900">Export Attendance</h4>
+                    <p className="text-[11px] text-slate-400">Download formatted records</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsExportDropdownOpen(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <IconX className="w-4 h-4" />
+                </button>
+              </div>
 
-        {/* Card 2: Active Shifts Now */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
-          <div>
-            <span className="text-xs font-bold text-slate-500">Currently On Duty</span>
-            <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-              {kpiStats.activeNow.toLocaleString()}
-            </div>
-            <div className="text-[11px] font-bold text-amber-600 mt-2 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-              <span>Shift currently in progress</span>
-            </div>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
-            <IconClock className="w-5 h-5" />
-          </div>
-        </div>
+              {/* 1. Format Selection */}
+              <div className="mt-3.5 space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Select Download Format
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setExportFormat('xlsx')}
+                    className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                      exportFormat === 'xlsx'
+                        ? 'bg-emerald-50/70 border-emerald-500 text-emerald-800 shadow-2xs'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-white hover:border-slate-300'
+                    }`}
+                  >
+                    <div
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0 ${
+                        exportFormat === 'xlsx' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-200 text-slate-600'
+                      }`}
+                    >
+                      XLS
+                    </div>
+                    <div className="text-left min-w-0">
+                      <div className="leading-tight text-xs">Excel (.xlsx)</div>
+                      <div className="text-[10px] font-normal text-slate-400 truncate">Spreadsheet</div>
+                    </div>
+                  </button>
 
-        {/* Card 3: Avg Duration */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
-          <div>
-            <span className="text-xs font-bold text-slate-500">Avg Shift Duration</span>
-            <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-              {kpiStats.avgHours !== '—' ? `${kpiStats.avgHours} hrs` : '—'}
-            </div>
-            <div className="text-[11px] font-bold text-purple-600 mt-2">
-              Completed daily shifts
-            </div>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
-            <IconCalendar className="w-5 h-5" />
-          </div>
-        </div>
+                  <button
+                    type="button"
+                    onClick={() => setExportFormat('csv')}
+                    className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                      exportFormat === 'csv'
+                        ? 'bg-blue-50/70 border-blue-500 text-blue-800 shadow-2xs'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-white hover:border-slate-300'
+                    }`}
+                  >
+                    <div
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0 ${
+                        exportFormat === 'csv' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-200 text-slate-600'
+                      }`}
+                    >
+                      CSV
+                    </div>
+                    <div className="text-left min-w-0">
+                      <div className="leading-tight text-xs">CSV (.csv)</div>
+                      <div className="text-[10px] font-normal text-slate-400 truncate">Plain text table</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
 
-        {/* Card 4: Location Mix */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
-          <div>
-            <span className="text-xs font-bold text-slate-500">Work Location</span>
-            <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-              {kpiStats.onSiteCount} / {kpiStats.remoteCount + kpiStats.hybridCount}
+              {/* 2. Month to Month Range */}
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Month Range (From - To)
+                  </label>
+                  <span className="text-[10px] font-semibold text-indigo-600">
+                    {exportFromMonth === exportToMonth ? '1 month' : `${exportFromMonth} → ${exportToMonth}`}
+                  </span>
+                </div>
+
+                {/* Preset shortcuts */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {[
+                    {
+                      label: 'This Month',
+                      getRange: () => {
+                        const now = new Date();
+                        const m = String(now.getMonth() + 1).padStart(2, '0');
+                        return [`${now.getFullYear()}-${m}`, `${now.getFullYear()}-${m}`];
+                      },
+                    },
+                    {
+                      label: 'Last Month',
+                      getRange: () => {
+                        const d = new Date();
+                        d.setMonth(d.getMonth() - 1);
+                        const m = String(d.getMonth() + 1).padStart(2, '0');
+                        return [`${d.getFullYear()}-${m}`, `${d.getFullYear()}-${m}`];
+                      },
+                    },
+                    {
+                      label: 'Last 3 Months',
+                      getRange: () => {
+                        const now = new Date();
+                        const past = new Date();
+                        past.setMonth(now.getMonth() - 2);
+                        const nm = String(now.getMonth() + 1).padStart(2, '0');
+                        const pm = String(past.getMonth() + 1).padStart(2, '0');
+                        return [`${past.getFullYear()}-${pm}`, `${now.getFullYear()}-${nm}`];
+                      },
+                    },
+                    {
+                      label: 'Full Year',
+                      getRange: () => {
+                        const y = new Date().getFullYear();
+                        return [`${y}-01`, `${y}-12`];
+                      },
+                    },
+                  ].map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => {
+                        const [from, to] = preset.getRange();
+                        setExportFromMonth(from);
+                        setExportToMonth(to);
+                      }}
+                      className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-slate-100 hover:bg-indigo-50 hover:text-[#5E4BE2] text-slate-600 transition-colors cursor-pointer"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* From Month & To Month Selectors */}
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 block mb-1">From Month</span>
+                    <input
+                      type="month"
+                      value={exportFromMonth}
+                      onChange={(e) => {
+                        setExportFromMonth(e.target.value);
+                        if (e.target.value > exportToMonth) {
+                          setExportToMonth(e.target.value);
+                        }
+                      }}
+                      className="w-full px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] cursor-pointer"
+                    />
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 block mb-1">To Month</span>
+                    <input
+                      type="month"
+                      value={exportToMonth}
+                      min={exportFromMonth}
+                      onChange={(e) => setExportToMonth(e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsExportDropdownOpen(false)}
+                  disabled={isExporting}
+                  className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleExport()}
+                  disabled={isExporting}
+                  className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] rounded-xl shadow-sm shadow-indigo-600/25 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <IconDownload className="w-3.5 h-3.5" />
+                  <span>
+                    {isExporting ? 'Generating...' : `Download .${exportFormat.toUpperCase()}`}
+                  </span>
+                </button>
+              </div>
             </div>
-            <div className="text-[11px] font-bold text-blue-600 mt-2">
-              {kpiStats.onSiteCount} On-site · {kpiStats.remoteCount} Remote
-            </div>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-            <IconBuilding className="w-5 h-5" />
-          </div>
+          )}
         </div>
       </div>
 
@@ -347,15 +512,13 @@ export const CompanyAttendancePage: React.FC = () => {
 
           {/* Work Mode Toggle Pills */}
           <div className="flex items-center bg-slate-50/80 border border-slate-200/70 p-1 rounded-xl">
-            {(['ALL', 'ON_SITE', 'HYBRID', 'WFH'] as const).map((mode) => {
+            {(['ALL', 'OFFICE', 'WFH'] as const).map((mode) => {
               const label =
                 mode === 'ALL'
                   ? 'All'
-                  : mode === 'ON_SITE'
-                  ? 'On-site'
-                  : mode === 'HYBRID'
-                  ? 'Hybrid'
-                  : 'Remote';
+                  : mode === 'OFFICE'
+                  ? 'Office'
+                  : 'Work From Home';
               const isActive = selectedWorkMode === mode;
               return (
                 <button

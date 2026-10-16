@@ -275,14 +275,7 @@ export const DepartmentsPage: React.FC = () => {
               <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
-            {/* Secondary CTA Button */}
-            <button
-              onClick={handleOpenAddModal}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl bg-indigo-50 hover:bg-indigo-100 text-[#5E4BE2] border border-indigo-100/70 transition-colors cursor-pointer shrink-0"
-            >
-              <IconPlus className="w-3.5 h-3.5" />
-              <span>New</span>
-            </button>
+           
           </div>
         </div>
 
@@ -519,15 +512,10 @@ export const DepartmentsPage: React.FC = () => {
         };
 
         const getWorkModeBadge = (workMode?: string) => {
-          switch (workMode) {
-            case 'REMOTE':
-              return <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-sky-50 text-sky-700">Remote</span>;
-            case 'HYBRID':
-              return <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-indigo-50 text-indigo-700">Hybrid</span>;
-            case 'ON_SITE':
-            default:
-              return <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-emerald-50 text-emerald-700">On-site</span>;
+          if (workMode === 'REMOTE' || workMode === 'WFH') {
+            return <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-emerald-50 text-emerald-700">Work From Home</span>;
           }
+          return <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-blue-50 text-blue-700">Office</span>;
         };
 
         return (

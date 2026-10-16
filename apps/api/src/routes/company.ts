@@ -865,26 +865,39 @@ router.get(
   async (req, res, next) => {
     try {
       const companyId = req.user!.companyId!;
+      const format = String(req.query.format || 'xlsx').toLowerCase() === 'csv' ? 'csv' : 'xlsx';
       let from: Date | undefined;
       let to: Date | undefined;
 
       if (req.query.from) {
         from = new Date(String(req.query.from));
+      } else if (req.query.fromMonth) {
+        const [y, m] = String(req.query.fromMonth).split('-').map(Number);
+        if (y && m) from = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0));
       } else if (req.query.month && req.query.year) {
         const m = Number(req.query.month);
         const y = Number(req.query.year);
-        from = new Date(Date.UTC(y, m - 1, 1));
-        to = new Date(Date.UTC(y, m, 0, 23, 59, 59));
+        from = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0));
+        to = new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));
       }
-      if (req.query.to && !to) {
+
+      if (req.query.to) {
         to = new Date(String(req.query.to));
+      } else if (req.query.toMonth) {
+        const [y, m] = String(req.query.toMonth).split('-').map(Number);
+        if (y && m) to = new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));
       }
 
-      const excelBuffer = await generateAttendanceExcel(companyId, from, to);
+      const fileBuffer = await generateAttendanceExcel(companyId, from, to, format);
 
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename=attendance_export.xlsx');
-      return res.send(excelBuffer);
+      if (format === 'csv') {
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename=attendance_export.csv');
+      } else {
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=attendance_export.xlsx');
+      }
+      return res.send(fileBuffer);
     } catch (error) {
       next(error);
     }

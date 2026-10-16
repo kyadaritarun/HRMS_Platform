@@ -97,7 +97,12 @@ export async function checkOut(opts: {
   return updated;
 }
 
-export async function generateAttendanceExcel(companyId: number, fromDate?: Date, toDate?: Date): Promise<Buffer> {
+export async function generateAttendanceExcel(
+  companyId: number,
+  fromDate?: Date,
+  toDate?: Date,
+  format: 'xlsx' | 'csv' = 'xlsx'
+): Promise<Buffer> {
   const where: any = { companyId };
   if (fromDate || toDate) {
     where.checkIn = {};
@@ -105,21 +110,55 @@ export async function generateAttendanceExcel(companyId: number, fromDate?: Date
     if (toDate) where.checkIn.lte = toDate;
   }
 
-  const records = await prisma.attendance.findMany({
-    where,
-    include: {
-      user: {
-        select: {
-          firstName: true,
-          lastName: true,
-          email: true,
-          jobTitle: true,
-          department: { select: { name: true } },
+  const [records, company] = await Promise.all([
+    prisma.attendance.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+            jobTitle: true,
+            department: { select: { name: true } },
+          },
         },
       },
-    },
-    orderBy: { checkIn: 'desc' },
-  });
+      orderBy: { checkIn: 'desc' },
+    }),
+    prisma.company.findUnique({
+      where: { id: companyId },
+      select: { timezone: true },
+    }),
+  ]);
+
+  const tz = company?.timezone || 'Asia/Kolkata';
+
+  const formatNormalTime = (date?: Date | null): string => {
+    if (!date) return 'Active';
+    try {
+      return date.toLocaleTimeString('en-US', {
+        timeZone: tz,
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      });
+    } catch {
+      return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      });
+    }
+  };
+
+  const formatNormalDate = (date: Date): string => {
+    try {
+      return date.toLocaleDateString('en-CA', { timeZone: tz });
+    } catch {
+      return toDateKey(date);
+    }
+  };
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Uptrix HRMS';
@@ -133,10 +172,10 @@ export async function generateAttendanceExcel(companyId: number, fromDate?: Date
     { header: 'Email', key: 'email', width: 28 },
     { header: 'Department', key: 'dept', width: 18 },
     { header: 'Date', key: 'date', width: 14 },
-    { header: 'Check In', key: 'checkIn', width: 20 },
-    { header: 'Check Out', key: 'checkOut', width: 20 },
+    { header: 'Check In', key: 'checkIn', width: 16 },
+    { header: 'Check Out', key: 'checkOut', width: 16 },
     { header: 'Duration (Hours)', key: 'duration', width: 18 },
-    { header: 'Work Mode', key: 'workMode', width: 12 },
+    { header: 'Work Mode', key: 'workMode', width: 18 },
     { header: 'Notes', key: 'note', width: 25 },
   ];
 
@@ -154,13 +193,18 @@ export async function generateAttendanceExcel(companyId: number, fromDate?: Date
       name: `${r.user.firstName} ${r.user.lastName}`,
       email: r.user.email,
       dept: r.user.department?.name || 'N/A',
-      date: toDateKey(r.checkIn),
-      checkIn: r.checkIn.toISOString(),
-      checkOut: r.checkOut ? r.checkOut.toISOString() : 'Active',
-      duration: Number(r.durationHours),
-      workMode: r.workMode,
-      note: r.note,
+      date: formatNormalDate(r.checkIn),
+      checkIn: formatNormalTime(r.checkIn),
+      checkOut: formatNormalTime(r.checkOut),
+      duration: r.durationHours !== null && r.durationHours !== undefined ? Number(Number(r.durationHours).toFixed(2)) : 0,
+      workMode: r.workMode === 'WFH' ? 'Work From Home' : 'Office',
+      note: r.note || '—',
     });
+  }
+
+  if (format === 'csv') {
+    const csvBuffer = await workbook.csv.writeBuffer();
+    return Buffer.from(csvBuffer);
   }
 
   const buffer = await workbook.xlsx.writeBuffer();

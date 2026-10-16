@@ -433,72 +433,7 @@ export const ClaimsPage: React.FC = () => {
             </div>
           )}
 
-          {/* ===================== ROW 1: 4 KPI STAT CARDS ===================== */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Card 1: Total */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
-              <div>
-                <span className="text-xs font-bold text-slate-500">Total Claims</span>
-                <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-                  ₹{financialStats.totalAmount.toLocaleString()}
-                </div>
-                <div className="text-[11px] font-bold text-indigo-600 mt-2">
-                  {financialStats.totalCount} submitted claims
-                </div>
-              </div>
-              <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2]">
-                <IconReceipt2 className="w-5 h-5" />
-              </div>
-            </div>
-
-            {/* Card 2: Pending */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
-              <div>
-                <span className="text-xs font-bold text-slate-500">Pending Review</span>
-                <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-                  ₹{financialStats.pendingAmount.toLocaleString()}
-                </div>
-                <div className="text-[11px] font-bold text-amber-600 mt-2">
-                  {financialStats.pendingCount} awaiting approval
-                </div>
-              </div>
-              <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
-                <IconClock className="w-5 h-5" />
-              </div>
-            </div>
-
-            {/* Card 3: Approved */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
-              <div>
-                <span className="text-xs font-bold text-slate-500">Approved Payout</span>
-                <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-                  ₹{financialStats.approvedAmount.toLocaleString()}
-                </div>
-                <div className="text-[11px] font-bold text-blue-600 mt-2">
-                  {financialStats.approvedCount} ready for payout
-                </div>
-              </div>
-              <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-                <IconCheck className="w-5 h-5" />
-              </div>
-            </div>
-
-            {/* Card 4: Paid */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
-              <div>
-                <span className="text-xs font-bold text-slate-500">Disbursed & Paid</span>
-                <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-                  ₹{financialStats.paidAmount.toLocaleString()}
-                </div>
-                <div className="text-[11px] font-bold text-emerald-600 mt-2">
-                  {financialStats.paidCount} reimbursed
-                </div>
-              </div>
-              <div className="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-                <IconCash className="w-5 h-5" />
-              </div>
-            </div>
-          </div>
+        
 
           {/* ===================== ROW 2: SEARCH & FILTERS BAR ===================== */}
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">

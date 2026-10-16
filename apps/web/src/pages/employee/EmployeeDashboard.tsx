@@ -35,7 +35,7 @@ export const EmployeeDashboard: React.FC = () => {
 
   // Time Tracker state
   const [seconds, setSeconds] = useState(0);
-  const [workMode, setWorkMode] = useState<'WFO' | 'WFH' | 'HYBRID'>('WFO');
+  const [workMode, setWorkMode] = useState<'WFO' | 'WFH'>('WFO');
   const [activeSession, setActiveSession] = useState<{ id?: number; checkIn?: string; checkInGeo?: any } | null>(null);
   const [loadingCheck, setLoadingCheck] = useState(false);
   const [attendanceMessage, setAttendanceMessage] = useState<string | null>(null);
@@ -233,12 +233,11 @@ export const EmployeeDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Work Mode Toggle: On-site, Remote, Hybrid */}
-            <div className="grid grid-cols-3 gap-3 my-4">
+            {/* Work Mode Toggle: Office, Work From Home */}
+            <div className="grid grid-cols-2 gap-3 my-4">
               {[
-                { mode: 'WFO', label: 'On-site', icon: IconBuilding },
-                { mode: 'WFH', label: 'Remote', icon: IconHome },
-                { mode: 'HYBRID', label: 'Hybrid', icon: IconRefresh },
+                { mode: 'WFO', label: 'Office', icon: IconBuilding },
+                { mode: 'WFH', label: 'Work From Home', icon: IconHome },
               ].map((m) => {
                 const isSelected = workMode === m.mode;
                 const ModeIcon = m.icon;

@@ -299,73 +299,7 @@ export const RolesHierarchyPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ===================== ROW 1: 4 ROLE KPI DISTRIBUTION CARDS ===================== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Company Admin */}
-        <div className="bg-white rounded-2xl border border-slate-200/70 p-4 shadow-xs flex items-center justify-between hover:shadow-md transition-shadow">
-          <div>
-            <span className="text-xs font-bold text-slate-500">Company Admin</span>
-            <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-              {rolesSummary.COMPANY_ADMIN?.length || 0}
-            </div>
-            <div className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 mt-2">
-              <span>●</span>
-              <span>Full tenant governance</span>
-            </div>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2]">
-            <IconShieldLock className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Card 2: HR Directors */}
-        <div className="bg-white rounded-2xl border border-slate-200/70 p-4 shadow-xs flex items-center justify-between hover:shadow-md transition-shadow">
-          <div>
-            <span className="text-xs font-bold text-slate-500">HR Leaders</span>
-            <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-              {rolesSummary.HR?.length || 0}
-            </div>
-            <div className="flex items-center gap-1 text-[11px] font-bold text-amber-600 mt-2">
-              <span>People & payroll operations</span>
-            </div>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
-            <IconBriefcase className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Card 3: Team Managers */}
-        <div className="bg-white rounded-2xl border border-slate-200/70 p-4 shadow-xs flex items-center justify-between hover:shadow-md transition-shadow">
-          <div>
-            <span className="text-xs font-bold text-slate-500">Team Managers</span>
-            <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-              {rolesSummary.MANAGERS?.length || 0}
-            </div>
-            <div className="flex items-center gap-1 text-[11px] font-bold text-purple-600 mt-2">
-              <span>Direct approval desk</span>
-            </div>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
-            <IconUsers className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Card 4: Staff Employees */}
-        <div className="bg-white rounded-2xl border border-slate-200/70 p-4 shadow-xs flex items-center justify-between hover:shadow-md transition-shadow">
-          <div>
-            <span className="text-xs font-bold text-slate-500">Staff Employees</span>
-            <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-              {rolesSummary.EMPLOYEES?.length || 0}
-            </div>
-            <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-2">
-              <span>Standard self-service</span>
-            </div>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-            <IconUserCheck className="w-5 h-5" />
-          </div>
-        </div>
-      </div>
+      
 
       {/* ===================== TAB 1: INTERACTIVE ORGANIZATIONAL TREE ===================== */}
       {activeTab === 'ORG_TREE' && (

@@ -28,7 +28,7 @@ export const MyAttendancePage: React.FC = () => {
   const [activeSession, setActiveSession] = useState<AttendanceRecord | null>(null);
   const [recentRecords, setRecentRecords] = useState<AttendanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [workMode, setWorkMode] = useState<'WFO' | 'WFH' | 'HYBRID'>('WFO');
+  const [workMode, setWorkMode] = useState<'WFO' | 'WFH'>('WFO');
   const [note, setNote] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [geoStatus, setGeoStatus] = useState<string | null>(null);
@@ -248,7 +248,7 @@ export const MyAttendancePage: React.FC = () => {
             </div>
             <div className="text-[11px] font-bold text-slate-500 mt-2 flex items-center gap-1.5">
               <span className={`w-2 h-2 rounded-full ${activeSession ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
-              <span>{activeSession ? `${activeSession.workMode} Shift Active` : 'Not checked in'}</span>
+              <span>{activeSession ? `${activeSession.workMode === 'WFH' || activeSession.workMode === 'REMOTE' ? 'Work From Home' : 'Office'} Shift Active` : 'Not checked in'}</span>
             </div>
           </div>
           <div className={`w-11 h-11 rounded-2xl border flex items-center justify-center ${activeSession ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
@@ -442,8 +442,12 @@ export const MyAttendancePage: React.FC = () => {
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-indigo-50 text-[#5E4BE2] border border-indigo-100">
-                          {r.workMode}
+                        <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border ${
+                          r.workMode === 'WFH' || r.workMode === 'REMOTE'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200/70 shadow-2xs'
+                            : 'bg-blue-50 text-blue-700 border-blue-200/70 shadow-2xs'
+                        }`}>
+                          {r.workMode === 'WFH' || r.workMode === 'REMOTE' ? 'Work From Home' : 'Office'}
                         </span>
                       </td>
                       <td className="px-6 py-4 font-bold text-slate-900">

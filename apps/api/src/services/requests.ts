@@ -217,6 +217,13 @@ export async function decideRequest(opts: {
     throw new AppError(403, 'CANNOT_APPROVE_OWN_REQUEST', 'You are not permitted to approve or reject your own request');
   }
 
+  // RULE: Only the assigned approver or HR/Admin can decide the request
+  const isApprover = request.approverId === opts.actorId;
+  const isAdminOrHr = ['COMPANY_ADMIN', 'HR', 'PRODUCT_SUPER_ADMIN'].includes(opts.actorRole);
+  if (!isApprover && !isAdminOrHr) {
+    throw new AppError(403, 'FORBIDDEN', 'Only the assigned manager or an HR/Admin can approve or reject this request');
+  }
+
   // RULE: Rejection requires a decision note
   if (opts.status === 'REJECTED' && (!opts.note || !opts.note.trim())) {
     throw new AppError(400, 'REJECTION_NOTE_REQUIRED', 'A decision note is required when rejecting a request');

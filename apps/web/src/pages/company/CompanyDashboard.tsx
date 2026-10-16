@@ -93,6 +93,36 @@ const formatRelativeTime = (dateStr: string) => {
   }
 };
 
+const formatDeptLabel = (name: string): string[] => {
+  if (!name) return [''];
+  const trimmed = name.trim();
+  if (trimmed.length <= 11) return [trimmed];
+
+  const words = trimmed.split(/\s+/);
+  if (words.length === 1) {
+    return [trimmed.length > 12 ? `${trimmed.slice(0, 11)}…` : trimmed];
+  }
+
+  // Handle patterns like "Finance & Operations", "Product & Design", "Sales & Marketing"
+  if (words.length === 3 && (words[1] === '&' || words[1].toLowerCase() === 'and')) {
+    return [`${words[0]} ${words[1]}`, words[2]];
+  }
+
+  // Handle 2 words like "Human Resources"
+  if (words.length === 2) {
+    return [words[0], words[1]];
+  }
+
+  // General multi-word split
+  const mid = Math.ceil(words.length / 2);
+  const line1 = words.slice(0, mid).join(' ');
+  const line2 = words.slice(mid).join(' ');
+  return [
+    line1.length > 13 ? `${line1.slice(0, 12)}…` : line1,
+    line2.length > 13 ? `${line2.slice(0, 12)}…` : line2,
+  ];
+};
+
 export const CompanyDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { company } = useAuth();
@@ -166,8 +196,6 @@ export const CompanyDashboard: React.FC = () => {
       year: 'numeric',
     });
   }, []);
-
-  // 1. REAL TOTAL EMPLOYEE COUNT
   const totalEmployeesCount = useMemo(() => {
     return metrics.totalEmployees || employees.length;
   }, [metrics.totalEmployees, employees.length]);
@@ -250,9 +278,19 @@ export const CompanyDashboard: React.FC = () => {
     return employees
       .filter((e) => Boolean(e.dateOfBirth))
       .map((e) => {
-        const dob = new Date(e.dateOfBirth!);
-        const birthMonth = dob.getMonth();
-        const birthDay = dob.getDate();
+        let birthMonth = 0;
+        let birthDay = 1;
+        if (e.dateOfBirth) {
+          const parts = e.dateOfBirth.split('T')[0].split('-');
+          if (parts.length === 3) {
+            birthMonth = parseInt(parts[1], 10) - 1;
+            birthDay = parseInt(parts[2], 10);
+          } else {
+            const dob = new Date(e.dateOfBirth);
+            birthMonth = dob.getMonth();
+            birthDay = dob.getDate();
+          }
+        }
         let nextBday = new Date(today.getFullYear(), birthMonth, birthDay);
         if (nextBday < today) {
           nextBday = new Date(today.getFullYear() + 1, birthMonth, birthDay);
@@ -267,50 +305,26 @@ export const CompanyDashboard: React.FC = () => {
       .sort((a, b) => a.diffDays - b.diffDays);
   }, [employees]);
 
-  // Real Upcoming Combined Events strictly capped at 5 total
-  const combinedUpcomingEvents = useMemo(() => {
-    const list: Array<{
-      id: string;
-      title: string;
-      subtitle: string;
-      dateLabel: string;
-      type: 'HOLIDAY' | 'BIRTHDAY' | 'PAYROLL';
-    }> = [];
+  // Real Upcoming Company Holidays strictly capped at 5 total
+  const upcomingHolidays = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    // Add company holidays
-    holidays.forEach((h) => {
-      list.push({
-        id: `h-${h.id}`,
-        title: h.name,
-        subtitle: 'Company Holiday',
-        dateLabel: new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        type: 'HOLIDAY',
-      });
-    });
+    const mapped = holidays.map((h) => ({
+      id: `h-${h.id}`,
+      title: h.name,
+      subtitle: 'Company Holiday',
+      date: new Date(h.date),
+      dateLabel: new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    }));
 
-    // Add birthdays
-    upcomingBirthdays.forEach((b) => {
-      list.push({
-        id: `b-${b.id}`,
-        title: `${b.firstName} ${b.lastName}`,
-        subtitle: b.diffDays === 0 ? 'Birthday Today 🎂' : 'Upcoming Birthday',
-        dateLabel: b.formattedDate,
-        type: 'BIRTHDAY',
-      });
-    });
+    const upcoming = mapped
+      .filter((h) => h.date >= today)
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+    const list = upcoming.length > 0 ? upcoming : mapped.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-    // Add Payroll Cycle
-    list.push({
-      id: 'payroll-cycle',
-      title: `${currentMonthYear} Salary Disbursal`,
-      subtitle: 'Payroll Cycle',
-      dateLabel: 'End of Month',
-      type: 'PAYROLL',
-    });
-
-    // Strictly show only 5 events!
     return list.slice(0, 5);
-  }, [holidays, upcomingBirthdays, currentMonthYear]);
+  }, [holidays]);
 
   // 4. REAL LEAVE REQUEST STATISTICS
   const leaveStats = useMemo(() => {
@@ -340,32 +354,6 @@ export const CompanyDashboard: React.FC = () => {
     const max = Math.max(...departmentHeadcounts.map((d) => d.count), 5);
     return Math.ceil(max / 5) * 5;
   }, [departmentHeadcounts]);
-
-  // 6. REAL 6-MONTH EMPLOYEE GROWTH TREND
-  const trendData = useMemo(() => {
-    const points: { label: string; count: number }[] = [];
-    const now = new Date();
-
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
-      const label = d.toLocaleDateString('en-US', { month: 'short' });
-
-      // Real cumulative employees joined on or before this month's end
-      const count = employees.filter((e) => {
-        const joined = e.joiningDate ? new Date(e.joiningDate) : new Date(e.createdAt);
-        return joined <= endOfMonth;
-      }).length;
-
-      points.push({ label, count });
-    }
-    return points;
-  }, [employees]);
-
-  const maxTrendVal = useMemo(() => {
-    const max = Math.max(...trendData.map((p) => p.count), 5);
-    return Math.ceil(max / 5) * 5;
-  }, [trendData]);
 
   // SVG Donut Chart Segments Calculation (Strictly Real)
   const donutSegments = useMemo(() => {
@@ -402,11 +390,6 @@ export const CompanyDashboard: React.FC = () => {
     return Object.values(metrics.pendingApprovals || {}).reduce((acc, curr) => acc + curr, 0);
   }, [metrics.pendingApprovals]);
 
-  // Handle Download Report
-  const handleDownloadReport = () => {
-    window.open('/api/v1/attendance/export', '_blank');
-  };
-
   return (
     <div className="space-y-6">
       {/* ===================== TOP BAR ===================== */}
@@ -416,11 +399,6 @@ export const CompanyDashboard: React.FC = () => {
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
               Company Dashboard
             </h1>
-            {company?.name && (
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-[#5E4BE2] border border-indigo-100/80">
-                {company.name}
-              </span>
-            )}
           </div>
           <p className="text-xs text-slate-500 font-medium mt-0.5">
             Real-time workforce intelligence and operations center
@@ -432,99 +410,6 @@ export const CompanyDashboard: React.FC = () => {
           <div className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-xl shadow-xs text-xs font-semibold text-slate-700">
             <IconCalendar className="w-4 h-4 text-indigo-600" />
             <span>{todayFormatted}</span>
-          </div>
-
-          {/* Download Report CTA */}
-          <button
-            onClick={handleDownloadReport}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 hover:shadow-md hover:from-[#5340D4] hover:to-[#4130B4] transition-all cursor-pointer"
-          >
-            <IconDownload className="w-4 h-4" />
-            <span>Download Report</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ===================== ROW 1: 5 KPI STAT CARDS ===================== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {/* Card 1: Total Employees */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
-          <div>
-            <span className="text-xs font-bold text-slate-500">Total Employees</span>
-            <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-              {totalEmployeesCount.toLocaleString()}
-            </div>
-            <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-2">
-              <span>&uarr;</span>
-              <span>{attendanceMetrics.newJoiners} joined this month</span>
-            </div>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2]">
-            <IconUsers className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Card 2: Present Today */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
-          <div>
-            <span className="text-xs font-bold text-slate-500">Present Today</span>
-            <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-              {attendanceMetrics.present.toLocaleString()}
-            </div>
-            <div className="text-[11px] font-bold text-emerald-600 mt-2">
-              {attendanceMetrics.presentPercent}% of total
-            </div>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-            <IconUserCheck className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Card 3: On Leave Today */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
-          <div>
-            <span className="text-xs font-bold text-slate-500">On Leave Today</span>
-            <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-              {attendanceMetrics.onLeave.toLocaleString()}
-            </div>
-            <div className="text-[11px] font-bold text-amber-600 mt-2">
-              {attendanceMetrics.onLeavePercent}% of total
-            </div>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
-            <IconCalendarEvent className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Card 4: Absent Today */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
-          <div>
-            <span className="text-xs font-bold text-slate-500">Absent Today</span>
-            <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-              {attendanceMetrics.absent.toLocaleString()}
-            </div>
-            <div className="text-[11px] font-bold text-rose-600 mt-2">
-              {attendanceMetrics.absentPercent}% of total
-            </div>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600">
-            <IconAlertCircle className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Card 5: New Joiners */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
-          <div>
-            <span className="text-xs font-bold text-slate-500">New Joiners ({currentMonthYear.split(' ')[0]})</span>
-            <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-              {attendanceMetrics.newJoiners}
-            </div>
-            <div className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 mt-2">
-              <span>{totalEmployeesCount > 0 ? Math.round((attendanceMetrics.newJoiners / totalEmployeesCount) * 100) : 0}% of workforce</span>
-            </div>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-            <IconUserPlus className="w-5 h-5" />
           </div>
         </div>
       </div>
@@ -671,96 +556,75 @@ export const CompanyDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Col 2: Employee Trend Area Chart (col-span 5) */}
-        <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+        {/* Col 2: Employee Birthdays (col-span 4) */}
+        <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3">
               <div className="flex items-center gap-2">
-                <IconChartBar className="w-4 h-4 text-indigo-600" />
-                <h3 className="font-bold text-slate-900 text-sm">Employee Trend (Last 6 Months)</h3>
+                <IconCake className="w-4 h-4 text-pink-600" />
+                <h3 className="font-bold text-slate-900 text-sm">Employee Birthdays</h3>
               </div>
-              <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg">
-                Real Cumulative
-              </span>
+              <button
+                onClick={() => navigate('/company/employees')}
+                className="text-xs font-bold text-[#5E4BE2] hover:underline cursor-pointer"
+              >
+                Employees
+              </button>
             </div>
 
-            {/* Real Trend Area Chart SVG */}
-            <div className="relative pt-2">
-              <svg className="w-full h-44 overflow-visible" viewBox="0 0 450 170">
-                <defs>
-                  <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#5E4BE2" stopOpacity="0.22" />
-                    <stop offset="100%" stopColor="#5E4BE2" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-
-                {/* Y-Axis Grid Lines & Ticks */}
-                <g className="text-[10px] font-medium fill-slate-400">
-                  <line x1="35" y1="20" x2="440" y2="20" stroke="#F1F5F9" strokeDasharray="3 3" />
-                  <text x="5" y="24">{maxTrendVal}</text>
-
-                  <line x1="35" y1="52" x2="440" y2="52" stroke="#F1F5F9" strokeDasharray="3 3" />
-                  <text x="5" y="56">{Math.round(maxTrendVal * 0.75)}</text>
-
-                  <line x1="35" y1="84" x2="440" y2="84" stroke="#F1F5F9" strokeDasharray="3 3" />
-                  <text x="5" y="88">{Math.round(maxTrendVal * 0.5)}</text>
-
-                  <line x1="35" y1="116" x2="440" y2="116" stroke="#F1F5F9" strokeDasharray="3 3" />
-                  <text x="5" y="120">{Math.round(maxTrendVal * 0.25)}</text>
-
-                  <line x1="35" y1="148" x2="440" y2="148" stroke="#F1F5F9" />
-                  <text x="12" y="152">0</text>
-                </g>
-
-                {/* Dynamic Trend Line & Curve */}
-                {(() => {
-                  const xs = [60, 130, 200, 270, 340, 410];
-                  const ys = trendData.map((pt) => 148 - (maxTrendVal > 0 ? (pt.count / maxTrendVal) * 120 : 0));
-                  const pathD = `M ${xs[0]} ${ys[0]} ` + xs.slice(1).map((x, i) => `L ${x} ${ys[i + 1]}`).join(' ');
-                  const areaD = `${pathD} L ${xs[5]} 148 L ${xs[0]} 148 Z`;
-
-                  return (
-                    <>
-                      <path d={areaD} fill="url(#trendGradient)" />
-                      <path d={pathD} fill="none" stroke="#5E4BE2" strokeWidth="3" strokeLinecap="round" />
-                    </>
-                  );
-                })()}
-
-                {/* Circle Nodes with Real Values */}
-                {trendData.map((pt, idx) => {
-                  const x = [60, 130, 200, 270, 340, 410][idx];
-                  const y = 148 - (maxTrendVal > 0 ? (pt.count / maxTrendVal) * 120 : 0);
-
-                  return (
-                    <g key={idx}>
-                      <circle cx={x} cy={y} r="5" fill="#5E4BE2" stroke="white" strokeWidth="2.5" />
-                      <text x={x} y={y - 8} textAnchor="middle" className="text-[10px] font-bold fill-slate-800">
-                        {pt.count}
-                      </text>
-                      <text x={x} y="168" textAnchor="middle" className="text-[10px] font-bold fill-slate-500">
-                        {pt.label}
-                      </text>
-                    </g>
-                  );
-                })}
-              </svg>
+            {/* Birthdays list - compact styling matching Upcoming Events */}
+            <div className="space-y-2.5 pt-1">
+              {upcomingBirthdays.length === 0 ? (
+                <div className="p-3 text-center rounded-xl bg-slate-50 border border-slate-100">
+                  <p className="text-xs font-semibold text-slate-600">No upcoming birthdays</p>
+                  <button
+                    onClick={() => navigate('/company/employees')}
+                    className="text-[11px] font-bold text-[#5E4BE2] mt-1 hover:underline cursor-pointer"
+                  >
+                    View Employees
+                  </button>
+                </div>
+              ) : (
+                upcomingBirthdays.slice(0, 5).map((b) => (
+                  <div
+                    key={b.id}
+                    className={`flex items-center justify-between p-2 rounded-xl transition-colors ${
+                      b.diffDays === 0
+                        ? 'bg-pink-50/70 border border-pink-200/80 hover:bg-pink-100/70'
+                        : 'bg-slate-50/70 hover:bg-slate-100/70'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                          b.diffDays === 0
+                            ? 'bg-pink-100 text-pink-700'
+                            : 'bg-pink-50 text-pink-600 border border-pink-100'
+                        }`}
+                      >
+                        <IconCake className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-bold text-pink-600 block uppercase tracking-wide">
+                          {b.diffDays === 0 ? 'Today 🎂' : b.diffDays === 1 ? 'Tomorrow' : 'Birthday'}
+                        </span>
+                        <span className="text-xs font-bold text-slate-900 truncate block">
+                          {b.firstName} {b.lastName}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-500 shrink-0 ml-2">
+                      {b.formattedDate}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
-          </div>
-
-          <div className="pt-4 border-t border-slate-100 mt-4 text-center">
-            <button
-              onClick={() => navigate('/company/employees')}
-              className="text-xs font-bold text-[#5E4BE2] hover:text-[#4B39C3] transition-colors inline-flex items-center gap-1 cursor-pointer"
-            >
-              <span>View Employee Roster</span>
-              <span>&rarr;</span>
-            </button>
           </div>
         </div>
 
-        {/* Col 3: Upcoming Events (col-span 3) */}
-        <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+        {/* Col 3: Upcoming Events (col-span 4) */}
+        <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3">
               <div className="flex items-center gap-2">
@@ -777,7 +641,7 @@ export const CompanyDashboard: React.FC = () => {
 
             {/* Events List strictly from Real Holidays & Employee milestones (Max 5 events) */}
             <div className="space-y-2.5 pt-1">
-              {combinedUpcomingEvents.length === 0 ? (
+              {upcomingHolidays.length === 0 ? (
                 <div className="p-3 text-center rounded-xl bg-slate-50 border border-slate-100">
                   <p className="text-xs font-semibold text-slate-600">No holidays declared yet</p>
                   <button
@@ -788,83 +652,29 @@ export const CompanyDashboard: React.FC = () => {
                   </button>
                 </div>
               ) : (
-                combinedUpcomingEvents.map((evt) => {
-                  if (evt.type === 'HOLIDAY') {
-                    return (
-                      <div
-                        key={evt.id}
-                        className="flex items-center justify-between p-2 rounded-xl bg-slate-50/70 hover:bg-slate-100/70 transition-colors"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-8 h-8 rounded-full bg-indigo-50 text-[#5E4BE2] border border-indigo-100 flex items-center justify-center shrink-0">
-                            <IconSchool className="w-4 h-4" />
-                          </div>
-                          <div className="min-w-0">
-                            <span className="text-[10px] font-bold text-indigo-600 block uppercase tracking-wide">
-                              {evt.subtitle}
-                            </span>
-                            <span className="text-xs font-bold text-slate-900 truncate block">
-                              {evt.title}
-                            </span>
-                          </div>
-                        </div>
-                        <span className="text-[10px] font-bold text-slate-500 shrink-0 ml-2">
-                          {evt.dateLabel}
+                upcomingHolidays.map((evt) => (
+                  <div
+                    key={evt.id}
+                    className="flex items-center justify-between p-2 rounded-xl bg-slate-50/70 hover:bg-slate-100/70 transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-indigo-50 text-[#5E4BE2] border border-indigo-100 flex items-center justify-center shrink-0">
+                        <IconSchool className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-bold text-indigo-600 block uppercase tracking-wide">
+                          {evt.subtitle}
+                        </span>
+                        <span className="text-xs font-bold text-slate-900 truncate block">
+                          {evt.title}
                         </span>
                       </div>
-                    );
-                  }
-
-                  if (evt.type === 'BIRTHDAY') {
-                    return (
-                      <div
-                        key={evt.id}
-                        className="flex items-center justify-between p-2 rounded-xl bg-purple-50/60 border border-purple-100 hover:bg-purple-100/60 transition-colors"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
-                            <IconCake className="w-4 h-4" />
-                          </div>
-                          <div className="min-w-0">
-                            <span className="text-[10px] font-bold text-purple-700 block uppercase tracking-wide">
-                              {evt.subtitle}
-                            </span>
-                            <span className="text-xs font-bold text-slate-900 truncate block">
-                              {evt.title}
-                            </span>
-                          </div>
-                        </div>
-                        <span className="text-[10px] font-bold text-purple-700 shrink-0 ml-2">
-                          {evt.dateLabel}
-                        </span>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div
-                      key={evt.id}
-                      className="flex items-center justify-between p-2 rounded-xl bg-emerald-50/60 border border-emerald-100"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs shrink-0">
-                          ₹
-                        </div>
-                        <div className="min-w-0">
-                          <span className="text-[10px] font-bold text-emerald-700 block uppercase tracking-wide">
-                            {evt.subtitle}
-                          </span>
-                          <span className="text-xs font-bold text-slate-900 truncate block">
-                            {evt.title}
-                          </span>
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-bold text-emerald-700 shrink-0 ml-2">
-                        {evt.dateLabel}
-                      </span>
                     </div>
-                  );
-                })
+                    <span className="text-[10px] font-bold text-slate-500 shrink-0 ml-2">
+                      {evt.dateLabel}
+                    </span>
+                  </div>
+                ))
               )}
             </div>
           </div>
@@ -1154,22 +964,22 @@ export const CompanyDashboard: React.FC = () => {
             {/* Strictly Real Department Bar Chart */}
             {departmentHeadcounts.length > 0 ? (
               <div className="relative pt-2">
-                <svg className="w-full h-56 overflow-visible" viewBox="0 0 550 200">
+                <svg className="w-full h-56 overflow-visible" viewBox="0 0 550 215">
                   <g className="text-[10px] font-medium fill-slate-400">
                     <line x1="30" y1="20" x2="540" y2="20" stroke="#F1F5F9" />
                     <text x="5" y="24">{maxDeptCount}</text>
 
-                    <line x1="30" y1="58" x2="540" y2="58" stroke="#F1F5F9" />
-                    <text x="5" y="62">{Math.round(maxDeptCount * 0.75)}</text>
+                    <line x1="30" y1="55" x2="540" y2="55" stroke="#F1F5F9" />
+                    <text x="5" y="59">{Math.round(maxDeptCount * 0.75)}</text>
 
-                    <line x1="30" y1="96" x2="540" y2="96" stroke="#F1F5F9" />
-                    <text x="5" y="100">{Math.round(maxDeptCount * 0.5)}</text>
+                    <line x1="30" y1="90" x2="540" y2="90" stroke="#F1F5F9" />
+                    <text x="5" y="94">{Math.round(maxDeptCount * 0.5)}</text>
 
-                    <line x1="30" y1="134" x2="540" y2="134" stroke="#F1F5F9" />
-                    <text x="5" y="138">{Math.round(maxDeptCount * 0.25)}</text>
+                    <line x1="30" y1="125" x2="540" y2="125" stroke="#F1F5F9" />
+                    <text x="5" y="129">{Math.round(maxDeptCount * 0.25)}</text>
 
-                    <line x1="30" y1="170" x2="540" y2="170" stroke="#E2E8F0" />
-                    <text x="18" y="174">0</text>
+                    <line x1="30" y1="160" x2="540" y2="160" stroke="#E2E8F0" />
+                    <text x="18" y="164">0</text>
                   </g>
 
                   {/* Vertical Bars for Real Departments */}
@@ -1178,11 +988,13 @@ export const CompanyDashboard: React.FC = () => {
                     const totalSlots = departmentHeadcounts.length;
                     const gap = (510 - barWidth * totalSlots) / (totalSlots + 1);
                     const x = 35 + gap + idx * (barWidth + gap);
-                    const barHeight = maxDeptCount > 0 ? Math.max(8, (dept.count / maxDeptCount) * 145) : 8;
-                    const y = 170 - barHeight;
+                    const barHeight = maxDeptCount > 0 ? Math.max(8, (dept.count / maxDeptCount) * 135) : 8;
+                    const y = 160 - barHeight;
+                    const lines = formatDeptLabel(dept.name);
 
                     return (
                       <g key={idx} className="group cursor-pointer">
+                        <title>{`${dept.name}: ${dept.count} ${dept.count === 1 ? 'employee' : 'employees'}`}</title>
                         <text
                           x={x + barWidth / 2}
                           y={y - 6}
@@ -1202,14 +1014,29 @@ export const CompanyDashboard: React.FC = () => {
                           className="transition-all duration-300 group-hover:fill-[#4F46E5]"
                         />
 
-                        <text
-                          x={x + barWidth / 2}
-                          y="188"
-                          textAnchor="middle"
-                          className="text-[10px] font-bold fill-slate-500"
-                        >
-                          {dept.name}
-                        </text>
+                        {lines.length === 1 ? (
+                          <text
+                            x={x + barWidth / 2}
+                            y="178"
+                            textAnchor="middle"
+                            className="text-[10px] font-bold fill-slate-500"
+                          >
+                            {lines[0]}
+                          </text>
+                        ) : (
+                          <text
+                            x={x + barWidth / 2}
+                            textAnchor="middle"
+                            className="text-[10px] font-bold fill-slate-500"
+                          >
+                            <tspan x={x + barWidth / 2} y="176">
+                              {lines[0]}
+                            </tspan>
+                            <tspan x={x + barWidth / 2} y="189">
+                              {lines[1]}
+                            </tspan>
+                          </text>
+                        )}
                       </g>
                     );
                   })}

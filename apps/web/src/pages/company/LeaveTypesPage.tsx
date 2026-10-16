@@ -236,48 +236,7 @@ export const LeaveTypesPage: React.FC = () => {
         </button>
       </div>
 
-      {/* KPI Overview Metrics Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Total Leave Types</span>
-            <span className="text-2xl font-bold text-slate-900 mt-1 block">{totalPolicies}</span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-            <IconFileCertificate className="w-5 h-5" />
-          </div>
-        </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Paid Leaves</span>
-            <span className="text-2xl font-bold text-emerald-600 mt-1 block">{paidPolicies}</span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-            <IconCheck className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Carry-Over Enabled</span>
-            <span className="text-2xl font-bold text-indigo-600 mt-1 block">{carryPolicies}</span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-            <IconClock className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Annual Allocation</span>
-            <span className="text-2xl font-bold text-slate-900 mt-1 block">{totalDaysQuota} <span className="text-xs font-normal text-slate-400">days</span></span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-            <IconCalendar className="w-5 h-5" />
-          </div>
-        </div>
-      </div>
 
       {/* Main Table Container */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">

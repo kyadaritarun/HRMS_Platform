@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useSearchParams } from 'react-router-dom';
 import api, { getFileUrl } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
@@ -17,6 +18,12 @@ import {
   IconBuildingSkyscraper,
   IconFilter,
   IconUserPlus,
+  IconPencil,
+  IconUserMinus,
+  IconRotateClockwise,
+  IconCamera,
+  IconId,
+  IconHeartHandshake,
 } from '@tabler/icons-react';
 
 interface Employee {
@@ -31,13 +38,22 @@ interface Employee {
   profilePhoto?: string | null;
   workMode: string;
   employmentType: string;
+  employeeNumber?: string;
+  personalEmail?: string;
+  emergencyContact?: {
+    name?: string;
+    relationship?: string;
+    phone?: string;
+  } | any;
   joiningDate?: string;
+  dateOfBirth?: string;
   monthlySalary?: number;
   currency?: string;
   bankDetails?: any;
   department?: { id: number; name: string };
   manager?: { id: number; firstName: string; lastName: string };
   createdAt: string;
+  isActive?: boolean;
 }
 
 interface Department {
@@ -53,8 +69,40 @@ export const EmployeesPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedDept, setSelectedDept] = useState<string>(searchParams.get('departmentId') || '');
-  const [selectedWorkMode, setSelectedWorkMode] = useState<string>('ALL');
+  const [selectedWorkMode, setSelectedWorkMode] = useState<'ALL' | 'OFFICE' | 'WFH'>('ALL');
   const [selectedEmp, setSelectedEmp] = useState<Employee | null>(null);
+
+  // Active vs Offboarded tab state
+  const [activeTab, setActiveTab] = useState<'ACTIVE' | 'OFFBOARDED'>('ACTIVE');
+  const [activeCount, setActiveCount] = useState<number>(0);
+  const [offboardedCount, setOffboardedCount] = useState<number>(0);
+
+  // Edit employee modal state
+  const [editTarget, setEditTarget] = useState<Employee | null>(null);
+  const [editForm, setEditForm] = useState({
+    firstName: '',
+    lastName: '',
+    phone: '',
+    jobTitle: '',
+    departmentId: '',
+    role: 'EMPLOYEE',
+    workMode: 'WFO',
+    employmentType: 'PERMANENT',
+    employeeNumber: '',
+    personalEmail: '',
+    monthlySalary: 0,
+    joiningDate: '',
+    dateOfBirth: '',
+    emergencyContactName: '',
+    emergencyContactRelationship: '',
+    emergencyContactPhone: '',
+  });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editError, setEditError] = useState('');
+
+  // Offboard confirmation modal state
+  const [offboardTarget, setOffboardTarget] = useState<Employee | null>(null);
+  const [isOffboarding, setIsOffboarding] = useState(false);
 
   useEffect(() => {
     const deptFromUrl = searchParams.get('departmentId') || '';
@@ -68,7 +116,7 @@ export const EmployeesPage: React.FC = () => {
   const fetchEmployees = async () => {
     setIsLoading(true);
     try {
-      const params: any = {};
+      const params: any = { status: activeTab };
       if (search) params.search = search;
       if (selectedDept) params.departmentId = selectedDept;
       const res = await api.get('/employees', { params });
@@ -77,6 +125,19 @@ export const EmployeesPage: React.FC = () => {
       console.error('Failed to load employees:', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchCounts = async () => {
+    try {
+      const [actRes, offRes] = await Promise.all([
+        api.get('/employees', { params: { status: 'ACTIVE', pageSize: 1 } }),
+        api.get('/employees', { params: { status: 'OFFBOARDED', pageSize: 1 } }),
+      ]);
+      setActiveCount(actRes.data?.total ?? 0);
+      setOffboardedCount(offRes.data?.total ?? 0);
+    } catch (e) {
+      console.error('Failed to load employee counts:', e);
     }
   };
 
@@ -91,6 +152,7 @@ export const EmployeesPage: React.FC = () => {
 
   useEffect(() => {
     fetchDepartments();
+    fetchCounts();
   }, []);
 
   useEffect(() => {
@@ -98,15 +160,120 @@ export const EmployeesPage: React.FC = () => {
       fetchEmployees();
     }, 300);
     return () => clearTimeout(timer);
-  }, [search, selectedDept]);
+  }, [search, selectedDept, activeTab]);
+
+  const handleOpenEdit = (emp: Employee) => {
+    setEditTarget(emp);
+    setEditError('');
+    const emg = (emp.emergencyContact as any) || {};
+    setEditForm({
+      firstName: emp.firstName || '',
+      lastName: emp.lastName || '',
+      phone: emp.phone || '',
+      jobTitle: emp.jobTitle || '',
+      departmentId: emp.department?.id ? String(emp.department.id) : '',
+      role: emp.role || 'EMPLOYEE',
+      workMode: emp.workMode === 'WFH' || emp.workMode === 'REMOTE' ? 'WFH' : 'WFO',
+      employmentType: emp.employmentType === 'CONTRACT' ? 'CONTRACT' : 'PERMANENT',
+      employeeNumber: emp.employeeNumber || '',
+      personalEmail: emp.personalEmail || '',
+      monthlySalary: emp.monthlySalary ? Number(emp.monthlySalary) : 0,
+      joiningDate: emp.joiningDate ? emp.joiningDate.split('T')[0] : '',
+      dateOfBirth: emp.dateOfBirth ? emp.dateOfBirth.split('T')[0] : '',
+      emergencyContactName: emg.name || '',
+      emergencyContactRelationship: emg.relationship || '',
+      emergencyContactPhone: emg.phone || '',
+    });
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTarget) return;
+    setIsSavingEdit(true);
+    setEditError('');
+    try {
+      const payload: any = {
+        firstName: editForm.firstName.trim(),
+        lastName: editForm.lastName.trim(),
+        phone: editForm.phone.trim(),
+        jobTitle: editForm.jobTitle.trim(),
+        role: editForm.role,
+        workMode: editForm.workMode,
+        employmentType: editForm.employmentType,
+        employeeNumber: editForm.employeeNumber.trim(),
+        personalEmail: editForm.personalEmail.trim(),
+        monthlySalary: Number(editForm.monthlySalary) || 0,
+        departmentId: editForm.departmentId ? Number(editForm.departmentId) : null,
+        emergencyContact: {
+          name: editForm.emergencyContactName.trim(),
+          relationship: editForm.emergencyContactRelationship.trim(),
+          phone: editForm.emergencyContactPhone.trim(),
+        },
+      };
+      if (editForm.joiningDate) {
+        payload.joiningDate = editForm.joiningDate;
+      }
+      if (editForm.dateOfBirth) {
+        payload.dateOfBirth = editForm.dateOfBirth;
+      }
+      await api.patch(`/employees/${editTarget.id}`, payload);
+      setEditTarget(null);
+      await Promise.all([fetchEmployees(), fetchCounts()]);
+    } catch (err: any) {
+      setEditError(err.response?.data?.message || 'Failed to update employee details');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handleConfirmOffboard = async () => {
+    if (!offboardTarget) return;
+    setIsOffboarding(true);
+    try {
+      await api.patch(`/employees/${offboardTarget.id}/deactivate`);
+      setOffboardTarget(null);
+      await Promise.all([fetchEmployees(), fetchCounts()]);
+    } catch (err) {
+      console.error('Failed to offboard employee:', err);
+      alert('Failed to offboard employee. Please try again.');
+    } finally {
+      setIsOffboarding(false);
+    }
+  };
+
+  const handleReactivate = async (emp: Employee) => {
+    if (
+      !window.confirm(
+        `Are you sure you want to reactivate ${emp.firstName} ${emp.lastName}? Their account access will be restored and they will move to Active Employees.`
+      )
+    ) {
+      return;
+    }
+    try {
+      await api.patch(`/employees/${emp.id}/reactivate`);
+      await Promise.all([fetchEmployees(), fetchCounts()]);
+    } catch (err) {
+      console.error('Failed to reactivate employee:', err);
+      alert('Failed to reactivate employee. Please try again.');
+    }
+  };
 
   // Filtered employees by work mode
   const filteredEmployees = useMemo(() => {
     if (selectedWorkMode === 'ALL') return employees;
-    if (selectedWorkMode === 'WFH') return employees.filter((e) => e.workMode === 'WFH');
-    if (selectedWorkMode === 'HYBRID') return employees.filter((e) => e.workMode === 'HYBRID');
-    if (selectedWorkMode === 'ON_SITE') {
-      return employees.filter((e) => e.workMode === 'ON_SITE' || !e.workMode || e.workMode === 'ONSITE');
+    if (selectedWorkMode === 'WFH') {
+      return employees.filter((e) => e.workMode === 'WFH' || e.workMode === 'REMOTE');
+    }
+    if (selectedWorkMode === 'OFFICE') {
+      return employees.filter(
+        (e) =>
+          e.workMode === 'WFO' ||
+          e.workMode === 'ON_SITE' ||
+          e.workMode === 'ONSITE' ||
+          e.workMode === 'OFFICE' ||
+          !e.workMode ||
+          e.workMode === 'HYBRID'
+      );
     }
     return employees;
   }, [employees, selectedWorkMode]);
@@ -120,17 +287,15 @@ export const EmployeesPage: React.FC = () => {
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     }).length;
 
-    const remoteCount = employees.filter((e) => e.workMode === 'WFH').length;
-    const hybridCount = employees.filter((e) => e.workMode === 'HYBRID').length;
-    const onSiteCount = employees.filter((e) => e.workMode === 'ON_SITE' || !e.workMode || e.workMode === 'ONSITE').length;
+    const wfhCount = employees.filter((e) => e.workMode === 'WFH' || e.workMode === 'REMOTE').length;
+    const officeCount = total - wfhCount;
 
     return {
       total,
       newJoiners,
       departmentsCount: departments.length,
-      remoteCount,
-      hybridCount,
-      onSiteCount,
+      wfhCount,
+      officeCount,
     };
   }, [employees, departments]);
 
@@ -158,25 +323,70 @@ export const EmployeesPage: React.FC = () => {
   };
 
   const getWorkModeBadge = (mode: string) => {
-    switch (mode) {
-      case 'WFH':
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/70 shadow-2xs">
-            Remote
-          </span>
-        );
-      case 'HYBRID':
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/70 shadow-2xs">
-            Hybrid
-          </span>
-        );
-      default:
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200/70 shadow-2xs">
-            On-site
-          </span>
-        );
+    const isWfh = mode === 'WFH' || mode === 'REMOTE';
+    if (isWfh) {
+      return (
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/70 shadow-2xs whitespace-nowrap">
+          Home
+        </span>
+      );
+    }
+    return (
+      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200/70 shadow-2xs">
+        Office
+      </span>
+    );
+  };
+
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  const getEmployeePhotoUrl = (photo?: string | null): string | null => {
+    if (!photo) return null;
+    if (photo.includes('.amazonaws.com/image/')) {
+      const filename = photo.split('.amazonaws.com/image/')[1];
+      return getFileUrl(`/image/${filename}`);
+    }
+    if (photo.includes('.amazonaws.com/uploads/')) {
+      const filename = photo.split('.amazonaws.com/uploads/')[1];
+      return getFileUrl(`/uploads/${filename}`);
+    }
+    if (photo.startsWith('/image/') || photo.startsWith('/uploads/')) {
+      return getFileUrl(photo);
+    }
+    if (photo.startsWith('http://') || photo.startsWith('https://')) {
+      return photo;
+    }
+    return getFileUrl(photo);
+  };
+
+  const handlePhotoUpload = async (empId: number, file?: File) => {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Photo must be smaller than 5MB');
+      return;
+    }
+    setIsUploadingPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append('photo', file);
+      const res = await api.post(`/employees/${empId}/photo`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const updatedPhoto = res.data?.profilePhoto || res.data?.url;
+      setEmployees((prev) =>
+        prev.map((e) => (e.id === empId ? { ...e, profilePhoto: updatedPhoto } : e))
+      );
+      if (selectedEmp && selectedEmp.id === empId) {
+        setSelectedEmp({ ...selectedEmp, profilePhoto: updatedPhoto });
+      }
+      if (editTarget && editTarget.id === empId) {
+        setEditTarget({ ...editTarget, profilePhoto: updatedPhoto });
+      }
+    } catch (err: any) {
+      console.error('Failed to upload photo:', err);
+      alert(err.response?.data?.message || 'Failed to upload image');
+    } finally {
+      setIsUploadingPhoto(false);
     }
   };
 
@@ -242,37 +452,78 @@ export const EmployeesPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Card 3: Hybrid & Remote */}
+        {/* Card 3: Home */}
         <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
-            <span className="text-xs font-bold text-slate-500">Hybrid &amp; Remote</span>
+            <span className="text-xs font-bold text-slate-500">Home</span>
             <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-              {(kpiStats.remoteCount + kpiStats.hybridCount).toLocaleString()}
+              {kpiStats.wfhCount.toLocaleString()}
             </div>
-            <div className="text-[11px] font-bold text-amber-600 mt-2">
-              {kpiStats.remoteCount} Remote · {kpiStats.hybridCount} Hybrid
+            <div className="text-[11px] font-bold text-emerald-600 mt-2">
+              {kpiStats.total > 0 ? Math.round((kpiStats.wfhCount / kpiStats.total) * 100) : 0}% of workforce
             </div>
           </div>
-          <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+          <div className="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
             <IconBuilding className="w-5 h-5" />
           </div>
         </div>
 
-        {/* Card 4: On-Site Personnel */}
+        {/* Card 4: Office Personnel */}
         <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
-            <span className="text-xs font-bold text-slate-500">On-Site Office</span>
+            <span className="text-xs font-bold text-slate-500">Office</span>
             <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-              {kpiStats.onSiteCount.toLocaleString()}
+              {kpiStats.officeCount.toLocaleString()}
             </div>
             <div className="text-[11px] font-bold text-blue-600 mt-2">
-              {kpiStats.total > 0 ? Math.round((kpiStats.onSiteCount / kpiStats.total) * 100) : 0}% of workforce
+              {kpiStats.total > 0 ? Math.round((kpiStats.officeCount / kpiStats.total) * 100) : 0}% of workforce
             </div>
           </div>
           <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
             <IconBuildingSkyscraper className="w-5 h-5" />
           </div>
         </div>
+      </div>
+
+      {/* ===================== ROSTER STATUS TABS ===================== */}
+      <div className="flex items-center gap-2 border-b border-slate-200">
+        <button
+          onClick={() => setActiveTab('ACTIVE')}
+          className={`flex items-center gap-2 pb-3 px-4 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+            activeTab === 'ACTIVE'
+              ? 'border-[#5E4BE2] text-[#5E4BE2]'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <IconUsers className="w-4 h-4" />
+          <span>Active Employees</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+              activeTab === 'ACTIVE' ? 'bg-indigo-50 text-[#5E4BE2]' : 'bg-slate-100 text-slate-500'
+            }`}
+          >
+            {activeCount}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('OFFBOARDED')}
+          className={`flex items-center gap-2 pb-3 px-4 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+            activeTab === 'OFFBOARDED'
+              ? 'border-rose-600 text-rose-600'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <IconUserMinus className="w-4 h-4" />
+          <span>Offboarded Employees</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+              activeTab === 'OFFBOARDED' ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-500'
+            }`}
+          >
+            {offboardedCount}
+          </span>
+        </button>
       </div>
 
       {/* ===================== ROW 2: SEARCH & FILTERS BAR ===================== */}
@@ -325,15 +576,13 @@ export const EmployeesPage: React.FC = () => {
 
           {/* Work Mode Toggle Pills */}
           <div className="flex items-center bg-slate-50/80 border border-slate-200/70 p-1 rounded-xl">
-            {(['ALL', 'ON_SITE', 'HYBRID', 'WFH'] as const).map((mode) => {
+            {(['ALL', 'OFFICE', 'WFH'] as const).map((mode) => {
               const label =
                 mode === 'ALL'
                   ? 'All'
-                  : mode === 'ON_SITE'
-                  ? 'On-site'
-                  : mode === 'HYBRID'
-                  ? 'Hybrid'
-                  : 'Remote';
+                  : mode === 'OFFICE'
+                  ? 'Office'
+                  : 'Home';
               const isActive = selectedWorkMode === mode;
               return (
                 <button
@@ -430,24 +679,17 @@ export const EmployeesPage: React.FC = () => {
                       {/* Employee Name & Email */}
                       <td className="px-6 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#5E4BE2] to-indigo-500 text-white flex items-center justify-center font-bold text-xs shadow-2xs overflow-hidden shrink-0">
-                            {emp.profilePhoto ? (
+                          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#5E4BE2] to-indigo-500 text-white flex items-center justify-center font-bold text-xs shadow-2xs overflow-hidden shrink-0 relative">
+                            <span className="select-none">{initials || 'U'}</span>
+                            {getEmployeePhotoUrl(emp.profilePhoto) && (
                               <img
-                                src={
-                                  emp.profilePhoto.includes('.amazonaws.com/image/')
-                                    ? getFileUrl(`/image/${emp.profilePhoto.split('.amazonaws.com/image/')[1]}`)
-                                    : emp.profilePhoto.includes('.amazonaws.com/uploads/')
-                                    ? getFileUrl(`/uploads/${emp.profilePhoto.split('.amazonaws.com/uploads/')[1]}`)
-                                    : emp.profilePhoto
-                                }
+                                src={getEmployeePhotoUrl(emp.profilePhoto)!}
                                 alt={emp.firstName}
-                                className="w-full h-full object-cover"
+                                className="absolute inset-0 w-full h-full object-cover"
                                 onError={(e) => {
                                   (e.target as HTMLElement).style.display = 'none';
                                 }}
                               />
-                            ) : (
-                              initials || 'U'
                             )}
                           </div>
                           <div className="min-w-0">
@@ -491,13 +733,49 @@ export const EmployeesPage: React.FC = () => {
 
                       {/* Actions */}
                       <td className="px-6 py-3.5 text-right">
-                        <button
-                          onClick={() => setSelectedEmp(emp)}
-                          className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-[#5E4BE2] hover:bg-[#F0EEFF] transition-all ml-auto cursor-pointer"
-                          title="View Profile Details"
-                        >
-                          <IconEye className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* View details */}
+                          <button
+                            onClick={() => setSelectedEmp(emp)}
+                            className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-[#5E4BE2] hover:bg-[#F0EEFF] transition-all cursor-pointer"
+                            title="View Profile Details"
+                          >
+                            <IconEye className="w-4 h-4" />
+                          </button>
+
+                          {/* Edit button (Admin & HR) */}
+                          {canAdd && (
+                            <button
+                              onClick={() => handleOpenEdit(emp)}
+                              className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all cursor-pointer"
+                              title="Edit Employee Details"
+                            >
+                              <IconPencil className="w-4 h-4" />
+                            </button>
+                          )}
+
+                          {/* Offboard / Reactivate button */}
+                          {canAdd && (
+                            activeTab === 'ACTIVE' ? (
+                              <button
+                                onClick={() => setOffboardTarget(emp)}
+                                className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
+                                title="Offboard Employee"
+                              >
+                                <IconUserMinus className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleReactivate(emp)}
+                                className="px-2.5 py-1 rounded-lg text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 transition-all cursor-pointer flex items-center gap-1"
+                                title="Reactivate Employee"
+                              >
+                                <IconUserCheck className="w-3.5 h-3.5" />
+                                <span>Reactivate</span>
+                              </button>
+                            )
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -508,126 +786,608 @@ export const EmployeesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ===================== EMPLOYEE DETAIL MODAL ===================== */}
-      {selectedEmp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-150">
-            {/* Modal Header */}
-            <div className="relative bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] p-6 text-white">
-              <button
-                onClick={() => setSelectedEmp(null)}
-                className="absolute top-4 right-4 p-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-colors cursor-pointer"
-              >
-                <IconX className="w-4 h-4" />
-              </button>
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-white text-[#5E4BE2] font-black text-xl flex items-center justify-center shadow-md shrink-0">
-                  {selectedEmp.firstName?.[0]}
-                  {selectedEmp.lastName?.[0]}
-                </div>
-                <div className="min-w-0">
-                  <h3 className="text-lg font-black tracking-tight leading-tight truncate">
-                    {selectedEmp.firstName} {selectedEmp.lastName}
-                  </h3>
-                  <p className="text-xs text-white/80 font-medium mt-0.5">
-                    {selectedEmp.jobTitle || 'Team Member'}
-                  </p>
-                  <div className="mt-2.5 flex items-center gap-2">
-                    {getRoleBadge(selectedEmp.role)}
-                    {getWorkModeBadge(selectedEmp.workMode)}
+      {/* ===================== EMPLOYEE DETAIL RIGHT-SIDE DRAWER ===================== */}
+      {selectedEmp && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] overflow-hidden bg-slate-900/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+          onClick={() => setSelectedEmp(null)}
+        >
+          <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
+            <div
+              className="w-screen max-w-md bg-white shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-300 border-l border-slate-100"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drawer Header */}
+              <div className="relative bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] p-6 text-white shrink-0">
+                <button
+                  onClick={() => setSelectedEmp(null)}
+                  className="absolute top-5 right-5 p-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-colors cursor-pointer"
+                  title="Close panel"
+                >
+                  <IconX className="w-4 h-4" />
+                </button>
+                <div className="flex items-center gap-4">
+                  <div className="relative group shrink-0">
+                    <div className="w-16 h-16 rounded-2xl bg-white text-[#5E4BE2] font-black text-xl flex items-center justify-center shadow-lg shrink-0 overflow-hidden relative border-2 border-white/60">
+                      <span className="select-none">
+                        {selectedEmp.firstName?.[0]}
+                        {selectedEmp.lastName?.[0]}
+                      </span>
+                      {getEmployeePhotoUrl(selectedEmp.profilePhoto) && (
+                        <img
+                          src={getEmployeePhotoUrl(selectedEmp.profilePhoto)!}
+                          alt={`${selectedEmp.firstName} ${selectedEmp.lastName}`}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      )}
+                    </div>
+                    {canAdd && (
+                      <label
+                        className="absolute -bottom-1 -right-1 p-1.5 rounded-xl bg-white text-[#5E4BE2] shadow-md hover:bg-slate-50 cursor-pointer transition-transform hover:scale-110 flex items-center justify-center"
+                        title="Change employee image"
+                      >
+                        <IconCamera className="w-3.5 h-3.5" />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          disabled={isUploadingPhoto}
+                          className="hidden"
+                          onChange={(e) => handlePhotoUpload(selectedEmp.id, e.target.files?.[0])}
+                        />
+                      </label>
+                    )}
                   </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-xs">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Work Email</label>
-                  <div className="flex items-center gap-1.5 font-bold text-slate-800 mt-1">
-                    <IconMail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span className="truncate">{selectedEmp.email}</span>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Contact Phone</label>
-                  <div className="flex items-center gap-1.5 font-bold text-slate-800 mt-1">
-                    <IconPhone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>{selectedEmp.phone || 'Not provided'}</span>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Department</label>
-                  <div className="flex items-center gap-1.5 font-bold text-slate-800 mt-1">
-                    <IconBuilding className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>{selectedEmp.department?.name || 'Unassigned'}</span>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Reports To</label>
-                  <div className="font-bold text-slate-800 mt-1">
-                    {selectedEmp.manager ? `${selectedEmp.manager.firstName} ${selectedEmp.manager.lastName}` : 'Direct Report to CEO'}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Employment Type</label>
-                  <div className="font-bold text-slate-800 mt-1 capitalize">
-                    {selectedEmp.employmentType?.replace('_', ' ').toLowerCase() || 'Full time'}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Joined On</label>
-                  <div className="flex items-center gap-1.5 font-bold text-slate-800 mt-1">
-                    <IconCalendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>
-                      {selectedEmp.joiningDate
-                        ? new Date(selectedEmp.joiningDate).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })
-                        : 'N/A'}
-                    </span>
+                  <div className="min-w-0 pr-8">
+                    <h3 className="text-lg font-black tracking-tight leading-tight truncate">
+                      {selectedEmp.firstName} {selectedEmp.lastName}
+                    </h3>
+                    <p className="text-xs text-white/80 font-medium mt-0.5 truncate">
+                      {selectedEmp.jobTitle || 'Team Member'}
+                    </p>
+                    <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+                      {getRoleBadge(selectedEmp.role)}
+                      {getWorkModeBadge(selectedEmp.workMode)}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Compensation (if admin/hr) */}
-              {(user?.role === 'COMPANY_ADMIN' || user?.role === 'HR') && selectedEmp.monthlySalary !== undefined && (
+              {/* Drawer Scrollable Content */}
+              <div className="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Employee ID</label>
+                    <div className="flex items-center gap-1.5 font-bold text-slate-800 mt-1">
+                      <IconId className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                      <span className="font-mono">{selectedEmp.employeeNumber || '—'}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Work Type</label>
+                    <div className="flex items-center gap-1.5 font-bold text-slate-800 mt-1">
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                        selectedEmp.employmentType === 'CONTRACT'
+                          ? 'bg-amber-50 text-amber-700 border border-amber-200/80'
+                          : 'bg-indigo-50 text-indigo-700 border border-indigo-200/80'
+                      }`}>
+                        {selectedEmp.employmentType === 'CONTRACT' ? 'Contract' : 'Permanent'}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Work Email</label>
+                    <div className="flex items-center gap-1.5 font-bold text-slate-800 mt-1">
+                      <IconMail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate">{selectedEmp.email}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Personal Email</label>
+                    <div className="flex items-center gap-1.5 font-bold text-slate-800 mt-1">
+                      <IconMail className="w-3.5 h-3.5 text-violet-500 shrink-0" />
+                      <span className="truncate">{selectedEmp.personalEmail || '—'}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Contact Phone</label>
+                    <div className="flex items-center gap-1.5 font-bold text-slate-800 mt-1">
+                      <IconPhone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span>{selectedEmp.phone || 'Not provided'}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Date of Birth</label>
+                    <div className="flex items-center gap-1.5 font-bold text-slate-800 mt-1">
+                      <IconCalendar className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                      <span>
+                        {selectedEmp.dateOfBirth
+                          ? new Date(selectedEmp.dateOfBirth).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })
+                          : '—'}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Department</label>
+                    <div className="flex items-center gap-1.5 font-bold text-slate-800 mt-1">
+                      <IconBuilding className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span>{selectedEmp.department?.name || 'Unassigned'}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Reports To</label>
+                    <div className="font-bold text-slate-800 mt-1">
+                      {selectedEmp.manager ? `${selectedEmp.manager.firstName} ${selectedEmp.manager.lastName}` : 'Direct Report to CEO'}
+                    </div>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Joined On</label>
+                    <div className="flex items-center gap-1.5 font-bold text-slate-800 mt-1">
+                      <IconCalendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span>
+                        {selectedEmp.joiningDate
+                           ? new Date(selectedEmp.joiningDate).toLocaleDateString('en-US', {
+                               month: 'short',
+                               day: 'numeric',
+                               year: 'numeric',
+                             })
+                           : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Emergency Contact */}
                 <div className="mt-4 pt-4 border-t border-slate-100">
-                  <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-                    Compensation & Banking
-                  </h4>
-                  <div className="grid grid-cols-2 gap-4 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/70">
+                  <div className="flex items-center gap-2 mb-2">
+                    <IconHeartHandshake className="w-4 h-4 text-rose-500" />
+                    <h4 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                      Emergency Contact
+                    </h4>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 bg-rose-50/50 p-3.5 rounded-2xl border border-rose-100">
                     <div>
-                      <span className="text-[11px] text-slate-400 font-medium">Monthly CTC</span>
-                      <p className="font-black text-slate-900 mt-0.5 text-sm">
-                        {selectedEmp.currency || 'INR'} {Number(selectedEmp.monthlySalary).toLocaleString()}
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Name</span>
+                      <p className="font-bold text-slate-900 mt-0.5 text-xs truncate">
+                        {(selectedEmp.emergencyContact as any)?.name || '—'}
                       </p>
                     </div>
                     <div>
-                      <span className="text-[11px] text-slate-400 font-medium">Bank Account</span>
-                      <p className="font-mono text-xs text-slate-800 mt-0.5 font-bold">
-                        {selectedEmp.bankDetails?.accountNumber || '—'}
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Relationship</span>
+                      <p className="font-bold text-slate-900 mt-0.5 text-xs truncate">
+                        {(selectedEmp.emergencyContact as any)?.relationship || '—'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Contact</span>
+                      <p className="font-mono font-bold text-slate-900 mt-0.5 text-xs truncate">
+                        {(selectedEmp.emergencyContact as any)?.phone || '—'}
                       </p>
                     </div>
                   </div>
                 </div>
-              )}
+
+                {/* Compensation (if admin/hr) */}
+                {(user?.role === 'COMPANY_ADMIN' || user?.role === 'HR') && selectedEmp.monthlySalary !== undefined && (
+                  <div className="mt-4 pt-4 border-t border-slate-100">
+                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                      Compensation & Banking
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/70">
+                      <div>
+                        <span className="text-[11px] text-slate-400 font-medium">Monthly CTC</span>
+                        <p className="font-black text-slate-900 mt-0.5 text-sm">
+                          {selectedEmp.currency || 'INR'} {Number(selectedEmp.monthlySalary).toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-[11px] text-slate-400 font-medium">Bank Account</span>
+                        <p className="font-mono text-xs text-slate-800 mt-0.5 font-bold">
+                          {selectedEmp.bankDetails?.accountNumber || '—'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Drawer Footer Actions */}
+              <div className="bg-slate-50/80 p-4 px-6 border-t border-slate-100 flex items-center justify-between shrink-0">
+                {canAdd ? (
+                  <button
+                    onClick={() => {
+                      const emp = selectedEmp;
+                      setSelectedEmp(null);
+                      handleOpenEdit(emp);
+                    }}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-[#5E4BE2] hover:bg-indigo-50 border border-indigo-200/60 transition-colors cursor-pointer"
+                  >
+                    <IconPencil className="w-3.5 h-3.5" />
+                    <span>Edit Profile</span>
+                  </button>
+                ) : <div />}
+
+                <button
+                  onClick={() => setSelectedEmp(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ===================== OFFBOARD CONFIRMATION MODAL ===================== */}
+      {offboardTarget && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-100 p-6 animate-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-4">
+              <IconUserMinus className="w-6 h-6" />
             </div>
 
-            {/* Modal Footer */}
-            <div className="bg-slate-50/80 p-4 px-6 border-t border-slate-100 flex justify-end">
+            <h3 className="text-lg font-black text-slate-900 tracking-tight">
+              Offboard Employee
+            </h3>
+            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+              Are you sure you want to offboard <strong className="text-slate-800">{offboardTarget.firstName} {offboardTarget.lastName}</strong>?
+            </p>
+
+            <div className="mt-3 p-3 rounded-xl bg-amber-50/80 border border-amber-200/80 text-[11px] text-amber-800 font-medium">
+              This action will deactivate their system access and shift their records to the <strong>Offboarded Employees</strong> tab.
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 mt-6">
               <button
-                onClick={() => setSelectedEmp(null)}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                type="button"
+                onClick={() => setOffboardTarget(null)}
+                disabled={isOffboarding}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
               >
-                Close
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmOffboard}
+                disabled={isOffboarding}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-sm shadow-rose-600/25 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {isOffboarding ? 'Offboarding...' : 'Confirm Offboard'}
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ===================== EDIT EMPLOYEE RIGHT-SIDE DRAWER ===================== */}
+      {editTarget && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] overflow-hidden bg-slate-900/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+          onClick={() => setEditTarget(null)}
+        >
+          <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
+            <div
+              className="w-screen max-w-lg bg-white shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-300 border-l border-slate-100"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drawer Header */}
+              <div className="relative bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] p-6 text-white shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setEditTarget(null)}
+                  className="absolute top-5 right-5 p-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-colors cursor-pointer"
+                  title="Close panel"
+                >
+                  <IconX className="w-4 h-4" />
+                </button>
+                <div className="flex items-center gap-3.5 pr-8">
+                  <div className="relative shrink-0">
+                    <div className="w-13 h-13 rounded-2xl bg-white text-[#5E4BE2] font-black text-lg flex items-center justify-center shadow-md shrink-0 overflow-hidden relative border border-white/60">
+                      <span className="select-none">
+                        {editTarget.firstName?.[0]}
+                        {editTarget.lastName?.[0]}
+                      </span>
+                      {getEmployeePhotoUrl(editTarget.profilePhoto) && (
+                        <img
+                          src={getEmployeePhotoUrl(editTarget.profilePhoto)!}
+                          alt={`${editTarget.firstName} ${editTarget.lastName}`}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-base font-black tracking-tight leading-tight truncate">
+                      Edit Employee Details
+                    </h3>
+                    <p className="text-xs text-white/80 font-medium mt-0.5 truncate">
+                      {editTarget.firstName} {editTarget.lastName} · {editTarget.email}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Form Body & Footer */}
+              <form onSubmit={handleSaveEdit} className="flex flex-col flex-1 overflow-hidden">
+                <div className="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
+                  {editError && (
+                    <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700">
+                      {editError}
+                    </div>
+                  )}
+
+                  {/* Employee Image Upload / Change Section */}
+                  <div className="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-200/80 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-12 h-12 rounded-xl bg-white text-[#5E4BE2] font-black text-sm flex items-center justify-center shadow-xs overflow-hidden relative border border-slate-200 shrink-0">
+                        <span className="select-none">
+                          {editTarget.firstName?.[0]}
+                          {editTarget.lastName?.[0]}
+                        </span>
+                        {getEmployeePhotoUrl(editTarget.profilePhoto) && (
+                          <img
+                            src={getEmployeePhotoUrl(editTarget.profilePhoto)!}
+                            alt={editTarget.firstName}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-slate-800">Employee Image</div>
+                        <div className="text-[11px] text-slate-500 truncate">
+                          {editTarget.profilePhoto ? 'Custom image uploaded' : 'Default initials avatar'}
+                        </div>
+                      </div>
+                    </div>
+                    <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-[#5E4BE2] bg-white border border-indigo-200/80 hover:bg-indigo-50/60 shadow-2xs transition-colors cursor-pointer shrink-0">
+                      <IconCamera className="w-3.5 h-3.5" />
+                      <span>{isUploadingPhoto ? 'Uploading...' : 'Change Image'}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        disabled={isUploadingPhoto}
+                        className="hidden"
+                        onChange={(e) => handlePhotoUpload(editTarget.id, e.target.files?.[0])}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">First Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={editForm.firstName}
+                        onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Last Name</label>
+                      <input
+                        type="text"
+                        value={editForm.lastName}
+                        onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Employee ID *</label>
+                      <input
+                        type="text"
+                        required
+                        value={editForm.employeeNumber}
+                        onChange={(e) => setEditForm({ ...editForm, employeeNumber: e.target.value })}
+                        placeholder="EMP-001"
+                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Date of Birth *</label>
+                      <input
+                        type="date"
+                        required
+                        value={editForm.dateOfBirth}
+                        onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Personal Email Address *</label>
+                      <input
+                        type="email"
+                        required
+                        value={editForm.personalEmail}
+                        onChange={(e) => setEditForm({ ...editForm, personalEmail: e.target.value })}
+                        placeholder="personal@gmail.com"
+                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Phone Number</label>
+                      <input
+                        type="text"
+                        value={editForm.phone}
+                        onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Designation / Job Title</label>
+                      <input
+                        type="text"
+                        value={editForm.jobTitle}
+                        onChange={(e) => setEditForm({ ...editForm, jobTitle: e.target.value })}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Department</label>
+                      <select
+                        value={editForm.departmentId}
+                        onChange={(e) => setEditForm({ ...editForm, departmentId: e.target.value })}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
+                      >
+                        <option value="">Unassigned</option>
+                        {departments.map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">System Role</label>
+                      <select
+                        value={editForm.role}
+                        onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
+                      >
+                        <option value="EMPLOYEE">Employee</option>
+                        <option value="HR">HR Manager</option>
+                        <option value="COMPANY_ADMIN">Company Admin</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Work Mode</label>
+                      <select
+                        value={editForm.workMode}
+                        onChange={(e) => setEditForm({ ...editForm, workMode: e.target.value })}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
+                      >
+                        <option value="WFO">Office (WFO)</option>
+                        <option value="WFH">Home (WFH)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Work Type *</label>
+                      <select
+                        value={editForm.employmentType}
+                        onChange={(e) => setEditForm({ ...editForm, employmentType: e.target.value })}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
+                      >
+                        <option value="PERMANENT">Permanent</option>
+                        <option value="CONTRACT">Contract</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Monthly Salary (INR)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={editForm.monthlySalary}
+                        onChange={(e) => setEditForm({ ...editForm, monthlySalary: Number(e.target.value) })}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Joining Date</label>
+                      <input
+                        type="date"
+                        value={editForm.joiningDate}
+                        onChange={(e) => setEditForm({ ...editForm, joiningDate: e.target.value })}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Emergency Contact Group in Edit Drawer */}
+                  <div className="mt-2 pt-3 border-t border-slate-200/80 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <IconHeartHandshake className="w-4 h-4 text-rose-500" />
+                      <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">
+                        Emergency Contact
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Name *</label>
+                        <input
+                          type="text"
+                          required
+                          value={editForm.emergencyContactName}
+                          onChange={(e) => setEditForm({ ...editForm, emergencyContactName: e.target.value })}
+                          placeholder="Contact person"
+                          className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Relationship *</label>
+                        <input
+                          type="text"
+                          required
+                          value={editForm.emergencyContactRelationship}
+                          onChange={(e) => setEditForm({ ...editForm, emergencyContactRelationship: e.target.value })}
+                          placeholder="Spouse / Parent"
+                          className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Contact *</label>
+                        <input
+                          type="tel"
+                          required
+                          value={editForm.emergencyContactPhone}
+                          onChange={(e) => setEditForm({ ...editForm, emergencyContactPhone: e.target.value })}
+                          placeholder="+91 9876543210"
+                          className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Drawer Footer Actions */}
+                <div className="bg-slate-50/80 p-4 px-6 border-t border-slate-100 flex items-center justify-end gap-2.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setEditTarget(null)}
+                    disabled={isSavingEdit}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingEdit}
+                    className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] shadow-sm shadow-indigo-600/25 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isSavingEdit ? 'Saving Changes...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );
