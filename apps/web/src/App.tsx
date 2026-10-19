@@ -38,7 +38,7 @@ import { MyLeavesPage } from './pages/requests/MyLeavesPage';
 import { MyCompOffPage } from './pages/requests/MyCompOffPage';
 import { ApprovalsDeskPage } from './pages/requests/ApprovalsDeskPage';
 import { ClaimsPage } from './pages/requests/ClaimsPage';
-import { PayrollDashboardPage } from './pages/payroll/PayrollDashboardPage';
+import { AttendanceSalaryPage } from './pages/payroll/AttendanceSalaryPage';
 import { SalaryMasterPage } from './pages/payroll/SalaryMasterPage';
 import { MyPayslipsPage } from './pages/payroll/MyPayslipsPage';
 import { TicketsPage } from './pages/tickets/TicketsPage';
@@ -55,6 +55,11 @@ import { RolesHierarchyPage } from './pages/company/RolesHierarchyPage';
 import { ManageCyclesPage } from './pages/company/ManageCyclesPage';
 import { ClaimCategoriesPage } from './pages/company/ClaimCategoriesPage';
 import { OfferLettersPage } from './pages/company/OfferLettersPage';
+import { ExitManagementPage } from './pages/company/ExitManagementPage';
+import { HrLettersPage } from './pages/company/HrLettersPage';
+import { ComplianceReportsPage } from './pages/payroll/ComplianceReportsPage';
+import { ShiftRosterPage } from './pages/company/ShiftRosterPage';
+import { AssetsOnboardingPage } from './pages/company/AssetsOnboardingPage';
 
 // Helper placeholder for minor system logs
 const SystemNoticePage: React.FC<{ title: string; subtitle?: string }> = ({ title, subtitle }) => (
@@ -216,6 +221,38 @@ export const App: React.FC = () => {
               }
             />
             <Route
+              path="/company/exits"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                  <ExitManagementPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/company/hr-letters"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                  <HrLettersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/company/shift-roster"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                  <ShiftRosterPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/company/assets-onboarding"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                  <AssetsOnboardingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/company/attendance"
               element={
                 <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
@@ -321,12 +358,20 @@ export const App: React.FC = () => {
               }
             />
 
-            {/* Payroll Engine */}
+            {/* Payroll Engine - Monthly Attendance & Salary Calculation */}
+            <Route
+              path="/payroll/attendance-salary"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                  <AttendanceSalaryPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/payroll/dashboard"
               element={
                 <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
-                  <PayrollDashboardPage />
+                  <AttendanceSalaryPage />
                 </ProtectedRoute>
               }
             />
@@ -343,6 +388,14 @@ export const App: React.FC = () => {
               element={
                 <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
                   <SalaryMasterPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payroll/compliance-reports"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                  <ComplianceReportsPage />
                 </ProtectedRoute>
               }
             />

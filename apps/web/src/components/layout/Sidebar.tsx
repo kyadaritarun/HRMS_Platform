@@ -32,6 +32,9 @@ import {
   IconIdBadge,
   IconMail,
   IconShieldLock,
+  IconDoorExit,
+  IconBuildingBank,
+  IconDevices,
 } from '@tabler/icons-react';
 
 export interface SubMenuItem {
@@ -155,6 +158,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
             { label: 'Employees', path: '/company/employees', icon: IconUsers, permission: 'employees' },
             { label: 'Create Employee', path: '/company/employees/new', icon: IconUserPlus, permission: 'employees' },
             { label: 'Offer Letters', path: '/company/offer-letters', icon: IconFileCertificate },
+            { label: 'HR Letters Hub', path: '/company/hr-letters', icon: IconFileCertificate },
+            { label: 'Exit & F&F Settlement', path: '/company/exits', icon: IconDoorExit },
+            { label: 'Assets & Onboarding', path: '/company/assets-onboarding', icon: IconDevices },
+            { label: 'Shift & Roster', path: '/company/shift-roster', icon: IconClock },
             { label: 'Employee Attendance', path: '/company/attendance', icon: IconClock, permission: 'attendance', feature: 'time_attendance_management' },
             { label: 'Departments', path: '/company/departments', icon: IconBriefcase },
             { label: 'Roles & Hierarchy', path: '/company/roles-hierarchy', icon: IconNetwork },
@@ -172,9 +179,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           icon: IconCash,
           roles: ['COMPANY_ADMIN', 'HR'],
           subItems: [
-            { label: 'Payroll Dashboard', path: '/payroll/dashboard', icon: IconCash, feature: 'payroll' },
+            { label: 'Attendance & Salary', path: '/payroll/attendance-salary', icon: IconClock, feature: 'payroll' },
             { label: 'Salary Master', path: '/payroll/salaries', icon: IconReceipt2, feature: 'payroll' },
+            { label: 'Compliance & Bank Payout', path: '/payroll/compliance-reports', icon: IconBuildingBank, feature: 'payroll' },
             { label: 'Offer Letters', path: '/company/offer-letters', icon: IconFileCertificate },
+            { label: 'Exit & F&F Settlement', path: '/company/exits', icon: IconDoorExit },
           ],
         },
         {

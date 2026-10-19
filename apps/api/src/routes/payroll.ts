@@ -104,9 +104,20 @@ router.get(
       // 5. Calculate for each employee
       const results = employees.map((emp) => {
         const payslip = payslipMap.get(emp.id);
-        const bonus = payslip ? Number(payslip.bonus) : 0;
-        const otherDeductions = payslip ? Number(payslip.otherDeductions) : 0;
-        const remarks = payslip ? payslip.remarks : '';
+        const bank = (emp.bankDetails as any) || {};
+        const struct = (bank.salaryStructure as any) || {};
+        const snap = (payslip?.snapshot as any) || {};
+
+        const basicSalary = snap.basicSalary !== undefined ? Number(snap.basicSalary) : (struct.basicSalary !== undefined ? Number(struct.basicSalary) : undefined);
+        const hra = snap.hra !== undefined ? Number(snap.hra) : (struct.hra !== undefined ? Number(struct.hra) : undefined);
+        const specialAllowance = snap.specialAllowance !== undefined ? Number(snap.specialAllowance) : (struct.specialAllowance !== undefined ? Number(struct.specialAllowance) : undefined);
+        const pf = snap.pf !== undefined ? Number(snap.pf) : (struct.pf !== undefined ? Number(struct.pf) : (bank.pf !== undefined ? Number(bank.pf) : 0));
+        const pt = snap.pt !== undefined ? Number(snap.pt) : (struct.pt !== undefined ? Number(struct.pt) : (bank.pt !== undefined ? Number(bank.pt) : 0));
+        const tds = snap.tds !== undefined ? Number(snap.tds) : (struct.tds !== undefined ? Number(struct.tds) : (bank.tds !== undefined ? Number(bank.tds) : 0));
+        const bonus = payslip ? Number(payslip.bonus) : (snap.bonus !== undefined ? Number(snap.bonus) : (struct.bonus !== undefined ? Number(struct.bonus) : 0));
+        const otherDeductions = payslip ? Number(payslip.otherDeductions) : (snap.otherDeductions !== undefined ? Number(snap.otherDeductions) : (struct.otherDeductions !== undefined ? Number(struct.otherDeductions) : 0));
+        const customComponents = snap.customComponents || struct.customComponents || [];
+        const remarks = payslip ? payslip.remarks : (snap.remarks || '');
 
         const empLeaves = (userLeavesMap.get(emp.id) || []).map((l) => ({
           startDate: l.startDate,
@@ -117,12 +128,18 @@ router.get(
         }));
 
         const empAtt = userAttMap.get(emp.id) || [];
-        const bank = (emp.bankDetails as any) || {};
 
         const calculated = calculateEmployeePayroll(year, month, {
           monthlySalary: Number(emp.monthlySalary),
+          basicSalary,
+          hra,
+          specialAllowance,
           bonus,
+          pf,
+          pt,
+          tds,
           otherDeductions,
+          customComponents,
           currency: emp.currency,
           paymentMode: bank.paymentMode,
           bankName: bank.bankName,
@@ -154,10 +171,18 @@ router.get(
             totalLopDays: calculated.totalLopDays,
             lopDeduction: calculated.leaveDeduction,
             leaveDeduction: calculated.leaveDeduction,
-            pfEmployee: 0,
+            overtimeHours: calculated.overtimeHours,
+            overtimePay: calculated.overtimePay,
+            basicSalary: calculated.basicSalary,
+            hra: calculated.hra,
+            specialAllowance: calculated.specialAllowance,
+            pf: calculated.pf,
+            pt: calculated.pt,
+            tds: calculated.tds,
+            pfEmployee: calculated.pf,
             esiEmployee: 0,
-            tds: 0,
             totalEarnings: calculated.grossEarnings,
+            customComponents: calculated.customComponents || [],
           },
         };
       });
@@ -181,14 +206,29 @@ router.put(
   async (req, res, next) => {
     try {
       const companyId = req.user!.companyId!;
-      const { employeeId, month, year, bonus, otherDeductions, remarks } = req.body;
+      const {
+        employeeId,
+        month,
+        year,
+        basicSalary,
+        hra,
+        specialAllowance,
+        bonus,
+        pf,
+        pt,
+        tds,
+        otherDeductions,
+        customComponents,
+        remarks,
+        force,
+      } = req.body;
 
       // Check if already published
       const existing = await prisma.payslip.findUnique({
         where: { employeeId_month_year: { employeeId, month, year } },
       });
 
-      if (existing && existing.status === 'PUBLISHED') {
+      if (existing && existing.status === 'PUBLISHED' && !force) {
         return next(
           new AppError(
             400,
@@ -198,22 +238,38 @@ router.put(
         );
       }
 
+      const snapData = {
+        ...((existing?.snapshot as any) || {}),
+        basicSalary: basicSalary !== undefined ? Number(basicSalary) : undefined,
+        hra: hra !== undefined ? Number(hra) : undefined,
+        specialAllowance: specialAllowance !== undefined ? Number(specialAllowance) : undefined,
+        bonus: Number(bonus || 0),
+        pf: Number(pf || 0),
+        pt: Number(pt || 0),
+        tds: Number(tds || 0),
+        otherDeductions: Number(otherDeductions || 0),
+        customComponents: Array.isArray(customComponents) ? customComponents : [],
+        remarks: remarks || '',
+      };
+
       const upserted = await prisma.payslip.upsert({
         where: { employeeId_month_year: { employeeId, month, year } },
         update: {
-          bonus,
-          otherDeductions,
-          remarks,
-          status: 'DRAFT',
+          bonus: Number(bonus || 0),
+          otherDeductions: Number(otherDeductions || 0),
+          remarks: remarks || '',
+          snapshot: snapData as any,
+          status: existing?.status === 'PUBLISHED' && force ? 'PUBLISHED' : 'DRAFT',
         },
         create: {
           companyId,
           employeeId,
           month,
           year,
-          bonus,
-          otherDeductions,
-          remarks,
+          bonus: Number(bonus || 0),
+          otherDeductions: Number(otherDeductions || 0),
+          remarks: remarks || '',
+          snapshot: snapData as any,
           status: 'DRAFT',
         },
       });
@@ -294,15 +350,32 @@ router.post(
           }),
         ]);
 
-        const bonus = existing ? Number(existing.bonus) : 0;
-        const otherDeductions = existing ? Number(existing.otherDeductions) : 0;
-        const remarks = existing ? existing.remarks : '';
         const bank = (emp.bankDetails as any) || {};
+        const struct = (bank.salaryStructure as any) || {};
+        const snap = (existing?.snapshot as any) || {};
+
+        const basicSalary = snap.basicSalary !== undefined ? Number(snap.basicSalary) : (struct.basicSalary !== undefined ? Number(struct.basicSalary) : undefined);
+        const hra = snap.hra !== undefined ? Number(snap.hra) : (struct.hra !== undefined ? Number(struct.hra) : undefined);
+        const specialAllowance = snap.specialAllowance !== undefined ? Number(snap.specialAllowance) : (struct.specialAllowance !== undefined ? Number(struct.specialAllowance) : undefined);
+        const pf = snap.pf !== undefined ? Number(snap.pf) : (struct.pf !== undefined ? Number(struct.pf) : (bank.pf !== undefined ? Number(bank.pf) : 0));
+        const pt = snap.pt !== undefined ? Number(snap.pt) : (struct.pt !== undefined ? Number(struct.pt) : (bank.pt !== undefined ? Number(bank.pt) : 0));
+        const tds = snap.tds !== undefined ? Number(snap.tds) : (struct.tds !== undefined ? Number(struct.tds) : (bank.tds !== undefined ? Number(bank.tds) : 0));
+        const bonus = existing ? Number(existing.bonus) : (snap.bonus !== undefined ? Number(snap.bonus) : (struct.bonus !== undefined ? Number(struct.bonus) : 0));
+        const otherDeductions = existing ? Number(existing.otherDeductions) : (snap.otherDeductions !== undefined ? Number(snap.otherDeductions) : (struct.otherDeductions !== undefined ? Number(struct.otherDeductions) : 0));
+        const customComponents = snap.customComponents || struct.customComponents || [];
+        const remarks = existing ? existing.remarks : (snap.remarks || '');
 
         const calculated = calculateEmployeePayroll(year, month, {
           monthlySalary: Number(emp.monthlySalary),
+          basicSalary,
+          hra,
+          specialAllowance,
           bonus,
+          pf,
+          pt,
+          tds,
           otherDeductions,
+          customComponents,
           currency: emp.currency,
           paymentMode: bank.paymentMode,
           bankName: bank.bankName,
@@ -329,6 +402,12 @@ router.post(
           totalLopDays: calculated.totalLopDays,
           lopDeduction: calculated.leaveDeduction,
           leaveDeduction: calculated.leaveDeduction,
+          basicSalary: calculated.basicSalary,
+          hra: calculated.hra,
+          specialAllowance: calculated.specialAllowance,
+          pf: calculated.pf,
+          pt: calculated.pt,
+          tds: calculated.tds,
         };
 
         const published = await prisma.payslip.upsert({
@@ -430,19 +509,33 @@ router.put(
     try {
       const companyId = req.user!.companyId!;
       const targetUserId = Number(req.params.userId);
-      const { monthlySalary, currency, bankDetails } = req.body;
+      const { monthlySalary, currency, basicSalary, hra, specialAllowance, pf, pt, tds, customComponents, bankDetails } = req.body;
 
       const employee = await prisma.user.findFirst({
         where: { id: targetUserId, companyId },
       });
       if (!employee) return next(new AppError(404, 'NOT_FOUND', 'Employee not found'));
 
+      const mergedBankDetails = {
+        ...((employee.bankDetails as any) || {}),
+        ...(bankDetails || {}),
+        salaryStructure: {
+          basicSalary: basicSalary !== undefined ? Number(basicSalary) : undefined,
+          hra: hra !== undefined ? Number(hra) : undefined,
+          specialAllowance: specialAllowance !== undefined ? Number(specialAllowance) : undefined,
+          pf: pf !== undefined ? Number(pf) : undefined,
+          pt: pt !== undefined ? Number(pt) : undefined,
+          tds: tds !== undefined ? Number(tds) : undefined,
+          customComponents: Array.isArray(customComponents) ? customComponents : [],
+        },
+      };
+
       const updated = await prisma.user.update({
         where: { id: targetUserId },
         data: {
           monthlySalary,
           currency,
-          bankDetails: bankDetails as any,
+          bankDetails: mergedBankDetails as any,
           salaryEffectiveDate: new Date(),
         },
       });

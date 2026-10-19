@@ -167,8 +167,18 @@ export const TicketCommentsListSchema = z.array(TicketCommentJsonSchema);
 export type TicketCommentJson = z.infer<typeof TicketCommentJsonSchema>;
 
 // Payslip.snapshot
+export const CustomSalaryComponentSchema = z.object({
+  id: z.string().optional(),
+  name: z.string(),
+  type: z.enum(['EARNING', 'DEDUCTION']),
+  amount: z.number().min(0),
+});
+
 export const PayslipSnapshotJsonSchema = z.object({
   baseSalary: z.number(),
+  basicSalary: z.number().optional(),
+  hra: z.number().optional(),
+  specialAllowance: z.number().optional(),
   currency: z.string(),
   totalCalendarDays: z.number(),
   workingDaysCount: z.number(),
@@ -180,7 +190,11 @@ export const PayslipSnapshotJsonSchema = z.object({
   perDayRate: z.number(),
   leaveDeduction: z.number(),
   bonus: z.number(),
+  pf: z.number().optional(),
+  pt: z.number().optional(),
+  tds: z.number().optional(),
   otherDeductions: z.number(),
+  customComponents: z.array(CustomSalaryComponentSchema).default([]).optional(),
   totalDeductions: z.number(),
   grossEarnings: z.number(),
   netSalary: z.number(),

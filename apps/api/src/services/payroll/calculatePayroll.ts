@@ -4,10 +4,24 @@ export function round2(num: number): number {
   return Math.round((num + Number.EPSILON) * 100) / 100;
 }
 
+export interface SalaryComponentItem {
+  id?: string;
+  name: string;
+  type: 'EARNING' | 'DEDUCTION';
+  amount: number;
+}
+
 export interface PayrollInput {
   monthlySalary: number;
+  basicSalary?: number;
+  hra?: number;
+  specialAllowance?: number;
   bonus?: number;
+  pf?: number;
+  pt?: number;
+  tds?: number;
   otherDeductions?: number;
+  customComponents?: SalaryComponentItem[];
   currency?: string;
   paymentMode?: string;
   bankName?: string;
@@ -25,11 +39,15 @@ export interface PayrollInput {
   }[];
   attendances?: {
     checkIn: Date;
+    durationHours?: number | any;
   }[];
 }
 
 export interface PayrollResult {
   baseSalary: number;
+  basicSalary: number;
+  hra: number;
+  specialAllowance: number;
   currency: string;
   totalCalendarDays: number;
   workingDaysCount: number;
@@ -38,10 +56,16 @@ export interface PayrollResult {
   unpaidLeaveDays: number;
   absentDays: number;
   totalLopDays: number;
+  overtimeHours: number;
+  overtimePay: number;
   perDayRate: number;
   leaveDeduction: number;
   bonus: number;
+  pf: number;
+  pt: number;
+  tds: number;
   otherDeductions: number;
+  customComponents: SalaryComponentItem[];
   totalDeductions: number;
   grossEarnings: number;
   netSalary: number;
@@ -145,15 +169,68 @@ export function calculateEmployeePayroll(
     }
   }
 
-  // 6. Loss of Pay (LOP) and Deductions
+  // 6. Overtime Calculation (duration > 8 hours on attendance)
+  let overtimeHours = 0;
+  for (const att of input.attendances || []) {
+    const dur = Number((att as any).durationHours || 0);
+    if (dur > 8) {
+      overtimeHours += dur - 8;
+    }
+  }
+  overtimeHours = round2(overtimeHours);
+  const hourlyRate = divisor > 0 ? round2(perDayRate / 8) : 0;
+  const overtimePay = round2(overtimeHours * hourlyRate * 1.5);
+
+  // 7. Salary Component Breakup (Earnings & Deductions)
+  const customComponents: SalaryComponentItem[] = (input.customComponents || [])
+    .map((c) => ({
+      id: c.id,
+      name: String(c.name || '').trim(),
+      type: (c.type === 'DEDUCTION' ? 'DEDUCTION' : 'EARNING') as 'EARNING' | 'DEDUCTION',
+      amount: round2(Number(c.amount) || 0),
+    }))
+    .filter((c) => c.name && c.amount > 0);
+
+  const customEarningsTotal = round2(
+    customComponents
+      .filter((c) => c.type === 'EARNING')
+      .reduce((acc, c) => acc + c.amount, 0)
+  );
+
+  const customDeductionsTotal = round2(
+    customComponents
+      .filter((c) => c.type === 'DEDUCTION')
+      .reduce((acc, c) => acc + c.amount, 0)
+  );
+
+  const basicSalary = input.basicSalary !== undefined && input.basicSalary >= 0
+    ? round2(input.basicSalary)
+    : round2(monthlySalary * 0.5);
+
+  const hra = input.hra !== undefined && input.hra >= 0
+    ? round2(input.hra)
+    : round2(monthlySalary * 0.2);
+
+  const specialAllowance = input.specialAllowance !== undefined && input.specialAllowance >= 0
+    ? round2(input.specialAllowance)
+    : Math.max(0, round2(monthlySalary - basicSalary - hra - customEarningsTotal));
+
+  const pf = round2(input.pf || 0);
+  const pt = round2(input.pt || 0);
+  const tds = round2(input.tds || 0);
+
+  // 8. Loss of Pay (LOP) and Total Deductions
   const totalLopDays = round2(unpaidLeaveDays + absentDays);
   const leaveDeduction = round2(perDayRate * totalLopDays);
-  const totalDeductions = round2(leaveDeduction + otherDeductions);
-  const grossEarnings = round2(monthlySalary + bonus);
+  const totalDeductions = round2(leaveDeduction + pf + pt + tds + otherDeductions + customDeductionsTotal);
+  const grossEarnings = round2(basicSalary + hra + specialAllowance + bonus + overtimePay + customEarningsTotal);
   const netSalary = Math.max(0, round2(grossEarnings - totalDeductions));
 
   return {
     baseSalary: monthlySalary,
+    basicSalary,
+    hra,
+    specialAllowance,
     currency,
     totalCalendarDays,
     workingDaysCount,
@@ -162,10 +239,16 @@ export function calculateEmployeePayroll(
     unpaidLeaveDays,
     absentDays,
     totalLopDays,
+    overtimeHours,
+    overtimePay,
     perDayRate,
     leaveDeduction,
     bonus,
+    pf,
+    pt,
+    tds,
     otherDeductions,
+    customComponents,
     totalDeductions,
     grossEarnings,
     netSalary,
