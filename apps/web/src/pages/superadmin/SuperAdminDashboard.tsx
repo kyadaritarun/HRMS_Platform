@@ -231,57 +231,7 @@ export const SuperAdminDashboard: React.FC = () => {
     <div className="space-y-6">
       {/* Top Breadcrumb Context */}
 
-      {/* Top Welcome Banner Matching Image 2 (Compact & Slim) */}
-      <div className="py-2.5 px-6 sm:py-3 sm:px-8 bg-gradient-to-r from-[#ebf4fa] via-[#e2edfd] to-[#e4e8fc] rounded-3xl text-slate-900 shadow-xs grid grid-cols-1 lg:grid-cols-12 items-center gap-4 sm:gap-6 border border-indigo-100/60 relative overflow-hidden">
-        {/* Left: Welcome Text */}
-        <div className="lg:col-span-4 xl:col-span-3 z-10 flex flex-col justify-center">
-          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 leading-tight">
-            Welcome back, <br />
-            <span className="inline-flex items-center gap-1.5 mt-0.5">
-              <span>{data?.welcomeName || 'Apex Superadmin'}</span>
-              <span className="text-xl sm:text-2xl">👋</span>
-            </span>
-          </h1>
-          <p className="text-slate-700 text-xs sm:text-[13px] mt-2 leading-relaxed font-semibold">
-            <span className=" text-slate-950">Let’s take a look at your latest updates.</span>
-          </p>
-        </div>
 
-        {/* Center: 3D Dashboard Analytics Illustration (Generous Width) */}
-        <div className="lg:col-span-5 xl:col-span-6 flex justify-center items-center z-10 py-0">
-          <img
-            src="/dashboard-banner-illustration.png"
-            alt="3D Dashboard Analytics"
-            className="w-full max-w-[500px] sm:max-w-[580px] xl:max-w-[640px] h-28 sm:h-32 md:h-36 object-contain select-none hover:scale-[1.01] transition-transform duration-300"
-          />
-        </div>
-
-        {/* Right: Action Buttons (Compact height & spacing) */}
-        <div className="lg:col-span-3 xl:col-span-3 flex flex-col items-stretch sm:items-end justify-center gap-2 z-10 w-full">
-          <button
-            onClick={() => {
-              setCreatedAdminResult(null);
-              setAdminError(null);
-              setShowAddModal(true);
-            }}
-            className="w-full sm:w-44 py-2 px-3.5 rounded-xl bg-[#4338ca] hover:bg-[#3730a3] active:scale-[0.99] text-white text-xs font-bold shadow-sm shadow-indigo-600/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-          >
-            <IconPlus className="w-4 h-4" /> Add Super Admin
-          </button>
-          <Link
-            to="/super-admin/companies"
-            className="w-full sm:w-44 py-2 px-3.5 rounded-xl bg-white hover:bg-slate-50/90 text-slate-800 text-xs font-bold shadow-2xs border border-white/80 flex items-center justify-center gap-2 transition-all cursor-pointer"
-          >
-            <IconBuildingSkyscraper className="w-4 h-4 text-slate-500" /> All Companies
-          </Link>
-          <Link
-            to="/super-admin/packages"
-            className="w-full sm:w-44 py-2 px-3.5 rounded-xl bg-white hover:bg-slate-50/90 text-slate-800 text-xs font-bold shadow-2xs border border-white/80 flex items-center justify-center gap-2 transition-all cursor-pointer"
-          >
-            <IconPackage className="w-4 h-4 text-slate-500" /> Packages
-          </Link>
-        </div>
-      </div>
 
       {/* Date Range & Filter Toolbar */}
       <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">

@@ -15,6 +15,11 @@ export const SuperAdminCreateCompanySchema = z.object({
   timezone: z.string().default('Asia/Kolkata'),
   allowedEmailDomains: z.string().default(''),
   isActive: z.boolean().default(true),
+  adminName: z.string().optional(),
+  adminEmail: z.string().optional(),
+  adminPhone: z.string().optional(),
+  paymentStatus: z.enum(['IN_PROCESS', 'PAYMENT_DONE', 'DECLINE']).optional(),
+  sendPaymentLink: z.boolean().default(true).optional(),
 });
 
 export const SuperAdminUpdateCompanySchema = SuperAdminCreateCompanySchema.partial().extend({
@@ -22,6 +27,7 @@ export const SuperAdminUpdateCompanySchema = SuperAdminCreateCompanySchema.parti
   subIsActive: z.boolean().optional(),
   subEndDate: z.string().nullable().optional(),
   nextPaymentDate: z.string().nullable().optional(),
+  paymentStatus: z.enum(['IN_PROCESS', 'PAYMENT_DONE', 'DECLINE']).optional(),
 });
 
 export const SuperAdminPackageSchema = z.object({
@@ -34,6 +40,8 @@ export const SuperAdminPackageSchema = z.object({
   employeeLimit: z.number().min(1).default(10),
   billingDefault: z.enum(['MONTHLY', 'QUARTERLY', 'YEARLY']).default('MONTHLY'),
   enabledFeatures: z.array(z.string()).default([]),
+  tier: z.enum(['BASIC', 'MEDIUM', 'CUSTOM']).optional(),
+  companyName: z.string().optional(),
 });
 
 export const SuperAdminInvoiceSchema = z.object({

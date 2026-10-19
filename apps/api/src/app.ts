@@ -22,6 +22,7 @@ import policiesRoutes from './routes/policies.js';
 import appreciationsRoutes from './routes/appreciations.js';
 import orgStructureRoutes from './routes/orgStructure.js';
 import assistantRoutes from './routes/assistant.js';
+import subscriptionRoutes from './routes/subscription.js';
 
 import fs from 'fs';
 import { isS3Configured, getS3FileStream } from './lib/storage.js';
@@ -148,6 +149,7 @@ app.use('/api/v1/company/policies', policiesRoutes);
 app.use('/api/v1/appreciations', appreciationsRoutes);
 app.use('/api/v1/org-structure', orgStructureRoutes);
 app.use('/api/v1/assistant', assistantRoutes);
+app.use('/api/v1/subscription', subscriptionRoutes);
 
 // Protected tenant test endpoint
 app.get(

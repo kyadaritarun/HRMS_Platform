@@ -26,6 +26,9 @@ import {
   IconUsers,
   IconChevronDown,
   IconArrowLeft,
+  IconCreditCard,
+  IconSparkles,
+  IconClock,
 } from '@tabler/icons-react';
 
 interface CompanyAdmin {
@@ -51,6 +54,14 @@ interface CompanyItem {
   subEndDate?: string;
   nextPaymentDate?: string;
   isActive: boolean;
+  paymentStatus?: 'IN_PROCESS' | 'PAYMENT_DONE' | 'DECLINE';
+  paymentLinkUrl?: string;
+  adminContact?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+  };
+  latestOrder?: any;
   createdAt?: string;
   packageId?: number | null;
   package?: {
@@ -78,6 +89,7 @@ export const CompaniesPage: React.FC = () => {
 
   // Filters & Pagination
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'IN_PROCESS' | 'PAYMENT_DONE' | 'DECLINE'>('ALL');
   const [rowsPerPage, setRowsPerPage] = useState<number>(10);
   const [currentPage, setCurrentPage] = useState<number>(1);
 
@@ -234,6 +246,48 @@ export const CompaniesPage: React.FC = () => {
     }
   };
 
+  const handleOpenAddAdmin = (company: CompanyItem) => {
+    setSelectedCompany(company);
+    const contact = company.adminContact || {};
+    const names = (contact.name || '').split(' ');
+    const firstName = names[0] || '';
+    const lastName = names.slice(1).join(' ') || '';
+
+    setAdminForm({
+      email: contact.email || '',
+      firstName,
+      lastName,
+      phone: contact.phone || '',
+      password: `Admin@${Math.floor(1000 + Math.random() * 9000)}`,
+    });
+    setAdminResult(null);
+    setAdminModalOpen(true);
+  };
+
+  const handleMarkPayment = async (companyId: number, status: 'PAYMENT_DONE' | 'IN_PROCESS' | 'DECLINE') => {
+    try {
+      await api.post(`/superadmin/companies/${companyId}/mark-payment`, { status });
+      fetchData();
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to update payment status');
+    }
+  };
+
+  const handleResendPaymentLink = async (companyId: number) => {
+    try {
+      const res = await api.post(`/superadmin/companies/${companyId}/resend-payment-link`, {});
+      alert(res.data?.message || 'Payment link resent successfully');
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to resend payment link');
+    }
+  };
+
+  const handleCopyPaymentLink = (url: string) => {
+    if (!url) return;
+    navigator.clipboard.writeText(url);
+    alert('Payment link copied to clipboard!');
+  };
+
   const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCompany) return;
@@ -383,8 +437,29 @@ export const CompaniesPage: React.FC = () => {
     const codeMatch = c.code?.toLowerCase().includes(q);
     const subMatch = c.subdomain?.toLowerCase().includes(q);
     const adminEmailMatch = c.users?.[0]?.email?.toLowerCase().includes(q);
-    return nameMatch || codeMatch || subMatch || adminEmailMatch;
+    const contactEmailMatch = c.adminContact?.email?.toLowerCase().includes(q);
+    const contactNameMatch = c.adminContact?.name?.toLowerCase().includes(q);
+    const matchesSearch = nameMatch || codeMatch || subMatch || adminEmailMatch || contactEmailMatch || contactNameMatch;
+
+    if (!matchesSearch) return false;
+
+    const pStatus = c.paymentStatus || (c.users && c.users.length > 0 ? 'PAYMENT_DONE' : 'IN_PROCESS');
+    if (statusFilter !== 'ALL' && pStatus !== statusFilter) {
+      return false;
+    }
+
+    return true;
   });
+
+  const paymentDoneCount = companies.filter(
+    (c) => (c.paymentStatus || (c.users && c.users.length > 0 ? 'PAYMENT_DONE' : 'IN_PROCESS')) === 'PAYMENT_DONE'
+  ).length;
+  const inProcessCount = companies.filter(
+    (c) => (c.paymentStatus || (c.users && c.users.length > 0 ? 'PAYMENT_DONE' : 'IN_PROCESS')) === 'IN_PROCESS'
+  ).length;
+  const declineCount = companies.filter(
+    (c) => c.paymentStatus === 'DECLINE'
+  ).length;
 
   const totalEntries = filteredCompanies.length;
   const totalPages = Math.ceil(totalEntries / rowsPerPage) || 1;
@@ -609,30 +684,32 @@ export const CompaniesPage: React.FC = () => {
           </div>
         </div>
 
-        <Link
-          to="/super-admin/companies/add"
-          className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold text-xs shadow-xs transition-all active:scale-95 self-start sm:self-center"
-        >
-          <IconPlus className="w-4 h-4" />
-          Add Company
-        </Link>
+        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-center">
+          <Link
+            to="/super-admin/companies/add"
+            className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold text-xs shadow-xs transition-all active:scale-95"
+          >
+            <IconPlus className="w-4 h-4" />
+            Add Company
+          </Link>
+        </div>
       </div>
 
       {/* 4 Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* Card 1: Total Companies */}
+        {/* Card 1: Total Tenants */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-start gap-4 relative z-10">
             <div className="w-12 h-12 rounded-xl bg-blue-50/80 text-blue-500 border border-blue-100/60 flex items-center justify-center shrink-0">
               <IconBuilding className="w-6 h-6 stroke-[1.75]" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-500">Total Companies</p>
+              <p className="text-xs font-semibold text-slate-500">Total Tenants</p>
               <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
-                {metrics.totalCompanies}
+                {companies.length}
               </p>
-              <p className="text-xs font-semibold text-emerald-500 mt-1">
-                +{metrics.totalCompanies} in this period
+              <p className="text-xs font-semibold text-blue-600 mt-1">
+                Registered workspaces
               </p>
             </div>
           </div>
@@ -655,24 +732,23 @@ export const CompaniesPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Card 2: Active Companies */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col justify-between">
-          {/* Checkmark icon badge on top right */}
+        {/* Card 2: Payment Done */}
+        <div className="bg-white p-5 rounded-2xl border border-emerald-100/90 shadow-[0_2px_12px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col justify-between">
           <div className="absolute top-4 right-4 w-6 h-6 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center z-10 shadow-2xs">
             <IconCheck className="w-3.5 h-3.5 stroke-[2.5]" />
           </div>
 
           <div className="flex items-start gap-4 relative z-10">
-            <div className="w-12 h-12 rounded-xl bg-teal-50/80 text-teal-600 border border-teal-100/60 flex items-center justify-center shrink-0">
-              <IconUsers className="w-6 h-6 stroke-[1.75]" />
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0">
+              <IconCreditCard className="w-6 h-6 stroke-[1.75]" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-500">Active Companies</p>
+              <p className="text-xs font-semibold text-slate-500">Payment Done</p>
               <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
-                {metrics.activeCompanies}
+                {paymentDoneCount}
               </p>
-              <p className="text-xs font-normal text-slate-400 mt-1">
-                {metrics.inactiveCompanies} inactive / suspended
+              <p className="text-xs font-semibold text-emerald-600 mt-1">
+                Ready for Admin Setup
               </p>
             </div>
           </div>
@@ -695,19 +771,19 @@ export const CompaniesPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Card 3: Inactive Companies */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col justify-between">
+        {/* Card 3: In Process */}
+        <div className="bg-white p-5 rounded-2xl border border-amber-100/90 shadow-[0_2px_12px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-start gap-4 relative z-10">
-            <div className="w-12 h-12 rounded-xl bg-rose-50/80 text-rose-500 border border-rose-100/60 flex items-center justify-center shrink-0">
-              <IconCircleX className="w-6 h-6 stroke-[1.75]" />
+            <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0">
+              <IconClock className="w-6 h-6 stroke-[1.75]" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-500">Inactive Companies</p>
+              <p className="text-xs font-semibold text-slate-500">In Process</p>
               <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
-                {metrics.inactiveCompanies}
+                {inProcessCount}
               </p>
-              <p className="text-xs font-normal text-slate-400 mt-1">
-                {metrics.inactiveCompanies === 0 ? 'No inactive companies' : `${metrics.inactiveCompanies} inactive`}
+              <p className="text-xs font-medium text-amber-700 mt-1">
+                Payment Link Dispatched
               </p>
             </div>
           </div>
@@ -716,13 +792,13 @@ export const CompaniesPage: React.FC = () => {
             <svg viewBox="0 0 400 60" preserveAspectRatio="none" className="w-full h-full">
               <path
                 d="M0 40 C 90 22, 160 58, 230 30 C 300 18, 360 46, 400 32 L 400 60 L 0 60 Z"
-                fill="#f43f5e"
+                fill="#f59e0b"
                 fillOpacity="0.06"
               />
               <path
                 d="M0 40 C 90 22, 160 58, 230 30 C 300 18, 360 46, 400 32"
                 fill="none"
-                stroke="#f43f5e"
+                stroke="#fbbf24"
                 strokeWidth="2"
                 strokeOpacity="0.35"
               />
@@ -730,19 +806,19 @@ export const CompaniesPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Card 4: Company Locations */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col justify-between">
+        {/* Card 4: Declined */}
+        <div className="bg-white p-5 rounded-2xl border border-rose-100/90 shadow-[0_2px_12px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-start gap-4 relative z-10">
-            <div className="w-12 h-12 rounded-xl bg-amber-50/80 text-amber-500 border border-amber-100/60 flex items-center justify-center shrink-0">
-              <IconMapPin className="w-6 h-6 stroke-[1.75]" />
+            <div className="w-12 h-12 rounded-xl bg-rose-50 text-rose-500 border border-rose-100 flex items-center justify-center shrink-0">
+              <IconCircleX className="w-6 h-6 stroke-[1.75]" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-500">Company Locations</p>
+              <p className="text-xs font-semibold text-slate-500">Declined / Failed</p>
               <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
-                {metrics.locationsCount}
+                {declineCount}
               </p>
-              <p className="text-xs font-normal text-slate-400 mt-1">
-                {metrics.locationsCount === '-' ? 'Not specified' : `${metrics.locationsCount} locations`}
+              <p className="text-xs font-medium text-rose-600 mt-1">
+                Payment expired or declined
               </p>
             </div>
           </div>
@@ -751,13 +827,13 @@ export const CompaniesPage: React.FC = () => {
             <svg viewBox="0 0 400 60" preserveAspectRatio="none" className="w-full h-full">
               <path
                 d="M0 44 C 85 18, 150 52, 230 25 C 310 10, 360 42, 400 22 L 400 60 L 0 60 Z"
-                fill="#f59e0b"
+                fill="#f43f5e"
                 fillOpacity="0.06"
               />
               <path
                 d="M0 44 C 85 18, 150 52, 230 25 C 310 10, 360 42, 400 22"
                 fill="none"
-                stroke="#fbbf24"
+                stroke="#f43f5e"
                 strokeWidth="2"
                 strokeOpacity="0.5"
               />
@@ -768,22 +844,76 @@ export const CompaniesPage: React.FC = () => {
 
       {/* Main Table Card: Companies List */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        {/* Card Header & Controls */}
-        <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <h2 className="text-base font-bold text-slate-900">Companies List</h2>
+        {/* Card Header & Controls with Status Filter Tabs */}
+        <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          {/* Status Filter Buttons */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => {
+                setStatusFilter('ALL');
+                setCurrentPage(1);
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                statusFilter === 'ALL'
+                  ? 'bg-slate-900 text-white'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              All Tenants ({companies.length})
+            </button>
+            <button
+              onClick={() => {
+                setStatusFilter('IN_PROCESS');
+                setCurrentPage(1);
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                statusFilter === 'IN_PROCESS'
+                  ? 'bg-amber-600 text-white'
+                  : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
+              }`}
+            >
+              In Process ({inProcessCount})
+            </button>
+            <button
+              onClick={() => {
+                setStatusFilter('PAYMENT_DONE');
+                setCurrentPage(1);
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                statusFilter === 'PAYMENT_DONE'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+              }`}
+            >
+              Payment Done ({paymentDoneCount})
+            </button>
+            <button
+              onClick={() => {
+                setStatusFilter('DECLINE');
+                setCurrentPage(1);
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                statusFilter === 'DECLINE'
+                  ? 'bg-rose-600 text-white'
+                  : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+              }`}
+            >
+              Decline ({declineCount})
+            </button>
+          </div>
 
           {/* Search Input */}
-          <div className="relative w-full sm:w-64">
+          <div className="relative w-full md:w-72">
             <IconSearch className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search companies..."
+              placeholder="Search by company or email..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="pl-9 pr-3.5 py-1.5 text-xs bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-brand-600 w-full placeholder:text-slate-400 text-slate-800 shadow-2xs"
+              className="pl-9 pr-3.5 py-1.5 text-xs bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-blue-600 w-full placeholder:text-slate-400 text-slate-800 shadow-2xs"
             />
           </div>
         </div>
@@ -813,15 +943,14 @@ export const CompaniesPage: React.FC = () => {
               ) : displayedCompanies.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-5 py-12 text-center text-slate-400 font-medium">
-                    No companies registered yet.
+                    No companies found matching current filters.
                   </td>
                 </tr>
               ) : (
                 displayedCompanies.map((c) => {
                   const initial = c.name ? c.name.charAt(0).toUpperCase() : 'C';
                   const primaryAdmin = c.users && c.users.length > 0 ? c.users[0] : null;
-                  const emailDisplay = (c as any).email || (c.allowedEmailDomains?.includes('@') ? c.allowedEmailDomains : null) || primaryAdmin?.email || '-';
-                  const adminEmail = primaryAdmin?.email || '-';
+                  const emailDisplay = (c as any).email || (c.allowedEmailDomains?.includes('@') ? c.allowedEmailDomains : null) || c.adminContact?.email || primaryAdmin?.email || '-';
 
                   const createdStr = c.createdAt
                     ? new Date(c.createdAt).toLocaleDateString('en-GB', {
@@ -831,9 +960,11 @@ export const CompaniesPage: React.FC = () => {
                       })
                     : '07 Oct 2026';
 
-                  const planName = c.package?.name || 'Attendance Only Plan';
+                  const planName = c.package?.name || 'Basic Plan';
                   const planType = c.planType ? c.planType.toLowerCase() : 'monthly';
-                  const accountUrl = `${c.subdomain}.peopleplus.uptrix.io`;
+                  const accountUrl = `${c.subdomain}.uptrix.io`;
+
+                  const pStatus = c.paymentStatus || (primaryAdmin ? 'PAYMENT_DONE' : 'IN_PROCESS');
 
                   return (
                     <tr key={c.id} className="hover:bg-slate-50/70 transition-colors">
@@ -891,16 +1022,40 @@ export const CompaniesPage: React.FC = () => {
                         <div className="text-[11px] text-slate-400 capitalize mt-0.5">{planType}</div>
                       </td>
 
-                      {/* ADMIN */}
-                      <td className="px-5 py-4 text-slate-600 max-w-[180px] truncate" title={adminEmail}>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenContacts(c)}
-                          className="text-slate-600 hover:text-blue-600 hover:underline font-medium text-left truncate cursor-pointer block max-w-full"
-                          title={`View ${c.name} admin contacts`}
-                        >
-                          {adminEmail === '-' ? '-' : (adminEmail.length > 20 ? `${adminEmail.slice(0, 19)}...` : adminEmail)}
-                        </button>
+                      {/* ADMIN COLUMN: Gated by Payment Status */}
+                      <td className="px-5 py-4">
+                        {pStatus === 'IN_PROCESS' || pStatus === 'DECLINE' ? (
+                          <div className="flex items-center gap-1.5" title="Payment must be completed before Super Admin creates Company Admin">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 text-[11px] font-semibold border border-amber-200/80">
+                              <IconClock className="w-3.5 h-3.5 text-amber-600" />
+                              Awaiting Payment
+                            </span>
+                          </div>
+                        ) : primaryAdmin ? (
+                          <div className="space-y-0.5 max-w-[190px]">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenContacts(c)}
+                              className="font-bold text-slate-900 hover:text-blue-600 hover:underline text-left text-xs truncate block max-w-full cursor-pointer"
+                              title="View admin contacts"
+                            >
+                              {primaryAdmin.firstName ? `${primaryAdmin.firstName} ${primaryAdmin.lastName || ''}`.trim() : primaryAdmin.email}
+                            </button>
+                            <span className="text-[11px] text-slate-400 truncate block font-mono">
+                              {primaryAdmin.email}
+                            </span>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenAddAdmin(c)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold shadow-xs transition-all active:scale-95 cursor-pointer"
+                            title="Payment done! Click to set up Company Admin and send credentials"
+                          >
+                            <IconUserPlus className="w-3.5 h-3.5" />
+                            <span>+ Create Admin</span>
+                          </button>
+                        )}
                       </td>
 
                       {/* CREATED DATE */}
@@ -908,17 +1063,22 @@ export const CompaniesPage: React.FC = () => {
                         {createdStr}
                       </td>
 
-                      {/* STATUS (Pill badge matching screenshot) */}
+                      {/* STATUS COLUMN: Payment & Onboarding Status */}
                       <td className="px-5 py-4 text-center">
-                        {c.isActive ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-xs font-bold border border-emerald-100">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                            Active
+                        {pStatus === 'PAYMENT_DONE' ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 shadow-2xs">
+                            <IconCheck className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
+                            Payment Done
+                          </span>
+                        ) : pStatus === 'DECLINE' ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 text-rose-700 text-xs font-bold border border-rose-200 shadow-2xs">
+                            <IconCircleX className="w-3.5 h-3.5 text-rose-600" />
+                            Decline
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 text-rose-600 text-xs font-bold border border-rose-100">
-                            <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                            Inactive
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 text-xs font-bold border border-amber-200 shadow-2xs">
+                            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                            In Process
                           </span>
                         )}
                       </td>
@@ -931,7 +1091,7 @@ export const CompaniesPage: React.FC = () => {
                             e.stopPropagation();
                             setOpenMenuId(openMenuId === c.id ? null : c.id);
                           }}
-                          className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-blue-600 flex items-center justify-center shadow-2xs transition-colors ml-auto"
+                          className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-blue-600 flex items-center justify-center shadow-2xs transition-colors ml-auto cursor-pointer"
                           title="Actions"
                         >
                           <IconDots className="w-4 h-4" />
@@ -941,8 +1101,88 @@ export const CompaniesPage: React.FC = () => {
                         {openMenuId === c.id && (
                           <div
                             onClick={(e) => e.stopPropagation()}
-                            className="absolute right-5 mt-1.5 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-40 text-left text-xs animate-in fade-in zoom-in-95"
+                            className="absolute right-5 mt-1.5 w-52 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-40 text-left text-xs animate-in fade-in zoom-in-95"
                           >
+                            {/* Action to Create Admin if Payment Done & No Admin yet */}
+                            {pStatus === 'PAYMENT_DONE' && !primaryAdmin && (
+                              <button
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  handleOpenAddAdmin(c);
+                                }}
+                                className="w-full px-3.5 py-2 text-blue-700 bg-blue-50/70 hover:bg-blue-100/70 flex items-center gap-2.5 transition-colors font-bold border-b border-blue-100"
+                              >
+                                <IconUserPlus className="w-4 h-4 text-blue-600" />
+                                Create Company Admin
+                              </button>
+                            )}
+
+                            {/* In Process Payment Options */}
+                            {pStatus === 'IN_PROCESS' && (
+                              <>
+                                {c.paymentLinkUrl && (
+                                  <button
+                                    onClick={() => {
+                                      setOpenMenuId(null);
+                                      handleCopyPaymentLink(c.paymentLinkUrl!);
+                                    }}
+                                    className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium"
+                                  >
+                                    <IconCopy className="w-4 h-4 text-slate-500" />
+                                    Copy Payment Link
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    handleResendPaymentLink(c.id);
+                                  }}
+                                  className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium"
+                                >
+                                  <IconMail className="w-4 h-4 text-slate-500" />
+                                  Resend Payment Link
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    handleMarkPayment(c.id, 'PAYMENT_DONE');
+                                  }}
+                                  className="w-full px-3.5 py-2 text-emerald-700 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors font-bold"
+                                >
+                                  <IconCheck className="w-4 h-4 text-emerald-600" />
+                                  Confirm Payment (Mark Done)
+                                </button>
+                                <div className="border-t border-slate-100 my-1" />
+                              </>
+                            )}
+
+                            {/* Declined Options */}
+                            {pStatus === 'DECLINE' && (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    handleResendPaymentLink(c.id);
+                                  }}
+                                  className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium"
+                                >
+                                  <IconMail className="w-4 h-4 text-slate-500" />
+                                  Resend Payment Link
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    handleMarkPayment(c.id, 'PAYMENT_DONE');
+                                  }}
+                                  className="w-full px-3.5 py-2 text-emerald-700 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors font-medium"
+                                >
+                                  <IconCheck className="w-4 h-4 text-emerald-600" />
+                                  Mark as Payment Done
+                                </button>
+                                <div className="border-t border-slate-100 my-1" />
+                              </>
+                            )}
+
                             <button
                               onClick={() => {
                                 setSelectedCompany(c);
@@ -952,19 +1192,21 @@ export const CompaniesPage: React.FC = () => {
                               className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium"
                             >
                               <IconEye className="w-4 h-4 text-slate-400" />
-                              View
+                              View Details
                             </button>
 
-                            <button
-                              onClick={() => {
-                                handleOpenContacts(c);
-                                setOpenMenuId(null);
-                              }}
-                              className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium"
-                            >
-                              <IconUserPlus className="w-4 h-4 text-slate-400" />
-                              Add Company Admin
-                            </button>
+                            {primaryAdmin && (
+                              <button
+                                onClick={() => {
+                                  handleOpenContacts(c);
+                                  setOpenMenuId(null);
+                                }}
+                                className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium"
+                              >
+                                <IconUsers className="w-4 h-4 text-slate-400" />
+                                Admin Contacts
+                              </button>
+                            )}
 
                             <button
                               onClick={() => {
@@ -988,7 +1230,7 @@ export const CompaniesPage: React.FC = () => {
                               className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium"
                             >
                               <IconEdit className="w-4 h-4 text-slate-400" />
-                              Edit
+                              Edit Company
                             </button>
 
                             <div className="border-t border-slate-100 my-1" />
@@ -1623,6 +1865,8 @@ export const CompaniesPage: React.FC = () => {
           </div>
         </div>
       )}
+
+
     </div>
   );
 };

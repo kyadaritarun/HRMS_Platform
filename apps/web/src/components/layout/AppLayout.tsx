@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { useAuth } from '../../context/AuthContext';
-import { getFileUrl } from '../../api/client';
+import api, { getFileUrl } from '../../api/client';
 import {
   IconBell,
   IconLogout,
@@ -15,6 +15,10 @@ import {
   IconBuildingSkyscraper,
   IconShieldLock,
   IconPackage,
+  IconClock,
+  IconCreditCard,
+  IconSparkles,
+  IconAlertTriangle,
 } from '@tabler/icons-react';
 
 export const AppLayout: React.FC = () => {
@@ -26,12 +30,104 @@ export const AppLayout: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
 
-  // Mock notifications list
-  const notifications = [
-    { id: 1, title: 'New Tenant Registered', message: 'Acme Corporation signed up for Enterprise Tier.', time: '10m ago', icon: IconCheck, read: false },
-    { id: 2, title: 'Package Renewal Alert', message: 'Global Logistics renewal is due in 14 days.', time: '1h ago', icon: IconCalendarEvent, read: false },
-    { id: 3, title: 'System Health Check', message: 'All 4 cluster nodes operational at 99.98% uptime.', time: '2h ago', icon: IconCheck, read: false },
-  ];
+  // Live notifications
+  interface NotificationItem {
+    id: number;
+    kind: string;
+    title: string;
+    message: string;
+    url?: string;
+    isRead: boolean;
+    createdAt: string;
+  }
+
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+
+  const fetchNotifications = async () => {
+    if (!user) return;
+    try {
+      const res = await api.get('/notifications');
+      setNotifications(res.data?.notifications || []);
+    } catch (err) {
+      console.error('Failed to load notifications:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 45000);
+    return () => clearInterval(interval);
+  }, [user?.id]);
+
+  const unreadCount = useMemo(() => {
+    return notifications.filter((n) => !n.isRead).length;
+  }, [notifications]);
+
+  const handleMarkAllRead = async () => {
+    try {
+      await api.post('/notifications/read-all');
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    } catch (err) {
+      console.error('Failed to mark all notifications as read:', err);
+    }
+  };
+
+  const handleNotificationClick = async (n: NotificationItem) => {
+    try {
+      if (!n.isRead) {
+        await api.patch(`/notifications/${n.id}/read`);
+        setNotifications((prev) =>
+          prev.map((item) => (item.id === n.id ? { ...item, isRead: true } : item))
+        );
+      }
+      if (n.url) {
+        setNotificationsOpen(false);
+        navigate(n.url);
+      }
+    } catch (err) {
+      console.error('Failed to update notification:', err);
+    }
+  };
+
+  const formatNotificationTime = (dateStr: string) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
+    if (diffSec < 60) return 'Just now';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}h ago`;
+    const diffDays = Math.floor(diffHr / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+  };
+
+  const renderNotificationIcon = (kind: string) => {
+    switch (kind?.toUpperCase()) {
+      case 'PAYMENT':
+      case 'PAYSLIP':
+      case 'PAYROLL':
+        return <IconCreditCard className="w-4 h-4 text-emerald-600" />;
+      case 'LEAVE':
+      case 'COMP_OFF':
+      case 'REGULARIZATION':
+        return <IconClock className="w-4 h-4 text-indigo-600" />;
+      case 'TENANT':
+      case 'COMPANY':
+        return <IconBuildingSkyscraper className="w-4 h-4 text-blue-600" />;
+      case 'KUDOS':
+      case 'APPRECIATION':
+        return <IconSparkles className="w-4 h-4 text-amber-500" />;
+      case 'SYSTEM':
+      case 'ALERT':
+        return <IconAlertTriangle className="w-4 h-4 text-rose-500" />;
+      default:
+        return <IconCheck className="w-4 h-4 text-indigo-600" />;
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -130,36 +226,61 @@ export const AppLayout: React.FC = () => {
                 title="Notifications"
               >
                 <IconBell className="w-5 h-5" />
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center shadow-2xs">
-                  3
-                </span>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center shadow-2xs">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </button>
 
               {/* Notifications Drawer */}
               {notificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 py-3 z-50 animate-in fade-in">
+                <div className="absolute right-0 mt-2 w-80 sm:w-88 bg-white rounded-2xl shadow-xl border border-slate-100 py-3 z-50 animate-in fade-in">
                   <div className="px-4 pb-2 border-b border-slate-100 flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800">Notifications (3)</span>
-                    <button
-                      onClick={() => setNotificationsOpen(false)}
-                      className="text-[11px] font-semibold text-indigo-600 hover:underline cursor-pointer"
-                    >
-                      Mark all read
-                    </button>
+                    <span className="text-xs font-bold text-slate-800">
+                      Notifications {unreadCount > 0 && `(${unreadCount} unread)`}
+                    </span>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={handleMarkAllRead}
+                        className="text-[11px] font-semibold text-indigo-600 hover:underline cursor-pointer"
+                      >
+                        Mark all read
+                      </button>
+                    )}
                   </div>
                   <div className="divide-y divide-slate-50 max-h-72 overflow-y-auto">
-                    {notifications.map((n) => (
-                      <div key={n.id} className="p-3 hover:bg-slate-50/80 transition-colors flex items-start gap-3">
-                        <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
-                          <n.icon className="w-4 h-4" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-xs font-semibold text-slate-800">{n.title}</div>
-                          <div className="text-[11px] text-slate-500 line-clamp-2">{n.message}</div>
-                          <div className="text-[10px] text-slate-400 mt-1">{n.time}</div>
-                        </div>
+                    {notifications.length === 0 ? (
+                      <div className="py-8 text-center text-slate-400 text-xs">
+                        No notifications yet
                       </div>
-                    ))}
+                    ) : (
+                      notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          onClick={() => handleNotificationClick(n)}
+                          className={`p-3 hover:bg-slate-50/80 transition-colors flex items-start gap-3 cursor-pointer ${
+                            !n.isRead ? 'bg-indigo-50/20' : ''
+                          }`}
+                        >
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                            !n.isRead ? 'bg-indigo-50 border border-indigo-100' : 'bg-slate-100'
+                          }`}>
+                            {renderNotificationIcon(n.kind)}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs font-semibold text-slate-800 flex items-center justify-between">
+                              <span className="truncate">{n.title}</span>
+                              {!n.isRead && (
+                                <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 shrink-0 ml-1.5"></span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-500 line-clamp-2 mt-0.5">{n.message}</div>
+                            <div className="text-[10px] text-slate-400 mt-1">{formatNotificationTime(n.createdAt)}</div>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               )}

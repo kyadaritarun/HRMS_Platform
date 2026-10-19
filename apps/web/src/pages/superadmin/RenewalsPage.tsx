@@ -196,10 +196,28 @@ export const RenewalsPage: React.FC = () => {
           {/* Filter Button */}
           <button
             type="submit"
-            className="inline-flex items-center justify-center gap-1.5 px-5 py-2 bg-[#5046e5] hover:bg-[#4338ca] text-white rounded-xl text-xs font-semibold shadow-xs transition-all active:scale-95 cursor-pointer whitespace-nowrap shrink-0"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-[#5046e5] hover:bg-[#4338ca] text-white rounded-xl text-xs font-semibold shadow-xs transition-all active:scale-95 cursor-pointer whitespace-nowrap shrink-0"
           >
             <IconFilter className="w-3.5 h-3.5 shrink-0" />
             <span>Filter</span>
+          </button>
+
+          {/* Trigger 10-Day Expiry Alerts */}
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const res = await api.post('/superadmin/trigger-expiry-alerts');
+                alert(res.data?.message || 'Expiry alerts scan complete');
+                fetchData();
+              } catch (err: any) {
+                alert(err.response?.data?.error || 'Failed to trigger expiry scan');
+              }
+            }}
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-700 hover:to-amber-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer whitespace-nowrap shrink-0"
+          >
+            <IconAlertTriangle className="w-3.5 h-3.5 shrink-0" />
+            <span>Scan 10-Day Expiry Alerts</span>
           </button>
         </form>
       </div>

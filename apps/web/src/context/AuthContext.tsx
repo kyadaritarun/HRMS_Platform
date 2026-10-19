@@ -133,6 +133,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       leaves: ['leave_management'],
       time_attendance_management: ['attendance'],
       attendance: ['time_attendance_management'],
+      payroll_management: ['payroll'],
+      payroll: ['payroll_management'],
       holiday_calendar: ['holidays'],
       holidays: ['holiday_calendar'],
       employee_document_management: ['documents'],

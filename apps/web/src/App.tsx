@@ -7,6 +7,7 @@ import { AppLayout } from './components/layout/AppLayout';
 // Auth Pages
 import { LoginPage } from './pages/auth/LoginPage';
 import { ChangePasswordPage } from './pages/auth/ChangePasswordPage';
+import { HostedPaymentPage } from './pages/checkout/HostedPaymentPage';
 
 // Super Admin Pages
 import { SuperAdminDashboard } from './pages/superadmin/SuperAdminDashboard';
@@ -53,6 +54,7 @@ import { PerformanceGoalsPage } from './pages/performance/PerformanceGoalsPage';
 import { RolesHierarchyPage } from './pages/company/RolesHierarchyPage';
 import { ManageCyclesPage } from './pages/company/ManageCyclesPage';
 import { ClaimCategoriesPage } from './pages/company/ClaimCategoriesPage';
+import { OfferLettersPage } from './pages/company/OfferLettersPage';
 
 // Helper placeholder for minor system logs
 const SystemNoticePage: React.FC<{ title: string; subtitle?: string }> = ({ title, subtitle }) => (
@@ -82,9 +84,10 @@ export const App: React.FC = () => {
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
         <Routes>
-          {/* Public Auth Routes */}
+          {/* Public Auth & Checkout Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/change-password" element={<ChangePasswordPage />} />
+          <Route path="/checkout/pay" element={<HostedPaymentPage />} />
 
           {/* Root Redirect */}
           <Route path="/" element={<RootRedirect />} />
@@ -205,6 +208,14 @@ export const App: React.FC = () => {
               }
             />
             <Route
+              path="/company/offer-letters"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                  <OfferLettersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/company/attendance"
               element={
                 <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
@@ -321,6 +332,14 @@ export const App: React.FC = () => {
             />
             <Route
               path="/payroll/salaries"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                  <SalaryMasterPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payroll/salary-master"
               element={
                 <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
                   <SalaryMasterPage />

@@ -69,6 +69,7 @@ model Company {
   subEndDate          DateTime?
   nextPaymentDate     DateTime?
   subIsActive         Boolean   @default(true)
+  lastExpiryAlertSentAt DateTime?
 
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
@@ -87,6 +88,7 @@ model Company {
   activityLogs        ActivityLog[]
   invoices            Invoice[]
   emailLogs           EmailLog[]
+  paymentOrders       SubscriptionPaymentOrder[]
 }
 
 model Package {
@@ -102,6 +104,7 @@ model Package {
   enabledFeatures Json      @default("[]") // string[]
   createdAt       DateTime  @default(now())
   companies       Company[]
+  paymentOrders   SubscriptionPaymentOrder[]
 }
 
 // ------------------------------------------------------------------
@@ -491,4 +494,38 @@ model EmailLog {
   createdAt    DateTime @default(now())
 
   @@index([companyId, createdAt])
+}
+
+// ------------------------------------------------------------------
+// SubscriptionPaymentOrder: Tracks Razorpay payment links, proposals,
+// onboarding payments, and plan upgrades.
+// ------------------------------------------------------------------
+model SubscriptionPaymentOrder {
+  id              Int       @id @default(autoincrement())
+  orderId         String    @unique // rzp_plink_xxx or rzp_order_xxx
+  paymentId       String?   // rzp_pay_xxx
+  companyName     String
+  contactName     String    @default("")
+  contactEmail    String
+  contactPhone    String    @default("")
+  subdomain       String
+  packageId       Int
+  package         Package   @relation(fields: [packageId], references: [id])
+  planType        String    @default("MONTHLY") // MONTHLY | QUARTERLY | YEARLY
+  amount          Decimal   @db.Decimal(10, 2)
+  currency        String    @default("INR")
+  status          String    @default("PENDING") // PENDING | PAID | EXPIRED | FAILED
+  paymentLinkUrl  String    @default("")
+  companyId       Int?
+  company         Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  invoiceId       Int?
+  isUpgrade       Boolean   @default(false)
+  meta            Json      @default("{}") // e.g. custom limits, features, remarks
+  createdAt       DateTime  @default(now())
+  paidAt          DateTime?
+  expiresAt       DateTime?
+
+  @@index([contactEmail, status])
+  @@index([orderId])
+  @@index([companyId])
 }

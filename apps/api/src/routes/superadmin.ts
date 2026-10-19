@@ -14,6 +14,8 @@ import {
 import { getRenewalsAndExpiring, getLicenseOveruseList, generateInvoiceNumber } from '../services/billing.js';
 import { upload } from '../lib/storage.js';
 import { sendEmail } from '../lib/mailer.js';
+import { sendPlanProposal, checkAndSendExpiryAlerts } from '../services/subscriptionBilling.js';
+import { createRazorpayPaymentLink } from '../lib/razorpay.js';
 
 const router = Router();
 
@@ -172,26 +174,63 @@ router.get('/companies', async (_req, res, next) => {
         package: true,
         users: {
           where: { role: 'COMPANY_ADMIN' },
-          select: { id: true, firstName: true, lastName: true, email: true, phone: true },
+          select: { id: true, firstName: true, lastName: true, email: true, phone: true, isActive: true },
+        },
+        paymentOrders: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
         },
         _count: { select: { users: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    const totalCompanies = companies.length;
-    const activeCompanies = companies.filter((c) => c.isActive).length;
-    const inactiveCompanies = companies.filter((c) => !c.isActive).length;
+    const enrichedCompanies = companies.map((c: any) => {
+      const settings = (c.settings && typeof c.settings === 'object' ? c.settings : {}) as any;
+      const latestOrder = c.paymentOrders && c.paymentOrders.length > 0 ? c.paymentOrders[0] : null;
+
+      let paymentStatus: 'IN_PROCESS' | 'PAYMENT_DONE' | 'DECLINE' = 'IN_PROCESS';
+
+      if (settings.paymentStatus) {
+        paymentStatus = settings.paymentStatus;
+      } else if (latestOrder?.status === 'PAID' || (c.users && c.users.length > 0)) {
+        paymentStatus = 'PAYMENT_DONE';
+      } else if (latestOrder?.status === 'EXPIRED' || latestOrder?.status === 'FAILED') {
+        paymentStatus = 'DECLINE';
+      } else {
+        paymentStatus = 'IN_PROCESS';
+      }
+
+      const adminContact = settings.adminContact || {
+        name: latestOrder?.contactName || '',
+        email: latestOrder?.contactEmail || (c.users && c.users[0]?.email) || '',
+        phone: latestOrder?.contactPhone || (c.users && c.users[0]?.phone) || '',
+      };
+
+      const paymentLinkUrl = latestOrder?.paymentLinkUrl || settings.paymentLinkUrl || '';
+
+      return {
+        ...c,
+        paymentStatus,
+        paymentLinkUrl,
+        adminContact,
+        latestOrder,
+      };
+    });
+
+    const totalCompanies = enrichedCompanies.length;
+    const activeCompanies = enrichedCompanies.filter((c) => c.isActive).length;
+    const inactiveCompanies = enrichedCompanies.filter((c) => !c.isActive).length;
 
     const locations = new Set(
-      companies
+      enrichedCompanies
         .map((c: any) => c.address?.city || c.address?.state)
         .filter(Boolean)
     );
     const locationsCount = locations.size > 0 ? String(locations.size) : '-';
 
     return res.json({
-      companies,
+      companies: enrichedCompanies,
       metrics: {
         totalCompanies,
         activeCompanies,
@@ -237,13 +276,37 @@ router.post('/companies', validateBody(SuperAdminCreateCompanySchema), async (re
     }
 
     let assignedPackageId = data.packageId || null;
-    if (!assignedPackageId) {
-      const defaultPkg =
-        (await prisma.package.findFirst({
-          where: { name: { contains: 'Enterprise', mode: 'insensitive' } },
-        })) || (await prisma.package.findFirst({ orderBy: { id: 'asc' } }));
-      assignedPackageId = defaultPkg?.id || null;
+    let pkg: any = null;
+    if (assignedPackageId) {
+      pkg = await prisma.package.findUnique({ where: { id: assignedPackageId } });
     }
+    if (!pkg) {
+      pkg = (await prisma.package.findFirst({ orderBy: { id: 'asc' } })) || null;
+      assignedPackageId = pkg?.id || null;
+    }
+
+    const planType = data.planType || 'MONTHLY';
+    let basePrice = 0;
+    if (pkg) {
+      if (planType === 'YEARLY') {
+        basePrice = Number(pkg.priceYearly) || Number(pkg.priceMonthly || 999) * 10;
+      } else if (planType === 'QUARTERLY') {
+        basePrice = Number(pkg.priceQuarterly) || Number(pkg.priceMonthly || 999) * 3;
+      } else {
+        basePrice = Number(pkg.priceMonthly || 999);
+      }
+    }
+    if (data.subAmount && data.subAmount > 0) {
+      basePrice = data.subAmount;
+    }
+
+    const gst = Math.round(basePrice * 0.18 * 100) / 100;
+    const totalAmount = basePrice + gst;
+
+    const adminEmail = (data.adminEmail || '').trim().toLowerCase();
+    const adminName = (data.adminName || '').trim() || `${data.name} Admin`;
+    const adminPhone = (data.adminPhone || '').trim();
+    const initialPaymentStatus = data.paymentStatus || 'IN_PROCESS';
 
     const company = await prisma.company.create({
       data: {
@@ -255,19 +318,185 @@ router.post('/companies', validateBody(SuperAdminCreateCompanySchema), async (re
         website: data.website || null,
         address: data.address || {},
         packageId: assignedPackageId,
-        planType: data.planType || 'MONTHLY',
-        subAmount: data.subAmount,
+        planType,
+        subAmount: totalAmount,
         workingDays: data.workingDays || 'mon,tue,wed,thu,fri',
         timezone: data.timezone || 'Asia/Kolkata',
         allowedEmailDomains: data.allowedEmailDomains || '',
-        isActive: data.isActive !== undefined ? data.isActive : true,
+        isActive: false, // Inactive until payment is done & admin is created
         subIsActive: true,
         subStartDate: new Date(),
-        subEndDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year default
+        subEndDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        settings: {
+          paymentStatus: initialPaymentStatus,
+          adminContact: {
+            name: adminName,
+            email: adminEmail,
+            phone: adminPhone,
+          },
+          billingBreakdown: {
+            basePrice,
+            gst,
+            totalAmount,
+            currency: pkg?.currency || 'INR',
+          },
+        },
       },
     });
 
-    return res.status(201).json({ company });
+    let paymentOrder: any = null;
+    let paymentLinkUrl = '';
+
+    if (adminEmail && pkg) {
+      const internalOrderId = `comp_prop_${company.id}_${Date.now()}`;
+      const rzpResult = await createRazorpayPaymentLink({
+        amount: totalAmount,
+        currency: pkg.currency || 'INR',
+        description: `Uptrix HRMS Subscription - ${pkg.name} (${planType})`,
+        customer: {
+          name: adminName,
+          email: adminEmail,
+          contact: adminPhone || undefined,
+        },
+        notes: {
+          companyId: String(company.id),
+          companyName: company.name,
+          subdomain: company.subdomain,
+          packageId: String(pkg.id),
+          planType,
+        },
+        orderIdRef: internalOrderId,
+      });
+
+      paymentLinkUrl = rzpResult.paymentLinkUrl;
+
+      paymentOrder = await prisma.subscriptionPaymentOrder.create({
+        data: {
+          orderId: rzpResult.orderId,
+          companyId: company.id,
+          companyName: company.name,
+          contactName: adminName,
+          contactEmail: adminEmail,
+          contactPhone: adminPhone,
+          subdomain: company.subdomain,
+          packageId: pkg.id,
+          planType,
+          amount: totalAmount,
+          currency: pkg.currency || 'INR',
+          status: 'PENDING',
+          paymentLinkUrl,
+          meta: {
+            baseAmount: basePrice,
+            gstAmount: gst,
+            companyId: company.id,
+          },
+        },
+      });
+
+      await prisma.company.update({
+        where: { id: company.id },
+        data: {
+          settings: {
+            paymentStatus: initialPaymentStatus,
+            adminContact: {
+              name: adminName,
+              email: adminEmail,
+              phone: adminPhone,
+            },
+            paymentOrderId: paymentOrder.orderId,
+            paymentLinkUrl,
+            billingBreakdown: {
+              basePrice,
+              gst,
+              totalAmount,
+              currency: pkg.currency || 'INR',
+            },
+          },
+        },
+      });
+
+      if (data.sendPaymentLink !== false) {
+        try {
+          const featuresList = (Array.isArray(pkg.enabledFeatures) ? pkg.enabledFeatures : [])
+            .map((f: string) => `<li style="margin-bottom: 6px; color: #334155;">✓ ${f.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</li>`)
+            .join('');
+
+          const emailHtml = `
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+              <div style="text-align: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #f1f5f9;">
+                <h1 style="color: #5E4BE2; margin: 0; font-size: 24px; font-weight: 800;">UPTRIX HRMS</h1>
+                <p style="color: #64748b; font-size: 13px; margin-top: 4px;">Subscription Invoice &amp; Payment Link</p>
+              </div>
+
+              <div style="margin-bottom: 20px;">
+                <h2 style="color: #0f172a; font-size: 18px; margin: 0 0 8px;">Hi ${adminName},</h2>
+                <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0;">
+                  Your organization account for <strong>${company.name}</strong> has been registered on Uptrix HRMS. Complete your subscription payment to activate your workspace and set up your administrator account.
+                </p>
+              </div>
+
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 22px;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+                  <strong style="color: #0f172a; font-size: 16px;">${pkg.name} (${planType})</strong>
+                  <span style="font-size: 18px; font-weight: 800; color: #5E4BE2;">₹${totalAmount.toLocaleString('en-IN')}</span>
+                </div>
+                
+                <table style="width: 100%; font-size: 13px; color: #64748b; margin-bottom: 12px;">
+                  <tr><td>Company:</td><td style="text-align: right; font-weight: 600; color: #0f172a;">${company.name}</td></tr>
+                  <tr><td>Account URL:</td><td style="text-align: right; font-weight: 600; color: #0f172a;">${company.subdomain}.uptrix.io</td></tr>
+                  <tr><td>Plan Base Amount:</td><td style="text-align: right; color: #0f172a;">₹${basePrice.toLocaleString('en-IN')}</td></tr>
+                  <tr><td>GST (18%):</td><td style="text-align: right; color: #0f172a;">₹${gst.toLocaleString('en-IN')}</td></tr>
+                  <tr style="border-top: 1px dashed #cbd5e1; font-weight: 700; color: #0f172a;">
+                    <td style="padding-top: 6px;">Total Payable:</td>
+                    <td style="text-align: right; padding-top: 6px; color: #5E4BE2; font-size: 15px;">₹${totalAmount.toLocaleString('en-IN')}</td>
+                  </tr>
+                </table>
+
+                ${featuresList ? `
+                  <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid #e2e8f0;">
+                    <p style="font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; margin: 4px 0 8px;">Included Features:</p>
+                    <ul style="padding-left: 18px; margin: 0; font-size: 13px;">${featuresList}</ul>
+                  </div>
+                ` : ''}
+              </div>
+
+              <div style="text-align: center; margin: 28px 0;">
+                <a href="${paymentLinkUrl}" target="_blank" style="background-color: #5E4BE2; color: #ffffff; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 15px; display: inline-block; box-shadow: 0 4px 12px rgba(94, 75, 226, 0.25);">
+                  Pay Now with Razorpay
+                </a>
+                <p style="color: #94a3b8; font-size: 12px; margin-top: 10px;">
+                  Supports UPI (GPay, PhonePe, Paytm), Credit/Debit Cards, Net Banking &amp; Wallets.
+                </p>
+              </div>
+
+              <div style="background-color: #f1f5f9; border-radius: 10px; padding: 14px; font-size: 12px; color: #475569; line-height: 1.5; margin-bottom: 20px;">
+                <strong>Next Step:</strong> Once payment is confirmed, the Super Administrator will activate your account and issue your Company Administrator credentials.
+              </div>
+            </div>
+          `;
+
+          await sendEmail({
+            to: adminEmail,
+            subject: `Payment Link & Plan Activation for ${company.name} — Uptrix HRMS`,
+            html: emailHtml,
+            category: 'ONBOARDING_PAYMENT',
+          });
+        } catch (mailErr) {
+          console.error('[Add Company] Failed to send payment email:', mailErr);
+        }
+      }
+    }
+
+    return res.status(201).json({
+      success: true,
+      company: {
+        ...company,
+        paymentStatus: initialPaymentStatus,
+        paymentLinkUrl,
+        adminContact: { name: adminName, email: adminEmail, phone: adminPhone },
+      },
+      paymentOrder,
+    });
   } catch (error) {
     next(error);
   }
@@ -367,8 +596,20 @@ router.post('/companies/:id/admin', async (req, res, next) => {
       },
     });
 
+    // Automatically activate company and mark payment as done
+    const currentSettings = (company.settings && typeof company.settings === 'object' ? company.settings : {}) as any;
+    currentSettings.paymentStatus = 'PAYMENT_DONE';
+    await prisma.company.update({
+      where: { id: companyId },
+      data: {
+        isActive: true,
+        settings: currentSettings,
+      },
+    });
+
     // Send welcome email with login credentials to Company Admin
     try {
+      const portalUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`;
       await sendEmail({
         companyId,
         to: user.email,
@@ -382,7 +623,7 @@ router.post('/companies/:id/admin', async (req, res, next) => {
             <p style="color: #334155; font-size: 14px;">Hello <strong>${user.firstName || 'Administrator'}</strong>,</p>
             <p style="color: #334155; font-size: 14px;">Your Company Administrator account for <strong>${company.name}</strong> has been created. Below are your initial login credentials:</p>
             <div style="background-color: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #cbd5e1; margin: 20px 0; font-size: 14px;">
-              <p style="margin: 6px 0;"><strong>Workspace Login URL:</strong> <a href="${process.env.APP_URL || 'http://localhost:5173'}/login" style="color: #5E4BE2; font-weight: bold;">${process.env.APP_URL || 'http://localhost:5173'}/login</a></p>
+              <p style="margin: 6px 0;"><strong>Workspace Login URL:</strong> <a href="${portalUrl}" style="color: #5E4BE2; font-weight: bold;">${portalUrl}</a></p>
               <p style="margin: 6px 0;"><strong>Username / Email:</strong> <span style="font-family: monospace; font-weight: bold; color: #1e293b;">${user.email}</span></p>
               <p style="margin: 6px 0;"><strong>Temporary Password:</strong> <code style="font-size: 15px; font-weight: bold; background: #ede9fe; color: #5b21b6; padding: 3px 8px; border-radius: 4px; font-family: monospace;">${tempPassword}</code></p>
             </div>
@@ -412,6 +653,123 @@ router.post('/companies/:id/admin', async (req, res, next) => {
         role: user.role,
       },
       tempPassword,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /superadmin/companies/:id/mark-payment
+router.post('/companies/:id/mark-payment', async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const { status } = req.body;
+    if (!['PAYMENT_DONE', 'IN_PROCESS', 'DECLINE'].includes(status)) {
+      return next(new AppError(400, 'INVALID_STATUS', 'Status must be PAYMENT_DONE, IN_PROCESS, or DECLINE'));
+    }
+
+    const company = await prisma.company.findUnique({
+      where: { id },
+      include: {
+        paymentOrders: { orderBy: { createdAt: 'desc' }, take: 1 },
+      },
+    });
+
+    if (!company) {
+      return next(new AppError(404, 'NOT_FOUND', 'Company not found'));
+    }
+
+    const settings = (company.settings && typeof company.settings === 'object' ? company.settings : {}) as any;
+    settings.paymentStatus = status;
+
+    if (company.paymentOrders.length > 0) {
+      const orderStatus = status === 'PAYMENT_DONE' ? 'PAID' : (status === 'DECLINE' ? 'FAILED' : 'PENDING');
+      await prisma.subscriptionPaymentOrder.update({
+        where: { id: company.paymentOrders[0].id },
+        data: {
+          status: orderStatus,
+          paidAt: status === 'PAYMENT_DONE' ? new Date() : undefined,
+        },
+      });
+    }
+
+    const updatedCompany = await prisma.company.update({
+      where: { id },
+      data: {
+        settings,
+      },
+    });
+
+    return res.json({ success: true, company: updatedCompany, paymentStatus: status });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /superadmin/companies/:id/resend-payment-link
+router.post('/companies/:id/resend-payment-link', async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const company = await prisma.company.findUnique({
+      where: { id },
+      include: {
+        package: true,
+        paymentOrders: { orderBy: { createdAt: 'desc' }, take: 1 },
+      },
+    });
+
+    if (!company) {
+      return next(new AppError(404, 'NOT_FOUND', 'Company not found'));
+    }
+
+    const settings = (company.settings && typeof company.settings === 'object' ? company.settings : {}) as any;
+    const adminContact = settings.adminContact || {};
+    const recipientEmail = adminContact.email || company.paymentOrders[0]?.contactEmail;
+
+    if (!recipientEmail) {
+      return next(new AppError(400, 'NO_EMAIL', 'No contact email found for this company'));
+    }
+
+    let paymentLinkUrl = company.paymentOrders[0]?.paymentLinkUrl || settings.paymentLinkUrl;
+    const totalAmount = company.paymentOrders[0]?.amount || company.subAmount || 0;
+
+    if (!paymentLinkUrl) {
+      const rzp = await createRazorpayPaymentLink({
+        amount: Number(totalAmount) || 999,
+        description: `Uptrix HRMS Subscription - ${company.name}`,
+        customer: {
+          name: adminContact.name || company.name,
+          email: recipientEmail,
+          contact: adminContact.phone || undefined,
+        },
+        orderIdRef: `comp_resend_${company.id}_${Date.now()}`,
+      });
+      paymentLinkUrl = rzp.paymentLinkUrl;
+    }
+
+    await sendEmail({
+      to: recipientEmail,
+      subject: `Payment Link Reminder — ${company.name} Uptrix HRMS Subscription`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 14px;">
+          <h2 style="color: #5E4BE2; margin-top: 0;">Payment Link for ${company.name}</h2>
+          <p>Hi ${adminContact.name || 'there'},</p>
+          <p>Please use the button below to complete your Uptrix HRMS subscription payment of <strong>₹${Number(totalAmount).toLocaleString('en-IN')}</strong>.</p>
+          <div style="text-align: center; margin: 24px 0;">
+            <a href="${paymentLinkUrl}" style="background-color: #5E4BE2; color: #fff; padding: 14px 30px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
+              Proceed to Razorpay Payment
+            </a>
+          </div>
+          <p style="font-size: 12px; color: #64748b; line-height: 1.5;">Direct link: <a href="${paymentLinkUrl}" style="color: #5E4BE2;">${paymentLinkUrl}</a></p>
+        </div>
+      `,
+      category: 'ONBOARDING_REMINDER',
+    });
+
+    return res.json({
+      success: true,
+      message: `Payment link resent to ${recipientEmail}`,
+      paymentLinkUrl,
     });
   } catch (error) {
     next(error);
@@ -550,7 +908,7 @@ router.post('/companies/:id/deploy-domain', async (req, res, next) => {
 
 const DEFAULT_3_PLANS = [
   {
-    name: 'Starter Plan',
+    name: 'Basic Plan',
     description: 'Essential HR foundation for small teams and growing startups',
     currency: 'INR',
     priceMonthly: 999,
@@ -561,7 +919,7 @@ const DEFAULT_3_PLANS = [
     enabledFeatures: ['time_attendance_management', 'leave_management'],
   },
   {
-    name: 'Professional Plan',
+    name: 'Medium Plan',
     description: 'Complete workforce management with claims, tickets, and shifts',
     currency: 'INR',
     priceMonthly: 2499,
@@ -579,8 +937,8 @@ const DEFAULT_3_PLANS = [
     ],
   },
   {
-    name: 'Enterprise Tier',
-    description: 'Full-featured enterprise suite with payroll, performance, and AI',
+    name: 'Custom Plan',
+    description: 'Full-featured enterprise suite with custom company workforce setup, payroll, and AI',
     currency: 'INR',
     priceMonthly: 4999,
     priceQuarterly: 13999,
@@ -602,6 +960,39 @@ const DEFAULT_3_PLANS = [
   },
 ];
 
+// Helper to determine package tier and associated company
+function enrichPackageDetails(pkg: any) {
+  const nameLower = (pkg.name || '').toLowerCase();
+  const descLower = (pkg.description || '').toLowerCase();
+
+  let tier: 'BASIC' | 'MEDIUM' | 'CUSTOM' = 'MEDIUM';
+  if (nameLower.includes('basic') || nameLower.includes('starter')) {
+    tier = 'BASIC';
+  } else if (nameLower.includes('custom') || nameLower.includes('enterprise') || nameLower.includes('cutermis')) {
+    tier = 'CUSTOM';
+  } else if (nameLower.includes('medium') || nameLower.includes('pro') || nameLower.includes('standard')) {
+    tier = 'MEDIUM';
+  }
+
+  // Extract company name if it's a custom plan formatted like "[Company Name] Custom Plan" or "Custom Plan - [Company Name]"
+  let companyName = '';
+  if (tier === 'CUSTOM') {
+    if (pkg.name.includes(' - ')) {
+      const parts = pkg.name.split(' - ');
+      companyName = parts[0].toLowerCase().includes('custom') ? parts[1].trim() : parts[0].trim();
+    } else if (pkg.name.includes('(') && pkg.name.includes(')')) {
+      const match = pkg.name.match(/\((.*?)\)/);
+      if (match) companyName = match[1].trim();
+    }
+  }
+
+  return {
+    ...pkg,
+    tier,
+    companyName: companyName || undefined,
+  };
+}
+
 // GET /superadmin/packages
 router.get('/packages', async (_req, res, next) => {
   try {
@@ -614,7 +1005,13 @@ router.get('/packages', async (_req, res, next) => {
 
     if (packages.length < 3) {
       for (const plan of DEFAULT_3_PLANS) {
-        const exists = packages.find((p) => p.name.toLowerCase() === plan.name.toLowerCase());
+        const exists = packages.find(
+          (p) =>
+            p.name.toLowerCase() === plan.name.toLowerCase() ||
+            (plan.name === 'Basic Plan' && p.name.toLowerCase().includes('starter')) ||
+            (plan.name === 'Medium Plan' && p.name.toLowerCase().includes('professional')) ||
+            (plan.name === 'Custom Plan' && p.name.toLowerCase().includes('enterprise'))
+        );
         if (!exists) {
           await prisma.package.create({ data: plan as any });
         }
@@ -627,7 +1024,8 @@ router.get('/packages', async (_req, res, next) => {
       });
     }
 
-    return res.json({ packages });
+    const enriched = packages.map(enrichPackageDetails);
+    return res.json({ packages: enriched });
   } catch (error) {
     next(error);
   }
@@ -637,20 +1035,31 @@ router.get('/packages', async (_req, res, next) => {
 router.post('/packages', validateBody(SuperAdminPackageSchema), async (req, res, next) => {
   try {
     const data = req.body;
+    let packageName = data.name.trim();
+
+    // If companyName is specified, ensure it appears in the plan title
+    if (data.companyName && data.companyName.trim()) {
+      const cName = data.companyName.trim();
+      if (!packageName.toLowerCase().includes(cName.toLowerCase())) {
+        packageName = `${cName} - ${packageName}`;
+      }
+    }
+
     const pkg = await prisma.package.create({
       data: {
-        name: data.name,
-        description: data.description,
-        currency: data.currency,
+        name: packageName,
+        description: data.description || (data.companyName ? `Tailored plan for ${data.companyName}` : ''),
+        currency: data.currency || 'INR',
         priceMonthly: data.priceMonthly,
         priceQuarterly: data.priceQuarterly,
         priceYearly: data.priceYearly,
-        employeeLimit: data.employeeLimit,
-        billingDefault: data.billingDefault,
+        employeeLimit: data.employeeLimit || 10,
+        billingDefault: data.billingDefault || 'MONTHLY',
         enabledFeatures: data.enabledFeatures as any,
       },
     });
-    return res.status(201).json({ package: pkg });
+
+    return res.status(201).json({ package: enrichPackageDetails(pkg) });
   } catch (error) {
     next(error);
   }
@@ -964,6 +1373,122 @@ router.post('/emails/:id/resend', async (req, res, next) => {
     }
 
     return res.json({ success: true, message: `Email to ${log.toEmail} successfully resent!` });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /superadmin/proposals/send
+router.post('/proposals/send', async (req, res, next) => {
+  try {
+    const {
+      packageId,
+      planType,
+      companyName,
+      contactName,
+      contactEmail,
+      contactPhone,
+      subdomain,
+      customAmount,
+      customEmployeeLimit,
+      customFeatures,
+      notes,
+    } = req.body;
+
+    if (!packageId || !companyName || !contactEmail || !subdomain) {
+      return next(new AppError(400, 'REQUIRED_FIELDS', 'packageId, companyName, contactEmail, and subdomain are required'));
+    }
+
+    const proposalResult = await sendPlanProposal({
+      packageId: Number(packageId),
+      planType: planType || 'MONTHLY',
+      companyName: companyName.trim(),
+      contactName: contactName ? contactName.trim() : companyName.trim(),
+      contactEmail: contactEmail.trim().toLowerCase(),
+      contactPhone: contactPhone ? contactPhone.trim() : undefined,
+      subdomain: subdomain.trim(),
+      customAmount: customAmount ? Number(customAmount) : undefined,
+      customEmployeeLimit: customEmployeeLimit ? Number(customEmployeeLimit) : undefined,
+      customFeatures: Array.isArray(customFeatures) ? customFeatures : undefined,
+      notes,
+      actorId: req.user!.id,
+    });
+
+    return res.status(201).json(proposalResult);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /superadmin/proposals
+router.get('/proposals', async (req, res, next) => {
+  try {
+    const proposals = await prisma.subscriptionPaymentOrder.findMany({
+      include: {
+        package: true,
+        company: {
+          select: { id: true, name: true, subdomain: true, code: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+
+    return res.json({ proposals });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /superadmin/proposals/:id/resend
+router.post('/proposals/:id/resend', async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const proposal = await prisma.subscriptionPaymentOrder.findUnique({
+      where: { id },
+      include: { package: true },
+    });
+
+    if (!proposal) {
+      return next(new AppError(404, 'NOT_FOUND', 'Proposal not found'));
+    }
+
+    const meta = (proposal.meta as any) || {};
+
+    const resendResult = await sendPlanProposal({
+      packageId: proposal.packageId,
+      planType: proposal.planType as any,
+      companyName: proposal.companyName,
+      contactName: proposal.contactName,
+      contactEmail: proposal.contactEmail,
+      contactPhone: proposal.contactPhone || undefined,
+      subdomain: proposal.subdomain,
+      customAmount: meta.baseAmount ? Number(meta.baseAmount) : undefined,
+      customEmployeeLimit: meta.customEmployeeLimit ? Number(meta.customEmployeeLimit) : undefined,
+      customFeatures: meta.customFeatures,
+      notes: meta.proposalNotes,
+      actorId: req.user!.id,
+    });
+
+    return res.json({
+      success: true,
+      message: `Proposal and payment link resent to ${proposal.contactEmail}`,
+      resendResult,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /superadmin/trigger-expiry-alerts
+router.post('/trigger-expiry-alerts', async (_req, res, next) => {
+  try {
+    const report = await checkAndSendExpiryAlerts();
+    return res.json({
+      success: true,
+      message: `Scanned all companies: ${report.alertsSentCount} 10-day renewal warnings dispatched.`,
+      report,
+    });
   } catch (error) {
     next(error);
   }

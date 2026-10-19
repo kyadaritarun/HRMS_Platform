@@ -598,6 +598,17 @@ router.get('/billing', roleGuard('COMPANY_ADMIN'), async (req, res, next) => {
       };
     }
 
+    const now = new Date();
+    const expiryDate = company.subEndDate ? new Date(company.subEndDate) : null;
+    const daysRemaining = expiryDate
+      ? Math.max(0, Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 3600 * 24)))
+      : null;
+    const isExpiringSoon = daysRemaining !== null && daysRemaining <= 10;
+
+    const availablePackages = await prisma.package.findMany({
+      orderBy: { id: 'asc' },
+    });
+
     return res.json({
       plan: {
         package: company.package,
@@ -607,7 +618,10 @@ router.get('/billing', roleGuard('COMPANY_ADMIN'), async (req, res, next) => {
         subEndDate: company.subEndDate,
         nextPaymentDate: company.nextPaymentDate,
         subIsActive: company.subIsActive,
+        daysRemaining,
+        isExpiringSoon,
       },
+      availablePackages,
       activeEmployeeCount,
       invoices: company.invoices,
     });
