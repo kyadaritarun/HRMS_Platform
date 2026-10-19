@@ -441,7 +441,7 @@ export const AttendanceSalaryPage: React.FC = () => {
         <div>
           <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
             <IconClock className="w-5 h-5 text-indigo-600 shrink-0" />
-            <span>Monthly Attendance & Salary</span>
+            <span>Attendance & Salary</span>
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Real-time payroll computed from attendance, approved leaves, LOP, and overtime.

@@ -157,11 +157,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           subItems: [
             { label: 'Employees', path: '/company/employees', icon: IconUsers, permission: 'employees' },
             { label: 'Create Employee', path: '/company/employees/new', icon: IconUserPlus, permission: 'employees' },
-            { label: 'Offer Letters', path: '/company/offer-letters', icon: IconFileCertificate },
-            { label: 'HR Letters Hub', path: '/company/hr-letters', icon: IconFileCertificate },
-            { label: 'Exit & F&F Settlement', path: '/company/exits', icon: IconDoorExit },
-            { label: 'Assets & Onboarding', path: '/company/assets-onboarding', icon: IconDevices },
-            { label: 'Shift & Roster', path: '/company/shift-roster', icon: IconClock },
             { label: 'Employee Attendance', path: '/company/attendance', icon: IconClock, permission: 'attendance', feature: 'time_attendance_management' },
             { label: 'Departments', path: '/company/departments', icon: IconBriefcase },
             { label: 'Roles & Hierarchy', path: '/company/roles-hierarchy', icon: IconNetwork },
@@ -174,6 +169,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           ],
         },
         {
+          id: 'hr_operations',
+          label: 'HR Operations',
+          icon: IconBriefcase,
+          roles: ['COMPANY_ADMIN', 'HR'],
+          subItems: [
+            { label: 'Offer Letters', path: '/company/offer-letters', icon: IconFileCertificate },
+            { label: 'HR Letters Hub', path: '/company/hr-letters', icon: IconFileCertificate },
+            { label: 'Assets & Onboarding', path: '/company/assets-onboarding', icon: IconDevices },
+            { label: 'Shift & Roster', path: '/company/shift-roster', icon: IconClock },
+          ],
+        },
+        {
           id: 'payroll_compensation',
           label: 'Payroll & Compensation',
           icon: IconCash,
@@ -182,7 +189,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
             { label: 'Attendance & Salary', path: '/payroll/attendance-salary', icon: IconClock, feature: 'payroll' },
             { label: 'Salary Master', path: '/payroll/salaries', icon: IconReceipt2, feature: 'payroll' },
             { label: 'Compliance & Bank Payout', path: '/payroll/compliance-reports', icon: IconBuildingBank, feature: 'payroll' },
-            { label: 'Offer Letters', path: '/company/offer-letters', icon: IconFileCertificate },
             { label: 'Exit & F&F Settlement', path: '/company/exits', icon: IconDoorExit },
           ],
         },
