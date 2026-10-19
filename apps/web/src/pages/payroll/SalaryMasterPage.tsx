@@ -314,7 +314,7 @@ export const SalaryMasterPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 font-bold text-slate-900">
-                        {emp.currency || 'INR'} {Number(emp.monthlySalary || 0).toLocaleString()}
+                        ₹{Number(emp.monthlySalary || 0).toLocaleString()}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap gap-1 text-[11px]">
@@ -369,281 +369,392 @@ export const SalaryMasterPage: React.FC = () => {
 
       {/* Edit Modal */}
       {selectedEmp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl p-6 border border-slate-100 animate-in fade-in zoom-in-95 duration-150 max-h-[92vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">
-                  Configure Salary & Statutory Components
-                </h3>
-                <p className="text-xs text-slate-500">
-                  {selectedEmp.firstName} {selectedEmp.lastName} • {selectedEmp.jobTitle}
-                </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl p-5 sm:p-6 border border-slate-200 animate-in fade-in zoom-in-95 duration-150 max-h-[92vh] overflow-y-auto space-y-4">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm shadow-2xs">
+                  {selectedEmp.firstName?.[0]?.toUpperCase()}{selectedEmp.lastName?.[0]?.toUpperCase()}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-slate-900">
+                      Configure Salary & Statutory Components
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      CTC Master
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    <span className="font-semibold text-slate-700">{selectedEmp.firstName} {selectedEmp.lastName}</span>
+                    {selectedEmp.jobTitle && ` • ${selectedEmp.jobTitle}`}
+                    {selectedEmp.department?.name && ` • ${selectedEmp.department.name}`}
+                  </p>
+                </div>
               </div>
               <button
+                type="button"
                 onClick={() => setSelectedEmp(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100"
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
               >
                 <IconX className="w-5 h-5" />
               </button>
             </div>
 
             {error && (
-              <div className="p-3 mb-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
                 <IconAlertCircle className="w-4 h-4 shrink-0" />
                 {error}
               </div>
             )}
 
             <form onSubmit={handleUpdate} className="space-y-4">
-              {/* UNIFIED SINGLE SALARY & TAX BREAKDOWN BOX */}
-              <div className="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
-                {/* Box Top Bar: Total CTC, Currency & Auto-Split */}
-                <div className="p-3.5 bg-white border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5 flex-1">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-700 uppercase">Monthly Base CTC *</label>
+              {/* UNIFIED SINGLE SALARY & TAX BREAKDOWN CONTAINER */}
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+                {/* Box Top Bar: Total CTC & Auto-Split */}
+                <div className="p-3.5 sm:p-4 bg-slate-50/70 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex-1 max-w-[220px]">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                      Monthly Base CTC *
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 select-none">
+                        ₹
+                      </span>
                       <input
                         type="number"
                         min="0"
                         required
                         value={editForm.monthlySalary}
                         onChange={(e) => setEditForm({ ...editForm, monthlySalary: e.target.value })}
-                        placeholder="50000"
-                        className="w-36 sm:w-44 px-3 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-indigo-500 font-black text-slate-900"
+                        placeholder="30000"
+                        className="w-full pl-7 pr-3 py-1.5 text-sm font-bold font-mono bg-white border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-slate-900 transition-colors"
                       />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-700 uppercase">Currency</label>
-                      <select
-                        value={editForm.currency}
-                        onChange={(e) => setEditForm({ ...editForm, currency: e.target.value })}
-                        className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-800"
-                      >
-                        <option value="INR">INR (₹)</option>
-                        <option value="USD">USD ($)</option>
-                        <option value="EUR">EUR (€)</option>
-                      </select>
                     </div>
                   </div>
 
                   <button
                     type="button"
                     onClick={handleAutoSplit}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold shadow-2xs transition-colors shrink-0 self-start sm:self-auto"
-                    title="Calculate standard 50% Basic, 20% HRA, remainder Special, and statutory PT"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold shadow-2xs hover:shadow-xs transition-all shrink-0 self-start sm:self-auto active:scale-95"
+                    title="Calculate standard 50% Basic, 20% HRA, remainder Special, and statutory deductions"
                   >
                     <IconSparkles className="w-3.5 h-3.5 text-indigo-600" />
-                    Auto-Split Standard Breakdown
+                    <span>Auto-Split Standard Breakdown</span>
                   </button>
                 </div>
 
                 {/* Unified Components Table */}
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs text-slate-700">
-                    <thead className="bg-slate-100/70 text-[11px] font-bold text-slate-500 uppercase border-b border-slate-200">
+                    <thead className="bg-slate-50/90 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
                       <tr>
                         <th className="px-4 py-2.5">Salary / Tax Component</th>
                         <th className="px-3 py-2.5">Type</th>
-                        <th className="px-4 py-2.5 text-right">Amount ({editForm.currency})</th>
+                        <th className="px-4 py-2.5 text-right">Amount (₹)</th>
                         <th className="w-10 px-2 py-2.5 text-center"></th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200/60 bg-white">
-                      {/* Basic Salary */}
-                      <tr>
-                        <td className="px-4 py-2 font-medium text-slate-900">
-                          Basic Salary
-                        </td>
-                        <td className="px-3 py-2">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            Earning (+)
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {/* SECTION 1: EARNINGS & ALLOWANCES */}
+                      <tr className="bg-slate-50/70">
+                        <td colSpan={4} className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            Earnings & Allowances
                           </span>
                         </td>
-                        <td className="px-4 py-2 text-right">
-                          <input
-                            type="number"
-                            min="0"
-                            value={editForm.basicSalary}
-                            onChange={(e) => setEditForm({ ...editForm, basicSalary: e.target.value })}
-                            className="w-28 px-2 py-1 text-xs text-right bg-slate-50 border border-slate-200 rounded-lg font-semibold focus:bg-white"
-                          />
+                      </tr>
+
+                      {/* Basic Salary */}
+                      <tr className="hover:bg-slate-50/40 transition-colors">
+                        <td className="px-4 py-2.5">
+                          <div className="font-semibold text-slate-900">Basic Salary</div>
+                          <div className="text-[10px] text-slate-400">Core base wage component (typically 50% of CTC)</div>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            Earning
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          <div className="relative w-32 ml-auto">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={editForm.basicSalary}
+                              onChange={(e) => setEditForm({ ...editForm, basicSalary: e.target.value })}
+                              className="w-full pl-6 pr-2.5 py-1 text-xs text-right font-mono font-semibold bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-900 transition-colors"
+                            />
+                          </div>
                         </td>
                         <td></td>
                       </tr>
 
                       {/* HRA */}
-                      <tr>
-                        <td className="px-4 py-2 font-medium text-slate-900">
-                          House Rent Allowance (HRA)
+                      <tr className="hover:bg-slate-50/40 transition-colors">
+                        <td className="px-4 py-2.5">
+                          <div className="font-semibold text-slate-900">House Rent Allowance (HRA)</div>
+                          <div className="text-[10px] text-slate-400">Tax-exempt accommodation benefit (typically 20% of CTC)</div>
                         </td>
-                        <td className="px-3 py-2">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            Earning (+)
+                        <td className="px-3 py-2.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            Earning
                           </span>
                         </td>
-                        <td className="px-4 py-2 text-right">
-                          <input
-                            type="number"
-                            min="0"
-                            value={editForm.hra}
-                            onChange={(e) => setEditForm({ ...editForm, hra: e.target.value })}
-                            className="w-28 px-2 py-1 text-xs text-right bg-slate-50 border border-slate-200 rounded-lg font-semibold focus:bg-white"
-                          />
+                        <td className="px-4 py-2.5 text-right">
+                          <div className="relative w-32 ml-auto">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={editForm.hra}
+                              onChange={(e) => setEditForm({ ...editForm, hra: e.target.value })}
+                              className="w-full pl-6 pr-2.5 py-1 text-xs text-right font-mono font-semibold bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-900 transition-colors"
+                            />
+                          </div>
                         </td>
                         <td></td>
                       </tr>
 
                       {/* Special Allowance */}
-                      <tr>
-                        <td className="px-4 py-2 font-medium text-slate-900">
-                          Special Allowance
+                      <tr className="hover:bg-slate-50/40 transition-colors">
+                        <td className="px-4 py-2.5">
+                          <div className="font-semibold text-slate-900">Special Allowance</div>
+                          <div className="text-[10px] text-slate-400">Flexible balancing figure to match gross CTC</div>
                         </td>
-                        <td className="px-3 py-2">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            Earning (+)
+                        <td className="px-3 py-2.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            Earning
                           </span>
                         </td>
-                        <td className="px-4 py-2 text-right">
-                          <input
-                            type="number"
-                            min="0"
-                            value={editForm.specialAllowance}
-                            onChange={(e) => setEditForm({ ...editForm, specialAllowance: e.target.value })}
-                            className="w-28 px-2 py-1 text-xs text-right bg-slate-50 border border-slate-200 rounded-lg font-semibold focus:bg-white"
-                          />
+                        <td className="px-4 py-2.5 text-right">
+                          <div className="relative w-32 ml-auto">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={editForm.specialAllowance}
+                              onChange={(e) => setEditForm({ ...editForm, specialAllowance: e.target.value })}
+                              className="w-full pl-6 pr-2.5 py-1 text-xs text-right font-mono font-semibold bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-900 transition-colors"
+                            />
+                          </div>
                         </td>
                         <td></td>
                       </tr>
 
-                      {/* Provident Fund */}
-                      <tr>
-                        <td className="px-4 py-2 font-medium text-slate-900">
-                          Provident Fund (PF)
-                        </td>
-                        <td className="px-3 py-2">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                            Deduction (-)
+                      {/* Dynamic Custom Earnings */}
+                      {editForm.customComponents
+                        .filter((c) => c.type === 'EARNING')
+                        .map((item) => (
+                          <tr key={item.id} className="bg-emerald-50/20 hover:bg-emerald-50/30 transition-colors">
+                            <td className="px-4 py-2">
+                              <input
+                                type="text"
+                                value={item.name}
+                                onChange={(e) => handleUpdateCustomComponent(item.id, 'name', e.target.value)}
+                                placeholder="Allowance name (e.g. Medical, Transport)"
+                                className="w-full px-2.5 py-1 text-xs bg-white border border-slate-200 rounded-lg font-medium focus:border-indigo-500 focus:outline-hidden"
+                              />
+                            </td>
+                            <td className="px-3 py-2">
+                              <select
+                                value={item.type}
+                                onChange={(e) => handleUpdateCustomComponent(item.id, 'type', e.target.value as any)}
+                                className="px-2 py-1 text-[11px] font-bold bg-white border border-slate-200 rounded-lg focus:outline-hidden"
+                              >
+                                <option value="EARNING">Earning (+)</option>
+                                <option value="DEDUCTION">Deduction (-)</option>
+                              </select>
+                            </td>
+                            <td className="px-4 py-2 text-right">
+                              <div className="relative w-32 ml-auto">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={item.amount}
+                                  onChange={(e) => handleUpdateCustomComponent(item.id, 'amount', e.target.value)}
+                                  className="w-full pl-6 pr-2.5 py-1 text-xs text-right font-mono font-semibold bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-indigo-500"
+                                />
+                              </div>
+                            </td>
+                            <td className="px-2 py-2 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveCustomComponent(item.id)}
+                                className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
+                                title="Remove allowance"
+                              >
+                                <IconTrash className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+
+                      {/* SECTION 2: DEDUCTIONS & STATUTORY TAXES */}
+                      <tr className="bg-slate-50/70">
+                        <td colSpan={4} className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                            Deductions & Statutory Taxes
                           </span>
                         </td>
-                        <td className="px-4 py-2 text-right">
-                          <input
-                            type="number"
-                            min="0"
-                            value={editForm.pf}
-                            onChange={(e) => setEditForm({ ...editForm, pf: e.target.value })}
-                            placeholder="0"
-                            className="w-28 px-2 py-1 text-xs text-right bg-slate-50 border border-slate-200 rounded-lg font-semibold focus:bg-white"
-                          />
+                      </tr>
+
+                      {/* Provident Fund */}
+                      <tr className="hover:bg-slate-50/40 transition-colors">
+                        <td className="px-4 py-2.5">
+                          <div className="font-semibold text-slate-900">Provident Fund (PF)</div>
+                          <div className="text-[10px] text-slate-400">Employee retirement contribution (12% of basic, capped at ₹1,800)</div>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                            Deduction
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          <div className="relative w-32 ml-auto">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={editForm.pf}
+                              onChange={(e) => setEditForm({ ...editForm, pf: e.target.value })}
+                              placeholder="0"
+                              className="w-full pl-6 pr-2.5 py-1 text-xs text-right font-mono font-semibold bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-900 transition-colors"
+                            />
+                          </div>
                         </td>
                         <td></td>
                       </tr>
 
                       {/* Professional Tax */}
-                      <tr>
-                        <td className="px-4 py-2 font-medium text-slate-900">
-                          Professional Tax (PT)
+                      <tr className="hover:bg-slate-50/40 transition-colors">
+                        <td className="px-4 py-2.5">
+                          <div className="font-semibold text-slate-900">Professional Tax (PT)</div>
+                          <div className="text-[10px] text-slate-400">State statutory professional tax (standard ₹200)</div>
                         </td>
-                        <td className="px-3 py-2">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                            Deduction (-)
+                        <td className="px-3 py-2.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                            Deduction
                           </span>
                         </td>
-                        <td className="px-4 py-2 text-right">
-                          <input
-                            type="number"
-                            min="0"
-                            value={editForm.pt}
-                            onChange={(e) => setEditForm({ ...editForm, pt: e.target.value })}
-                            placeholder="200"
-                            className="w-28 px-2 py-1 text-xs text-right bg-slate-50 border border-slate-200 rounded-lg font-semibold focus:bg-white"
-                          />
+                        <td className="px-4 py-2.5 text-right">
+                          <div className="relative w-32 ml-auto">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={editForm.pt}
+                              onChange={(e) => setEditForm({ ...editForm, pt: e.target.value })}
+                              placeholder="200"
+                              className="w-full pl-6 pr-2.5 py-1 text-xs text-right font-mono font-semibold bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-900 transition-colors"
+                            />
+                          </div>
                         </td>
                         <td></td>
                       </tr>
 
                       {/* Income Tax (TDS) */}
-                      <tr>
-                        <td className="px-4 py-2 font-medium text-slate-900">
-                          Income Tax (TDS)
+                      <tr className="hover:bg-slate-50/40 transition-colors">
+                        <td className="px-4 py-2.5">
+                          <div className="font-semibold text-slate-900">Income Tax (TDS)</div>
+                          <div className="text-[10px] text-slate-400">Estimated monthly tax deducted at source under IT rules</div>
                         </td>
-                        <td className="px-3 py-2">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                            Deduction (-)
+                        <td className="px-3 py-2.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                            Deduction
                           </span>
                         </td>
-                        <td className="px-4 py-2 text-right">
-                          <input
-                            type="number"
-                            min="0"
-                            value={editForm.tds}
-                            onChange={(e) => setEditForm({ ...editForm, tds: e.target.value })}
-                            placeholder="0"
-                            className="w-28 px-2 py-1 text-xs text-right bg-slate-50 border border-slate-200 rounded-lg font-semibold focus:bg-white"
-                          />
+                        <td className="px-4 py-2.5 text-right">
+                          <div className="relative w-32 ml-auto">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={editForm.tds}
+                              onChange={(e) => setEditForm({ ...editForm, tds: e.target.value })}
+                              placeholder="0"
+                              className="w-full pl-6 pr-2.5 py-1 text-xs text-right font-mono font-semibold bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-900 transition-colors"
+                            />
+                          </div>
                         </td>
                         <td></td>
                       </tr>
 
-                      {/* Dynamic Custom Components Rows */}
-                      {editForm.customComponents.map((item) => (
-                        <tr key={item.id} className="bg-indigo-50/20">
-                          <td className="px-4 py-2">
-                            <input
-                              type="text"
-                              value={item.name}
-                              onChange={(e) => handleUpdateCustomComponent(item.id, 'name', e.target.value)}
-                              placeholder="e.g. Medical Allowance / NPS"
-                              className="w-full px-2.5 py-1 text-xs bg-white border border-slate-200 rounded-lg font-medium focus:border-indigo-500"
-                            />
-                          </td>
-                          <td className="px-3 py-2">
-                            <select
-                              value={item.type}
-                              onChange={(e) => handleUpdateCustomComponent(item.id, 'type', e.target.value as any)}
-                              className="px-2 py-1 text-[11px] font-bold bg-white border border-slate-200 rounded-lg"
-                            >
-                              <option value="EARNING">Earning (+)</option>
-                              <option value="DEDUCTION">Deduction (-)</option>
-                            </select>
-                          </td>
-                          <td className="px-4 py-2 text-right">
-                            <input
-                              type="number"
-                              min="0"
-                              value={item.amount}
-                              onChange={(e) => handleUpdateCustomComponent(item.id, 'amount', e.target.value)}
-                              className="w-28 px-2 py-1 text-xs text-right bg-white border border-slate-200 rounded-lg font-semibold"
-                            />
-                          </td>
-                          <td className="px-2 py-2 text-center">
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveCustomComponent(item.id)}
-                              className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
-                              title="Remove component"
-                            >
-                              <IconTrash className="w-3.5 h-3.5" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {/* Dynamic Custom Deductions */}
+                      {editForm.customComponents
+                        .filter((c) => c.type === 'DEDUCTION')
+                        .map((item) => (
+                          <tr key={item.id} className="bg-rose-50/20 hover:bg-rose-50/30 transition-colors">
+                            <td className="px-4 py-2">
+                              <input
+                                type="text"
+                                value={item.name}
+                                onChange={(e) => handleUpdateCustomComponent(item.id, 'name', e.target.value)}
+                                placeholder="Deduction name (e.g. NPS, Canteen, Insurance)"
+                                className="w-full px-2.5 py-1 text-xs bg-white border border-slate-200 rounded-lg font-medium focus:border-indigo-500 focus:outline-hidden"
+                              />
+                            </td>
+                            <td className="px-3 py-2">
+                              <select
+                                value={item.type}
+                                onChange={(e) => handleUpdateCustomComponent(item.id, 'type', e.target.value as any)}
+                                className="px-2 py-1 text-[11px] font-bold bg-white border border-slate-200 rounded-lg focus:outline-hidden"
+                              >
+                                <option value="EARNING">Earning (+)</option>
+                                <option value="DEDUCTION">Deduction (-)</option>
+                              </select>
+                            </td>
+                            <td className="px-4 py-2 text-right">
+                              <div className="relative w-32 ml-auto">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={item.amount}
+                                  onChange={(e) => handleUpdateCustomComponent(item.id, 'amount', e.target.value)}
+                                  className="w-full pl-6 pr-2.5 py-1 text-xs text-right font-mono font-semibold bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-indigo-500"
+                                />
+                              </div>
+                            </td>
+                            <td className="px-2 py-2 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveCustomComponent(item.id)}
+                                className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
+                                title="Remove deduction"
+                              >
+                                <IconTrash className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
                     </tbody>
                   </table>
                 </div>
 
-                {/* Table Footer: Add Button + Dynamic Live Summary */}
+                {/* Table Footer: Add Button + Live Clean Summary in ONE clean row */}
                 <div className="p-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <button
                     type="button"
                     onClick={handleAddCustomComponent}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-indigo-50 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 shadow-2xs transition-colors self-start sm:self-auto"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 shadow-2xs transition-colors self-start sm:self-auto"
                   >
-                    <IconPlus className="w-4 h-4 text-indigo-600" />
+                    <IconPlus className="w-3.5 h-3.5 text-slate-600" />
                     <span>Add Custom Component</span>
                   </button>
 
-                  {/* Live CTC Cluster Calculation */}
+                  {/* Clean Single-Row Financial Summary */}
                   {(() => {
                     const basic = Number(editForm.basicSalary) || 0;
                     const hra = Number(editForm.hra) || 0;
@@ -665,13 +776,13 @@ export const SalaryMasterPage: React.FC = () => {
                     return (
                       <div className="flex flex-wrap items-center gap-3 text-xs">
                         <span className="text-slate-600">
-                          Gross: <strong className="text-slate-900">₹{grossEarnings.toLocaleString()}</strong>
+                          Gross: <strong className="text-slate-900 font-mono">₹{grossEarnings.toLocaleString()}</strong>
                         </span>
                         <span className="text-slate-600">
-                          Deductions: <strong className="text-rose-600">-₹{totalDeductions.toLocaleString()}</strong>
+                          Deductions: <strong className="text-rose-600 font-mono">-₹{totalDeductions.toLocaleString()}</strong>
                         </span>
                         <span className="font-bold text-slate-900">
-                          Net Take-Home: <strong className="text-emerald-700 text-sm">₹{netPayable.toLocaleString()}</strong>
+                          Net Take-Home: <strong className="text-emerald-700 font-mono text-sm">₹{netPayable.toLocaleString()}</strong>
                         </span>
                       </div>
                     );
@@ -680,15 +791,21 @@ export const SalaryMasterPage: React.FC = () => {
               </div>
 
               {/* Banking Coordinates */}
-              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                <span className="text-xs font-bold text-slate-800 block">Banking & Payment Coordinates</span>
-                <div className="grid grid-cols-2 gap-3">
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <IconBuilding className="w-4 h-4 text-slate-500" />
+                    Banking & Disbursement Coordinates
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-medium">Used for direct monthly payroll transfers</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-600 mb-1">Payment Mode</label>
                     <select
                       value={editForm.paymentMode}
                       onChange={(e) => setEditForm({ ...editForm, paymentMode: e.target.value })}
-                      className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-brand-500"
+                      className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-800 font-medium"
                     >
                       <option value="BANK_TRANSFER">Direct Bank Transfer</option>
                       <option value="CHEQUE">Cheque</option>
@@ -702,12 +819,12 @@ export const SalaryMasterPage: React.FC = () => {
                       placeholder="e.g. HDFC Bank"
                       value={editForm.bankName}
                       onChange={(e) => setEditForm({ ...editForm, bankName: e.target.value })}
-                      className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-brand-500"
+                      className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-800 font-medium"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-600 mb-1">Account Number</label>
                     <input
@@ -715,7 +832,7 @@ export const SalaryMasterPage: React.FC = () => {
                       placeholder="1234567890"
                       value={editForm.accountNumber}
                       onChange={(e) => setEditForm({ ...editForm, accountNumber: e.target.value })}
-                      className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-brand-500 font-mono"
+                      className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 font-mono text-slate-800 font-medium"
                     />
                   </div>
                   <div>
@@ -725,7 +842,7 @@ export const SalaryMasterPage: React.FC = () => {
                       placeholder="HDFC0001234"
                       value={editForm.ifscCode}
                       onChange={(e) => setEditForm({ ...editForm, ifscCode: e.target.value.toUpperCase() })}
-                      className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-brand-500 font-mono"
+                      className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 font-mono text-slate-800 font-medium uppercase"
                     />
                   </div>
                 </div>
@@ -737,7 +854,7 @@ export const SalaryMasterPage: React.FC = () => {
                     placeholder="ABCDE1234F"
                     value={editForm.panNumber}
                     onChange={(e) => setEditForm({ ...editForm, panNumber: e.target.value.toUpperCase() })}
-                    className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-brand-500 font-mono"
+                    className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 font-mono text-slate-800 font-medium uppercase"
                   />
                 </div>
               </div>
@@ -746,16 +863,16 @@ export const SalaryMasterPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedEmp(null)}
-                  className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 text-xs font-bold rounded-xl bg-brand-600 hover:bg-brand-700 text-white shadow-xs disabled:opacity-50"
+                  className="px-5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-all active:scale-95 disabled:opacity-50"
                 >
-                  {isSubmitting ? 'Saving...' : 'Save Salary Configuration'}
+                  {isSubmitting ? 'Saving Configuration...' : 'Save Salary Configuration'}
                 </button>
               </div>
             </form>

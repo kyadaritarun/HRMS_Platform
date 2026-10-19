@@ -121,14 +121,16 @@ export const AttendanceSalaryPage: React.FC = () => {
   const [generatingEmpId, setGeneratingEmpId] = useState<number | null>(null);
   const [downloadingPayslipId, setDownloadingPayslipId] = useState<number | null>(null);
 
-  const fetchAttendanceSalary = async () => {
+  const fetchAttendanceSalary = async (): Promise<AttendanceSalaryEmployee[]> => {
     setIsLoading(true);
     try {
       const res = await api.get('/payroll/dashboard', { params: { month, year } });
-      const rawList = res.data?.employees || [];
+      const rawList: AttendanceSalaryEmployee[] = res.data?.employees || [];
       setEmployees(rawList);
+      return rawList;
     } catch (err) {
       console.error('Failed to load attendance & salary calculation:', err);
+      return [];
     } finally {
       setIsLoading(false);
     }
@@ -252,16 +254,26 @@ export const AttendanceSalaryPage: React.FC = () => {
         force: true,
       });
 
-      setMessage(
-        `Saved salary components for ${selectedEmp.employee.firstName} ${selectedEmp.employee.lastName}!`
-      );
+      // If already published, automatically regenerate & publish with force=true so payslips & PDFs update immediately
+      if (selectedEmp.status === 'PUBLISHED') {
+        await api.post('/payroll/publish', {
+          month,
+          year,
+          employeeIds: [selectedEmp.employee.id],
+          force: true,
+        });
+        setMessage(
+          `Updated adjustments & regenerated payslip for ${selectedEmp.employee.firstName} ${selectedEmp.employee.lastName}!`
+        );
+      } else {
+        setMessage(
+          `Saved salary components for ${selectedEmp.employee.firstName} ${selectedEmp.employee.lastName}!`
+        );
+      }
       setActiveTab('statement');
 
       // Refresh dashboard
-      const res = await api.get('/payroll/dashboard', { params: { month, year } });
-      const rawList: AttendanceSalaryEmployee[] = res.data?.employees || [];
-      setEmployees(rawList);
-
+      const rawList = await fetchAttendanceSalary();
       const updated = rawList.find((e) => e.employee.id === selectedEmp.employee.id);
       if (updated) {
         setSelectedEmp(updated);
@@ -277,9 +289,14 @@ export const AttendanceSalaryPage: React.FC = () => {
     fetchAttendanceSalary();
   }, [month, year]);
 
-  // Generate & Publish Payslips for ALL Employees
+  // Generate & Publish / Regenerate Payslips for ALL Employees
   const handleGenerateAllPayslips = async () => {
-    if (!window.confirm(`Generate and publish monthly payslips for all ${employees.length} employees for ${month}/${year}? Employees will be notified.`)) {
+    const hasPublished = employees.some((e) => e.status === 'PUBLISHED');
+    const promptText = hasPublished
+      ? `Recalculate & regenerate monthly payslips for all ${employees.length} employees for ${month}/${year}? Any recent attendance, leave or salary component updates will immediately update on their payslips.`
+      : `Generate and publish monthly payslips for all ${employees.length} employees for ${month}/${year}? Employees will be notified.`;
+
+    if (!window.confirm(promptText)) {
       return;
     }
     setIsPublishing(true);
@@ -292,16 +309,16 @@ export const AttendanceSalaryPage: React.FC = () => {
         employeeIds: empIds,
         force: true,
       });
-      setMessage(`Successfully generated monthly payslips for ${res.data?.count || employees.length} employees!`);
+      setMessage(`Successfully generated/updated monthly payslips for ${res.data?.count || employees.length} employees!`);
       await fetchAttendanceSalary();
     } catch (err: any) {
-      setMessage(`Error generating payslips: ${err.response?.data?.error || err.message}`);
+      setMessage(`Error generating/regenerating payslips: ${err.response?.data?.error || err.message}`);
     } finally {
       setIsPublishing(false);
     }
   };
 
-  // Generate & Publish Payslip for a Single Employee
+  // Generate & Publish / Regenerate Payslip for a Single Employee
   const handleGenerateSinglePayslip = async (empId: number, empName: string) => {
     setGeneratingEmpId(empId);
     setMessage(null);
@@ -312,22 +329,27 @@ export const AttendanceSalaryPage: React.FC = () => {
         employeeIds: [empId],
         force: true,
       });
-      setMessage(`Successfully generated monthly payslip for ${empName}!`);
-      await fetchAttendanceSalary();
+      setMessage(`Successfully regenerated payslip for ${empName}! All latest attendance and salary updates are now live.`);
+      const rawList = await fetchAttendanceSalary();
       if (selectedEmp && selectedEmp.employee.id === empId) {
         const publishedSlip = res.data?.payslips?.[0];
-        setSelectedEmp((prev) =>
-          prev
-            ? {
-                ...prev,
-                status: 'PUBLISHED',
-                payslipId: publishedSlip ? publishedSlip.id : prev.payslipId,
-              }
-            : null
-        );
+        const refreshed = rawList.find((e) => e.employee.id === empId);
+        if (refreshed) {
+          setSelectedEmp(refreshed);
+        } else {
+          setSelectedEmp((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  status: 'PUBLISHED',
+                  payslipId: publishedSlip ? publishedSlip.id : prev.payslipId,
+                }
+              : null
+          );
+        }
       }
     } catch (err: any) {
-      setMessage(`Error generating payslip: ${err.response?.data?.error || err.message}`);
+      setMessage(`Error generating/regenerating payslip: ${err.response?.data?.error || err.message}`);
     } finally {
       setGeneratingEmpId(null);
     }
@@ -464,12 +486,28 @@ export const AttendanceSalaryPage: React.FC = () => {
           <button
             onClick={handleGenerateAllPayslips}
             disabled={isPublishing || employees.length === 0}
-            title="Generate & publish monthly payslips for all staff"
-            className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all active:scale-95 disabled:opacity-50 shrink-0"
+            title="Generate or recalculate & regenerate monthly payslips for all staff"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all active:scale-95 disabled:opacity-50 shrink-0"
           >
-            <IconPlayerPlay className="w-3.5 h-3.5 shrink-0" />
-            <span className="hidden sm:inline">{isPublishing ? 'Generating Payslips...' : 'Generate Payslips'}</span>
-            <span className="sm:hidden">{isPublishing ? 'Generating...' : 'Generate'}</span>
+            {employees.some((e) => e.status === 'PUBLISHED') ? (
+              <IconRefresh className={`w-3.5 h-3.5 shrink-0 ${isPublishing ? 'animate-spin' : ''}`} />
+            ) : (
+              <IconPlayerPlay className="w-3.5 h-3.5 shrink-0" />
+            )}
+            <span className="hidden sm:inline">
+              {isPublishing
+                ? 'Processing Payslips...'
+                : employees.some((e) => e.status === 'PUBLISHED')
+                ? 'Regenerate All Payslips'
+                : 'Generate Payslips'}
+            </span>
+            <span className="sm:hidden">
+              {isPublishing
+                ? 'Processing...'
+                : employees.some((e) => e.status === 'PUBLISHED')
+                ? 'Regenerate All'
+                : 'Generate'}
+            </span>
           </button>
         </div>
       </div>
@@ -634,27 +672,50 @@ export const AttendanceSalaryPage: React.FC = () => {
                         )}
                       </td>
 
-                      {/* Actions: Generate / Download PDF */}
+                      {/* Actions: Generate / Regenerate / Download PDF */}
                       <td className="px-5 py-3.5 text-right">
-                        <div className="flex items-center justify-end">
-                          {item.status === 'PUBLISHED' && item.payslipId ? (
-                            <button
-                              onClick={() => handleDownloadPdf(item.payslipId!, `${item.employee.firstName} ${item.employee.lastName}`)}
-                              disabled={downloadingPayslipId === item.payslipId}
-                              title="Download official PDF payslip"
-                              className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg font-bold text-xs inline-flex items-center gap-1 transition-colors disabled:opacity-50"
-                            >
-                              <IconFileText className="w-3.5 h-3.5" />
-                              <span>{downloadingPayslipId === item.payslipId ? 'PDF...' : 'Payslip'}</span>
-                            </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {item.status === 'PUBLISHED' ? (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleGenerateSinglePayslip(item.employee.id, `${item.employee.firstName} ${item.employee.lastName}`);
+                                }}
+                                disabled={generatingEmpId === item.employee.id}
+                                title="Regenerate payslip to reflect latest attendance, leave or salary updates"
+                                className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg font-bold text-xs inline-flex items-center gap-1 transition-all active:scale-95 disabled:opacity-50"
+                              >
+                                <IconRefresh className={`w-3.5 h-3.5 text-amber-600 ${generatingEmpId === item.employee.id ? 'animate-spin' : ''}`} />
+                                <span>{generatingEmpId === item.employee.id ? 'Syncing...' : 'Regenerate'}</span>
+                              </button>
+
+                              {item.payslipId && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDownloadPdf(item.payslipId!, `${item.employee.firstName} ${item.employee.lastName}`);
+                                  }}
+                                  disabled={downloadingPayslipId === item.payslipId}
+                                  title="Download official PDF payslip"
+                                  className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg font-bold text-xs inline-flex items-center gap-1 transition-all active:scale-95 disabled:opacity-50"
+                                >
+                                  <IconFileText className="w-3.5 h-3.5 text-indigo-600" />
+                                  <span>{downloadingPayslipId === item.payslipId ? 'PDF...' : 'Payslip'}</span>
+                                </button>
+                              )}
+                            </>
                           ) : (
                             <button
-                              onClick={() => handleGenerateSinglePayslip(item.employee.id, `${item.employee.firstName} ${item.employee.lastName}`)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleGenerateSinglePayslip(item.employee.id, `${item.employee.firstName} ${item.employee.lastName}`);
+                              }}
                               disabled={generatingEmpId === item.employee.id}
                               title="Generate monthly payslip for this employee"
-                              className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg font-bold text-xs inline-flex items-center gap-1 transition-colors disabled:opacity-50"
+                              className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg font-bold text-xs inline-flex items-center gap-1 transition-all active:scale-95 disabled:opacity-50"
                             >
-                              <IconSparkles className="w-3.5 h-3.5" />
+                              <IconSparkles className="w-3.5 h-3.5 text-emerald-600" />
                               <span>{generatingEmpId === item.employee.id ? 'Generating...' : 'Generate'}</span>
                             </button>
                           )}
@@ -872,24 +933,39 @@ export const AttendanceSalaryPage: React.FC = () => {
                 })()}
 
                 {/* Net Salary Payable Highlight Banner */}
-                <div className="p-3.5 sm:p-4 bg-slate-900 text-white rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+                <div className="p-3.5 sm:p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
                       Net Salary Payable ({month}/{year})
                     </span>
-                    <span className="text-xl sm:text-2xl font-black text-emerald-400">
+                    <span className="text-xl sm:text-2xl font-black text-slate-900 font-mono">
                       ₹{(selectedEmp.calculation.netSalary || 0).toLocaleString()}
                     </span>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('adjust')}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold border border-slate-700 transition-colors self-start sm:self-auto"
-                  >
-                    <IconAdjustmentsHorizontal className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Adjust PF, PT, TDS, HRA...</span>
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {selectedEmp.status === 'PUBLISHED' && (
+                      <button
+                        type="button"
+                        onClick={() => handleGenerateSinglePayslip(selectedEmp.employee.id, `${selectedEmp.employee.firstName} ${selectedEmp.employee.lastName}`)}
+                        disabled={generatingEmpId === selectedEmp.employee.id}
+                        title="Regenerate this payslip to reflect latest attendance, leave or component updates"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl text-xs font-bold border border-amber-200 shadow-2xs transition-all active:scale-95 disabled:opacity-50"
+                      >
+                        <IconRefresh className={`w-3.5 h-3.5 text-amber-600 ${generatingEmpId === selectedEmp.employee.id ? 'animate-spin' : ''}`} />
+                        <span>{generatingEmpId === selectedEmp.employee.id ? 'Syncing...' : 'Regenerate Payslip'}</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('adjust')}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold border border-slate-200 shadow-2xs transition-colors self-start sm:self-auto"
+                    >
+                      <IconAdjustmentsHorizontal className="w-3.5 h-3.5 text-slate-600" />
+                      <span>Adjust PF, PT, TDS, HRA...</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Bank Details */}
@@ -912,6 +988,7 @@ export const AttendanceSalaryPage: React.FC = () => {
 
             {/* TAB 2: Configure & Adjust Components */}
             {/* TAB 2: Configure & Adjust Components in ONE Unified Container */}
+            {/* TAB 2: Configure & Adjust Components in ONE Unified Container */}
             {activeTab === 'adjust' && (
               <div className="space-y-4">
                 {/* ONE Single Unified Container */}
@@ -926,14 +1003,14 @@ export const AttendanceSalaryPage: React.FC = () => {
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-500 mt-0.5">
-                        Manage statutory PF, PT, TDS, allowances, and custom components in one unified structure.
+                        Configure statutory PF, PT, TDS, allowances, and custom components for this month's payroll.
                       </p>
                     </div>
 
                     <button
                       type="button"
                       onClick={handleAutoSplitMonthly}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-indigo-50 text-indigo-700 font-bold border border-indigo-200 rounded-xl text-xs shadow-2xs transition-colors shrink-0 self-start sm:self-auto"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-indigo-50 text-indigo-700 font-bold border border-indigo-200 rounded-xl text-xs shadow-2xs hover:shadow-xs transition-all shrink-0 self-start sm:self-auto active:scale-95"
                       title="Auto-calculate 50% Basic, 20% HRA, remaining Special Allowance, and statutory deductions"
                     >
                       <IconSparkles className="w-3.5 h-3.5 text-indigo-600" />
@@ -943,255 +1020,369 @@ export const AttendanceSalaryPage: React.FC = () => {
 
                   {/* Unified Components Table */}
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase border-b border-slate-200">
+                    <table className="w-full text-left text-xs text-slate-700">
+                      <thead className="bg-slate-50/90 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
                         <tr>
                           <th className="px-4 py-2.5">Component</th>
-                          <th className="px-3 py-2.5">Classification</th>
+                          <th className="px-3 py-2.5">Type</th>
                           <th className="px-4 py-2.5 text-right">Amount (₹)</th>
                           <th className="px-2 py-2.5 text-center w-10"></th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-200/60 bg-white">
-                        {/* Basic Salary */}
-                        <tr>
-                          <td className="px-4 py-2 font-medium text-slate-900">
-                            Basic Salary
-                          </td>
-                          <td className="px-3 py-2">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              Earning (+)
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {/* SECTION 1: EARNINGS & ALLOWANCES */}
+                        <tr className="bg-slate-50/70">
+                          <td colSpan={4} className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              Earnings & Allowances
                             </span>
                           </td>
-                          <td className="px-4 py-2 text-right">
-                            <input
-                              type="number"
-                              min="0"
-                              value={adjustForm.basicSalary}
-                              onChange={(e) => setAdjustForm({ ...adjustForm, basicSalary: e.target.value })}
-                              className="w-28 px-2 py-1 text-xs text-right bg-slate-50 border border-slate-200 rounded-lg font-semibold focus:bg-white focus:outline-hidden focus:border-indigo-500"
-                            />
+                        </tr>
+
+                        {/* Basic Salary */}
+                        <tr className="hover:bg-slate-50/40 transition-colors">
+                          <td className="px-4 py-2.5">
+                            <div className="font-semibold text-slate-900">Basic Salary</div>
+                            <div className="text-[10px] text-slate-400">Core wage component (typically 50% of monthly CTC)</div>
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              Earning
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5 text-right">
+                            <div className="relative w-32 ml-auto">
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={adjustForm.basicSalary}
+                                onChange={(e) => setAdjustForm({ ...adjustForm, basicSalary: e.target.value })}
+                                className="w-full pl-6 pr-2.5 py-1 text-xs text-right font-mono font-semibold bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-900 transition-colors"
+                              />
+                            </div>
                           </td>
                           <td></td>
                         </tr>
 
                         {/* HRA */}
-                        <tr>
-                          <td className="px-4 py-2 font-medium text-slate-900">
-                            House Rent Allowance (HRA)
+                        <tr className="hover:bg-slate-50/40 transition-colors">
+                          <td className="px-4 py-2.5">
+                            <div className="font-semibold text-slate-900">House Rent Allowance (HRA)</div>
+                            <div className="text-[10px] text-slate-400">Tax-exempt housing benefit (typically 20% of monthly CTC)</div>
                           </td>
-                          <td className="px-3 py-2">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              Earning (+)
+                          <td className="px-3 py-2.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              Earning
                             </span>
                           </td>
-                          <td className="px-4 py-2 text-right">
-                            <input
-                              type="number"
-                              min="0"
-                              value={adjustForm.hra}
-                              onChange={(e) => setAdjustForm({ ...adjustForm, hra: e.target.value })}
-                              className="w-28 px-2 py-1 text-xs text-right bg-slate-50 border border-slate-200 rounded-lg font-semibold focus:bg-white focus:outline-hidden focus:border-indigo-500"
-                            />
+                          <td className="px-4 py-2.5 text-right">
+                            <div className="relative w-32 ml-auto">
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={adjustForm.hra}
+                                onChange={(e) => setAdjustForm({ ...adjustForm, hra: e.target.value })}
+                                className="w-full pl-6 pr-2.5 py-1 text-xs text-right font-mono font-semibold bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-900 transition-colors"
+                              />
+                            </div>
                           </td>
                           <td></td>
                         </tr>
 
                         {/* Special Allowance */}
-                        <tr>
-                          <td className="px-4 py-2 font-medium text-slate-900">
-                            Special Allowance
+                        <tr className="hover:bg-slate-50/40 transition-colors">
+                          <td className="px-4 py-2.5">
+                            <div className="font-semibold text-slate-900">Special Allowance</div>
+                            <div className="text-[10px] text-slate-400">Balancing allowance figure for gross salary</div>
                           </td>
-                          <td className="px-3 py-2">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              Earning (+)
+                          <td className="px-3 py-2.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              Earning
                             </span>
                           </td>
-                          <td className="px-4 py-2 text-right">
-                            <input
-                              type="number"
-                              min="0"
-                              value={adjustForm.specialAllowance}
-                              onChange={(e) => setAdjustForm({ ...adjustForm, specialAllowance: e.target.value })}
-                              className="w-28 px-2 py-1 text-xs text-right bg-slate-50 border border-slate-200 rounded-lg font-semibold focus:bg-white focus:outline-hidden focus:border-indigo-500"
-                            />
+                          <td className="px-4 py-2.5 text-right">
+                            <div className="relative w-32 ml-auto">
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={adjustForm.specialAllowance}
+                                onChange={(e) => setAdjustForm({ ...adjustForm, specialAllowance: e.target.value })}
+                                className="w-full pl-6 pr-2.5 py-1 text-xs text-right font-mono font-semibold bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-900 transition-colors"
+                              />
+                            </div>
                           </td>
                           <td></td>
                         </tr>
 
                         {/* Bonus / Incentives */}
-                        <tr>
-                          <td className="px-4 py-2 font-medium text-slate-900">
-                            Bonus / Performance Incentives
+                        <tr className="hover:bg-slate-50/40 transition-colors">
+                          <td className="px-4 py-2.5">
+                            <div className="font-semibold text-slate-900">Bonus / Performance Incentives</div>
+                            <div className="text-[10px] text-slate-400">Monthly or quarterly performance-based incentive</div>
                           </td>
-                          <td className="px-3 py-2">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              Earning (+)
+                          <td className="px-3 py-2.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              Earning
                             </span>
                           </td>
-                          <td className="px-4 py-2 text-right">
-                            <input
-                              type="number"
-                              min="0"
-                              value={adjustForm.bonus}
-                              onChange={(e) => setAdjustForm({ ...adjustForm, bonus: e.target.value })}
-                              className="w-28 px-2 py-1 text-xs text-right bg-slate-50 border border-slate-200 rounded-lg font-semibold focus:bg-white focus:outline-hidden focus:border-indigo-500"
-                            />
+                          <td className="px-4 py-2.5 text-right">
+                            <div className="relative w-32 ml-auto">
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={adjustForm.bonus}
+                                onChange={(e) => setAdjustForm({ ...adjustForm, bonus: e.target.value })}
+                                className="w-full pl-6 pr-2.5 py-1 text-xs text-right font-mono font-semibold bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-900 transition-colors"
+                              />
+                            </div>
                           </td>
                           <td></td>
                         </tr>
 
-                        {/* Provident Fund */}
-                        <tr>
-                          <td className="px-4 py-2 font-medium text-slate-900">
-                            Provident Fund (PF)
-                          </td>
-                          <td className="px-3 py-2">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                              Deduction (-)
+                        {/* Dynamic Custom Earnings */}
+                        {adjustForm.customComponents
+                          .filter((c) => c.type === 'EARNING')
+                          .map((item) => (
+                            <tr key={item.id} className="bg-emerald-50/20 hover:bg-emerald-50/30 transition-colors">
+                              <td className="px-4 py-2">
+                                <input
+                                  type="text"
+                                  value={item.name}
+                                  onChange={(e) => handleUpdateCustomComponent(item.id, 'name', e.target.value)}
+                                  placeholder="Allowance name (e.g. Medical, Transport)"
+                                  className="w-full px-2.5 py-1 text-xs bg-white border border-slate-200 rounded-lg font-medium focus:border-indigo-500 focus:outline-hidden"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <select
+                                  value={item.type}
+                                  onChange={(e) => handleUpdateCustomComponent(item.id, 'type', e.target.value as any)}
+                                  className="px-2 py-1 text-[11px] font-bold bg-white border border-slate-200 rounded-lg focus:outline-hidden"
+                                >
+                                  <option value="EARNING">Earning (+)</option>
+                                  <option value="DEDUCTION">Deduction (-)</option>
+                                </select>
+                              </td>
+                              <td className="px-4 py-2 text-right">
+                                <div className="relative w-32 ml-auto">
+                                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={item.amount}
+                                    onChange={(e) => handleUpdateCustomComponent(item.id, 'amount', e.target.value)}
+                                    className="w-full pl-6 pr-2.5 py-1 text-xs text-right font-mono font-semibold bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-indigo-500"
+                                  />
+                                </div>
+                              </td>
+                              <td className="px-2 py-2 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveCustomComponent(item.id)}
+                                  className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
+                                  title="Remove component"
+                                >
+                                  <IconTrash className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+
+                        {/* SECTION 2: DEDUCTIONS & STATUTORY TAXES */}
+                        <tr className="bg-slate-50/70">
+                          <td colSpan={4} className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                              Deductions & Statutory Taxes
                             </span>
                           </td>
-                          <td className="px-4 py-2 text-right">
-                            <input
-                              type="number"
-                              min="0"
-                              value={adjustForm.pf}
-                              onChange={(e) => setAdjustForm({ ...adjustForm, pf: e.target.value })}
-                              placeholder="0"
-                              className="w-28 px-2 py-1 text-xs text-right bg-slate-50 border border-slate-200 rounded-lg font-semibold focus:bg-white focus:outline-hidden focus:border-indigo-500"
-                            />
+                        </tr>
+
+                        {/* Provident Fund */}
+                        <tr className="hover:bg-slate-50/40 transition-colors">
+                          <td className="px-4 py-2.5">
+                            <div className="font-semibold text-slate-900">Provident Fund (PF)</div>
+                            <div className="text-[10px] text-slate-400">Employee retirement contribution (12% of basic, capped at ₹1,800)</div>
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                              Deduction
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5 text-right">
+                            <div className="relative w-32 ml-auto">
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={adjustForm.pf}
+                                onChange={(e) => setAdjustForm({ ...adjustForm, pf: e.target.value })}
+                                placeholder="0"
+                                className="w-full pl-6 pr-2.5 py-1 text-xs text-right font-mono font-semibold bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-900 transition-colors"
+                              />
+                            </div>
                           </td>
                           <td></td>
                         </tr>
 
                         {/* Professional Tax */}
-                        <tr>
-                          <td className="px-4 py-2 font-medium text-slate-900">
-                            Professional Tax (PT)
+                        <tr className="hover:bg-slate-50/40 transition-colors">
+                          <td className="px-4 py-2.5">
+                            <div className="font-semibold text-slate-900">Professional Tax (PT)</div>
+                            <div className="text-[10px] text-slate-400">State statutory professional tax (standard ₹200)</div>
                           </td>
-                          <td className="px-3 py-2">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                              Deduction (-)
+                          <td className="px-3 py-2.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                              Deduction
                             </span>
                           </td>
-                          <td className="px-4 py-2 text-right">
-                            <input
-                              type="number"
-                              min="0"
-                              value={adjustForm.pt}
-                              onChange={(e) => setAdjustForm({ ...adjustForm, pt: e.target.value })}
-                              placeholder="200"
-                              className="w-28 px-2 py-1 text-xs text-right bg-slate-50 border border-slate-200 rounded-lg font-semibold focus:bg-white focus:outline-hidden focus:border-indigo-500"
-                            />
+                          <td className="px-4 py-2.5 text-right">
+                            <div className="relative w-32 ml-auto">
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={adjustForm.pt}
+                                onChange={(e) => setAdjustForm({ ...adjustForm, pt: e.target.value })}
+                                placeholder="200"
+                                className="w-full pl-6 pr-2.5 py-1 text-xs text-right font-mono font-semibold bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-900 transition-colors"
+                              />
+                            </div>
                           </td>
                           <td></td>
                         </tr>
 
                         {/* Income Tax (TDS) */}
-                        <tr>
-                          <td className="px-4 py-2 font-medium text-slate-900">
-                            Income Tax (TDS)
+                        <tr className="hover:bg-slate-50/40 transition-colors">
+                          <td className="px-4 py-2.5">
+                            <div className="font-semibold text-slate-900">Income Tax (TDS)</div>
+                            <div className="text-[10px] text-slate-400">Estimated monthly tax deducted at source under IT rules</div>
                           </td>
-                          <td className="px-3 py-2">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                              Deduction (-)
+                          <td className="px-3 py-2.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                              Deduction
                             </span>
                           </td>
-                          <td className="px-4 py-2 text-right">
-                            <input
-                              type="number"
-                              min="0"
-                              value={adjustForm.tds}
-                              onChange={(e) => setAdjustForm({ ...adjustForm, tds: e.target.value })}
-                              placeholder="0"
-                              className="w-28 px-2 py-1 text-xs text-right bg-slate-50 border border-slate-200 rounded-lg font-semibold focus:bg-white focus:outline-hidden focus:border-indigo-500"
-                            />
+                          <td className="px-4 py-2.5 text-right">
+                            <div className="relative w-32 ml-auto">
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={adjustForm.tds}
+                                onChange={(e) => setAdjustForm({ ...adjustForm, tds: e.target.value })}
+                                placeholder="0"
+                                className="w-full pl-6 pr-2.5 py-1 text-xs text-right font-mono font-semibold bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-900 transition-colors"
+                              />
+                            </div>
                           </td>
                           <td></td>
                         </tr>
 
                         {/* Other Deductions */}
-                        <tr>
-                          <td className="px-4 py-2 font-medium text-slate-900">
-                            Other Deductions
+                        <tr className="hover:bg-slate-50/40 transition-colors">
+                          <td className="px-4 py-2.5">
+                            <div className="font-semibold text-slate-900">Other Deductions</div>
+                            <div className="text-[10px] text-slate-400">Ad-hoc adjustments or payroll deductions</div>
                           </td>
-                          <td className="px-3 py-2">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                              Deduction (-)
+                          <td className="px-3 py-2.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                              Deduction
                             </span>
                           </td>
-                          <td className="px-4 py-2 text-right">
-                            <input
-                              type="number"
-                              min="0"
-                              value={adjustForm.otherDeductions}
-                              onChange={(e) => setAdjustForm({ ...adjustForm, otherDeductions: e.target.value })}
-                              placeholder="0"
-                              className="w-28 px-2 py-1 text-xs text-right bg-slate-50 border border-slate-200 rounded-lg font-semibold focus:bg-white focus:outline-hidden focus:border-indigo-500"
-                            />
+                          <td className="px-4 py-2.5 text-right">
+                            <div className="relative w-32 ml-auto">
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={adjustForm.otherDeductions}
+                                onChange={(e) => setAdjustForm({ ...adjustForm, otherDeductions: e.target.value })}
+                                placeholder="0"
+                                className="w-full pl-6 pr-2.5 py-1 text-xs text-right font-mono font-semibold bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-900 transition-colors"
+                              />
+                            </div>
                           </td>
                           <td></td>
                         </tr>
 
-                        {/* Dynamic Custom Components Rows */}
-                        {adjustForm.customComponents.map((item) => (
-                          <tr key={item.id} className="bg-indigo-50/20">
-                            <td className="px-4 py-2">
-                              <input
-                                type="text"
-                                value={item.name}
-                                onChange={(e) => handleUpdateCustomComponent(item.id, 'name', e.target.value)}
-                                placeholder="e.g. Medical Allowance / NPS"
-                                className="w-full px-2.5 py-1 text-xs bg-white border border-slate-200 rounded-lg font-medium focus:border-indigo-500 focus:outline-hidden"
-                              />
-                            </td>
-                            <td className="px-3 py-2">
-                              <select
-                                value={item.type}
-                                onChange={(e) => handleUpdateCustomComponent(item.id, 'type', e.target.value as any)}
-                                className="px-2 py-1 text-[11px] font-bold bg-white border border-slate-200 rounded-lg focus:outline-hidden"
-                              >
-                                <option value="EARNING">Earning (+)</option>
-                                <option value="DEDUCTION">Deduction (-)</option>
-                              </select>
-                            </td>
-                            <td className="px-4 py-2 text-right">
-                              <input
-                                type="number"
-                                min="0"
-                                value={item.amount}
-                                onChange={(e) => handleUpdateCustomComponent(item.id, 'amount', e.target.value)}
-                                className="w-28 px-2 py-1 text-xs text-right bg-white border border-slate-200 rounded-lg font-semibold focus:outline-hidden"
-                              />
-                            </td>
-                            <td className="px-2 py-2 text-center">
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveCustomComponent(item.id)}
-                                className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
-                                title="Remove component"
-                              >
-                                <IconTrash className="w-3.5 h-3.5" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                        {/* Dynamic Custom Deductions */}
+                        {adjustForm.customComponents
+                          .filter((c) => c.type === 'DEDUCTION')
+                          .map((item) => (
+                            <tr key={item.id} className="bg-rose-50/20 hover:bg-rose-50/30 transition-colors">
+                              <td className="px-4 py-2">
+                                <input
+                                  type="text"
+                                  value={item.name}
+                                  onChange={(e) => handleUpdateCustomComponent(item.id, 'name', e.target.value)}
+                                  placeholder="Deduction name (e.g. NPS, Canteen, Insurance)"
+                                  className="w-full px-2.5 py-1 text-xs bg-white border border-slate-200 rounded-lg font-medium focus:border-indigo-500 focus:outline-hidden"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <select
+                                  value={item.type}
+                                  onChange={(e) => handleUpdateCustomComponent(item.id, 'type', e.target.value as any)}
+                                  className="px-2 py-1 text-[11px] font-bold bg-white border border-slate-200 rounded-lg focus:outline-hidden"
+                                >
+                                  <option value="EARNING">Earning (+)</option>
+                                  <option value="DEDUCTION">Deduction (-)</option>
+                                </select>
+                              </td>
+                              <td className="px-4 py-2 text-right">
+                                <div className="relative w-32 ml-auto">
+                                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={item.amount}
+                                    onChange={(e) => handleUpdateCustomComponent(item.id, 'amount', e.target.value)}
+                                    className="w-full pl-6 pr-2.5 py-1 text-xs text-right font-mono font-semibold bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-indigo-500"
+                                  />
+                                </div>
+                              </td>
+                              <td className="px-2 py-2 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveCustomComponent(item.id)}
+                                  className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
+                                  title="Remove deduction"
+                                >
+                                  <IconTrash className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
                       </tbody>
                     </table>
                   </div>
 
-                  {/* Table Footer: Add Button + Dynamic Live Summary */}
+                  {/* Table Footer: Add Button + Live Clean Corporate Summary */}
                   <div className="p-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <button
                       type="button"
                       onClick={handleAddCustomComponent}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-indigo-50 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 shadow-2xs transition-colors self-start sm:self-auto"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 shadow-2xs transition-colors self-start sm:self-auto"
                     >
-                      <IconPlus className="w-4 h-4 text-indigo-600" />
+                      <IconPlus className="w-3.5 h-3.5 text-slate-600" />
                       <span>Add Custom Component</span>
                     </button>
 
-                    {/* Live CTC Cluster Calculation */}
+                    {/* Clean Single-Row Financial Summary */}
                     {(() => {
                       const basic = Number(adjustForm.basicSalary) || 0;
                       const hra = Number(adjustForm.hra) || 0;
@@ -1215,15 +1406,15 @@ export const AttendanceSalaryPage: React.FC = () => {
                       const netPayable = Math.max(0, grossEarnings - totalDeductions);
 
                       return (
-                        <div className="flex items-center gap-4 text-xs font-semibold">
+                        <div className="flex flex-wrap items-center gap-3 text-xs">
                           <span className="text-slate-600">
-                            Gross: <strong className="text-slate-900">₹{grossEarnings.toLocaleString()}</strong>
+                            Gross: <strong className="text-slate-900 font-mono">₹{grossEarnings.toLocaleString()}</strong>
                           </span>
-                          <span className="text-rose-600">
-                            Deductions: <strong>-₹{totalDeductions.toLocaleString()}</strong>
+                          <span className="text-slate-600">
+                            Deductions: <strong className="text-rose-600 font-mono">-₹{totalDeductions.toLocaleString()}</strong>
                           </span>
-                          <span className="text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                            Net: <strong className="text-sm">₹{netPayable.toLocaleString()}</strong>
+                          <span className="font-bold text-slate-900">
+                            Net Take-Home: <strong className="text-emerald-700 font-mono text-sm">₹{netPayable.toLocaleString()}</strong>
                           </span>
                         </div>
                       );
@@ -1238,7 +1429,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                       placeholder="e.g. Performance bonus for Q3 / Statutory PT updated"
                       value={adjustForm.remarks}
                       onChange={(e) => setAdjustForm({ ...adjustForm, remarks: e.target.value })}
-                      className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-hidden focus:border-indigo-500"
+                      className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-800 font-medium transition-colors"
                     />
                   </div>
                 </div>
@@ -1248,7 +1439,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setActiveTab('statement')}
-                    className="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+                    className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
                   >
                     Cancel
                   </button>
@@ -1256,10 +1447,20 @@ export const AttendanceSalaryPage: React.FC = () => {
                     type="button"
                     onClick={handleSaveAdjustments}
                     disabled={isSavingAdjustments}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all active:scale-95 disabled:opacity-50"
                   >
-                    <IconDeviceFloppy className="w-4 h-4" />
-                    <span>{isSavingAdjustments ? 'Saving Components...' : 'Save Components & Recalculate'}</span>
+                    {selectedEmp.status === 'PUBLISHED' ? (
+                      <IconRefresh className={`w-4 h-4 ${isSavingAdjustments ? 'animate-spin' : ''}`} />
+                    ) : (
+                      <IconDeviceFloppy className="w-4 h-4" />
+                    )}
+                    <span>
+                      {isSavingAdjustments
+                        ? 'Saving & Regenerating...'
+                        : selectedEmp.status === 'PUBLISHED'
+                        ? 'Save & Regenerate Payslip'
+                        : 'Save Components & Recalculate'}
+                    </span>
                   </button>
                 </div>
               </div>
@@ -1268,24 +1469,26 @@ export const AttendanceSalaryPage: React.FC = () => {
             {/* Modal Footer */}
             <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100">
               <div className="flex items-center gap-2">
-                {selectedEmp.status === 'PUBLISHED' && selectedEmp.payslipId ? (
+                {selectedEmp.status === 'PUBLISHED' ? (
                   <>
-                    <button
-                      onClick={() => handleDownloadPdf(selectedEmp.payslipId!, `${selectedEmp.employee.firstName} ${selectedEmp.employee.lastName}`)}
-                      disabled={downloadingPayslipId === selectedEmp.payslipId}
-                      className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-colors disabled:opacity-50"
-                    >
-                      <IconFileText className="w-4 h-4" />
-                      <span>{downloadingPayslipId === selectedEmp.payslipId ? 'Downloading...' : 'Download Payslip (PDF)'}</span>
-                    </button>
+                    {selectedEmp.payslipId && (
+                      <button
+                        onClick={() => handleDownloadPdf(selectedEmp.payslipId!, `${selectedEmp.employee.firstName} ${selectedEmp.employee.lastName}`)}
+                        disabled={downloadingPayslipId === selectedEmp.payslipId}
+                        className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-colors disabled:opacity-50"
+                      >
+                        <IconFileText className="w-4 h-4" />
+                        <span>{downloadingPayslipId === selectedEmp.payslipId ? 'Downloading...' : 'Download Payslip (PDF)'}</span>
+                      </button>
+                    )}
 
                     <button
                       onClick={() => handleGenerateSinglePayslip(selectedEmp.employee.id, `${selectedEmp.employee.firstName} ${selectedEmp.employee.lastName}`)}
                       disabled={generatingEmpId === selectedEmp.employee.id}
-                      className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                      className="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 transition-colors disabled:opacity-50"
                     >
-                      <IconRefresh className="w-3.5 h-3.5" />
-                      <span>{generatingEmpId === selectedEmp.employee.id ? 'Regenerating...' : 'Regenerate'}</span>
+                      <IconRefresh className={`w-3.5 h-3.5 text-amber-600 ${generatingEmpId === selectedEmp.employee.id ? 'animate-spin' : ''}`} />
+                      <span>{generatingEmpId === selectedEmp.employee.id ? 'Syncing...' : 'Regenerate Payslip'}</span>
                     </button>
                   </>
                 ) : (
