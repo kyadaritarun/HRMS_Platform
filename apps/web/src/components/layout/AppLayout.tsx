@@ -84,12 +84,19 @@ export const AppLayout: React.FC = () => {
 
   useEffect(() => {
     fetchActiveAttendance();
-    const interval = setInterval(fetchActiveAttendance, 45000);
+    const interval = setInterval(fetchActiveAttendance, 20000);
     const onAttendanceUpdated = () => fetchActiveAttendance();
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'attendance_sync_ts') {
+        fetchActiveAttendance();
+      }
+    };
     window.addEventListener('attendance-updated', onAttendanceUpdated);
+    window.addEventListener('storage', onStorage);
     return () => {
       clearInterval(interval);
       window.removeEventListener('attendance-updated', onAttendanceUpdated);
+      window.removeEventListener('storage', onStorage);
     };
   }, [user?.id]);
 
@@ -189,13 +196,14 @@ export const AppLayout: React.FC = () => {
   const [isCheckActionLoading, setIsCheckActionLoading] = useState(false);
 
   const handleCheckOutAction = async () => {
+    setProfileOpen(false);
     setIsCheckActionLoading(true);
     const perform = async (latitude: number, longitude: number) => {
       try {
         await api.post('/attendance/check-out', { latitude, longitude });
         setActiveAttendance(null);
         window.dispatchEvent(new Event('attendance-updated'));
-        setProfileOpen(false);
+        localStorage.setItem('attendance_sync_ts', String(Date.now()));
       } catch (err) {
         console.error('Failed to check out:', err);
       } finally {
@@ -207,7 +215,7 @@ export const AppLayout: React.FC = () => {
       navigator.geolocation.getCurrentPosition(
         (pos) => perform(pos.coords.latitude, pos.coords.longitude),
         () => perform(19.076, 72.8777),
-        { timeout: 6000 }
+        { timeout: 4000 }
       );
     } else {
       perform(19.076, 72.8777);
@@ -215,13 +223,14 @@ export const AppLayout: React.FC = () => {
   };
 
   const handleCheckInAction = async () => {
+    setProfileOpen(false);
     setIsCheckActionLoading(true);
     const perform = async (latitude: number, longitude: number) => {
       try {
         const res = await api.post('/attendance/check-in', { latitude, longitude, workMode: 'WFO' });
         setActiveAttendance(res.data?.attendance || { checkIn: new Date().toISOString() });
         window.dispatchEvent(new Event('attendance-updated'));
-        setProfileOpen(false);
+        localStorage.setItem('attendance_sync_ts', String(Date.now()));
       } catch (err) {
         console.error('Failed to check in:', err);
       } finally {
@@ -233,7 +242,7 @@ export const AppLayout: React.FC = () => {
       navigator.geolocation.getCurrentPosition(
         (pos) => perform(pos.coords.latitude, pos.coords.longitude),
         () => perform(19.076, 72.8777),
-        { timeout: 6000 }
+        { timeout: 4000 }
       );
     } else {
       perform(19.076, 72.8777);
@@ -458,7 +467,13 @@ export const AppLayout: React.FC = () => {
               </button>
 
               {profileOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-50 animate-in fade-in">
+                <>
+                  {/* Invisible backdrop to close on click outside */}
+                  <div
+                    className="fixed inset-0 z-40 bg-transparent"
+                    onClick={() => setProfileOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-50 animate-in fade-in">
                   <div className="px-3.5 py-2.5 border-b border-slate-100">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Signed in as</p>
                     <p className="text-xs font-bold text-slate-800 truncate">{user?.email}</p>
@@ -511,7 +526,8 @@ export const AppLayout: React.FC = () => {
                     Sign Out
                   </button>
                 </div>
-              )}
+              </>
+            )}
             </div>
           </div>
         </header>

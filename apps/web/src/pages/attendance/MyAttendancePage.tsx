@@ -63,6 +63,18 @@ export const MyAttendancePage: React.FC = () => {
 
   useEffect(() => {
     fetchAttendance();
+    const handleSync = () => fetchAttendance();
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'attendance_sync_ts') {
+        fetchAttendance();
+      }
+    };
+    window.addEventListener('attendance-updated', handleSync);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener('attendance-updated', handleSync);
+      window.removeEventListener('storage', onStorage);
+    };
   }, []);
 
   const getPosition = (): Promise<{ latitude: number; longitude: number }> => {
@@ -103,6 +115,7 @@ export const MyAttendancePage: React.FC = () => {
       setNote('');
       fetchAttendance();
       window.dispatchEvent(new Event('attendance-updated'));
+      localStorage.setItem('attendance_sync_ts', String(Date.now()));
     } catch (err: any) {
       setError(err.response?.data?.message || err.response?.data?.error || 'Check-in failed');
     } finally {
@@ -124,6 +137,7 @@ export const MyAttendancePage: React.FC = () => {
       setNote('');
       fetchAttendance();
       window.dispatchEvent(new Event('attendance-updated'));
+      localStorage.setItem('attendance_sync_ts', String(Date.now()));
     } catch (err: any) {
       setError(err.response?.data?.message || err.response?.data?.error || 'Check-out failed');
     } finally {

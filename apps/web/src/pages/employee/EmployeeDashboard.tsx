@@ -543,6 +543,28 @@ export const EmployeeDashboard: React.FC = () => {
   useEffect(() => {
     fetchActiveSession();
     fetchDashboardWidgets();
+
+    const handleSync = () => {
+      fetchActiveSession();
+      fetchDashboardWidgets();
+    };
+
+    window.addEventListener('attendance-updated', handleSync);
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'attendance_sync_ts') {
+        handleSync();
+      }
+    };
+    window.addEventListener('storage', onStorage);
+
+    // Auto-poll every 15 seconds for real-time live attendance sync
+    const pollId = setInterval(fetchActiveSession, 15000);
+
+    return () => {
+      window.removeEventListener('attendance-updated', handleSync);
+      window.removeEventListener('storage', onStorage);
+      clearInterval(pollId);
+    };
   }, [user?.id]);
 
   // Calendar computed properties
@@ -604,12 +626,14 @@ export const EmployeeDashboard: React.FC = () => {
           setAttendanceMessage('Successfully checked in!');
           await fetchActiveSession();
           window.dispatchEvent(new Event('attendance-updated'));
+          localStorage.setItem('attendance_sync_ts', String(Date.now()));
         } else {
           await api.post('/attendance/check-out', { latitude, longitude });
           setActiveSession(null);
           setAttendanceMessage('Successfully checked out! Have a good day.');
           await fetchActiveSession();
           window.dispatchEvent(new Event('attendance-updated'));
+          localStorage.setItem('attendance_sync_ts', String(Date.now()));
         }
       } catch (err: any) {
         setAttendanceMessage(err.response?.data?.error || `Failed to ${action}`);
@@ -633,9 +657,10 @@ export const EmployeeDashboard: React.FC = () => {
   const todayDateKey = useMemo(() => toLocalDateKey(new Date()), []);
   const todaySession = useMemo(() => {
     return attendanceSessions.find((s: any) => {
-      if (!s.date) return false;
-      const sDateKey = toLocalDateKey(new Date(s.date));
-      return sDateKey === todayDateKey || s.date.startsWith(todayDateKey);
+      const dateVal = s.checkIn || s.date;
+      if (!dateVal) return false;
+      const sDateKey = toLocalDateKey(new Date(dateVal));
+      return sDateKey === todayDateKey;
     });
   }, [attendanceSessions, todayDateKey]);
 
