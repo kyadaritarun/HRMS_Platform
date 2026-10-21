@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../../api/client';
 import {
-  IconFileText,
-  IconClock,
   IconCalendar,
-  IconSend,
-  IconFilter,
+  IconPlus,
+  IconX,
+  IconSearch,
   IconChevronDown,
   IconAlertCircle,
+  IconClock,
+  IconFileText,
+  IconCheck,
 } from '@tabler/icons-react';
 
 interface CompOffRequest {
@@ -33,15 +36,16 @@ export const MyCompOffPage: React.FC = () => {
   const [requests, setRequests] = useState<CompOffRequest[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Status Filter
+  // Search and Filter
+  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
-  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
 
-  // Form state: Holiday, Days (default 1), Reason
+  // Form state
   const [selectedHolidayId, setSelectedHolidayId] = useState<string>('');
   const [days, setDays] = useState<number>(1);
   const [reason, setReason] = useState<string>('');
@@ -56,7 +60,6 @@ export const MyCompOffPage: React.FC = () => {
       setRequests(reqRes.data?.items || []);
       const fetchedHolidays = holRes.data?.holidays || [];
 
-      // If no holidays configured in the system yet, provide standard holiday options
       if (fetchedHolidays.length === 0) {
         setHolidays([
           { id: 101, name: 'Republic Day', date: '2026-01-26' },
@@ -112,6 +115,7 @@ export const MyCompOffPage: React.FC = () => {
       setSelectedHolidayId('');
       setDays(1);
       setReason('');
+      setIsModalOpen(false);
       setSuccessMsg('Comp off request submitted successfully to your manager!');
       fetchData();
     } catch (err: any) {
@@ -137,237 +141,181 @@ export const MyCompOffPage: React.FC = () => {
     switch (status) {
       case 'APPROVED':
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
             Approved
           </span>
         );
       case 'REJECTED':
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
             Rejected
           </span>
         );
       default:
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
             Pending
           </span>
         );
     }
   };
 
+  const getInitials = (firstName?: string, lastName?: string) => {
+    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase() || 'M';
+  };
+
   const filteredRequests = requests.filter((r) => {
-    if (statusFilter === 'ALL') return true;
-    return r.status === statusFilter;
+    const holidayName = (
+      r.meta?.holidayName ||
+      (r.title ? r.title.replace('Comp Off Request — ', '') : 'Holiday')
+    ).toLowerCase();
+    const approverName = r.approver
+      ? `${r.approver.firstName} ${r.approver.lastName}`.toLowerCase()
+      : 'reporting manager';
+    const note = (r.reason || '').toLowerCase();
+    const q = search.toLowerCase().trim();
+
+    const matchesSearch = !q || holidayName.includes(q) || approverName.includes(q) || note.includes(q);
+    if (statusFilter === 'ALL') return matchesSearch;
+    return matchesSearch && r.status === statusFilter;
   });
 
   return (
-    <div className="space-y-5 max-w-7xl mx-auto pb-10">
-      {/* ===================== TOP HEADER BAR ===================== */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6">
+      {/* Top Header Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0">
-              <IconCalendar className="w-4 h-4" />
-            </div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Comp Off
-            </h1>
-          </div>
-          <p className="text-xs text-slate-500 font-medium mt-1">
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <IconCalendar className="w-7 h-7 text-[#5E4BE2]" />
+            Comp Off
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
             Apply for compensatory off days worked on public or company holidays.
           </p>
         </div>
+
+        <button
+          onClick={() => {
+            setError(null);
+            setIsModalOpen(true);
+          }}
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white font-bold text-sm shadow-sm transition-all cursor-pointer active:scale-95"
+        >
+          <IconPlus className="w-4 h-4" />
+          Request Comp Off
+        </button>
       </div>
 
-      {/* Top Card: Request Comp Off */}
-      <div className="bg-white rounded-2xl border border-slate-200/70 p-6 shadow-xs">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-9 h-9 rounded-xl bg-[#eeeffd] text-[#5452f6] flex items-center justify-center shrink-0 shadow-2xs">
-            <IconFileText className="w-5 h-5" />
-          </div>
-          <h2 className="text-base font-bold text-slate-900">Request Comp Off</h2>
-        </div>
-
-        {error && (
-          <div className="p-3 mb-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm flex items-center gap-2">
-            <IconAlertCircle className="w-4 h-4 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {successMsg && (
-          <div className="p-3 mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs sm:text-sm">
-            {successMsg}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-            {/* Field 1: Holiday */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Holiday</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#5452f6]">
-                  <IconCalendar className="w-4 h-4" />
-                </div>
-                <select
-                  required
-                  value={selectedHolidayId}
-                  onChange={(e) => setSelectedHolidayId(e.target.value)}
-                  className="w-full pl-9 pr-9 py-2.5 text-xs sm:text-sm bg-white border border-slate-200/90 rounded-xl text-slate-700 appearance-none focus:outline-hidden focus:border-[#5452f6] focus:ring-1 focus:ring-[#5452f6]/20 transition-all cursor-pointer"
-                >
-                  <option value="">Select holiday</option>
-                  {holidays.map((h) => (
-                    <option key={h.id} value={h.id}>
-                      {h.name}
-                    </option>
-                  ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
-                  <IconChevronDown className="w-4 h-4" />
-                </div>
-              </div>
-            </div>
-
-            {/* Field 2: Days */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Days</label>
-              <input
-                type="number"
-                min={1}
-                max={10}
-                required
-                value={days}
-                onChange={(e) => setDays(Number(e.target.value))}
-                className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-slate-200/90 rounded-xl text-slate-700 focus:outline-hidden focus:border-[#5452f6] focus:ring-1 focus:ring-[#5452f6]/20 transition-all"
-              />
-            </div>
-
-            {/* Field 3: Reason */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Reason</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <IconFileText className="w-4 h-4" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Add a note (optional)"
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  className="w-full pl-9 pr-3.5 py-2.5 text-xs sm:text-sm bg-white border border-slate-200/90 rounded-xl text-slate-700 placeholder:text-slate-400 focus:outline-hidden focus:border-[#5452f6] focus:ring-1 focus:ring-[#5452f6]/20 transition-all"
-                />
-              </div>
-            </div>
-          </div>
-
+      {successMsg && (
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between">
+          <span>{successMsg}</span>
           <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-5 py-2.5 bg-[#5452f6] hover:bg-[#4338ca] text-white text-xs sm:text-sm font-semibold rounded-xl shadow-md shadow-indigo-600/20 transition-all flex items-center gap-2 cursor-pointer active:scale-98 disabled:opacity-50"
+            type="button"
+            onClick={() => setSuccessMsg(null)}
+            className="text-emerald-600 hover:text-emerald-800 cursor-pointer p-0.5"
           >
-            <IconSend className="w-4 h-4" />
-            <span>{isSubmitting ? 'Submitting...' : 'Submit Request'}</span>
+            <IconX className="w-4 h-4" />
           </button>
-        </form>
-      </div>
+        </div>
+      )}
 
-      {/* Bottom Card: My Comp Off Requests */}
-      <div className="bg-white rounded-2xl border border-slate-200/70 shadow-xs overflow-hidden">
-        <div className="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#eeeffd] text-[#5452f6] flex items-center justify-center shrink-0 shadow-2xs">
-              <IconClock className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-slate-900">My Comp Off Requests</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Track approvals and history.</p>
-            </div>
-          </div>
-
-          {/* Status Filter Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 shadow-2xs cursor-pointer transition-colors"
-            >
-              <IconFilter className="w-3.5 h-3.5 text-slate-500" />
-              <span>{statusFilter === 'ALL' ? 'All Status' : statusFilter}</span>
-              <IconChevronDown className="w-3.5 h-3.5 text-slate-400" />
-            </button>
-
-            {isStatusDropdownOpen && (
-              <div className="absolute right-0 mt-1.5 w-36 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-30 animate-in fade-in zoom-in-95 duration-100">
-                {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map((st) => (
-                  <button
-                    key={st}
-                    onClick={() => {
-                      setStatusFilter(st);
-                      setIsStatusDropdownOpen(false);
-                    }}
-                    className={`w-full text-left px-3.5 py-2 text-xs font-medium transition-colors ${
-                      statusFilter === st
-                        ? 'bg-indigo-50 text-[#5452f6] font-semibold'
-                        : 'text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    {st === 'ALL' ? 'All Status' : st}
-                  </button>
-                ))}
-              </div>
+      {/* Main Table Container Card */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden space-y-4 p-5">
+        {/* Search & Filter Toolbar */}
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+          <div className="relative flex-1 max-w-md">
+            <IconSearch className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search by holiday, approver, or note..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-8 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-[#5E4BE2] text-slate-800 placeholder-slate-400"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+              >
+                <IconX className="w-3.5 h-3.5" />
+              </button>
             )}
           </div>
+
+          {/* Status Filter Tabs */}
+          <div className="flex items-center bg-slate-50 border border-slate-200 p-1 rounded-xl shrink-0">
+            {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setStatusFilter(tab)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  statusFilter === tab
+                    ? 'bg-white text-[#5E4BE2] shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                {tab === 'ALL'
+                  ? 'All Status'
+                  : tab.charAt(0) + tab.slice(1).toLowerCase()}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-600">
-            <thead className="bg-slate-50/70 text-[11px] font-bold text-slate-400 tracking-wider uppercase border-b border-slate-100">
+        {/* Table Content */}
+        <div className="overflow-x-auto -mx-5 -mb-5">
+          <table className="w-full min-w-[850px] text-left text-xs">
+            <thead className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-y border-slate-100 bg-slate-50/50">
               <tr>
-                <th className="px-6 py-3.5">HOLIDAY</th>
-                <th className="px-6 py-3.5">DATE</th>
-                <th className="px-6 py-3.5">DAYS</th>
-                <th className="px-6 py-3.5">STATUS</th>
-                <th className="px-6 py-3.5">APPROVER</th>
-                <th className="px-6 py-3.5">NOTE</th>
-                <th className="px-6 py-3.5 text-right">ACTION</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">HOLIDAY WORKED</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">DATE</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">DAYS</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">STATUS</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">APPROVER</th>
+                <th className="px-5 py-3.5">REASON / NOTE</th>
+                <th className="px-5 py-3.5 text-right whitespace-nowrap">ACTION</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {isLoading ? (
-                Array.from({ length: 2 }).map((_, i) => (
+                Array.from({ length: 4 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td className="px-6 py-4">
-                      <div className="w-24 h-4 bg-slate-200 rounded-sm" />
+                    <td className="px-5 py-4">
+                      <div className="w-28 h-4 bg-slate-200 rounded" />
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="w-20 h-4 bg-slate-200 rounded-sm" />
+                    <td className="px-5 py-4">
+                      <div className="w-20 h-4 bg-slate-100 rounded" />
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="w-12 h-4 bg-slate-200 rounded-sm" />
+                    <td className="px-5 py-4">
+                      <div className="w-12 h-4 bg-slate-100 rounded" />
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="w-16 h-4 bg-slate-200 rounded-sm" />
+                    <td className="px-5 py-4">
+                      <div className="w-16 h-5 bg-slate-100 rounded-full" />
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="w-24 h-4 bg-slate-200 rounded-sm" />
+                    <td className="px-5 py-4">
+                      <div className="w-24 h-4 bg-slate-100 rounded" />
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="w-32 h-4 bg-slate-200 rounded-sm" />
+                    <td className="px-5 py-4">
+                      <div className="w-36 h-4 bg-slate-100 rounded" />
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="w-12 h-4 bg-slate-200 rounded-sm ml-auto" />
+                    <td className="px-5 py-4 text-right">
+                      <div className="w-12 h-4 bg-slate-100 rounded ml-auto" />
                     </td>
                   </tr>
                 ))
               ) : filteredRequests.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-14 text-center">
-                    <div className="w-14 h-14 rounded-2xl bg-[#eeeffd] text-[#5452f6] flex items-center justify-center mx-auto mb-3 shadow-2xs">
-                      <IconCalendar className="w-7 h-7" />
+                  <td colSpan={7} className="py-16 text-center text-slate-400">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-[#5E4BE2] flex items-center justify-center mx-auto mb-3">
+                      <IconCalendar className="w-6 h-6" />
                     </div>
-                    <p className="text-sm font-bold text-slate-800">No comp off requests yet.</p>
-                    <p className="text-xs text-slate-400 mt-1">Submit a request using the form above.</p>
+                    <p className="text-sm font-semibold text-slate-700">No comp off requests found</p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {search || statusFilter !== 'ALL'
+                        ? 'Try adjusting your search query or status filter.'
+                        : 'Click "Request Comp Off" above to submit compensatory off days.'}
+                    </p>
                   </td>
                 </tr>
               ) : (
@@ -381,28 +329,68 @@ export const MyCompOffPage: React.FC = () => {
 
                   return (
                     <tr key={r.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="px-6 py-4 font-semibold text-slate-900">{holidayName}</td>
-                      <td className="px-6 py-4 text-xs font-mono text-slate-700">{holidayDate}</td>
-                      <td className="px-6 py-4 font-bold text-slate-900">{r.days || 1} d</td>
-                      <td className="px-6 py-4">{getStatusBadge(r.status)}</td>
-                      <td className="px-6 py-4 text-xs text-slate-600">
-                        {r.approver
-                          ? `${r.approver.firstName} ${r.approver.lastName}`
-                          : 'Reporting Manager'}
+                      {/* Holiday */}
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 text-[#5E4BE2] flex items-center justify-center shrink-0">
+                            <IconCalendar className="w-4 h-4" />
+                          </div>
+                          <span className="font-bold text-slate-900 text-xs">{holidayName}</span>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 text-xs text-slate-500 max-w-xs truncate">
-                        {r.reason || '—'}
+
+                      {/* Date */}
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <span className="text-xs font-mono text-slate-600">{holidayDate}</span>
                       </td>
-                      <td className="px-6 py-4 text-right">
+
+                      {/* Days */}
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                          {r.days || 1} day{(r.days || 1) > 1 ? 's' : ''}
+                        </span>
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        {getStatusBadge(r.status)}
+                      </td>
+
+                      {/* Approver */}
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 font-semibold flex items-center justify-center text-[10px] shrink-0">
+                            {r.approver
+                              ? getInitials(r.approver.firstName, r.approver.lastName)
+                              : 'M'}
+                          </div>
+                          <span className="text-xs text-slate-700 font-medium">
+                            {r.approver
+                              ? `${r.approver.firstName} ${r.approver.lastName}`
+                              : 'Reporting Manager'}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Reason / Note */}
+                      <td className="px-5 py-4">
+                        <p className="text-xs text-slate-600 max-w-sm truncate">
+                          {r.reason || '—'}
+                        </p>
+                      </td>
+
+                      {/* Action */}
+                      <td className="px-5 py-4 text-right whitespace-nowrap">
                         {r.status === 'PENDING' ? (
                           <button
+                            type="button"
                             onClick={() => handleCancel(r.id)}
-                            className="px-2.5 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                            className="px-2.5 py-1 text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                           >
                             Cancel
                           </button>
                         ) : (
-                          <span className="text-xs text-slate-400">—</span>
+                          <span className="text-xs text-slate-400 font-medium">—</span>
                         )}
                       </td>
                     </tr>
@@ -413,6 +401,135 @@ export const MyCompOffPage: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Request Comp Off Right-Side Slide-Over Drawer */}
+      {isModalOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] overflow-hidden">
+          <div
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsModalOpen(false)}
+          />
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+            <div
+              className="w-screen max-w-md bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 pointer-events-auto animate-in slide-in-from-right duration-200 overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drawer Header */}
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0">
+                    <IconCalendar className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-[#5E4BE2] uppercase tracking-wider">
+                      Compensatory Off
+                    </span>
+                    <h2 className="text-base font-bold text-slate-900 mt-0.5">
+                      Request Comp Off
+                    </h2>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <IconX className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Form Body */}
+              <form onSubmit={handleSubmit} className="p-6 space-y-5 flex-1 flex flex-col justify-between">
+                <div className="space-y-4">
+                  {error && (
+                    <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                      <IconAlertCircle className="w-4 h-4 shrink-0" />
+                      <span>{error}</span>
+                    </div>
+                  )}
+
+                  {/* Holiday selection */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Holiday Worked <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <select
+                        required
+                        value={selectedHolidayId}
+                        onChange={(e) => setSelectedHolidayId(e.target.value)}
+                        className="w-full pl-3.5 pr-8 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] font-semibold text-slate-800 transition-colors appearance-none cursor-pointer"
+                      >
+                        <option value="">Select holiday worked...</option>
+                        {holidays.map((h) => (
+                          <option key={h.id} value={h.id}>
+                            {h.name} ({h.date ? new Date(h.date).toLocaleDateString() : 'Holiday'})
+                          </option>
+                        ))}
+                      </select>
+                      <IconChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  {/* Days */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Days <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min={0.5}
+                      max={10}
+                      step={0.5}
+                      required
+                      value={days}
+                      onChange={(e) => setDays(Number(e.target.value))}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] font-semibold text-slate-800 transition-colors"
+                    />
+                  </div>
+
+                  {/* Reason / Note */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Reason / Work Note
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder="Briefly describe the work delivered on this holiday..."
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800 placeholder-slate-400 resize-none transition-colors"
+                    />
+                  </div>
+
+                  <div className="bg-indigo-50/60 border border-indigo-100/80 rounded-xl p-3 text-[11px] text-slate-600 space-y-1">
+                    <p className="font-bold text-[#5E4BE2]">Approval Process:</p>
+                    <p>Your request will be routed directly to your reporting manager for approval.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-5 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white shadow-xs disabled:opacity-50 cursor-pointer transition-all"
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

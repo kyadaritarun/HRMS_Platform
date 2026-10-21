@@ -9,6 +9,8 @@ import {
   IconPrinter,
   IconDownload,
   IconSearch,
+  IconFilter,
+  IconChevronDown,
   IconCheck,
   IconX,
   IconUser,
@@ -119,6 +121,7 @@ export const OfferLettersPage: React.FC = () => {
   });
 
   const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [previewLetter, setPreviewLetter] = useState<OfferLetterItem | null>(null);
 
@@ -192,60 +195,40 @@ export const OfferLettersPage: React.FC = () => {
     setPreviewLetter(newOffer);
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const filtered = offerLetters.filter((o) => {
+    const q = search.toLowerCase().trim();
+    const matchesSearch =
+      !q ||
+      o.candidateName.toLowerCase().includes(q) ||
+      o.jobTitle.toLowerCase().includes(q) ||
+      o.department.toLowerCase().includes(q) ||
+      o.id.toLowerCase().includes(q);
 
-  const filtered = offerLetters.filter(
-    (o) =>
-      o.candidateName.toLowerCase().includes(search.toLowerCase()) ||
-      o.jobTitle.toLowerCase().includes(search.toLowerCase()) ||
-      o.department.toLowerCase().includes(search.toLowerCase()) ||
-      o.id.toLowerCase().includes(search.toLowerCase())
-  );
+    if (filterStatus === 'SENT') return matchesSearch && o.status === 'SENT';
+    if (filterStatus === 'ACCEPTED') return matchesSearch && o.status === 'ACCEPTED';
+    if (filterStatus === 'DRAFT') return matchesSearch && o.status === 'DRAFT';
+    return matchesSearch;
+  });
 
   return (
-    <div className="space-y-6">
-      {/* Print Styles */}
-      <style>{`
-        @media print {
-          #root {
-            display: none !important;
-          }
-          body * {
-            visibility: hidden;
-          }
-          #printable-offer-letter, #printable-offer-letter * {
-            visibility: visible;
-          }
-          #printable-offer-letter {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            margin: 0;
-            padding: 24px;
-            box-shadow: none !important;
-            border: none !important;
-          }
-          .no-print {
-            display: none !important;
-          }
-        }
-      `}</style>
-
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 no-print">
+    <div className="space-y-6 pb-12">
+      {/* Top Banner (Hero Banner) - Exactly matching Departments Page typography */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <IconFileCertificate className="w-7 h-7 text-indigo-600" />
-            Offer Letters &amp; Employment Contracts
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0">
+              <IconFileCertificate className="w-4 h-4" />
+            </div>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Offer Letters &amp; Employment Contracts
+            </h1>
+          </div>
+          <p className="text-xs text-slate-500 font-medium mt-1">
             Generate, customize, and issue formal employment offer letters with automated CTC salary breakdowns.
           </p>
         </div>
 
+        {/* Primary CTA: Generate New Offer Letter */}
         <button
           onClick={() => {
             setForm({
@@ -263,115 +246,126 @@ export const OfferLettersPage: React.FC = () => {
             });
             setIsModalOpen(true);
           }}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs sm:text-sm font-semibold shadow-sm shadow-indigo-600/20 transition-all cursor-pointer"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white text-xs font-bold shadow-xs hover:shadow-md transition-all cursor-pointer shrink-0"
         >
           <IconPlus className="w-4 h-4" />
-          Generate New Offer Letter
+          <span>Generate New Offer Letter</span>
         </button>
       </div>
 
-      {/* Summary Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 no-print">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
-            <IconFileCertificate className="w-6 h-6" />
+      {/* Main Table Card (Card structure matching Departments Page) */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
+        {/* Section Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-[#5E4BE2] flex items-center justify-center shrink-0">
+              <IconFileCertificate className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">All Offer Letters</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                View and manage issued employment contracts and offer letters.
+              </p>
+            </div>
           </div>
-          <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Generated</span>
-            <p className="text-2xl font-black text-slate-900 mt-0.5">{offerLetters.length}</p>
+
+          {/* Right Controls: Search & Filter */}
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            {/* Search Input */}
+            <div className="relative flex-1 sm:w-64">
+              <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search candidate, role, or ID..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-800 placeholder-slate-400"
+              />
+            </div>
+
+            {/* Filter Dropdown */}
+            <div className="relative">
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="appearance-none pl-8 pr-7 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-700 cursor-pointer"
+              >
+                <option value="ALL">All Status</option>
+                <option value="SENT">Sent</option>
+                <option value="ACCEPTED">Accepted / Joined</option>
+                <option value="DRAFT">Draft</option>
+              </select>
+              <IconFilter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-            <IconCheck className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Accepted / Joined</span>
-            <p className="text-2xl font-black text-emerald-600 mt-0.5">
-              {offerLetters.filter((o) => o.status === 'ACCEPTED').length}
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center shrink-0">
-            <IconMail className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Awaiting Acceptance</span>
-            <p className="text-2xl font-black text-amber-600 mt-0.5">
-              {offerLetters.filter((o) => o.status === 'SENT' || o.status === 'DRAFT').length}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Search & Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden no-print">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between gap-4">
-          <div className="relative w-full max-w-sm">
-            <IconSearch className="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by candidate, role, or ID..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
-            />
-          </div>
-        </div>
-
+        {/* Table Structure */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-600">
-            <thead className="bg-slate-50/80 uppercase font-semibold text-slate-500 border-b border-slate-100">
+          <table className="w-full text-left text-xs">
+            <thead className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 bg-slate-50/50">
               <tr>
-                <th className="px-5 py-3.5">Ref ID</th>
-                <th className="px-5 py-3.5">Candidate</th>
-                <th className="px-5 py-3.5">Role &amp; Department</th>
-                <th className="px-5 py-3.5">Annual CTC</th>
-                <th className="px-5 py-3.5">Monthly Gross</th>
-                <th className="px-5 py-3.5">Joining Date</th>
-                <th className="px-5 py-3.5">Status</th>
-                <th className="px-5 py-3.5 text-right">Actions</th>
+                <th className="px-4 py-3">REF ID</th>
+                <th className="px-4 py-3">CANDIDATE</th>
+                <th className="px-4 py-3">ROLE &amp; DEPARTMENT</th>
+                <th className="px-4 py-3">ANNUAL CTC</th>
+                <th className="px-4 py-3">MONTHLY GROSS</th>
+                <th className="px-4 py-3">JOINING DATE</th>
+                <th className="px-4 py-3">STATUS</th>
+                <th className="px-4 py-3 text-right">ACTIONS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
-                    <IconFileCertificate className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                    No offer letters found. Click &quot;Generate New Offer Letter&quot; to create one.
+                  <td colSpan={8} className="py-12 text-center">
+                    <div className="w-12 h-12 rounded-full bg-indigo-50 text-[#5E4BE2] flex items-center justify-center mx-auto mb-2">
+                      <IconFileCertificate className="w-6 h-6" />
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-800">No offer letters found</h4>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {search ? 'Try modifying your search filter.' : 'Click "Generate New Offer Letter" to issue your first offer.'}
+                    </p>
                   </td>
                 </tr>
               ) : (
                 filtered.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="px-5 py-3.5 font-mono font-bold text-indigo-600">{item.id}</td>
-                    <td className="px-5 py-3.5">
-                      <div className="font-bold text-slate-900">{item.candidateName}</div>
-                      <div className="text-[11px] text-slate-400">{item.candidateEmail}</div>
+                  <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
+                    {/* Clean Sans-serif Ref ID (matching DEPT # styling, NO font-mono) */}
+                    <td className="px-4 py-3.5 font-bold text-[#5E4BE2]">
+                      {item.id}
                     </td>
-                    <td className="px-5 py-3.5">
-                      <div className="font-semibold text-slate-800">{item.jobTitle}</div>
-                      <span className="inline-block mt-0.5 text-[10px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+
+                    <td className="px-4 py-3.5">
+                      <div className="font-bold text-slate-900 text-xs">{item.candidateName}</div>
+                      <div className="text-[11px] text-slate-400 font-normal">{item.candidateEmail}</div>
+                    </td>
+
+                    <td className="px-4 py-3.5">
+                      <div className="font-semibold text-slate-800 text-xs">{item.jobTitle}</div>
+                      <span className="inline-block mt-0.5 text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
                         {item.department}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 font-bold text-slate-900">
+
+                    <td className="px-4 py-3.5 font-bold text-slate-900 text-xs">
                       ₹{item.annualCtc.toLocaleString('en-IN')}
                     </td>
-                    <td className="px-5 py-3.5 font-semibold text-emerald-600">
+
+                    <td className="px-4 py-3.5 font-bold text-emerald-600 text-xs">
                       ₹{item.monthlySalary.toLocaleString('en-IN')}/mo
                     </td>
-                    <td className="px-5 py-3.5 font-medium text-slate-700">
+
+                    <td className="px-4 py-3.5 text-xs text-slate-600 font-medium">
                       {new Date(item.joiningDate).toLocaleDateString('en-IN', {
                         day: 'numeric',
                         month: 'short',
                         year: 'numeric',
                       })}
                     </td>
-                    <td className="px-5 py-3.5">
+
+                    <td className="px-4 py-3.5">
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
                           item.status === 'ACCEPTED'
@@ -384,12 +378,15 @@ export const OfferLettersPage: React.FC = () => {
                         {item.status}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-right">
+
+                    <td className="px-4 py-3.5 text-right">
                       <button
+                        type="button"
                         onClick={() => setPreviewLetter(item)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[11px] transition-colors cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-[#5E4BE2] font-bold text-[11px] transition-colors cursor-pointer"
                       >
-                        <IconEye className="w-3.5 h-3.5" /> View &amp; Print
+                        <IconEye className="w-3.5 h-3.5" />
+                        <span>View &amp; Print</span>
                       </button>
                     </td>
                   </tr>
@@ -418,8 +415,10 @@ export const OfferLettersPage: React.FC = () => {
               {/* Drawer Top Header (Sticky) */}
               <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-white shrink-0">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <IconFileCertificate className="w-5 h-5 text-indigo-600" />
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-indigo-50 text-[#5E4BE2] flex items-center justify-center shrink-0">
+                      <IconFileCertificate className="w-4 h-4" />
+                    </div>
                     Generate Employment Offer Letter
                   </h3>
                   <p className="text-xs text-slate-400 mt-0.5">
@@ -450,7 +449,7 @@ export const OfferLettersPage: React.FC = () => {
                         value={form.candidateName}
                         onChange={(e) => setForm({ ...form, candidateName: e.target.value })}
                         placeholder="e.g. Rahul Sharma"
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
                       />
                     </div>
 
@@ -464,7 +463,7 @@ export const OfferLettersPage: React.FC = () => {
                         value={form.candidateEmail}
                         onChange={(e) => setForm({ ...form, candidateEmail: e.target.value })}
                         placeholder="e.g. rahul.sharma@gmail.com"
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
                       />
                     </div>
 
@@ -477,7 +476,7 @@ export const OfferLettersPage: React.FC = () => {
                         value={form.candidatePhone}
                         onChange={(e) => setForm({ ...form, candidatePhone: e.target.value })}
                         placeholder="e.g. +91 98765 43210"
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
                       />
                     </div>
 
@@ -491,7 +490,7 @@ export const OfferLettersPage: React.FC = () => {
                         value={form.jobTitle}
                         onChange={(e) => setForm({ ...form, jobTitle: e.target.value })}
                         placeholder="e.g. Senior Software Engineer"
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
                       />
                     </div>
 
@@ -502,7 +501,7 @@ export const OfferLettersPage: React.FC = () => {
                       <select
                         value={form.department}
                         onChange={(e) => setForm({ ...form, department: e.target.value })}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
                       >
                         <option value="Engineering">Engineering</option>
                         <option value="Product">Product</option>
@@ -520,7 +519,7 @@ export const OfferLettersPage: React.FC = () => {
                       <select
                         value={form.workMode}
                         onChange={(e) => setForm({ ...form, workMode: e.target.value })}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
                       >
                         <option value="On-site (WFO)">On-site (WFO)</option>
                         <option value="Hybrid">Hybrid</option>
@@ -537,7 +536,7 @@ export const OfferLettersPage: React.FC = () => {
                         required
                         value={form.joiningDate}
                         onChange={(e) => setForm({ ...form, joiningDate: e.target.value })}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
                       />
                     </div>
 
@@ -555,7 +554,7 @@ export const OfferLettersPage: React.FC = () => {
                           value={form.annualCtc}
                           onChange={(e) => setForm({ ...form, annualCtc: e.target.value })}
                           placeholder="e.g. 600000"
-                          className="w-full pl-7 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                          className="w-full pl-7 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
                         />
                       </div>
                     </div>
@@ -565,9 +564,9 @@ export const OfferLettersPage: React.FC = () => {
                   <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-4 mt-2">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
-                        <IconSparkles className="w-4 h-4 text-indigo-600" /> Automated Salary &amp; CTC Structure
+                        <IconSparkles className="w-4 h-4 text-[#5E4BE2]" /> Automated Salary &amp; CTC Structure
                       </span>
-                      <span className="text-xs font-bold text-indigo-600">
+                      <span className="text-xs font-bold text-[#5E4BE2]">
                         Gross: ₹{ctcMonthly.toLocaleString('en-IN')}/mo
                       </span>
                     </div>
@@ -603,10 +602,10 @@ export const OfferLettersPage: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                    className="px-5 py-2.5 rounded-xl bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white text-xs font-bold shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-1.5"
                   >
                     <IconSparkles className="w-4 h-4" />
-                    Generate &amp; Preview Offer Letter
+                    <span>Generate &amp; Preview Offer Letter</span>
                   </button>
                 </div>
               </form>

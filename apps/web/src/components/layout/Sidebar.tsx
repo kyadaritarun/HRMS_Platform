@@ -200,7 +200,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           subItems: [
             { label: 'Tickets', path: '/tickets/assigned', icon: IconHelpCircle, feature: 'support_ticket_management' },
             { label: 'Approval Requests', path: '/company/approvals', icon: IconChecklist },
-            { label: 'Claims', path: '/company/claims/manage', icon: IconCash, feature: 'claim_process_management' },
             { label: 'Document Review', path: '/company/documents/review', icon: IconFolderCheck, feature: 'employee_document_management' },
           ],
         },
@@ -216,7 +215,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
             { label: 'My Payslips', path: '/payroll/my-payslips', icon: IconReceipt2, feature: 'payroll' },
             { label: 'Performance Goals', path: '/performance/my-goals', icon: IconTarget, feature: 'performance_management' },
             { label: 'Claims', path: '/claims', icon: IconCash, feature: 'claim_process_management' },
-            { label: 'Tickets', path: '/tickets', icon: IconHelpCircle, feature: 'support_ticket_management' },
             { label: 'Org Structure', path: '/org-structure', icon: IconNetwork, feature: 'employees_directory' },
             { label: 'Policies', path: '/policies', icon: IconFileText, feature: 'policy_documents_management' },
             { label: 'Appreciations', path: '/appreciations', icon: IconHeartHandshake, feature: 'employee_appreciation' },

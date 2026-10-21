@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -19,6 +20,8 @@ import {
   IconPrinter,
   IconDownload,
   IconTrash,
+  IconFilter,
+  IconChevronDown,
 } from '@tabler/icons-react';
 
 export interface ExitRecord {
@@ -286,129 +289,106 @@ export const ExitManagementPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* Top Banner (Hero Banner) */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <IconDoorExit className="w-7 h-7 text-rose-600" />
-            Exit & Full & Final (F&F) Settlement
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Manage employee resignations, cross-departmental NOC clearances, and automated F&F terminal payouts.
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 shrink-0">
+              <IconDoorExit className="w-4 h-4" />
+            </div>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Exit &amp; Full &amp; Final (F&amp;F) Settlement
+            </h1>
+          </div>
+          <p className="text-xs text-slate-500 font-medium mt-1">
+            Manage employee resignations, cross-departmental NOC clearances, and automated F&amp;F terminal payouts.
           </p>
         </div>
 
         <button
           onClick={() => setShowInitiateModal(true)}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm shadow-sm transition-all shadow-rose-500/20 active:scale-95"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs hover:shadow-md transition-all cursor-pointer shrink-0"
         >
           <IconPlus className="w-4 h-4" />
-          Initiate Employee Exit
+          <span>Initiate Employee Exit</span>
         </button>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Resignations</span>
-            <span className="p-2 bg-amber-50 rounded-xl text-amber-600">
-              <IconClock className="w-5 h-5" />
-            </span>
-          </div>
-          <p className="text-2xl font-black text-slate-900 mt-2">{activeExitsCount}</p>
-          <span className="text-xs text-slate-500 mt-1 block">In notice period / clearances</span>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pending NOCs</span>
-            <span className="p-2 bg-rose-50 rounded-xl text-rose-600">
+      {/* Main Content Layout: Table + Detail Drawer/Modal (Responsive for All Screens) */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
+        {/* Section Header & Responsive Controls */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
               <IconChecklist className="w-5 h-5" />
-            </span>
-          </div>
-          <p className="text-2xl font-black text-rose-600 mt-2">{pendingNocCount}</p>
-          <span className="text-xs text-slate-500 mt-1 block">IT, Admin or Finance approval</span>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">F&F Ready for Payout</span>
-            <span className="p-2 bg-indigo-50 rounded-xl text-indigo-600">
-              <IconCash className="w-5 h-5" />
-            </span>
-          </div>
-          <p className="text-2xl font-black text-indigo-600 mt-2">
-            {exitRecords.filter((r) => r.status === 'FF_READY').length}
-          </p>
-          <span className="text-xs text-slate-500 mt-1 block">All clearances complete</span>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Fully Settled</span>
-            <span className="p-2 bg-emerald-50 rounded-xl text-emerald-600">
-              <IconCheck className="w-5 h-5" />
-            </span>
-          </div>
-          <p className="text-2xl font-black text-emerald-600 mt-2">{settledCount}</p>
-          <span className="text-xs text-slate-500 mt-1 block">Relieved & dues disbursed</span>
-        </div>
-      </div>
-
-      {/* Main Content Layout: Table + Detail Drawer/Modal */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-        {/* Filters */}
-        <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="relative w-full sm:w-80">
-            <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-            <input
-              type="text"
-              placeholder="Search by employee, department, ID..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-rose-500 transition-all"
-            />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">All Resignations &amp; Settlements</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Track employee handover, cross-department NOC clearance, and terminal dues.
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 self-stretch sm:self-auto">
-            {['ALL', 'NOTICE_PERIOD', 'NOC_CLEARANCE', 'FF_READY', 'SETTLED'].map((st) => (
-              <button
-                key={st}
-                onClick={() => setStatusFilter(st)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                  statusFilter === st
-                    ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                    : 'text-slate-600 hover:bg-slate-50'
-                }`}
+          {/* Right Controls: Search & Filter */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+            {/* Search Input */}
+            <div className="relative flex-1 sm:w-64">
+              <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search employee, dept, ID..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-rose-500 text-slate-800 placeholder-slate-400"
+              />
+            </div>
+
+            {/* Filter Dropdown */}
+            <div className="relative shrink-0">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full sm:w-auto appearance-none pl-8 pr-7 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-rose-500 text-slate-700 cursor-pointer"
               >
-                {st.replace('_', ' ')}
-              </button>
-            ))}
+                <option value="ALL">All Status</option>
+                <option value="NOTICE_PERIOD">Notice Period</option>
+                <option value="NOC_CLEARANCE">NOC Clearance</option>
+                <option value="FF_READY">F&amp;F Ready</option>
+                <option value="SETTLED">Settled</option>
+              </select>
+              <IconFilter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
           </div>
         </div>
 
-        {/* Table */}
+        {/* Responsive Table with horizontal scroll support */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600">
-            <thead className="bg-slate-50/80 text-xs font-semibold text-slate-500 uppercase border-b border-slate-100">
+          <table className="w-full min-w-[850px] text-left text-xs">
+            <thead className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 bg-slate-50/50">
               <tr>
-                <th className="px-6 py-3.5">Employee</th>
-                <th className="px-6 py-3.5">Department</th>
-                <th className="px-6 py-3.5">Resignation Date</th>
-                <th className="px-6 py-3.5">Last Working Day</th>
-                <th className="px-6 py-3.5">NOC Status</th>
-                <th className="px-6 py-3.5">Net F&F Payable</th>
-                <th className="px-6 py-3.5">Status</th>
-                <th className="px-6 py-3.5 text-right">Action</th>
+                <th className="px-4 py-3 whitespace-nowrap">EMPLOYEE</th>
+                <th className="px-4 py-3 whitespace-nowrap">DEPARTMENT</th>
+                <th className="px-4 py-3 whitespace-nowrap">RESIGNATION DATE</th>
+                <th className="px-4 py-3 whitespace-nowrap">LAST WORKING DAY</th>
+                <th className="px-4 py-3 whitespace-nowrap">NOC STATUS</th>
+                <th className="px-4 py-3 whitespace-nowrap">NET F&amp;F PAYABLE</th>
+                <th className="px-4 py-3 whitespace-nowrap">STATUS</th>
+                <th className="px-4 py-3 text-right whitespace-nowrap">ACTION</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
-                    <IconDoorExit className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                    No employee exit records found.
+                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                    <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-2">
+                      <IconDoorExit className="w-6 h-6" />
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-800">No exit records found</h4>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {search ? 'Try adjusting your search criteria.' : 'Click "Initiate Employee Exit" to create a new exit record.'}
+                    </p>
                   </td>
                 </tr>
               ) : (
@@ -422,28 +402,28 @@ export const ExitManagementPage: React.FC = () => {
 
                   return (
                     <tr key={r.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="font-semibold text-slate-900">{r.employeeName}</div>
-                        <div className="text-xs text-slate-400">{r.jobTitle}</div>
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <div className="font-bold text-slate-900 text-xs">{r.employeeName}</div>
+                        <div className="text-[11px] text-slate-400 font-normal">{r.jobTitle}</div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="text-xs font-medium text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md">
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <span className="inline-block text-[10px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
                           {r.department}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-xs font-medium text-slate-600">
+                      <td className="px-4 py-3.5 text-xs text-slate-600 font-medium whitespace-nowrap">
                         {r.resignationDate}
                       </td>
-                      <td className="px-6 py-4 text-xs font-bold text-slate-900">
-                        {r.lastWorkingDay}
-                        <span className="block text-[11px] text-slate-400 font-normal">
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <div className="text-xs font-bold text-slate-900">{r.lastWorkingDay}</div>
+                        <span className="block text-[10px] text-slate-400 font-normal">
                           {r.noticePeriodDays} days notice
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-1.5">
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-50 border border-slate-100">
                           <span
-                            className={`w-2 h-2 rounded-full ${
+                            className={`w-2 h-2 rounded-full shrink-0 ${
                               nocClearedCount === 4
                                 ? 'bg-emerald-500'
                                 : nocClearedCount > 0
@@ -456,12 +436,12 @@ export const ExitManagementPage: React.FC = () => {
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 font-black text-slate-900">
-                        ₹{r.ffSettlement.netPayout.toLocaleString()}
+                      <td className="px-4 py-3.5 font-bold text-slate-900 text-xs whitespace-nowrap">
+                        ₹{r.ffSettlement.netPayout.toLocaleString('en-IN')}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3.5 whitespace-nowrap">
                         <span
-                          className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
                             r.status === 'SETTLED'
                               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                               : r.status === 'FF_READY'
@@ -472,15 +452,16 @@ export const ExitManagementPage: React.FC = () => {
                           {r.status.replace('_', ' ')}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-4 py-3.5 text-right whitespace-nowrap">
                         <button
+                          type="button"
                           onClick={() => {
                             setSelectedRecord(r);
                             setActiveTab('NOC');
                           }}
-                          className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-[11px] transition-colors cursor-pointer whitespace-nowrap"
                         >
-                          Manage Clearances
+                          <span>Manage Clearances</span>
                         </button>
                       </td>
                     </tr>
@@ -492,11 +473,19 @@ export const ExitManagementPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Slide-over or Modal for Clearance & F&F Settlement Details */}
-      {selectedRecord && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 flex flex-col animate-in fade-in zoom-in-95">
-            {/* Modal Header */}
+      {/* Right-Side Slide-Over Drawer for Clearance & F&F Settlement Details */}
+      {selectedRecord && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] overflow-hidden">
+          <div
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setSelectedRecord(null)}
+          />
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+            <div
+              className="w-screen max-w-4xl bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 pointer-events-auto animate-in slide-in-from-right duration-200 overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+            {/* Drawer Header */}
             <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
               <div>
                 <div className="flex items-center gap-2">
@@ -935,119 +924,143 @@ export const ExitManagementPage: React.FC = () => {
             )}
           </div>
         </div>
-      )}
+      </div>,
+      document.body
+    )}
 
-      {/* Modal: Initiate Employee Exit */}
-      {showInitiateModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <IconDoorExit className="w-5 h-5 text-rose-600" />
-                Initiate Employee Exit
-              </h2>
-              <button
-                onClick={() => setShowInitiateModal(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
-              >
-                <IconX className="w-5 h-5" />
-              </button>
-            </div>
+      {/* Right-Side Slide-Over Drawer: Initiate Employee Exit */}
+      {showInitiateModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] overflow-hidden">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setShowInitiateModal(false)}
+          />
 
-            <form onSubmit={handleInitiateExit} className="space-y-4 pt-4">
-              <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
-                  Select Employee <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  required
-                  value={newExitForm.employeeId}
-                  onChange={(e) => setNewExitForm({ ...newExitForm, employeeId: e.target.value })}
-                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white"
-                >
-                  <option value="">-- Choose Employee --</option>
-                  {employees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.firstName} {emp.lastName} ({emp.department?.name || 'General'} - {emp.jobTitle})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">
-                    Resignation Date
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={newExitForm.resignationDate}
-                    onChange={(e) =>
-                      setNewExitForm({ ...newExitForm, resignationDate: e.target.value })
-                    }
-                    className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">
-                    Notice Period (Days)
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min={0}
-                    max={180}
-                    value={newExitForm.noticePeriodDays}
-                    onChange={(e) =>
-                      setNewExitForm({ ...newExitForm, noticePeriodDays: Number(e.target.value) })
-                    }
-                    className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl"
-                  />
-                </div>
-              </div>
-
-              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800 flex items-center justify-between">
-                <span>Calculated Last Working Day (LWD):</span>
-                <span className="font-bold text-amber-900">{computedLwd}</span>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
-                  Primary Reason for Leaving
-                </label>
-                <select
-                  value={newExitForm.reason}
-                  onChange={(e) => setNewExitForm({ ...newExitForm, reason: e.target.value })}
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl"
-                >
-                  <option value="Better Career Opportunity">Better Career Opportunity</option>
-                  <option value="Higher Studies">Higher Studies</option>
-                  <option value="Relocation / Family">Relocation / Family</option>
-                  <option value="Health / Medical Reasons">Health / Medical Reasons</option>
-                  <option value="Career Transition">Career Transition</option>
-                  <option value="Mutual Separation">Mutual Separation</option>
-                </select>
-              </div>
-
-              <div className="pt-3 flex items-center justify-end gap-3 border-t border-slate-100">
+          {/* Full Height Drawer Container Flush to the Right */}
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+            <div
+              className="w-screen max-w-xl bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 pointer-events-auto animate-in slide-in-from-right duration-200"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drawer Header */}
+              <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-white shrink-0">
+                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 shrink-0">
+                    <IconDoorExit className="w-4 h-4" />
+                  </div>
+                  Initiate Employee Exit
+                </h2>
                 <button
                   type="button"
                   onClick={() => setShowInitiateModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                  className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                  title="Close"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs"
-                >
-                  Submit & Open Clearances
+                  <IconX className="w-5 h-5" />
                 </button>
               </div>
-            </form>
+
+              {/* Scrollable Form Body */}
+              <form onSubmit={handleInitiateExit} className="flex-1 overflow-y-auto p-6 space-y-4 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">
+                      Select Employee <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      required
+                      value={newExitForm.employeeId}
+                      onChange={(e) => setNewExitForm({ ...newExitForm, employeeId: e.target.value })}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-rose-500 font-medium"
+                    >
+                      <option value="">-- Choose Employee --</option>
+                      {employees.map((emp) => (
+                        <option key={emp.id} value={emp.id}>
+                          {emp.firstName} {emp.lastName} ({emp.department?.name || 'General'} - {emp.jobTitle})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 block mb-1">
+                        Resignation Date
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={newExitForm.resignationDate}
+                        onChange={(e) =>
+                          setNewExitForm({ ...newExitForm, resignationDate: e.target.value })
+                        }
+                        className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-rose-500 font-medium"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 block mb-1">
+                        Notice Period (Days)
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min={0}
+                        max={180}
+                        value={newExitForm.noticePeriodDays}
+                        onChange={(e) =>
+                          setNewExitForm({ ...newExitForm, noticePeriodDays: Number(e.target.value) })
+                        }
+                        className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-rose-500 font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800 flex items-center justify-between">
+                    <span>Calculated Last Working Day (LWD):</span>
+                    <span className="font-bold text-amber-900">{computedLwd}</span>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">
+                      Primary Reason for Leaving
+                    </label>
+                    <select
+                      value={newExitForm.reason}
+                      onChange={(e) => setNewExitForm({ ...newExitForm, reason: e.target.value })}
+                      className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-rose-500 font-medium"
+                    >
+                      <option value="Better Career Opportunity">Better Career Opportunity</option>
+                      <option value="Higher Studies">Higher Studies</option>
+                      <option value="Relocation / Family">Relocation / Family</option>
+                      <option value="Health / Medical Reasons">Health / Medical Reasons</option>
+                      <option value="Career Transition">Career Transition</option>
+                      <option value="Mutual Separation">Mutual Separation</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Sticky Drawer Footer Actions */}
+                <div className="sticky bottom-0 -mx-6 -mb-6 p-6 bg-white/95 backdrop-blur-xs border-t border-slate-100 flex items-center justify-end gap-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowInitiateModal(false)}
+                    className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors cursor-pointer"
+                  >
+                    Submit &amp; Open Clearances
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

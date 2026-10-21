@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 import {
@@ -307,7 +308,7 @@ export const MyLeavesPage: React.FC = () => {
       )}
 
       {/* Leave Quota Cards (5 Columns) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
         {mappedQuotas.map((quota) => {
           const percentage = quota.allowed > 0 ? (quota.used / quota.allowed) * 100 : 0;
           const isCompOff = quota.code === 'CO';
@@ -319,40 +320,37 @@ export const MyLeavesPage: React.FC = () => {
                   navigate('/comp-off');
                 }
               }}
-              className={`bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow ${
-                isCompOff ? 'cursor-pointer hover:border-indigo-300 hover:scale-[1.01]' : ''
+              className={`bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col justify-between transition-all hover:border-slate-300 ${
+                isCompOff ? 'cursor-pointer hover:border-indigo-300' : ''
               }`}
             >
               <div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${quota.badgeBg} ${quota.badgeText}`}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div
+                      className={`w-8 h-8 rounded-xl ${quota.iconBg} flex items-center justify-center shrink-0`}
                     >
-                      {quota.code}
+                      {renderQuotaIcon(quota.type, quota.iconColor)}
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-bold text-slate-900 truncate">
+                        {quota.name}
+                      </h4>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <span className="text-xl font-black text-slate-900 leading-none">
+                      {quota.remaining}
                     </span>
-                    <span className="text-[11px] text-slate-400 font-medium">Annual</span>
-                  </div>
-                  <div
-                    className={`w-7 h-7 rounded-xl ${quota.iconBg} flex items-center justify-center shrink-0`}
-                  >
-                    {renderQuotaIcon(quota.type, quota.iconColor)}
+                    <span className="text-xs font-medium text-slate-400 ml-1">
+                      left
+                    </span>
                   </div>
                 </div>
 
-                <h4 className="text-xs sm:text-[13px] font-bold text-slate-800 mt-2.5">
-                  {quota.name}
-                </h4>
-
-                <div className="mt-1 flex items-baseline gap-1">
-                  <span className="text-base font-extrabold text-slate-900">{quota.used}</span>
-                  <span className="text-xs text-slate-400 font-medium">
-                    / {quota.allowed} Days
-                  </span>
-                </div>
-
-                {/* Progress bar */}
-                <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2.5">
+                {/* Clean progress bar */}
+                <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mt-3">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${quota.barColor}`}
                     style={{ width: `${Math.min(100, percentage)}%` }}
@@ -360,9 +358,10 @@ export const MyLeavesPage: React.FC = () => {
                 </div>
               </div>
 
-              <span className="text-[11px] text-slate-400 mt-2 block font-medium">
-                {quota.remaining} days left
-              </span>
+              <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-400 font-medium">
+                <span>{quota.used} used</span>
+                <span>{quota.allowed} total</span>
+              </div>
             </div>
           );
         })}
@@ -549,122 +548,140 @@ export const MyLeavesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Apply Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl p-6 border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2]">
-                  <IconCalendarEvent className="w-4.5 h-4.5" />
+      {/* Apply for Leave Right-Side Slide-Over Drawer */}
+      {isModalOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] overflow-hidden">
+          <div
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsModalOpen(false)}
+          />
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+            <div
+              className="w-screen max-w-md bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 pointer-events-auto animate-in slide-in-from-right duration-200 overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drawer Header */}
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0">
+                    <IconCalendarEvent className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900">Apply for Leave</h2>
+                    <p className="text-xs text-slate-400 font-medium">Submit leave application to your manager</p>
+                  </div>
                 </div>
-                <h3 className="text-base font-bold text-slate-900">Apply for Leave</h3>
-              </div>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
-              >
-                <IconX className="w-5 h-5" />
-              </button>
-            </div>
-
-            {error && (
-              <div className="p-3 mb-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-                <IconAlertCircle className="w-4 h-4 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleApply} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Leave Policy Category *
-                </label>
-                <select
-                  required
-                  value={form.leaveTypeId}
-                  onChange={(e) => setForm({ ...form, leaveTypeId: e.target.value })}
-                  className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
-                >
-                  <option value="">Select leave type</option>
-                  {leaveTypes.map((lt) => (
-                    <option key={lt.id} value={lt.id}>
-                      {lt.name} ({lt.code}) — {lt.daysAllowed} days/yr
-                    </option>
-                  ))}
-                  {/* Fallbacks if leaveTypes empty */}
-                  {leaveTypes.length === 0 && (
-                    <>
-                      <option value="1">Casual Leave (CL) — 15 days/yr</option>
-                      <option value="2">Sick Leave (SL) — 15 days/yr</option>
-                      <option value="3">Earned Leave (EL) — 20 days/yr</option>
-                      <option value="4">Floater Holiday (FH) — 5 days/yr</option>
-                      <option value="5">Comp Off (CO) — 5 days/yr</option>
-                    </>
-                  )}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Start Date *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={form.startDate}
-                    onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    End Date *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={form.endDate}
-                    onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Reason for Absence *
-                </label>
-                <textarea
-                  required
-                  rows={3}
-                  placeholder="Provide context for your manager..."
-                  value={form.reason}
-                  onChange={(e) => setForm({ ...form, reason: e.target.value })}
-                  className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] resize-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
-                  type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2 text-xs font-semibold rounded-xl bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white shadow-sm disabled:opacity-50 cursor-pointer"
-                >
-                  {isSubmitting ? 'Submitting...' : 'Submit Application'}
+                  <IconX className="w-5 h-5" />
                 </button>
               </div>
-            </form>
+
+              {/* Drawer Body / Form */}
+              <form onSubmit={handleApply} className="p-6 flex-1 flex flex-col justify-between space-y-5">
+                <div className="space-y-4">
+                  {error && (
+                    <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                      <IconAlertCircle className="w-4 h-4 shrink-0" />
+                      <span>{error}</span>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Leave Policy Category *
+                    </label>
+                    <select
+                      required
+                      value={form.leaveTypeId}
+                      onChange={(e) => setForm({ ...form, leaveTypeId: e.target.value })}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800"
+                    >
+                      <option value="">Select leave type</option>
+                      {leaveTypes.map((lt) => (
+                        <option key={lt.id} value={lt.id}>
+                          {lt.name} ({lt.code}) — {lt.daysAllowed} days/yr
+                        </option>
+                      ))}
+                      {/* Fallbacks if leaveTypes empty */}
+                      {leaveTypes.length === 0 && (
+                        <>
+                          <option value="1">Casual Leave (CL) — 15 days/yr</option>
+                          <option value="2">Sick Leave (SL) — 15 days/yr</option>
+                          <option value="3">Earned Leave (EL) — 20 days/yr</option>
+                          <option value="4">Floater Holiday (FH) — 5 days/yr</option>
+                          <option value="5">Comp Off (CO) — 5 days/yr</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                        Start Date *
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={form.startDate}
+                        onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                        End Date *
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={form.endDate}
+                        onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Reason for Absence *
+                    </label>
+                    <textarea
+                      required
+                      rows={4}
+                      placeholder="Provide context for your manager..."
+                      value={form.reason}
+                      onChange={(e) => setForm({ ...form, reason: e.target.value })}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800 resize-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Footer Buttons */}
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2.5 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-5 py-2.5 text-xs font-bold rounded-xl bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white shadow-xs disabled:opacity-50 cursor-pointer"
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Submit Application'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
@@ -118,7 +119,7 @@ export const ApprovalsDeskPage: React.FC = () => {
     }
   };
 
-  // KPI stats matching EmployeesPage structure
+  // KPI stats
   const kpiStats = useMemo(() => {
     const list = selectedType
       ? allMetricsRequests.filter((r) => r.type === selectedType)
@@ -155,17 +156,17 @@ export const ApprovalsDeskPage: React.FC = () => {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'LEAVE':
-        return <IconCalendar className="w-4 h-4 text-purple-600" />;
+        return <IconCalendar className="w-3.5 h-3.5 text-purple-600" />;
       case 'REGULARIZATION':
-        return <IconClock className="w-4 h-4 text-blue-600" />;
+        return <IconClock className="w-3.5 h-3.5 text-blue-600" />;
       case 'CLAIM':
-        return <IconReceipt2 className="w-4 h-4 text-emerald-600" />;
+        return <IconReceipt2 className="w-3.5 h-3.5 text-emerald-600" />;
       case 'GOAL':
-        return <IconTarget className="w-4 h-4 text-amber-600" />;
+        return <IconTarget className="w-3.5 h-3.5 text-amber-600" />;
       case 'COMP_OFF':
-        return <IconCalendar className="w-4 h-4 text-indigo-600" />;
+        return <IconCalendar className="w-3.5 h-3.5 text-indigo-600" />;
       default:
-        return <IconChecklist className="w-4 h-4 text-[#5E4BE2]" />;
+        return <IconChecklist className="w-3.5 h-3.5 text-[#5E4BE2]" />;
     }
   };
 
@@ -192,278 +193,300 @@ export const ApprovalsDeskPage: React.FC = () => {
             fetchRequests();
             fetchMetricsOverview();
           }}
-          className="flex items-center gap-2 px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 shadow-2xs transition-all cursor-pointer"
+          className="flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 shadow-xs transition-all cursor-pointer"
         >
-          <IconRefresh className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+          <IconRefresh className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[#5E4BE2]' : ''}`} />
           <span>Refresh</span>
         </button>
       </div>
 
-      {/* ===================== ROW 2: SEARCH & FILTERS BAR ===================== */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
-        {/* Search Input */}
-        <div className="relative flex-1">
-          <IconSearch className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Search by employee name, title or reason..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-10 py-2.5 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all placeholder:text-slate-400 text-slate-800"
-          />
-          {search && (
-            <button
-              onClick={() => setSearch('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
-            >
-              <IconX className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-
-        {/* Category Dropdown & Status Pills */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Request Category Dropdown */}
-          <div className="min-w-[190px]">
-            <select
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              className="w-full px-3 py-2.5 text-xs font-semibold bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all text-slate-700 cursor-pointer"
-            >
-              <option value="">All Request Types</option>
-              <option value="LEAVE">Leaves</option>
-              <option value="REGULARIZATION">Regularizations</option>
-              <option value="CLAIM">Expense Claims</option>
-              <option value="COMP_OFF">Comp-Off</option>
-              <option value="GOAL">Performance Goals</option>
-            </select>
-          </div>
-
-          {/* Status Toggle Pills */}
-          <div className="flex items-center bg-slate-50/80 border border-slate-200/70 p-1 rounded-xl">
-            {[
-              { id: 'PENDING', label: 'Pending' },
-              { id: 'APPROVED', label: 'Approved' },
-              { id: 'REJECTED', label: 'Rejected' },
-              { id: 'ALL', label: 'All' },
-            ].map((st) => {
-              const isActive = selectedStatus === st.id;
-              return (
-                <button
-                  key={st.id}
-                  onClick={() => setSelectedStatus(st.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    isActive
-                      ? 'bg-white text-[#5E4BE2] shadow-2xs'
-                      : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  {st.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* ===================== ROW 3: REQUESTS LIST & EMPTY STATE ===================== */}
-      <div className="space-y-3">
-        {isLoading ? (
-          Array.from({ length: 3 }).map((_, i) => (
-            <div
-              key={i}
-              className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm animate-pulse space-y-3"
-            >
-              <div className="w-48 h-4 bg-slate-200 rounded-md" />
-              <div className="w-72 h-3 bg-slate-100 rounded-md" />
-            </div>
-          ))
-        ) : filteredRequests.length === 0 ? (
-          /* Empty State matching EmployeesPage / LeaveTypesPage */
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center">
-            <div className="w-12 h-12 rounded-full bg-indigo-50 text-[#5E4BE2] flex items-center justify-center mx-auto mb-3">
-              <IconCheck className="w-6 h-6" />
-            </div>
-            <h4 className="text-sm font-bold text-slate-800">
-              {selectedStatus === 'PENDING' ? 'Inbox Zero!' : 'No requests found'}
-            </h4>
-            <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-              {selectedStatus === 'PENDING'
-                ? 'There are no pending approvals requiring your attention in this queue.'
-                : 'No requests matched your current filter criteria.'}
-            </p>
-            {selectedStatus === 'PENDING' && kpiStats.approved > 0 && (
+      {/* ===================== TABLE FORM CONTAINER ===================== */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
+        {/* Search & Filter Controls */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1">
+            <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search employee, title, reason..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-8 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-[#5E4BE2] text-slate-800 placeholder-slate-400"
+            />
+            {search && (
               <button
-                onClick={() => setSelectedStatus('APPROVED')}
-                className="mt-4 px-4 py-2 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
               >
-                View Approved History ({kpiStats.approved})
+                <IconX className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
-        ) : (
-          /* Requests Cards */
-          filteredRequests.map((req) => (
-            <div
-              key={req.id}
-              className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-slate-300 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
-            >
-              <div className="space-y-2 min-w-0 flex-1">
-                {/* Meta Header */}
-                <div className="flex items-center gap-2">
-                  <span className="p-1 rounded-lg bg-slate-100 flex items-center justify-center">
-                    {getTypeIcon(req.type)}
-                  </span>
-                  <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                    {req.type.replace('_', ' ')}
-                  </span>
-                  <span className="text-xs text-slate-300">•</span>
-                  <span className="text-xs text-slate-400">
-                    Applied on {new Date(req.createdAt).toLocaleDateString()}
-                  </span>
-                  <span
-                    className={`ml-2 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border ${
-                      req.status === 'APPROVED'
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : req.status === 'REJECTED'
-                        ? 'bg-rose-50 text-rose-700 border-rose-200'
-                        : 'bg-amber-50 text-amber-700 border-amber-200'
+
+          {/* Right Controls: Category & Status */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Request Type Dropdown */}
+            <div className="relative shrink-0">
+              <select
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value)}
+                className="appearance-none pl-8 pr-7 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-[#5E4BE2] text-slate-700 cursor-pointer"
+              >
+                <option value="">All Request Types</option>
+                <option value="LEAVE">Leaves</option>
+                <option value="REGULARIZATION">Regularizations</option>
+                <option value="CLAIM">Expense Claims</option>
+                <option value="COMP_OFF">Comp-Off</option>
+                <option value="GOAL">Performance Goals</option>
+              </select>
+              <IconFilter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+
+            {/* Status Segmented Buttons */}
+            <div className="flex items-center bg-slate-50 border border-slate-200 p-1 rounded-xl shrink-0">
+              {[
+                { id: 'PENDING', label: 'Pending' },
+                { id: 'APPROVED', label: 'Approved' },
+                { id: 'REJECTED', label: 'Rejected' },
+                { id: 'ALL', label: 'All' },
+              ].map((st) => {
+                const isActive = selectedStatus === st.id;
+                return (
+                  <button
+                    key={st.id}
+                    onClick={() => setSelectedStatus(st.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-white text-[#5E4BE2] shadow-xs'
+                        : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
-                    {req.status}
-                  </span>
-                </div>
-
-                {/* Employee Info */}
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#5E4BE2] to-[#4B39C3] text-white font-bold text-xs flex items-center justify-center shrink-0">
-                    {req.user?.firstName?.[0] || 'U'}{req.user?.lastName?.[0] || ''}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-sm">
-                      {req.user?.firstName} {req.user?.lastName}
-                    </h3>
-                    <p className="text-xs text-slate-400">{req.user?.jobTitle || req.user?.email}</p>
-                  </div>
-                </div>
-
-                {/* Title */}
-                {req.title && (
-                  <h4 className="text-xs font-bold text-slate-900 leading-snug">
-                    {req.title}
-                  </h4>
-                )}
-
-                {/* Reason callout */}
-                <p className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                  <span className="font-bold text-slate-800">
-                    {req.type === 'GOAL' ? 'Goal Description:' : 'Reason:'}
-                  </span>{' '}
-                  {req.reason}
-                </p>
-
-                {/* Period / Amount */}
-                <div className="flex flex-wrap items-center gap-2.5 text-xs">
-                  {req.startDate && (
-                    <div className="text-slate-500 flex items-center gap-1.5">
-                      <span className="font-semibold text-slate-700">Period:</span>
-                      <span>
-                        {new Date(req.startDate).toLocaleDateString()} — {new Date(req.endDate || req.startDate).toLocaleDateString()}
-                      </span>
-                      {req.days && <span className="font-bold text-slate-800">({req.days} days)</span>}
-                    </div>
-                  )}
-
-                  {req.amount !== undefined && req.amount !== null && (
-                    <div className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                      Claim Amount: ₹{Number(req.amount).toLocaleString()}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              {req.status === 'PENDING' && (
-                <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
-                  <button
-                    onClick={() =>
-                      setActionModal({ open: true, reqId: req.id, decision: 'REJECTED', note: '' })
-                    }
-                    className="px-4 py-2 rounded-xl border border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100 font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <IconX className="w-4 h-4" />
-                    <span>Reject</span>
+                    {st.label}
                   </button>
-                  <button
-                    onClick={() =>
-                      setActionModal({ open: true, reqId: req.id, decision: 'APPROVED', note: '' })
-                    }
-                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <IconCheck className="w-4 h-4" />
-                    <span>Approve</span>
-                  </button>
-                </div>
-              )}
+                );
+              })}
             </div>
-          ))
-        )}
+          </div>
+        </div>
+
+        {/* Table Structure */}
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[920px] text-left text-xs">
+            <thead className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 bg-slate-50/50">
+              <tr>
+                <th className="px-4 py-3 whitespace-nowrap">EMPLOYEE</th>
+                <th className="px-4 py-3 whitespace-nowrap">TYPE</th>
+                <th className="px-4 py-3 whitespace-nowrap">REQUEST TITLE</th>
+                <th className="px-4 py-3 whitespace-nowrap">REASON &amp; DETAILS</th>
+                <th className="px-4 py-3 whitespace-nowrap">APPLIED ON</th>
+                <th className="px-4 py-3 whitespace-nowrap">STATUS</th>
+                <th className="px-4 py-3 text-right whitespace-nowrap">ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {isLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="px-4 py-4"><div className="w-32 h-4 bg-slate-100 rounded-sm" /></td>
+                    <td className="px-4 py-4"><div className="w-20 h-4 bg-slate-100 rounded-sm" /></td>
+                    <td className="px-4 py-4"><div className="w-40 h-4 bg-slate-100 rounded-sm" /></td>
+                    <td className="px-4 py-4"><div className="w-48 h-4 bg-slate-100 rounded-sm" /></td>
+                    <td className="px-4 py-4"><div className="w-20 h-4 bg-slate-100 rounded-sm" /></td>
+                    <td className="px-4 py-4"><div className="w-16 h-4 bg-slate-100 rounded-sm" /></td>
+                    <td className="px-4 py-4 text-right"><div className="w-24 h-6 bg-slate-100 rounded-md ml-auto" /></td>
+                  </tr>
+                ))
+              ) : filteredRequests.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-slate-400">
+                    <div className="w-12 h-12 rounded-full bg-indigo-50 text-[#5E4BE2] flex items-center justify-center mx-auto mb-2">
+                      <IconCheck className="w-6 h-6" />
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-800">
+                      {selectedStatus === 'PENDING' ? 'Inbox Zero!' : 'No approval requests found'}
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                      {selectedStatus === 'PENDING'
+                        ? 'There are no pending requests requiring your action in this queue.'
+                        : 'No records matched your selected filters or search keyword.'}
+                    </p>
+                  </td>
+                </tr>
+              ) : (
+                filteredRequests.map((req) => (
+                  <tr key={req.id} className="hover:bg-slate-50/60 transition-colors">
+                    {/* Employee info */}
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-indigo-50 border border-indigo-100 text-[#5E4BE2] font-bold text-xs flex items-center justify-center shrink-0">
+                          {req.user?.firstName?.[0] || 'U'}{req.user?.lastName?.[0] || ''}
+                        </div>
+                        <div>
+                          <div className="font-bold text-slate-900 text-xs">
+                            {req.user?.firstName} {req.user?.lastName}
+                          </div>
+                          <div className="text-[11px] text-slate-400 font-normal">
+                            {req.user?.jobTitle || req.user?.email}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Request Type badge */}
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 font-semibold text-[10px] text-slate-700 uppercase tracking-wide">
+                        {getTypeIcon(req.type)}
+                        <span>{req.type.replace('_', ' ')}</span>
+                      </div>
+                    </td>
+
+                    {/* Title / Subject */}
+                    <td className="px-4 py-3.5">
+                      <div className="font-semibold text-slate-800 text-xs max-w-xs truncate">
+                        {req.title || (req.type === 'CLAIM' ? `Expense Claim #${req.id}` : `${req.type.replace('_', ' ')} Request`)}
+                      </div>
+                      {req.startDate && (
+                        <div className="text-[11px] text-slate-400 font-normal mt-0.5">
+                          {new Date(req.startDate).toLocaleDateString()} — {new Date(req.endDate || req.startDate).toLocaleDateString()}
+                          {req.days && <span className="font-semibold text-slate-600 ml-1">({req.days} days)</span>}
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Reason / Claim Amount */}
+                    <td className="px-4 py-3.5">
+                      <div className="text-slate-600 text-xs max-w-xs truncate" title={req.reason}>
+                        {req.reason || '—'}
+                      </div>
+                      {req.amount !== undefined && req.amount !== null && (
+                        <div className="mt-1 inline-block text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                          Claim: ₹{Number(req.amount).toLocaleString('en-IN')}
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Applied Date */}
+                    <td className="px-4 py-3.5 text-xs text-slate-600 font-medium whitespace-nowrap">
+                      {new Date(req.createdAt).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </td>
+
+                    {/* Status badge */}
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border whitespace-nowrap ${
+                          req.status === 'APPROVED'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : req.status === 'REJECTED'
+                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}
+                      >
+                        {req.status}
+                      </span>
+                    </td>
+
+                    {/* Action buttons */}
+                    <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                      {req.status === 'PENDING' ? (
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setActionModal({ open: true, reqId: req.id, decision: 'REJECTED', note: '' })
+                            }
+                            className="px-2.5 py-1.5 rounded-lg border border-rose-200 text-rose-700 bg-rose-50/60 hover:bg-rose-100 font-bold text-[11px] transition-colors flex items-center gap-1 cursor-pointer"
+                          >
+                            <IconX className="w-3.5 h-3.5" />
+                            <span>Reject</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setActionModal({ open: true, reqId: req.id, decision: 'APPROVED', note: '' })
+                            }
+                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-xs transition-colors flex items-center gap-1 cursor-pointer"
+                          >
+                            <IconCheck className="w-3.5 h-3.5" />
+                            <span>Approve</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] font-medium text-slate-400">Decided</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Decision Note Modal */}
-      {actionModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl p-6 border border-slate-100">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-slate-900">
-                Confirm {actionModal.decision === 'APPROVED' ? 'Approval' : 'Rejection'}
-              </h3>
-              <button
-                onClick={() => setActionModal({ open: false, note: '' })}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
-              >
-                <IconX className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleDecisionSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Optional Feedback / Approver Note
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="e.g. Approved, please hand over shift duties..."
-                  value={actionModal.note}
-                  onChange={(e) => setActionModal({ ...actionModal, note: e.target.value })}
-                  className="w-full px-3.5 py-2.5 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] resize-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+      {/* Decision Note Modal with Portal */}
+      {actionModal.open && typeof document !== 'undefined' ? (
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+            <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl p-6 border border-slate-100 animate-in zoom-in-95">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-bold text-slate-900">
+                  Confirm {actionModal.decision === 'APPROVED' ? 'Approval' : 'Rejection'}
+                </h3>
                 <button
                   type="button"
                   onClick={() => setActionModal({ open: false, note: '' })}
-                  className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className={`px-5 py-2 text-xs font-bold rounded-xl text-white shadow-sm disabled:opacity-50 cursor-pointer ${
-                    actionModal.decision === 'APPROVED'
-                      ? 'bg-emerald-600 hover:bg-emerald-700'
-                      : 'bg-rose-600 hover:bg-rose-700'
-                  }`}
-                >
-                  {isSubmitting ? 'Recording...' : `Confirm ${actionModal.decision}`}
+                  <IconX className="w-4 h-4" />
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+
+              <form onSubmit={handleDecisionSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Optional Feedback / Approver Note
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="e.g. Approved, please hand over shift duties..."
+                    value={actionModal.note}
+                    onChange={(e) => setActionModal({ ...actionModal, note: e.target.value })}
+                    className="w-full px-3.5 py-2.5 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] resize-none"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setActionModal({ open: false, note: '' })}
+                    className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className={`px-5 py-2 text-xs font-bold rounded-xl text-white shadow-xs disabled:opacity-50 cursor-pointer transition-colors ${
+                      actionModal.decision === 'APPROVED'
+                        ? 'bg-emerald-600 hover:bg-emerald-700'
+                        : 'bg-rose-600 hover:bg-rose-700'
+                    }`}
+                  >
+                    {isSubmitting ? 'Recording...' : `Confirm ${actionModal.decision}`}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )
+      ) : null}
     </div>
   );
 };

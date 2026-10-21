@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
 import {
   IconHeartHandshake,
   IconX,
@@ -10,6 +12,8 @@ import {
   IconSearch,
   IconFilter,
   IconChevronDown,
+  IconCheck,
+  IconPlus,
 } from '@tabler/icons-react';
 
 interface AppreciationUser {
@@ -44,15 +48,17 @@ const BADGES = [
 ];
 
 export const AppreciationsPage: React.FC = () => {
+  const { user: currentUser } = useAuth();
   const [appreciations, setAppreciations] = useState<Appreciation[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [badgeFilter, setBadgeFilter] = useState<string>('ALL');
+  const [badgeMode, setBadgeMode] = useState<'preset' | 'custom'>('preset');
   const [form, setForm] = useState({
     receiverId: '',
-    badge: 'ROCKSTAR',
+    badge: 'Rockstar Delivery',
     message: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -79,17 +85,21 @@ export const AppreciationsPage: React.FC = () => {
 
   const handleGiveKudos = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.receiverId || !form.message.trim()) return;
+    if (!form.receiverId || !form.badge.trim() || !form.message.trim()) {
+      alert('Please select a teammate, provide a badge, and write an appreciation message.');
+      return;
+    }
     setIsSubmitting(true);
     try {
       await api.post('/appreciations', {
         recipientId: Number(form.receiverId),
         receiverId: Number(form.receiverId),
-        badge: form.badge,
+        badge: form.badge.trim(),
         message: form.message.trim(),
       });
       setIsModalOpen(false);
-      setForm({ receiverId: '', badge: 'ROCKSTAR', message: '' });
+      setForm({ receiverId: '', badge: 'Rockstar Delivery', message: '' });
+      setBadgeMode('preset');
       fetchData();
     } catch (err: any) {
       alert(err.response?.data?.error || err.response?.data?.message || 'Failed to send kudos');
@@ -112,9 +122,20 @@ export const AppreciationsPage: React.FC = () => {
   };
 
   const getBadgeMeta = (badgeKey?: string, payload?: any) => {
-    const rawKey = badgeKey || parsePayload(payload).badge || 'ROCKSTAR';
-    const found = BADGES.find((b) => b.key === rawKey || rawKey.includes(b.key));
-    return found || BADGES[0];
+    const rawKey = (badgeKey || parsePayload(payload).badge || 'Rockstar Delivery').trim();
+    const found = BADGES.find(
+      (b) =>
+        b.key.toLowerCase() === rawKey.toLowerCase() ||
+        b.label.toLowerCase() === rawKey.toLowerCase() ||
+        rawKey.toLowerCase().includes(b.key.toLowerCase())
+    );
+    if (found) return found;
+    return {
+      key: rawKey,
+      label: rawKey,
+      icon: IconSparkles,
+      color: 'text-indigo-700 bg-indigo-50 border-indigo-200',
+    };
   };
 
   const getReceiverName = (app: Appreciation): string => {
@@ -171,6 +192,21 @@ export const AppreciationsPage: React.FC = () => {
       .toUpperCase() || 'U';
   };
 
+  // Collect all unique badge labels for filter
+  const allFilterBadges = useMemo(() => {
+    const list: { key: string; label: string }[] = BADGES.map((b) => ({
+      key: b.label,
+      label: b.label,
+    }));
+    appreciations.forEach((app) => {
+      const meta = getBadgeMeta(app.badge, app.payload);
+      if (meta?.label && !list.some((item) => item.label.toLowerCase() === meta.label.toLowerCase())) {
+        list.push({ key: meta.label, label: meta.label });
+      }
+    });
+    return list;
+  }, [appreciations]);
+
   // Filter appreciations
   const filteredAppreciations = appreciations.filter((app) => {
     const recName = getReceiverName(app).toLowerCase();
@@ -180,8 +216,8 @@ export const AppreciationsPage: React.FC = () => {
     const matchesSearch = !q || recName.includes(q) || sendName.includes(q) || msg.includes(q);
 
     if (badgeFilter === 'ALL') return matchesSearch;
-    const badge = getBadgeMeta(app.badge, app.payload).key;
-    return matchesSearch && badge === badgeFilter;
+    const badgeLabel = getBadgeMeta(app.badge, app.payload).label;
+    return matchesSearch && badgeLabel.toLowerCase() === badgeFilter.toLowerCase();
   });
 
   return (
@@ -190,7 +226,7 @@ export const AppreciationsPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <IconHeartHandshake className="w-7 h-7 text-brand-600" />
+            <IconHeartHandshake className="w-7 h-7 text-[#5E4BE2]" />
             Appreciations
           </h1>
           <p className="text-sm text-slate-500 mt-1">
@@ -199,229 +235,430 @@ export const AppreciationsPage: React.FC = () => {
         </div>
 
         <button
-          onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-brand-600 hover:from-amber-600 hover:to-brand-700 text-white font-bold text-sm shadow-sm transition-all shadow-amber-500/20 active:scale-95 cursor-pointer"
+          onClick={() => {
+            setBadgeMode('preset');
+            setForm({ receiverId: '', badge: 'Rockstar Delivery', message: '' });
+            setIsModalOpen(true);
+          }}
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-[#5E4BE2] hover:from-amber-600 hover:to-[#4B39C3] text-white font-bold text-sm shadow-sm transition-all shadow-amber-500/20 active:scale-95 cursor-pointer"
         >
           <IconSparkles className="w-4 h-4" />
           Give Kudos
         </button>
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
-        <div className="relative w-full md:w-80">
-          <IconSearch className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search by colleague, sender or message..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-brand-500"
-          />
-        </div>
-
-        <div className="flex items-center gap-2.5 w-full md:w-auto">
-          <label htmlFor="badge-filter" className="text-xs font-semibold text-slate-500 flex items-center gap-1.5 shrink-0">
-            <IconFilter className="w-3.5 h-3.5 text-slate-400" />
-            <span>Filter:</span>
-          </label>
-          <div className="relative w-full md:w-56">
-            <select
-              id="badge-filter"
-              value={badgeFilter}
-              onChange={(e) => setBadgeFilter(e.target.value)}
-              className="w-full appearance-none bg-slate-50 hover:bg-slate-100/80 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl pl-3.5 pr-8 py-2 focus:bg-white focus:outline-hidden focus:border-brand-500 transition-colors cursor-pointer"
-            >
-              <option value="ALL">All Categories</option>
-              {BADGES.map((b) => (
-                <option key={b.key} value={b.key}>
-                  {b.label}
-                </option>
-              ))}
-            </select>
-            <IconChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
-        </div>
-      </div>
-
-      {/* Wall Feed */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {isLoading ? (
-          Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs animate-pulse space-y-4">
-              <div className="flex justify-between items-center">
-                <div className="w-28 h-6 bg-slate-200 rounded-full" />
-                <div className="w-16 h-4 bg-slate-100 rounded-md" />
-              </div>
-              <div className="w-full h-16 bg-slate-100 rounded-2xl" />
-              <div className="pt-4 border-t border-slate-100 flex justify-between">
-                <div className="w-24 h-8 bg-slate-200 rounded-lg" />
-                <div className="w-20 h-8 bg-slate-100 rounded-lg" />
-              </div>
-            </div>
-          ))
-        ) : filteredAppreciations.length === 0 ? (
-          <div className="col-span-full py-16 text-center text-slate-400 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
-            <IconHeartHandshake className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-            <p className="text-sm font-semibold text-slate-600">
-              {searchQuery || badgeFilter !== 'ALL'
-                ? 'No matching appreciations found.'
-                : 'No kudos sent yet. Be the first to recognize a teammate!'}
-            </p>
-            <p className="text-xs text-slate-400 mt-1">
-              Click the "Give Kudos" button above to send instant recognition.
-            </p>
-          </div>
-        ) : (
-          filteredAppreciations.map((app) => {
-            const b = getBadgeMeta(app.badge, app.payload);
-            const Icon = b.icon;
-            const receiverName = getReceiverName(app);
-            const receiverTitle = getReceiverJobTitle(app);
-            const senderName = getSenderName(app);
-            const message = getMessage(app);
-
-            return (
-              <div
-                key={app.id}
-                className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${b.color}`}>
-                      <Icon className="w-3.5 h-3.5" />
-                      {b.label}
-                    </span>
-                    <span className="text-[11px] font-medium text-slate-400">
-                      {app.createdAt ? new Date(app.createdAt).toLocaleDateString() : 'Recent'}
-                    </span>
-                  </div>
-
-                  <p className="text-sm text-slate-800 leading-relaxed font-medium bg-slate-50/70 p-4 rounded-2xl border border-slate-100">
-                    "{message}"
-                  </p>
-                </div>
-
-                <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-brand-50 border border-brand-200 text-brand-700 font-bold flex items-center justify-center text-xs shrink-0">
-                      {getInitials(receiverName)}
-                    </div>
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Kudos to</span>
-                      <span className="font-bold text-slate-900 block leading-tight">
-                        {receiverName}
-                      </span>
-                      <span className="text-[10px] text-slate-500 block">
-                        {receiverTitle}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">From</span>
-                    <span className="font-semibold text-slate-700 block">
-                      {senderName}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-
-      {/* Give Kudos Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl p-6 border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <IconSparkles className="w-5 h-5 text-amber-500" />
-                Recognize a Colleague
-              </h3>
+      {/* Table Container Card */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden space-y-4 p-5">
+        {/* Search & Filter Toolbar */}
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+          <div className="relative flex-1 max-w-md">
+            <IconSearch className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search by colleague, sender or message..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-8 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-[#5E4BE2] text-slate-800 placeholder-slate-400"
+            />
+            {searchQuery && (
               <button
-                onClick={() => setIsModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
               >
-                <IconX className="w-5 h-5" />
+                <IconX className="w-3.5 h-3.5" />
               </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2.5 shrink-0">
+            <label htmlFor="badge-filter" className="text-xs font-semibold text-slate-500 flex items-center gap-1.5 shrink-0">
+              <IconFilter className="w-3.5 h-3.5 text-slate-400" />
+              <span>Filter:</span>
+            </label>
+            <div className="relative min-w-[200px]">
+              <select
+                id="badge-filter"
+                value={badgeFilter}
+                onChange={(e) => setBadgeFilter(e.target.value)}
+                className="w-full appearance-none bg-slate-50 hover:bg-slate-100/80 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl pl-3.5 pr-8 py-2 focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] transition-colors cursor-pointer"
+              >
+                <option value="ALL">All Badges</option>
+                {allFilterBadges.map((b) => (
+                  <option key={b.key} value={b.label}>
+                    {b.label}
+                  </option>
+                ))}
+              </select>
+              <IconChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
+          </div>
+        </div>
 
-            <form onSubmit={handleGiveKudos} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Select Teammate *</label>
-                <select
-                  required
-                  value={form.receiverId}
-                  onChange={(e) => setForm({ ...form, receiverId: e.target.value })}
-                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-brand-500 font-medium text-slate-800"
-                >
-                  <option value="">Choose colleague...</option>
-                  {employees.map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.firstName} {e.lastName} ({e.jobTitle || 'Team'})
-                    </option>
-                  ))}
-                </select>
-              </div>
+        {/* Table Content */}
+        <div className="overflow-x-auto -mx-5 -mb-5">
+          <table className="w-full min-w-[850px] text-left text-xs">
+            <thead className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-y border-slate-100 bg-slate-50/50">
+              <tr>
+                <th className="px-5 py-3.5 whitespace-nowrap">RECIPIENT</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">BADGE</th>
+                <th className="px-5 py-3.5">RECOGNITION MESSAGE</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">GIVEN BY</th>
+                <th className="px-5 py-3.5 text-right whitespace-nowrap">DATE</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-slate-200" />
+                        <div className="space-y-1.5">
+                          <div className="w-24 h-3.5 bg-slate-200 rounded" />
+                          <div className="w-16 h-2.5 bg-slate-100 rounded" />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="w-28 h-6 bg-slate-100 rounded-full" />
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="w-3/4 h-4 bg-slate-100 rounded" />
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="w-20 h-4 bg-slate-100 rounded" />
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <div className="w-16 h-4 bg-slate-100 rounded ml-auto" />
+                    </td>
+                  </tr>
+                ))
+              ) : filteredAppreciations.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-16 text-center text-slate-400">
+                    <IconHeartHandshake className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                    <p className="text-sm font-semibold text-slate-700">
+                      {searchQuery || badgeFilter !== 'ALL'
+                        ? 'No matching appreciations found.'
+                        : 'No kudos sent yet. Be the first to recognize a teammate!'}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Click the "Give Kudos" button above to send instant recognition.
+                    </p>
+                  </td>
+                </tr>
+              ) : (
+                filteredAppreciations.map((app) => {
+                  const b = getBadgeMeta(app.badge, app.payload);
+                  const Icon = b.icon;
+                  const receiverName = getReceiverName(app);
+                  const receiverTitle = getReceiverJobTitle(app);
+                  const senderName = getSenderName(app);
+                  const message = getMessage(app);
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Appreciation Badge</label>
-                <div className="grid grid-cols-1 gap-2">
-                  {BADGES.map((b) => {
-                    const Icon = b.icon;
-                    const isSelected = form.badge === b.key;
-                    return (
-                      <button
-                        key={b.key}
-                        type="button"
-                        onClick={() => setForm({ ...form, badge: b.key })}
-                        className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition-all text-xs font-bold cursor-pointer ${
-                          isSelected
-                            ? 'border-brand-500 bg-brand-50/50 text-brand-900'
-                            : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-                        }`}
-                      >
-                        <Icon className="w-4 h-4 shrink-0 text-amber-500" />
-                        {b.label}
-                      </button>
-                    );
-                  })}
+                  return (
+                    <tr key={app.id} className="hover:bg-slate-50/60 transition-colors">
+                      {/* Recipient */}
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-indigo-50 border border-indigo-100 text-[#5E4BE2] font-bold flex items-center justify-center text-xs shrink-0">
+                            {getInitials(receiverName)}
+                          </div>
+                          <div>
+                            <div className="font-bold text-slate-900 text-xs">{receiverName}</div>
+                            <div className="text-[11px] text-slate-500 font-medium">{receiverTitle}</div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Badge */}
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${b.color}`}>
+                          <Icon className="w-3.5 h-3.5 shrink-0" />
+                          {b.label}
+                        </span>
+                      </td>
+
+                      {/* Recognition Message */}
+                      <td className="px-5 py-4">
+                        <p className="text-xs text-slate-700 leading-relaxed font-normal max-w-lg italic line-clamp-2">
+                          &ldquo;{message}&rdquo;
+                        </p>
+                      </td>
+
+                      {/* Given By */}
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 font-semibold flex items-center justify-center text-[10px] shrink-0">
+                            {getInitials(senderName)}
+                          </div>
+                          <span className="text-xs font-semibold text-slate-800">{senderName}</span>
+                        </div>
+                      </td>
+
+                      {/* Date */}
+                      <td className="px-5 py-4 text-right whitespace-nowrap">
+                        <span className="text-xs font-medium text-slate-500">
+                          {app.createdAt ? new Date(app.createdAt).toLocaleDateString() : 'Recent'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Give Kudos Right-Side Slide-Over Drawer */}
+      {isModalOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] overflow-hidden">
+          <div
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsModalOpen(false)}
+          />
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+            <div
+              className="w-screen max-w-md bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 pointer-events-auto animate-in slide-in-from-right duration-200 overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drawer Header */}
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                    <IconSparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">
+                      Employee Recognition
+                    </span>
+                    <h2 className="text-base font-bold text-slate-900 mt-0.5">
+                      Recognize a Colleague
+                    </h2>
+                  </div>
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Recognition Message *</label>
-                <textarea
-                  required
-                  rows={3}
-                  placeholder="Share what makes their effort awesome..."
-                  value={form.message}
-                  onChange={(e) => setForm({ ...form, message: e.target.value })}
-                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-brand-500 resize-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-sm font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2 text-sm font-semibold rounded-xl bg-brand-600 hover:bg-brand-700 text-white shadow-sm disabled:opacity-50 cursor-pointer"
-                >
-                  {isSubmitting ? 'Posting...' : 'Send Kudos'}
+                  <IconX className="w-5 h-5" />
                 </button>
               </div>
-            </form>
+
+              {/* Form Body */}
+              <form onSubmit={handleGiveKudos} className="p-6 space-y-5 flex-1 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Select Teammate <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      required
+                      value={form.receiverId}
+                      onChange={(e) => setForm({ ...form, receiverId: e.target.value })}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] font-medium text-slate-800"
+                    >
+                      <option value="">Choose colleague...</option>
+                      {employees
+                        .filter((e) => !currentUser?.id || e.id !== currentUser.id)
+                        .map((e) => (
+                          <option key={e.id} value={e.id}>
+                            {e.firstName} {e.lastName} ({e.jobTitle || 'Team'})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-semibold text-slate-700">
+                        Appreciation Badge <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="flex items-center bg-slate-100 p-0.5 rounded-lg text-[11px] font-semibold">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBadgeMode('preset');
+                            if (!BADGES.some((b) => b.label === form.badge)) {
+                              setForm({ ...form, badge: 'Rockstar Delivery' });
+                            }
+                          }}
+                          className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                            badgeMode === 'preset'
+                              ? 'bg-white text-[#5E4BE2] shadow-xs font-bold'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          Presets
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBadgeMode('custom');
+                            if (BADGES.some((b) => b.label === form.badge)) {
+                              setForm({ ...form, badge: '' });
+                            }
+                          }}
+                          className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                            badgeMode === 'custom'
+                              ? 'bg-white text-[#5E4BE2] shadow-xs font-bold'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          Custom Badge
+                        </button>
+                      </div>
+                    </div>
+
+                    {badgeMode === 'preset' ? (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-1 gap-2">
+                          {BADGES.map((b) => {
+                            const Icon = b.icon;
+                            const isSelected = form.badge === b.label || form.badge === b.key;
+                            return (
+                              <button
+                                key={b.key}
+                                type="button"
+                                onClick={() => setForm({ ...form, badge: b.label })}
+                                className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all text-xs font-bold cursor-pointer ${
+                                  isSelected
+                                    ? 'border-[#5E4BE2] bg-indigo-50/60 text-[#5E4BE2] ring-1 ring-[#5E4BE2] shadow-xs'
+                                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                                }`}
+                              >
+                                <span className="flex items-center gap-2.5">
+                                  <Icon className={`w-4 h-4 shrink-0 ${isSelected ? 'text-[#5E4BE2]' : 'text-amber-500'}`} />
+                                  <span>{b.label}</span>
+                                </span>
+                                <span
+                                  className={`text-[10px] px-2.5 py-0.5 rounded-full border font-bold transition-all ${
+                                    isSelected
+                                      ? 'bg-[#5E4BE2] text-white border-[#5E4BE2]'
+                                      : b.color
+                                  }`}
+                                >
+                                  {isSelected ? 'Selected ✓' : 'Select'}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBadgeMode('custom');
+                            setForm({ ...form, badge: '' });
+                          }}
+                          className="w-full py-2 px-3 rounded-xl border border-dashed border-indigo-300 bg-indigo-50/40 hover:bg-indigo-50 text-[#5E4BE2] text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <IconPlus className="w-3.5 h-3.5" />
+                          <span>Give Custom Badge Instead</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 bg-slate-50/70 p-3.5 rounded-2xl border border-slate-200">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1.5">
+                            Custom Badge Title <span className="text-rose-500">*</span>
+                          </label>
+                          <div className="relative">
+                            <IconSparkles className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-amber-500 pointer-events-none" />
+                            <input
+                              type="text"
+                              required
+                              autoFocus
+                              placeholder="Type your own badge (e.g. Bug Hunter, Problem Solver...)"
+                              value={form.badge}
+                              onChange={(e) => setForm({ ...form, badge: e.target.value })}
+                              className="w-full pl-9 pr-3.5 py-2.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-[#5E4BE2] font-semibold text-slate-800 placeholder-slate-400"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Live Pill Preview */}
+                        {form.badge.trim() && (
+                          <div className="flex items-center gap-2 pt-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Preview:</span>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border text-indigo-700 bg-indigo-50 border-indigo-200">
+                              <IconSparkles className="w-3.5 h-3.5" />
+                              {form.badge.trim()}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Quick Suggestions */}
+                        <div className="space-y-1.5 pt-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                            Quick suggestions:
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {[
+                              'Problem Solver',
+                              'Bug Hunter',
+                              'Customer Champion',
+                              'Design Wizard',
+                              'Code Ninja',
+                              'Culture Hero',
+                            ].map((sug) => (
+                              <button
+                                key={sug}
+                                type="button"
+                                onClick={() => setForm({ ...form, badge: sug })}
+                                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
+                                  form.badge.trim().toLowerCase() === sug.toLowerCase()
+                                    ? 'bg-[#5E4BE2] text-white border-[#5E4BE2] shadow-xs'
+                                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
+                                }`}
+                              >
+                                + {sug}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Recognition Message <span className="text-rose-500">*</span>
+                    </label>
+                    <textarea
+                      required
+                      rows={4}
+                      placeholder="Share what makes their effort awesome..."
+                      value={form.message}
+                      onChange={(e) => setForm({ ...form, message: e.target.value })}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800 resize-none placeholder-slate-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-5 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white shadow-xs disabled:opacity-50 cursor-pointer transition-all"
+                  >
+                    {isSubmitting ? 'Posting...' : 'Send Kudos'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

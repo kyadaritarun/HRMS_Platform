@@ -278,25 +278,6 @@ export const AssetsOnboardingPage: React.FC = () => {
 
       {activeTab === 'ASSETS' ? (
         <div className="space-y-4">
-          {/* KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Assets</span>
-              <p className="text-2xl font-black text-slate-900 mt-1">{totalAssets}</p>
-              <span className="text-xs text-slate-500 mt-0.5 block">Managed devices & peripherals</span>
-            </div>
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Allocated to Staff</span>
-              <p className="text-2xl font-black text-emerald-600 mt-1">{assignedCount}</p>
-              <span className="text-xs text-slate-500 mt-0.5 block">Active custody</span>
-            </div>
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Available in Stock</span>
-              <p className="text-2xl font-black text-blue-600 mt-1">{inStockCount}</p>
-              <span className="text-xs text-slate-500 mt-0.5 block">Ready for deployment</span>
-            </div>
-          </div>
-
           {/* Table Header / Action */}
           <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">

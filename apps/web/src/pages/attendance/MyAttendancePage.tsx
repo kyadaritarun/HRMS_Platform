@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../../api/client';
 import {
   IconClock,
@@ -491,101 +492,121 @@ export const MyAttendancePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Regularization Modal */}
-      {isRegModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl p-6 border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-[#5E4BE2]">
-                  <IconFileText className="w-4.5 h-4.5" />
+      {/* Regularization Right-Side Slide-Over Drawer */}
+      {isRegModalOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] overflow-hidden">
+          <div
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsRegModalOpen(false)}
+          />
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+            <div
+              className="w-screen max-w-md bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 pointer-events-auto animate-in slide-in-from-right duration-200 overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drawer Header */}
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0">
+                    <IconFileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900">
+                      Request Regularization
+                    </h2>
+                    <p className="text-xs text-slate-400 font-medium">
+                      Submit missing check-in/out times to your manager
+                    </p>
+                  </div>
                 </div>
-                <h3 className="text-base font-bold text-slate-900">
-                  Request Regularization
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsRegModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
-              >
-                <IconX className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleRegularizeSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Missed Date *
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={regForm.date}
-                  onChange={(e) => setRegForm({ ...regForm, date: e.target.value })}
-                  className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Actual Check-in *
-                  </label>
-                  <input
-                    type="time"
-                    required
-                    value={regForm.checkInTime}
-                    onChange={(e) => setRegForm({ ...regForm, checkInTime: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Actual Check-out *
-                  </label>
-                  <input
-                    type="time"
-                    required
-                    value={regForm.checkOutTime}
-                    onChange={(e) => setRegForm({ ...regForm, checkOutTime: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Reason for Regularization *
-                </label>
-                <textarea
-                  required
-                  rows={3}
-                  placeholder="e.g. Biometric device failure, client meeting outside office..."
-                  value={regForm.reason}
-                  onChange={(e) => setRegForm({ ...regForm, reason: e.target.value })}
-                  className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] resize-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
-                  type="button"
                   onClick={() => setIsRegModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading}
-                  className="px-5 py-2 text-xs font-semibold rounded-xl bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white shadow-sm disabled:opacity-50 cursor-pointer"
-                >
-                  {actionLoading ? 'Submitting...' : 'Send to Manager'}
+                  <IconX className="w-5 h-5" />
                 </button>
               </div>
-            </form>
+
+              {/* Drawer Body / Form */}
+              <form onSubmit={handleRegularizeSubmit} className="p-6 flex-1 flex flex-col justify-between space-y-5">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Missed Date *
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={regForm.date}
+                      onChange={(e) => setRegForm({ ...regForm, date: e.target.value })}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                        Actual Check-in *
+                      </label>
+                      <input
+                        type="time"
+                        required
+                        value={regForm.checkInTime}
+                        onChange={(e) => setRegForm({ ...regForm, checkInTime: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                        Actual Check-out *
+                      </label>
+                      <input
+                        type="time"
+                        required
+                        value={regForm.checkOutTime}
+                        onChange={(e) => setRegForm({ ...regForm, checkOutTime: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Reason for Regularization *
+                    </label>
+                    <textarea
+                      required
+                      rows={4}
+                      placeholder="e.g. Biometric device failure, client meeting outside office..."
+                      value={regForm.reason}
+                      onChange={(e) => setRegForm({ ...regForm, reason: e.target.value })}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800 resize-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Footer Buttons */}
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setIsRegModalOpen(false)}
+                    className="px-4 py-2.5 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={actionLoading}
+                    className="px-5 py-2.5 text-xs font-bold rounded-xl bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white shadow-xs disabled:opacity-50 cursor-pointer"
+                  >
+                    {actionLoading ? 'Submitting...' : 'Send to Manager'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
