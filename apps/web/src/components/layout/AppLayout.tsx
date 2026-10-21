@@ -11,7 +11,6 @@ import {
   IconCalendarEvent,
   IconMenu2,
   IconSearch,
-  IconSettings,
   IconBuildingSkyscraper,
   IconShieldLock,
   IconPackage,
@@ -19,6 +18,8 @@ import {
   IconCreditCard,
   IconSparkles,
   IconAlertTriangle,
+  IconPlayerStop,
+  IconPlayerPlay,
 } from '@tabler/icons-react';
 
 export const AppLayout: React.FC = () => {
@@ -59,6 +60,57 @@ export const AppLayout: React.FC = () => {
     const interval = setInterval(fetchNotifications, 45000);
     return () => clearInterval(interval);
   }, [user?.id]);
+
+  // Live punch-in attendance session & timer beside profile
+  const [activeAttendance, setActiveAttendance] = useState<{ checkIn?: string; workMode?: string } | null>(null);
+  const [punchSeconds, setPunchSeconds] = useState(0);
+
+  const fetchActiveAttendance = async () => {
+    if (!user || user.role === 'PRODUCT_SUPER_ADMIN') {
+      setActiveAttendance(null);
+      return;
+    }
+    try {
+      const res = await api.get('/attendance/me');
+      if (res.data?.activeSession) {
+        setActiveAttendance(res.data.activeSession);
+      } else {
+        setActiveAttendance(null);
+      }
+    } catch {
+      // Graceful fallback
+    }
+  };
+
+  useEffect(() => {
+    fetchActiveAttendance();
+    const interval = setInterval(fetchActiveAttendance, 45000);
+    const onAttendanceUpdated = () => fetchActiveAttendance();
+    window.addEventListener('attendance-updated', onAttendanceUpdated);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('attendance-updated', onAttendanceUpdated);
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!activeAttendance?.checkIn) {
+      setPunchSeconds(0);
+      return;
+    }
+    const start = new Date(activeAttendance.checkIn).getTime();
+    const tick = () => setPunchSeconds(Math.max(0, Math.floor((Date.now() - start) / 1000)));
+    tick();
+    const timerId = setInterval(tick, 1000);
+    return () => clearInterval(timerId);
+  }, [activeAttendance]);
+
+  const formatPunchTimer = (totalSecs: number) => {
+    const hrs = String(Math.floor(totalSecs / 3600)).padStart(2, '0');
+    const mins = String(Math.floor((totalSecs % 3600) / 60)).padStart(2, '0');
+    const secs = String(totalSecs % 60).padStart(2, '0');
+    return `${hrs}:${mins}:${secs}`;
+  };
 
   const unreadCount = useMemo(() => {
     return notifications.filter((n) => !n.isRead).length;
@@ -132,6 +184,60 @@ export const AppLayout: React.FC = () => {
   const handleLogout = async () => {
     await logout();
     navigate('/login');
+  };
+
+  const [isCheckActionLoading, setIsCheckActionLoading] = useState(false);
+
+  const handleCheckOutAction = async () => {
+    setIsCheckActionLoading(true);
+    const perform = async (latitude: number, longitude: number) => {
+      try {
+        await api.post('/attendance/check-out', { latitude, longitude });
+        setActiveAttendance(null);
+        window.dispatchEvent(new Event('attendance-updated'));
+        setProfileOpen(false);
+      } catch (err) {
+        console.error('Failed to check out:', err);
+      } finally {
+        setIsCheckActionLoading(false);
+      }
+    };
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => perform(pos.coords.latitude, pos.coords.longitude),
+        () => perform(19.076, 72.8777),
+        { timeout: 6000 }
+      );
+    } else {
+      perform(19.076, 72.8777);
+    }
+  };
+
+  const handleCheckInAction = async () => {
+    setIsCheckActionLoading(true);
+    const perform = async (latitude: number, longitude: number) => {
+      try {
+        const res = await api.post('/attendance/check-in', { latitude, longitude, workMode: 'WFO' });
+        setActiveAttendance(res.data?.attendance || { checkIn: new Date().toISOString() });
+        window.dispatchEvent(new Event('attendance-updated'));
+        setProfileOpen(false);
+      } catch (err) {
+        console.error('Failed to check in:', err);
+      } finally {
+        setIsCheckActionLoading(false);
+      }
+    };
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => perform(pos.coords.latitude, pos.coords.longitude),
+        () => perform(19.076, 72.8777),
+        { timeout: 6000 }
+      );
+    } else {
+      perform(19.076, 72.8777);
+    }
   };
 
   // Quick navigation items for search autocomplete
@@ -286,14 +392,30 @@ export const AppLayout: React.FC = () => {
               )}
             </div>
 
-            {/* Settings Gear */}
-            <button
-              onClick={() => navigate(user?.role === 'PRODUCT_SUPER_ADMIN' ? '/super-admin/packages' : '/profile')}
-              className="w-9 h-9 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
-              title="Settings"
-            >
-              <IconSettings className="w-5 h-5" />
-            </button>
+            {/* Active Punch-In Live Timer Badge beside Profile */}
+            {activeAttendance && (
+              <button
+                type="button"
+                onClick={() => navigate('/employee')}
+                title={`Punched in at ${new Date(activeAttendance.checkIn || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • Click to view dashboard`}
+                className="h-9 px-3 sm:px-3.5 rounded-full bg-emerald-50/90 border border-emerald-200/90 hover:bg-emerald-100/90 transition-all cursor-pointer flex items-center gap-2 shadow-2xs group"
+              >
+                <span className="relative flex h-2 w-2 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span className="font-mono text-xs font-black text-emerald-950 tracking-tight group-hover:text-emerald-700">
+                  {formatPunchTimer(punchSeconds)}
+                </span>
+                <span className="w-1 h-1 rounded-full bg-emerald-300 shrink-0 hidden xs:inline" />
+                <span className="text-[11px] font-bold text-emerald-700 hidden xs:flex items-center gap-1">
+                  <span className="text-[10px] font-semibold text-emerald-600/90 uppercase tracking-wider">In</span>
+                  <span className="font-mono text-emerald-800">
+                    {new Date(activeAttendance.checkIn || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </span>
+              </button>
+            )}
 
             {/* User Profile Menu */}
             <div className="relative pl-1">
@@ -356,16 +478,28 @@ export const AppLayout: React.FC = () => {
                     My Profile
                   </button>
 
-                  <button
-                    onClick={() => {
-                      setProfileOpen(false);
-                      navigate('/login');
-                    }}
-                    className="w-full px-3.5 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-medium"
-                  >
-                    <IconBuildingSkyscraper className="w-4 h-4 text-slate-400" />
-                    Switch Account / Demo
-                  </button>
+                  {/* Attendance Check Out / Check In */}
+                  {user?.role !== 'PRODUCT_SUPER_ADMIN' && (
+                    activeAttendance ? (
+                      <button
+                        onClick={handleCheckOutAction}
+                        disabled={isCheckActionLoading}
+                        className="w-full px-3.5 py-2 text-left text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2.5 cursor-pointer font-semibold transition-colors disabled:opacity-50"
+                      >
+                        <IconPlayerStop className="w-4 h-4 text-rose-500 shrink-0 fill-rose-500" />
+                        <span>{isCheckActionLoading ? 'Checking Out...' : 'Check Out'}</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleCheckInAction}
+                        disabled={isCheckActionLoading}
+                        className="w-full px-3.5 py-2 text-left text-xs text-indigo-600 hover:bg-indigo-50 flex items-center gap-2.5 cursor-pointer font-semibold transition-colors disabled:opacity-50"
+                      >
+                        <IconPlayerPlay className="w-4 h-4 text-indigo-600 shrink-0 fill-indigo-600" />
+                        <span>{isCheckActionLoading ? 'Checking In...' : 'Check In'}</span>
+                      </button>
+                    )
+                  )}
 
                   <div className="my-1 border-t border-slate-100" />
 

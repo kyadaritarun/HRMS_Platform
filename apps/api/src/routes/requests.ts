@@ -86,6 +86,52 @@ router.post('/', validateBody(CreateRequestSchema), async (req, res, next) => {
   }
 });
 
+// GET /requests/today-leaves (Active approved leaves today in the company)
+router.get('/today-leaves', async (req, res, next) => {
+  try {
+    const companyId = req.user!.companyId!;
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setUTCHours(23, 59, 59, 999);
+
+    const leaves = await prisma.request.findMany({
+      where: {
+        companyId,
+        type: 'LEAVE',
+        status: 'APPROVED',
+        startDate: { lte: todayEnd },
+        endDate: { gte: today },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            jobTitle: true,
+            profilePhoto: true,
+            department: { select: { id: true, name: true } },
+          },
+        },
+        leaveType: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            color: true,
+          },
+        },
+      },
+      take: 20,
+    });
+
+    return res.json({ leaves });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // GET /requests/:id
 router.get('/:id', async (req, res, next) => {
   try {

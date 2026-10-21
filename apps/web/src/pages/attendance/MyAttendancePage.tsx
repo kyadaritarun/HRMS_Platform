@@ -102,6 +102,7 @@ export const MyAttendancePage: React.FC = () => {
       setActiveSession(res.data?.attendance);
       setNote('');
       fetchAttendance();
+      window.dispatchEvent(new Event('attendance-updated'));
     } catch (err: any) {
       setError(err.response?.data?.message || err.response?.data?.error || 'Check-in failed');
     } finally {
@@ -122,6 +123,7 @@ export const MyAttendancePage: React.FC = () => {
       setActiveSession(null);
       setNote('');
       fetchAttendance();
+      window.dispatchEvent(new Event('attendance-updated'));
     } catch (err: any) {
       setError(err.response?.data?.message || err.response?.data?.error || 'Check-out failed');
     } finally {

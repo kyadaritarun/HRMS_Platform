@@ -83,19 +83,41 @@ router.get('/me', async (req, res, next) => {
       where: { userId, checkOut: null },
     });
 
-    // Recent 7 days sessions
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const recentSessions = await prisma.attendance.findMany({
+    let checkInFilter: any;
+    if (req.query.startDate && req.query.endDate) {
+      checkInFilter = {
+        gte: new Date(String(req.query.startDate)),
+        lte: new Date(String(req.query.endDate)),
+      };
+    } else if (req.query.month) {
+      const [yearStr, monthStr] = String(req.query.month).split('-');
+      const y = Number(yearStr);
+      const m = Number(monthStr);
+      if (!isNaN(y) && !isNaN(m)) {
+        const start = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0));
+        const end = new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));
+        checkInFilter = { gte: start, lte: end };
+      }
+    }
+
+    if (!checkInFilter) {
+      // Default to last 90 days for full calendar and history coverage
+      const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      checkInFilter = { gte: ninetyDaysAgo };
+    }
+
+    const sessions = await prisma.attendance.findMany({
       where: {
         userId,
-        checkIn: { gte: sevenDaysAgo },
+        checkIn: checkInFilter,
       },
       orderBy: { checkIn: 'desc' },
     });
 
     return res.json({
       activeSession,
-      recentSessions,
+      recentSessions: sessions,
+      sessions,
     });
   } catch (error) {
     next(error);
