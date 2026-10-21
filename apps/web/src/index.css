@@ -55,6 +55,11 @@
 
 /* Print Styles for PDF Invoice Download */
 @media print {
+  /* When printing an invoice, hide the root app entirely so only the invoice prints on Page 1 */
+  body:has(#printable-tax-invoice) #root {
+    display: none !important;
+  }
+
   /* Hide UI elements, sidebar, header, navigation, and modal control bars */
   aside,
   header,
@@ -64,11 +69,15 @@
     display: none !important;
   }
 
+  html,
   body {
     background: #ffffff !important;
     color: #000000 !important;
     margin: 0 !important;
     padding: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
   }
 
   /* Reset layout margins for full page printable invoice */

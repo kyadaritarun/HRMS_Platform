@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
+import { OfferLetterPdfDrawer } from '../../components/pdf';
 import api from '../../api/client';
 import {
   IconFileCertificate,
@@ -207,6 +209,9 @@ export const OfferLettersPage: React.FC = () => {
       {/* Print Styles */}
       <style>{`
         @media print {
+          #root {
+            display: none !important;
+          }
           body * {
             visibility: hidden;
           }
@@ -395,377 +400,228 @@ export const OfferLettersPage: React.FC = () => {
         </div>
       </div>
 
-      {/* GENERATE OFFER LETTER MODAL */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto no-print">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 my-8">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <IconFileCertificate className="w-5 h-5 text-indigo-600" />
-                  Generate Employment Offer Letter
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Enter candidate details and CTC salary. The compensation components will be calculated automatically.
-                </p>
-              </div>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 cursor-pointer"
-              >
-                <IconX className="w-5 h-5" />
-              </button>
-            </div>
+      {/* GENERATE OFFER LETTER DRAWER (RIGHT SIDE SLIDE-OVER) */}
+      {isModalOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] overflow-hidden no-print">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"
+            onClick={() => setIsModalOpen(false)}
+          />
 
-            <form onSubmit={handleSaveOffer} className="space-y-4 pt-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Right-Side Drawer Container */}
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+            <div
+              className="w-screen max-w-2xl bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drawer Top Header (Sticky) */}
+              <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-white shrink-0">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Candidate Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={form.candidateName}
-                    onChange={(e) => setForm({ ...form, candidateName: e.target.value })}
-                    placeholder="e.g. Rahul Sharma"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  />
+                  <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <IconFileCertificate className="w-5 h-5 text-indigo-600" />
+                    Generate Employment Offer Letter
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Enter candidate details and CTC salary. The compensation components will be calculated automatically.
+                  </p>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Candidate Email Address *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={form.candidateEmail}
-                    onChange={(e) => setForm({ ...form, candidateEmail: e.target.value })}
-                    placeholder="e.g. rahul.sharma@gmail.com"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    value={form.candidatePhone}
-                    onChange={(e) => setForm({ ...form, candidatePhone: e.target.value })}
-                    placeholder="e.g. +91 98765 43210"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Designation / Role Title *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={form.jobTitle}
-                    onChange={(e) => setForm({ ...form, jobTitle: e.target.value })}
-                    placeholder="e.g. Senior Software Engineer"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Department
-                  </label>
-                  <select
-                    value={form.department}
-                    onChange={(e) => setForm({ ...form, department: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  >
-                    <option value="Engineering">Engineering</option>
-                    <option value="Product">Product</option>
-                    <option value="Marketing">Marketing</option>
-                    <option value="Sales">Sales</option>
-                    <option value="Human Resources">Human Resources</option>
-                    <option value="Finance &amp; Operations">Finance &amp; Operations</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Work Mode
-                  </label>
-                  <select
-                    value={form.workMode}
-                    onChange={(e) => setForm({ ...form, workMode: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  >
-                    <option value="On-site (WFO)">On-site (WFO)</option>
-                    <option value="Hybrid">Hybrid</option>
-                    <option value="Remote (WFH)">Remote (WFH)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Date of Joining *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={form.joiningDate}
-                    onChange={(e) => setForm({ ...form, joiningDate: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Annual CTC (₹ INR) *
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-2 text-slate-400 font-bold text-xs">₹</span>
-                    <input
-                      type="number"
-                      required
-                      min="10000"
-                      step="5000"
-                      value={form.annualCtc}
-                      onChange={(e) => setForm({ ...form, annualCtc: e.target.value })}
-                      placeholder="e.g. 600000"
-                      className="w-full pl-7 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Live Salary Structure Breakdown Card */}
-              <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-4 mt-2">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
-                    <IconSparkles className="w-4 h-4 text-indigo-600" /> Automated Salary &amp; CTC Structure
-                  </span>
-                  <span className="text-xs font-bold text-indigo-600">
-                    Gross: ₹{ctcMonthly.toLocaleString('en-IN')}/mo
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                  <div className="bg-white p-2.5 rounded-xl border border-indigo-100/60">
-                    <span className="text-[10px] text-slate-400 font-semibold block">Basic (50%)</span>
-                    <span className="font-bold text-slate-900">₹{basicMonthly.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div className="bg-white p-2.5 rounded-xl border border-indigo-100/60">
-                    <span className="text-[10px] text-slate-400 font-semibold block">HRA (20%)</span>
-                    <span className="font-bold text-slate-900">₹{hraMonthly.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div className="bg-white p-2.5 rounded-xl border border-indigo-100/60">
-                    <span className="text-[10px] text-slate-400 font-semibold block">Special Allowance</span>
-                    <span className="font-bold text-slate-900">₹{specialAllowance.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div className="bg-emerald-50 p-2.5 rounded-xl border border-emerald-100">
-                    <span className="text-[10px] text-emerald-700 font-semibold block">Net Take-Home</span>
-                    <span className="font-bold text-emerald-800">₹{netMonthly.toLocaleString('en-IN')}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
-                >
-                  Generate &amp; Preview Offer Letter
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* FORMAL LETTER PREVIEW MODAL */}
-      {previewLetter && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-100 rounded-3xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl my-6 flex flex-col max-h-[92vh]">
-            {/* Top Toolbar */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200 no-print">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setPreviewLetter(null)}
-                  className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-600 cursor-pointer"
-                >
-                  <IconArrowLeft className="w-5 h-5" />
-                </button>
-                <span className="font-bold text-sm text-slate-900">
-                  Offer Letter Preview — {previewLetter.candidateName} ({previewLetter.id})
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handlePrint}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
-                >
-                  <IconPrinter className="w-4 h-4" /> Print / Save as PDF
-                </button>
-                <button
-                  onClick={() => setPreviewLetter(null)}
-                  className="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-500 cursor-pointer"
+                  className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 cursor-pointer transition-colors"
+                  title="Close"
                 >
                   <IconX className="w-5 h-5" />
                 </button>
               </div>
-            </div>
 
-            {/* Document Sheet */}
-            <div className="overflow-y-auto flex-1 mt-4 p-2 sm:p-6 bg-slate-200/60 rounded-2xl flex justify-center">
-              <div
-                id="printable-offer-letter"
-                className="bg-white max-w-[800px] w-full p-8 sm:p-12 rounded-xl shadow-lg border border-slate-200 text-slate-800 text-sm leading-relaxed"
-              >
-                {/* Letterhead */}
-                <div className="flex items-center justify-between border-b-2 border-slate-900 pb-6 mb-8">
-                  <div>
-                    <h2 className="text-2xl font-black tracking-tight text-slate-900 uppercase">
-                      {company?.name || 'Company Name'}
-                    </h2>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Registered Corporate Office • Uptrix HRMS Cloud Workspace
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-xs font-mono font-bold text-indigo-600 block">
-                      Ref: {previewLetter.id}
-                    </span>
-                    <span className="text-xs text-slate-500">
-                      Date: {new Date(previewLetter.createdAt).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      })}
-                    </span>
-                  </div>
-                </div>
+              {/* Drawer Scrollable Body (Form) */}
+              <form onSubmit={handleSaveOffer} className="flex-1 overflow-y-auto p-6 space-y-4 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Candidate Full Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={form.candidateName}
+                        onChange={(e) => setForm({ ...form, candidateName: e.target.value })}
+                        placeholder="e.g. Rahul Sharma"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </div>
 
-                {/* Candidate Addressee */}
-                <div className="mb-6">
-                  <p className="font-bold text-slate-900">To,</p>
-                  <p className="font-bold text-slate-900 text-base">{previewLetter.candidateName}</p>
-                  <p className="text-slate-600 text-xs">{previewLetter.candidateEmail}</p>
-                  {previewLetter.candidatePhone && (
-                    <p className="text-slate-600 text-xs">{previewLetter.candidatePhone}</p>
-                  )}
-                </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Candidate Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={form.candidateEmail}
+                        onChange={(e) => setForm({ ...form, candidateEmail: e.target.value })}
+                        placeholder="e.g. rahul.sharma@gmail.com"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </div>
 
-                {/* Subject */}
-                <div className="mb-6 p-3 bg-slate-50 border-l-4 border-indigo-600 font-bold text-slate-900 text-sm">
-                  Subject: Formal Offer of Employment for the position of {previewLetter.jobTitle}
-                </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Phone Number
+                      </label>
+                      <input
+                        type="text"
+                        value={form.candidatePhone}
+                        onChange={(e) => setForm({ ...form, candidatePhone: e.target.value })}
+                        placeholder="e.g. +91 98765 43210"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </div>
 
-                {/* Opening */}
-                <p className="mb-4">
-                  Dear <strong>{previewLetter.candidateName}</strong>,
-                </p>
-                <p className="mb-4">
-                  On behalf of <strong>{company?.name || 'the Company'}</strong>, we are delighted to extend this formal offer of employment for the role of <strong>{previewLetter.jobTitle}</strong> in our <strong>{previewLetter.department}</strong> department. We were thoroughly impressed with your background, qualifications, and potential contributions to our team.
-                </p>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Designation / Role Title *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={form.jobTitle}
+                        onChange={(e) => setForm({ ...form, jobTitle: e.target.value })}
+                        placeholder="e.g. Senior Software Engineer"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </div>
 
-                {/* Key Employment Terms */}
-                <div className="mb-6 space-y-2">
-                  <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider border-b border-slate-200 pb-1">
-                    1. Employment Terms
-                  </h4>
-                  <ul className="list-disc list-inside space-y-1.5 text-xs text-slate-700">
-                    <li><strong>Date of Joining:</strong> {new Date(previewLetter.joiningDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</li>
-                    <li><strong>Work Mode &amp; Location:</strong> {previewLetter.terms?.workMode || 'Hybrid'}</li>
-                    <li><strong>Working Schedule:</strong> {previewLetter.terms?.workingHours || 'Mon-Fri 09:30 AM - 06:30 PM'}</li>
-                    <li><strong>Probationary Period:</strong> {previewLetter.terms?.probationMonths || 3} months from joining date, subject to performance evaluation.</li>
-                    <li><strong>Notice Period:</strong> {previewLetter.terms?.noticeDays || 30} days during probation and 60 days post confirmation.</li>
-                  </ul>
-                </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Department
+                      </label>
+                      <select
+                        value={form.department}
+                        onChange={(e) => setForm({ ...form, department: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      >
+                        <option value="Engineering">Engineering</option>
+                        <option value="Product">Product</option>
+                        <option value="Marketing">Marketing</option>
+                        <option value="Sales">Sales</option>
+                        <option value="Human Resources">Human Resources</option>
+                        <option value="Finance & Operations">Finance &amp; Operations</option>
+                      </select>
+                    </div>
 
-                {/* Compensation Structure Table */}
-                <div className="mb-8">
-                  <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider border-b border-slate-200 pb-1 mb-3">
-                    2. Compensation &amp; Benefits (Annexure A)
-                  </h4>
-                  <table className="w-full text-xs border border-slate-200">
-                    <thead className="bg-slate-100 font-bold text-slate-700">
-                      <tr>
-                        <th className="p-2.5 border-b border-r border-slate-200 text-left">Salary Component</th>
-                        <th className="p-2.5 border-b border-r border-slate-200 text-right">Monthly (₹)</th>
-                        <th className="p-2.5 border-b border-slate-200 text-right">Annualized (₹)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      <tr>
-                        <td className="p-2.5 border-r border-slate-200">Basic Salary (50%)</td>
-                        <td className="p-2.5 border-r border-slate-200 text-right font-medium">₹{previewLetter.breakdown.basicMonthly.toLocaleString('en-IN')}</td>
-                        <td className="p-2.5 text-right font-medium">₹{(previewLetter.breakdown.basicMonthly * 12).toLocaleString('en-IN')}</td>
-                      </tr>
-                      <tr>
-                        <td className="p-2.5 border-r border-slate-200">House Rent Allowance (HRA)</td>
-                        <td className="p-2.5 border-r border-slate-200 text-right font-medium">₹{previewLetter.breakdown.hraMonthly.toLocaleString('en-IN')}</td>
-                        <td className="p-2.5 text-right font-medium">₹{(previewLetter.breakdown.hraMonthly * 12).toLocaleString('en-IN')}</td>
-                      </tr>
-                      <tr>
-                        <td className="p-2.5 border-r border-slate-200">Special / Flexible Allowance</td>
-                        <td className="p-2.5 border-r border-slate-200 text-right font-medium">₹{previewLetter.breakdown.specialAllowanceMonthly.toLocaleString('en-IN')}</td>
-                        <td className="p-2.5 text-right font-medium">₹{(previewLetter.breakdown.specialAllowanceMonthly * 12).toLocaleString('en-IN')}</td>
-                      </tr>
-                      <tr className="bg-indigo-50/60 font-bold text-indigo-950">
-                        <td className="p-2.5 border-r border-slate-200">Total Gross CTC</td>
-                        <td className="p-2.5 border-r border-slate-200 text-right">₹{previewLetter.monthlySalary.toLocaleString('en-IN')}</td>
-                        <td className="p-2.5 text-right">₹{previewLetter.annualCtc.toLocaleString('en-IN')}</td>
-                      </tr>
-                      <tr className="text-slate-500">
-                        <td className="p-2.5 border-r border-slate-200">Less: Provident Fund (Employee PF)</td>
-                        <td className="p-2.5 border-r border-slate-200 text-right">₹{previewLetter.breakdown.pfMonthly.toLocaleString('en-IN')}</td>
-                        <td className="p-2.5 text-right">₹{(previewLetter.breakdown.pfMonthly * 12).toLocaleString('en-IN')}</td>
-                      </tr>
-                      <tr className="text-slate-500">
-                        <td className="p-2.5 border-r border-slate-200">Less: Professional Tax (PT)</td>
-                        <td className="p-2.5 border-r border-slate-200 text-right">₹{previewLetter.breakdown.ptMonthly.toLocaleString('en-IN')}</td>
-                        <td className="p-2.5 text-right">₹{(previewLetter.breakdown.ptMonthly * 12).toLocaleString('en-IN')}</td>
-                      </tr>
-                      <tr className="bg-emerald-50 font-bold text-emerald-950">
-                        <td className="p-2.5 border-r border-slate-200">Estimated Net Take-Home (Pre-Tax)</td>
-                        <td className="p-2.5 border-r border-slate-200 text-right">₹{previewLetter.breakdown.netMonthly.toLocaleString('en-IN')}</td>
-                        <td className="p-2.5 text-right">₹{(previewLetter.breakdown.netMonthly * 12).toLocaleString('en-IN')}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Work Mode
+                      </label>
+                      <select
+                        value={form.workMode}
+                        onChange={(e) => setForm({ ...form, workMode: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      >
+                        <option value="On-site (WFO)">On-site (WFO)</option>
+                        <option value="Hybrid">Hybrid</option>
+                        <option value="Remote (WFH)">Remote (WFH)</option>
+                      </select>
+                    </div>
 
-                {/* Signatures */}
-                <div className="mt-12 pt-8 border-t border-slate-200 grid grid-cols-2 gap-8">
-                  <div>
-                    <p className="text-xs font-bold text-slate-900 mb-12">For {company?.name || 'the Company'}:</p>
-                    <div className="border-t border-slate-400 pt-1 w-48 text-xs text-slate-600">
-                      Authorized HR Signatory
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Date of Joining *
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={form.joiningDate}
+                        onChange={(e) => setForm({ ...form, joiningDate: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Annual CTC (₹ INR) *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2 text-slate-400 font-bold text-xs">₹</span>
+                        <input
+                          type="number"
+                          required
+                          min="10000"
+                          step="5000"
+                          value={form.annualCtc}
+                          onChange={(e) => setForm({ ...form, annualCtc: e.target.value })}
+                          placeholder="e.g. 600000"
+                          className="w-full pl-7 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        />
+                      </div>
                     </div>
                   </div>
 
-                  <div>
-                    <p className="text-xs font-bold text-slate-900 mb-12">Candidate Acceptance:</p>
-                    <div className="border-t border-slate-400 pt-1 w-48 text-xs text-slate-600">
-                      {previewLetter.candidateName} (Sign &amp; Date)
+                  {/* Live Salary Structure Breakdown Card */}
+                  <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-4 mt-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
+                        <IconSparkles className="w-4 h-4 text-indigo-600" /> Automated Salary &amp; CTC Structure
+                      </span>
+                      <span className="text-xs font-bold text-indigo-600">
+                        Gross: ₹{ctcMonthly.toLocaleString('en-IN')}/mo
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                      <div className="bg-white p-2.5 rounded-xl border border-indigo-100/60">
+                        <span className="text-[10px] text-slate-400 font-semibold block">Basic (50%)</span>
+                        <span className="font-bold text-slate-900">₹{basicMonthly.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="bg-white p-2.5 rounded-xl border border-indigo-100/60">
+                        <span className="text-[10px] text-slate-400 font-semibold block">HRA (20%)</span>
+                        <span className="font-bold text-slate-900">₹{hraMonthly.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="bg-white p-2.5 rounded-xl border border-indigo-100/60">
+                        <span className="text-[10px] text-slate-400 font-semibold block">Special Allowance</span>
+                        <span className="font-bold text-slate-900">₹{specialAllowance.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="bg-emerald-50 p-2.5 rounded-xl border border-emerald-100">
+                        <span className="text-[10px] text-emerald-700 font-semibold block">Net Take-Home</span>
+                        <span className="font-bold text-emerald-800">₹{netMonthly.toLocaleString('en-IN')}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+
+                <div className="sticky bottom-0 -mx-6 -mb-6 p-6 bg-white/95 backdrop-blur-xs border-t border-slate-100 flex items-center justify-end gap-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <IconSparkles className="w-4 h-4" />
+                    Generate &amp; Preview Offer Letter
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
+
+      {/* FORMAL LETTER PREVIEW DRAWER (RIGHT SIDE SLIDE-OVER) */}
+      <OfferLetterPdfDrawer
+        letter={previewLetter}
+        company={company}
+        onClose={() => setPreviewLetter(null)}
+      />
     </div>
   );
 };
