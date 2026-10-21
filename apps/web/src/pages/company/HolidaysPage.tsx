@@ -18,7 +18,12 @@ import {
   IconSparkles,
   IconInfoCircle,
   IconShieldLock,
+  IconMail,
+  IconSend,
+  IconLoader2,
 } from '@tabler/icons-react';
+import { getHolidayIcon } from '../../utils/holidayIcons';
+import { EventEmailsModal } from '../../components/company/EventEmailsModal';
 
 interface Holiday {
   id: number;
@@ -36,12 +41,15 @@ export const HolidaysPage: React.FC = () => {
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEmailSettingsOpen, setIsEmailSettingsOpen] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [editingHoliday, setEditingHoliday] = useState<Holiday | null>(null);
   const [form, setForm] = useState({
     name: '',
     date: new Date().toISOString().split('T')[0],
     type: 'PUBLIC',
     description: '',
+    sendEmailToEmployees: true,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,6 +105,7 @@ export const HolidaysPage: React.FC = () => {
       date: todayStr,
       type: 'PUBLIC',
       description: '',
+      sendEmailToEmployees: true,
     });
     setCalViewDate(new Date(today.getFullYear(), today.getMonth(), 1));
     setError(null);
@@ -118,6 +127,7 @@ export const HolidaysPage: React.FC = () => {
       date: dateStr,
       type: h.type || 'PUBLIC',
       description: h.description || '',
+      sendEmailToEmployees: true,
     });
     setError(null);
     setIsModalOpen(true);
@@ -290,15 +300,51 @@ export const HolidaysPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Primary CTA */}
-        <button
-          onClick={handleOpenAdd}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white text-xs font-bold shadow-xs hover:shadow-md transition-all cursor-pointer shrink-0"
-        >
-          <IconPlus className="w-4 h-4" />
-          <span>Add Holiday</span>
-        </button>
+        {/* Primary Actions */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            onClick={() => setIsEmailSettingsOpen(true)}
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-[#5E4BE2] text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+            title="Configure Automated Holiday & Birthday Emails"
+          >
+            <IconMail className="w-4 h-4" />
+            <span>Automated Emails</span>
+          </button>
+          <button
+            onClick={handleOpenAdd}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white text-xs font-bold shadow-xs hover:shadow-md transition-all cursor-pointer"
+          >
+            <IconPlus className="w-4 h-4" />
+            <span>Add Holiday</span>
+          </button>
+        </div>
       </div>
+
+      {/* Floating Status Notification */}
+      {toast && (
+        <div
+          className={`p-3.5 rounded-2xl text-xs font-semibold flex items-center justify-between gap-3 shadow-sm animate-in fade-in duration-200 ${
+            toast.type === 'success'
+              ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+              : 'bg-rose-50 border border-rose-200 text-rose-800'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {toast.type === 'success' ? (
+              <IconCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+            ) : (
+              <IconAlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            )}
+            <span>{toast.message}</span>
+          </div>
+          <button
+            onClick={() => setToast(null)}
+            className="text-slate-400 hover:text-slate-600 cursor-pointer text-xs"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* KPI Overview Metrics Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
@@ -496,13 +542,16 @@ export const HolidaysPage: React.FC = () => {
                   const dayOfWeekNum = dateObj.getDay();
                   const isWeekend = dayOfWeekNum === 0 || dayOfWeekNum === 6;
 
+                  const holidayStyle = getHolidayIcon(holiday.name);
+                  const HolidayIcon = holidayStyle.Icon;
+
                   return (
                     <tr key={holiday.id} className="hover:bg-indigo-50/20 transition-colors group">
                       {/* Name */}
                       <td className="px-5 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3 min-w-[220px]">
-                          <div className="w-9 h-9 rounded-xl bg-indigo-50 text-[#5E4BE2] flex items-center justify-center shrink-0 border border-indigo-100/60 shadow-2xs">
-                            <IconCalendarEvent className="w-4 h-4" />
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${holidayStyle.className}`}>
+                            <HolidayIcon className="w-4 h-4" />
                           </div>
                           <div>
                             <span className="font-bold text-xs text-slate-900 block leading-tight">
@@ -883,6 +932,19 @@ export const HolidaysPage: React.FC = () => {
                     />
                   </div>
 
+                  {/* Automated Email Announcement Notice */}
+                  <div className="p-3 bg-indigo-50/70 rounded-xl border border-indigo-100/80 flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-indigo-100 text-[#5E4BE2] flex items-center justify-center shrink-0">
+                      <IconMail className="w-4 h-4" />
+                    </div>
+                    <div className="text-xs text-slate-700">
+                      <span className="font-bold block text-slate-900">Automatic Email Announcement</span>
+                      <span className="text-[11px] text-slate-500">
+                        Holiday announcement emails are automatically sent to all active employees by the server once configured.
+                      </span>
+                    </div>
+                  </div>
+
                   {/* Submit & Cancel Actions */}
                   <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                     <button
@@ -906,6 +968,12 @@ export const HolidaysPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Automated Event & Birthday Emails Configuration Modal */}
+      <EventEmailsModal
+        isOpen={isEmailSettingsOpen}
+        onClose={() => setIsEmailSettingsOpen(false)}
+      />
     </div>
   );
 };

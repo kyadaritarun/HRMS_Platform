@@ -11,7 +11,6 @@ import {
   IconGift,
   IconAward,
   IconReceipt2,
-  IconSchool,
   IconCalendar,
   IconFileDescription,
   IconChartBar,
@@ -22,7 +21,13 @@ import {
   IconBell,
   IconChecklist,
   IconCake,
+  IconMail,
+  IconSend,
+  IconLoader2,
+  IconCheck,
 } from '@tabler/icons-react';
+import { getHolidayIcon } from '../../utils/holidayIcons';
+import { EventEmailsModal } from '../../components/company/EventEmailsModal';
 
 interface DashboardMetrics {
   totalEmployees: number;
@@ -53,6 +58,7 @@ interface RequestItem {
   startDate?: string;
   endDate?: string;
   createdAt: string;
+  userId?: number;
   user?: {
     id: number;
     firstName: string;
@@ -143,41 +149,62 @@ export const CompanyDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Filter States
-  const [attendanceFilter, setAttendanceFilter] = useState('This Month');
-  const [leaveFilter, setLeaveFilter] = useState('This Month');
+  const [attendanceFilter, setAttendanceFilter] = useState<'Today' | 'This Month'>('Today');
+  const [leaveFilter, setLeaveFilter] = useState<'This Month' | 'All Time'>('This Month');
+
+  // Automated Email Modal State
+  const [isEventEmailsModalOpen, setIsEventEmailsModalOpen] = useState(false);
+  const [emailToast, setEmailToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // Fetch 100% strictly real live data from backend APIs
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      setIsLoading(true);
-      try {
-        const [dashRes, empsRes, attRes, reqsRes, deptsRes, holiRes, logsRes] = await Promise.all([
-          api.get('/company/dashboard').catch(() => ({ data: {} })),
-          api.get('/employees?pageSize=100').catch(() => ({ data: { items: [] } })),
-          api.get('/attendance?pageSize=100').catch(() => ({ data: { items: [] } })),
-          api.get('/requests?scope=company&pageSize=100').catch(() => ({ data: { items: [] } })),
-          api.get('/company/departments').catch(() => ({ data: { departments: [] } })),
-          api.get('/company/holidays').catch(() => ({ data: { holidays: [] } })),
-          api.get('/company/activity-logs?pageSize=5').catch(() => ({ data: { items: [] } })),
-        ]);
+  const fetchDashboardData = async () => {
+    setIsLoading(true);
+    try {
+      const [dashRes, empsRes, attRes, reqsRes, deptsRes, holiRes, logsRes] = await Promise.all([
+        api.get('/company/dashboard').catch(() => ({ data: {} })),
+        api.get('/employees?pageSize=100').catch(() => ({ data: { items: [] } })),
+        api.get('/attendance?pageSize=100').catch(() => ({ data: { items: [] } })),
+        api.get('/requests?scope=company&pageSize=100').catch(() => ({ data: { items: [] } })),
+        api.get('/company/departments').catch(() => ({ data: { departments: [] } })),
+        api.get('/company/holidays').catch(() => ({ data: { holidays: [] } })),
+        api.get('/company/activity-logs?pageSize=5').catch(() => ({ data: { items: [] } })),
+      ]);
 
-        if (dashRes.data?.metrics) setMetrics(dashRes.data.metrics);
-        if (empsRes.data?.items) setEmployees(empsRes.data.items);
-        if (attRes.data?.items || attRes.data?.records) {
-          setAttendance(attRes.data.items || attRes.data.records);
-        }
-        if (reqsRes.data?.items) setRequests(reqsRes.data.items);
-        if (deptsRes.data?.departments) setDepartments(deptsRes.data.departments);
-        if (holiRes.data?.holidays) setHolidays(holiRes.data.holidays);
-        if (logsRes.data?.items) setActivityLogs(logsRes.data.items);
-      } catch (err) {
-        console.error('Failed to fetch real company dashboard data:', err);
-      } finally {
-        setIsLoading(false);
+      if (dashRes.data?.metrics) setMetrics(dashRes.data.metrics);
+      if (empsRes.data?.items) setEmployees(empsRes.data.items);
+      if (attRes.data?.items || attRes.data?.records) {
+        setAttendance(attRes.data.items || attRes.data.records);
       }
+      if (reqsRes.data?.items) setRequests(reqsRes.data.items);
+      if (deptsRes.data?.departments) setDepartments(deptsRes.data.departments);
+      if (holiRes.data?.holidays) setHolidays(holiRes.data.holidays);
+      if (logsRes.data?.items) setActivityLogs(logsRes.data.items);
+    } catch (err) {
+      console.error('Failed to fetch real company dashboard data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+
+    const handleSync = () => {
+      fetchDashboardData();
     };
 
-    fetchDashboardData();
+    window.addEventListener('attendance-updated', handleSync);
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'attendance_sync_ts') {
+        handleSync();
+      }
+    };
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      window.removeEventListener('attendance-updated', handleSync);
+      window.removeEventListener('storage', onStorage);
+    };
   }, []);
 
   // Real today formatted date
@@ -200,40 +227,93 @@ export const CompanyDashboard: React.FC = () => {
     return metrics.totalEmployees || employees.length;
   }, [metrics.totalEmployees, employees.length]);
 
-  // 2. REAL ATTENDANCE & PUNCHES COMPUTED STRICTLY FROM DATABASE
+  // 2. REAL ATTENDANCE & PUNCHES COMPUTED STRICTLY FROM DATABASE FOR TODAY OR THIS MONTH
   const attendanceMetrics = useMemo(() => {
     const total = totalEmployeesCount;
     const now = new Date();
+    const isToday = attendanceFilter === 'Today';
 
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-    // Live Present: Employees who have checked in today
-    const livePresent = attendance.filter((a) => {
-      if (!a.checkIn) return false;
-      const d = new Date(a.checkIn);
-      return d >= startOfToday;
-    }).length;
+    let livePresent = 0;
+    let liveOnLeave = 0;
+    let liveHalfDay = 0;
 
-    // Live On Leave: Employees with approved leave requests covering today
-    const liveOnLeave = requests.filter((r) => {
-      if (r.type !== 'LEAVE' || r.status !== 'APPROVED') return false;
-      if (!r.startDate || !r.endDate) return false;
-      const s = new Date(r.startDate);
-      const e = new Date(r.endDate);
-      e.setHours(23, 59, 59, 999);
-      return now >= s && now <= e;
-    }).length;
+    if (isToday) {
+      // Live Present Today: Distinct employees who checked in today
+      const todayPresentUserIds = new Set<number>();
+      const todayHalfDayUserIds = new Set<number>();
+
+      attendance.forEach((a) => {
+        if (!a.checkIn) return;
+        const d = new Date(a.checkIn);
+        if (d >= startOfToday) {
+          if (a.userId) todayPresentUserIds.add(a.userId);
+          if (a.checkOut) {
+            const hours = (new Date(a.checkOut).getTime() - d.getTime()) / (1000 * 60 * 60);
+            if (hours > 0 && hours < 4.5 && a.userId) {
+              todayHalfDayUserIds.add(a.userId);
+            }
+          }
+        }
+      });
+
+      // Live On Leave Today: Employees with approved leave requests covering today
+      const todayOnLeaveUserIds = new Set<number>();
+      requests.forEach((r) => {
+        if (r.type !== 'LEAVE' || r.status !== 'APPROVED' || !r.startDate || !r.endDate) return;
+        const s = new Date(r.startDate);
+        const e = new Date(r.endDate);
+        e.setHours(23, 59, 59, 999);
+        const uId = r.userId || r.user?.id;
+        if (now >= s && now <= e && uId) {
+          todayOnLeaveUserIds.add(uId);
+        }
+      });
+
+      livePresent = todayPresentUserIds.size;
+      liveOnLeave = todayOnLeaveUserIds.size;
+      liveHalfDay = todayHalfDayUserIds.size;
+    } else {
+      // Live Present This Month: Distinct employees who attended work during this month
+      const monthPresentUserIds = new Set<number>();
+      const monthHalfDayUserIds = new Set<number>();
+
+      attendance.forEach((a) => {
+        if (!a.checkIn) return;
+        const d = new Date(a.checkIn);
+        if (d >= startOfMonth && d <= endOfMonth) {
+          if (a.userId) monthPresentUserIds.add(a.userId);
+          if (a.checkOut) {
+            const hours = (new Date(a.checkOut).getTime() - d.getTime()) / (1000 * 60 * 60);
+            if (hours > 0 && hours < 4.5 && a.userId) {
+              monthHalfDayUserIds.add(a.userId);
+            }
+          }
+        }
+      });
+
+      // Live On Leave This Month: Distinct employees with approved leave during this month
+      const monthOnLeaveUserIds = new Set<number>();
+      requests.forEach((r) => {
+        if (r.type !== 'LEAVE' || r.status !== 'APPROVED' || !r.startDate || !r.endDate) return;
+        const s = new Date(r.startDate);
+        const e = new Date(r.endDate);
+        const uId = r.userId || r.user?.id;
+        if (e >= startOfMonth && s <= endOfMonth && uId) {
+          monthOnLeaveUserIds.add(uId);
+        }
+      });
+
+      livePresent = monthPresentUserIds.size;
+      liveOnLeave = monthOnLeaveUserIds.size;
+      liveHalfDay = monthHalfDayUserIds.size;
+    }
 
     // Absent: Remaining workforce
     const liveAbsent = Math.max(0, total - livePresent - liveOnLeave);
-
-    // Half Day: Check-ins with short duration (< 4.5 hours)
-    const liveHalfDay = attendance.filter((a) => {
-      if (!a.checkIn || !a.checkOut) return false;
-      const hours = (new Date(a.checkOut).getTime() - new Date(a.checkIn).getTime()) / (1000 * 60 * 60);
-      return hours > 0 && hours < 4.5;
-    }).length;
 
     const presentPercent = total > 0 ? ((livePresent / total) * 100).toFixed(1) : '0';
     const onLeavePercent = total > 0 ? ((liveOnLeave / total) * 100).toFixed(1) : '0';
@@ -241,7 +321,6 @@ export const CompanyDashboard: React.FC = () => {
     const halfDayPercent = total > 0 ? ((liveHalfDay / total) * 100).toFixed(1) : '0';
 
     // New Joiners: Employees joined in the current calendar month
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const newJoinersCount = employees.filter((e) => {
       const joined = e.joiningDate ? new Date(e.joiningDate) : new Date(e.createdAt);
       return joined >= startOfMonth;
@@ -258,7 +337,7 @@ export const CompanyDashboard: React.FC = () => {
       halfDayPercent,
       newJoiners: newJoinersCount,
     };
-  }, [totalEmployeesCount, attendance, requests, employees]);
+  }, [totalEmployeesCount, attendance, requests, employees, attendanceFilter]);
 
   // 3. REAL TOTAL PAYROLL POOL
   const payrollTotalCost = useMemo(() => {
@@ -305,7 +384,7 @@ export const CompanyDashboard: React.FC = () => {
       .sort((a, b) => a.diffDays - b.diffDays);
   }, [employees]);
 
-  // Real Upcoming Company Holidays strictly capped at 5 total
+  // Real Upcoming Company Holidays strictly capped at 5 total (deduplicated by name and date)
   const upcomingHolidays = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -313,7 +392,6 @@ export const CompanyDashboard: React.FC = () => {
     const mapped = holidays.map((h) => ({
       id: `h-${h.id}`,
       title: h.name,
-      subtitle: 'Company Holiday',
       date: new Date(h.date),
       dateLabel: new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     }));
@@ -323,12 +401,33 @@ export const CompanyDashboard: React.FC = () => {
       .sort((a, b) => a.date.getTime() - b.date.getTime());
     const list = upcoming.length > 0 ? upcoming : mapped.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-    return list.slice(0, 5);
+    // Deduplicate identical holiday entries by name & date
+    const seen = new Set<string>();
+    const uniqueList: typeof mapped = [];
+    for (const item of list) {
+      const key = `${item.title.toLowerCase().trim()}_${item.date.toISOString().split('T')[0]}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        uniqueList.push(item);
+      }
+    }
+
+    return uniqueList.slice(0, 5);
   }, [holidays]);
 
   // 4. REAL LEAVE REQUEST STATISTICS
   const leaveStats = useMemo(() => {
-    const leaveRequests = requests.filter((r) => r.type === 'LEAVE');
+    const isThisMonth = leaveFilter === 'This Month';
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    const leaveRequests = requests.filter((r) => {
+      if (r.type !== 'LEAVE') return false;
+      if (!isThisMonth) return true;
+      const refDate = r.startDate ? new Date(r.startDate) : r.createdAt ? new Date(r.createdAt) : null;
+      return refDate ? refDate >= startOfMonth && refDate <= endOfMonth : true;
+    });
     const approved = leaveRequests.filter((r) => r.status === 'APPROVED').length;
     const pending = leaveRequests.filter((r) => r.status === 'PENDING').length;
     const rejected = leaveRequests.filter((r) => r.status === 'REJECTED').length;
@@ -339,7 +438,7 @@ export const CompanyDashboard: React.FC = () => {
       pending,
       rejected,
     };
-  }, [requests]);
+  }, [requests, leaveFilter]);
 
   // 5. REAL DEPARTMENT HEADCOUNTS
   const departmentHeadcounts = useMemo(() => {
@@ -406,6 +505,16 @@ export const CompanyDashboard: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3 self-stretch sm:self-auto">
+          {/* Automated Event Emails Configuration Button */}
+          <button
+            onClick={() => setIsEventEmailsModalOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-[#5E4BE2] rounded-xl shadow-xs text-xs font-bold transition-colors cursor-pointer"
+            title="Configure Automated Birthday & Holiday Emails"
+          >
+            <IconMail className="w-4 h-4" />
+            <span>Automated Event Emails</span>
+          </button>
+
           {/* Real Date Indicator */}
           <div className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-xl shadow-xs text-xs font-semibold text-slate-700">
             <IconCalendar className="w-4 h-4 text-indigo-600" />
@@ -413,6 +522,32 @@ export const CompanyDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Floating Status Notification for Dispatched Emails */}
+      {emailToast && (
+        <div
+          className={`p-3.5 rounded-2xl text-xs font-semibold flex items-center justify-between gap-3 shadow-sm animate-in fade-in duration-200 ${
+            emailToast.type === 'success'
+              ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+              : 'bg-rose-50 border border-rose-200 text-rose-800'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {emailToast.type === 'success' ? (
+              <IconCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+            ) : (
+              <IconAlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            )}
+            <span>{emailToast.message}</span>
+          </div>
+          <button
+            onClick={() => setEmailToast(null)}
+            className="text-slate-400 hover:text-slate-600 cursor-pointer text-xs"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* ===================== ROW 2: ATTENDANCE OVERVIEW + TREND + UPCOMING EVENTS ===================== */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
@@ -424,13 +559,17 @@ export const CompanyDashboard: React.FC = () => {
                 <IconCalendar className="w-4 h-4 text-indigo-600" />
                 <h3 className="font-bold text-slate-900 text-sm">Attendance Overview</h3>
               </div>
-              <button
-                onClick={() => setAttendanceFilter(attendanceFilter === 'This Month' ? 'Today' : 'This Month')}
-                className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-600 hover:bg-slate-100 transition-colors flex items-center gap-1"
-              >
-                <span>{attendanceFilter}</span>
-                <IconChevronDown className="w-3 h-3 text-slate-400" />
-              </button>
+              <div className="relative">
+                <select
+                  value={attendanceFilter}
+                  onChange={(e) => setAttendanceFilter(e.target.value as 'Today' | 'This Month')}
+                  className="px-2.5 py-1 pr-6 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer appearance-none outline-none focus:ring-1 focus:ring-indigo-500"
+                >
+                  <option value="Today">Today</option>
+                  <option value="This Month">This Month</option>
+                </select>
+                <IconChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
             </div>
 
             {/* Donut Chart & Legend */}
@@ -563,6 +702,9 @@ export const CompanyDashboard: React.FC = () => {
               <div className="flex items-center gap-2">
                 <IconCake className="w-4 h-4 text-pink-600" />
                 <h3 className="font-bold text-slate-900 text-sm">Employee Birthdays</h3>
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-pink-50 text-pink-700 border border-pink-200/60" title="Birthday greeting emails are automatically sent by server">
+                  Auto Email
+                </span>
               </div>
               <button
                 onClick={() => navigate('/company/employees')}
@@ -588,13 +730,13 @@ export const CompanyDashboard: React.FC = () => {
                 upcomingBirthdays.slice(0, 5).map((b) => (
                   <div
                     key={b.id}
-                    className={`flex items-center justify-between p-2 rounded-xl transition-colors ${
+                    className={`flex items-center justify-between p-2.5 rounded-xl transition-colors ${
                       b.diffDays === 0
                         ? 'bg-pink-50/70 border border-pink-200/80 hover:bg-pink-100/70'
                         : 'bg-slate-50/70 hover:bg-slate-100/70'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div
                         className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                           b.diffDays === 0
@@ -605,15 +747,12 @@ export const CompanyDashboard: React.FC = () => {
                         <IconCake className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
-                        <span className="text-[10px] font-bold text-pink-600 block uppercase tracking-wide">
-                          {b.diffDays === 0 ? 'Today 🎂' : b.diffDays === 1 ? 'Tomorrow' : 'Birthday'}
-                        </span>
                         <span className="text-xs font-bold text-slate-900 truncate block">
                           {b.firstName} {b.lastName}
                         </span>
                       </div>
                     </div>
-                    <span className="text-[10px] font-bold text-slate-500 shrink-0 ml-2">
+                    <span className="text-[11px] font-semibold text-slate-500 shrink-0 ml-2">
                       {b.formattedDate}
                     </span>
                   </div>
@@ -630,6 +769,9 @@ export const CompanyDashboard: React.FC = () => {
               <div className="flex items-center gap-2">
                 <IconGift className="w-4 h-4 text-purple-600" />
                 <h3 className="font-bold text-slate-900 text-sm">Upcoming Events</h3>
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-[#5E4BE2] border border-indigo-200/60" title="Holiday announcement emails are automatically sent by server once configured">
+                  Auto Email
+                </span>
               </div>
               <button
                 onClick={() => navigate('/company/holidays')}
@@ -652,29 +794,32 @@ export const CompanyDashboard: React.FC = () => {
                   </button>
                 </div>
               ) : (
-                upcomingHolidays.map((evt) => (
-                  <div
-                    key={evt.id}
-                    className="flex items-center justify-between p-2 rounded-xl bg-slate-50/70 hover:bg-slate-100/70 transition-colors"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-indigo-50 text-[#5E4BE2] border border-indigo-100 flex items-center justify-center shrink-0">
-                        <IconSchool className="w-4 h-4" />
+                upcomingHolidays.map((evt) => {
+                  const holidayStyle = getHolidayIcon(evt.title);
+                  const HolidayIcon = holidayStyle.Icon;
+                  return (
+                    <div
+                      key={evt.id}
+                      className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 hover:bg-slate-100/70 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${holidayStyle.className}`}
+                        >
+                          <HolidayIcon className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-xs font-bold text-slate-900 truncate block">
+                            {evt.title}
+                          </span>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <span className="text-[10px] font-bold text-indigo-600 block uppercase tracking-wide">
-                          {evt.subtitle}
-                        </span>
-                        <span className="text-xs font-bold text-slate-900 truncate block">
-                          {evt.title}
-                        </span>
-                      </div>
+                      <span className="text-[11px] font-semibold text-slate-500 shrink-0 ml-2">
+                        {evt.dateLabel}
+                      </span>
                     </div>
-                    <span className="text-[10px] font-bold text-slate-500 shrink-0 ml-2">
-                      {evt.dateLabel}
-                    </span>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -691,13 +836,17 @@ export const CompanyDashboard: React.FC = () => {
                 <IconCalendarEvent className="w-4 h-4 text-purple-600" />
                 <h3 className="font-bold text-slate-900 text-sm">Leave Summary</h3>
               </div>
-              <button
-                onClick={() => setLeaveFilter(leaveFilter === 'This Month' ? 'All Time' : 'This Month')}
-                className="px-2 py-0.5 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-100 flex items-center gap-1"
-              >
-                <span>{leaveFilter}</span>
-                <IconChevronDown className="w-3 h-3 text-slate-400" />
-              </button>
+              <div className="relative">
+                <select
+                  value={leaveFilter}
+                  onChange={(e) => setLeaveFilter(e.target.value as 'This Month' | 'All Time')}
+                  className="px-2 py-0.5 pr-5 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer appearance-none outline-none focus:ring-1 focus:ring-indigo-500"
+                >
+                  <option value="This Month">This Month</option>
+                  <option value="All Time">All Time</option>
+                </select>
+                <IconChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
             </div>
 
             <div className="space-y-2.5 pt-2 text-xs">
@@ -770,7 +919,7 @@ export const CompanyDashboard: React.FC = () => {
 
           <div className="pt-3 border-t border-slate-100 mt-4 text-center">
             <button
-              onClick={() => navigate('/payroll/dashboard')}
+              onClick={() => navigate('/payroll/attendance-salary')}
               className="text-xs font-bold text-[#5E4BE2] hover:text-[#4B39C3] inline-flex items-center gap-1 cursor-pointer"
             >
               <span>View Payroll Dashboard</span>
@@ -810,16 +959,6 @@ export const CompanyDashboard: React.FC = () => {
                 <span className="font-black text-slate-900 text-sm">{totalEmployeesCount}</span>
               </div>
             </div>
-          </div>
-
-          <div className="pt-3 border-t border-slate-100 mt-4 text-center">
-            <button
-              onClick={() => navigate('/company/departments')}
-              className="text-xs font-bold text-[#5E4BE2] hover:text-[#4B39C3] inline-flex items-center gap-1 cursor-pointer"
-            >
-              <span>Manage Departments</span>
-              <span>&rarr;</span>
-            </button>
           </div>
         </div>
 
@@ -876,7 +1015,7 @@ export const CompanyDashboard: React.FC = () => {
 
               {/* 4. Payroll */}
               <button
-                onClick={() => navigate('/payroll/dashboard')}
+                onClick={() => navigate('/payroll/attendance-salary')}
                 className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-slate-50 transition-colors group cursor-pointer"
               >
                 <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-105 transition-transform">
@@ -1124,6 +1263,12 @@ export const CompanyDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Automated Birthday & Event Emails Modal */}
+      <EventEmailsModal
+        isOpen={isEventEmailsModalOpen}
+        onClose={() => setIsEventEmailsModalOpen(false)}
+      />
     </div>
   );
 };

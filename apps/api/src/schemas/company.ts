@@ -10,6 +10,7 @@ export const HolidaySchema = z.object({
   date: z.string().min(1, 'Date is required (YYYY-MM-DD)'),
   type: z.enum(['PUBLIC', 'FLOATER', 'OPTIONAL', 'MANDATORY', 'RESTRICTED']).default('PUBLIC'),
   description: z.string().default(''),
+  sendEmailToEmployees: z.boolean().optional(),
 });
 
 export const LeaveTypeSchema = z.object({

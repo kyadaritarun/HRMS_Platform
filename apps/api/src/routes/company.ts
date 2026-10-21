@@ -15,6 +15,12 @@ import {
 } from '../schemas/company.js';
 import { logActivity } from '../services/activityLog.js';
 import { generateAttendanceExcel } from '../services/attendance.js';
+import {
+  sendBirthdayWish,
+  sendHolidayAnnouncement,
+  runAutomatedEventEmails,
+  DEFAULT_EVENT_EMAIL_SETTINGS,
+} from '../services/eventEmailService.js';
 
 const router = Router();
 
@@ -303,7 +309,7 @@ router.post(
   async (req, res, next) => {
     try {
       const companyId = req.user!.companyId!;
-      const { name, date, type, description } = req.body;
+      const { name, date, type, description, sendEmailToEmployees } = req.body;
 
       const holiday = await prisma.holiday.create({
         data: {
@@ -323,6 +329,13 @@ router.post(
         objectId: String(holiday.id),
         message: `Added holiday: ${name} on ${date}`,
       });
+
+      // Automatically dispatch holiday announcement email to all employees once configured
+      sendHolidayAnnouncement({
+        companyId,
+        holidayId: holiday.id,
+        isManual: false,
+      }).catch((err) => console.error('[Holiday Email Dispatch Error]', err.message));
 
       return res.status(201).json({ holiday });
     } catch (error) {
@@ -346,6 +359,8 @@ router.patch(
         return next(new AppError(404, 'NOT_FOUND', 'Holiday not found'));
       }
       const data: any = { ...req.body };
+      delete data.sendEmailToEmployees;
+
       if (data.date) {
         data.date = new Date(data.date);
       }
@@ -353,6 +368,14 @@ router.patch(
         where: { id },
         data,
       });
+
+      // Automatically dispatch updated holiday announcement to all employees
+      sendHolidayAnnouncement({
+        companyId,
+        holidayId: updated.id,
+        isManual: false,
+      }).catch((err) => console.error('[Holiday Email Dispatch Error]', err.message));
+
       return res.json({ holiday: updated });
     } catch (error) {
       next(error);
@@ -370,6 +393,124 @@ router.delete('/holidays/:id', roleGuard('COMPANY_ADMIN', 'HR'), async (req, res
     });
 
     return res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ==========================================
+// AUTOMATED & ON-DEMAND EVENT EMAILS
+// ==========================================
+
+// GET /company/event-emails/settings
+router.get('/event-emails/settings', roleGuard('COMPANY_ADMIN', 'HR'), async (req, res, next) => {
+  try {
+    const companyId = req.user!.companyId!;
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { settings: true },
+    });
+    const settings = (company?.settings as any) || {};
+    const eventEmails = {
+      ...DEFAULT_EVENT_EMAIL_SETTINGS,
+      ...(settings.eventEmails || {}),
+    };
+    return res.json({ settings: eventEmails });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PUT /company/event-emails/settings
+router.put('/event-emails/settings', roleGuard('COMPANY_ADMIN', 'HR'), async (req, res, next) => {
+  try {
+    const companyId = req.user!.companyId!;
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { settings: true },
+    });
+    const currentSettings = (company?.settings as any) || {};
+    const updatedEventEmails = {
+      ...DEFAULT_EVENT_EMAIL_SETTINGS,
+      ...(currentSettings.eventEmails || {}),
+      ...req.body,
+    };
+    await prisma.company.update({
+      where: { id: companyId },
+      data: {
+        settings: {
+          ...currentSettings,
+          eventEmails: updatedEventEmails,
+        },
+      },
+    });
+
+    await logActivity({
+      companyId,
+      actorId: req.user!.id,
+      action: 'UPDATE_EVENT_EMAIL_SETTINGS',
+      objectType: 'CompanySettings',
+      objectId: String(companyId),
+      message: `${req.user!.firstName} updated automated birthday & holiday email settings`,
+    });
+
+    return res.json({
+      success: true,
+      message: 'Automated email settings updated successfully.',
+      settings: updatedEventEmails,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /company/event-emails/trigger-test
+router.post('/event-emails/trigger-test', roleGuard('COMPANY_ADMIN', 'HR'), async (req, res, next) => {
+  try {
+    const result = await runAutomatedEventEmails();
+    return res.json({
+      success: true,
+      message: 'Automated event emails check executed successfully.',
+      result,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /company/birthdays/:id/send-wishes
+router.post('/birthdays/:id/send-wishes', roleGuard('COMPANY_ADMIN', 'HR'), async (req, res, next) => {
+  try {
+    const companyId = req.user!.companyId!;
+    const userId = Number(req.params.id);
+    const result = await sendBirthdayWish({
+      companyId,
+      userId,
+      isManual: true,
+    });
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+    return res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /company/holidays/:id/send-announcement
+router.post('/holidays/:id/send-announcement', roleGuard('COMPANY_ADMIN', 'HR'), async (req, res, next) => {
+  try {
+    const companyId = req.user!.companyId!;
+    const holidayId = Number(req.params.id);
+    const result = await sendHolidayAnnouncement({
+      companyId,
+      holidayId,
+      isManual: true,
+    });
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+    return res.json(result);
   } catch (error) {
     next(error);
   }

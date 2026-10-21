@@ -369,11 +369,7 @@ export const App: React.FC = () => {
             />
             <Route
               path="/payroll/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
-                  <AttendanceSalaryPage />
-                </ProtectedRoute>
-              }
+              element={<Navigate to="/payroll/attendance-salary" replace />}
             />
             <Route
               path="/payroll/salaries"

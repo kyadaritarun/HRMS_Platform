@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -17,6 +17,13 @@ import {
   IconBriefcase,
   IconEye,
   IconX,
+  IconPencil,
+  IconRotateClockwise,
+  IconTrash,
+  IconCopy,
+  IconBold,
+  IconItalic,
+  IconUnderline,
 } from '@tabler/icons-react';
 
 export type LetterType =
@@ -39,6 +46,136 @@ export interface IssuedLetter {
 }
 
 const STORAGE_KEY = 'uptrix_issued_hr_letters';
+
+const stripHtml = (html: string) => {
+  const tmp = document.createElement('DIV');
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || '';
+};
+
+const getDefaultLetterContent = (
+  type: LetterType,
+  data: any,
+  companyName: string
+): { title: string; salutation: string; paragraphs: string[] } => {
+  const comp = companyName || 'Kyadari Technologies Pvt Ltd';
+  const boldName = `<strong class="font-bold text-slate-950">${data.recipientName || 'Employee'}</strong>`;
+  const boldCompany = `<strong class="font-bold text-slate-950">${comp}</strong>`;
+  const boldDesignation = `<strong class="font-bold text-slate-900">${data.designation || 'Associate'}</strong>`;
+  const boldDept = `<strong class="font-bold text-slate-900">${data.department || 'General'}</strong>`;
+
+  switch (type) {
+    case 'RELIEVING_EXPERIENCE':
+      return {
+        title: 'EXPERIENCE & SERVICE RELIEVING CERTIFICATE',
+        salutation: 'To Whom It May Concern,',
+        paragraphs: [
+          `This is to certify that ${boldName} was employed with ${boldCompany} from <strong class="font-bold text-slate-900">${data.joiningDate}</strong> to <strong class="font-bold text-slate-900">${data.relievingDate}</strong>. At the time of relieving, their designation was ${boldDesignation} in the ${boldDept} department.`,
+          `During their tenure with us, we found them to be diligent, self-motivated, and committed to their responsibilities. They have successfully completed all project handovers, and all organizational dues and clearances have been settled in full.`,
+          `They are relieved of their duties effective close of business hours on <strong class="font-bold text-slate-900">${data.relievingDate}</strong>. We sincerely thank them for their valuable contributions and wish them the very best in all their future professional endeavors.`,
+        ],
+      };
+
+    case 'BONAFIDE_EMPLOYMENT':
+      return {
+        title: 'CERTIFICATE OF BONAFIDE EMPLOYMENT',
+        salutation: 'To Whom It May Concern,',
+        paragraphs: [
+          `This is to formally certify that ${boldName} is a bonafide full-time employee of ${boldCompany}, holding the position of ${boldDesignation} in the ${boldDept} department since <strong class="font-bold text-slate-900">${data.joiningDate}</strong>.`,
+          `Their current Annual Cost to Company (CTC) is <strong class="font-bold text-slate-950">₹${Number(data.annualCtc || 0).toLocaleString('en-IN')}</strong> (Indian Rupees). Their employment status with the company is active, confirmed, and in good standing.`,
+          `This certificate is being issued upon the specific request of the employee for the purpose of <strong class="font-bold text-slate-900">${data.bonafidePurpose}</strong>, without any financial liability on the part of ${boldCompany}.`,
+        ],
+      };
+
+    case 'INCREMENT_APPRAISAL':
+      return {
+        title: 'ANNUAL COMPENSATION REVISION & APPRAISAL',
+        salutation: `Dear ${boldName},`,
+        paragraphs: [
+          `Following your annual performance review and in recognition of your consistent dedication, impact, and contributions to the ${boldDept} department, the management is pleased to inform you of the revision in your annual compensation package.`,
+          `Effective <strong class="font-bold text-slate-900">${data.effectiveDate}</strong>, your designation will be ${boldDesignation}. Your annual compensation has been revised from <strong class="font-bold text-slate-900">₹${Number(data.previousCtc || 0).toLocaleString('en-IN')}</strong> to <strong class="font-bold text-emerald-700">₹${Number(data.revisedCtc || 0).toLocaleString('en-IN')}</strong> per annum, representing an increment of <strong class="font-bold text-emerald-700">${data.incrementPercentage}%</strong>.`,
+          `All other terms, covenants, and conditions of your original employment appointment agreement remain unaltered and in full effect. We look forward to your continued leadership and scaling new milestones together.`,
+        ],
+      };
+
+    case 'INTERNSHIP_COMPLETION':
+      return {
+        title: 'CERTIFICATE OF INTERNSHIP COMPLETION',
+        salutation: 'To Whom It May Concern,',
+        paragraphs: [
+          `This is to certify that ${boldName} has successfully completed an intensive internship training program of <strong class="font-bold text-slate-900">${data.internshipDurationMonths} months</strong> with ${boldCompany} in the ${boldDept} division.`,
+          `During this tenure, they actively contributed to the project entitled: <strong class="font-bold text-slate-900">&ldquo;${data.internshipProject}&rdquo;</strong>. Their analytical problem-solving skills, proactive teamwork, and willingness to learn were commendable throughout the duration of the program.`,
+          `We congratulate them on the successful completion of the internship training and wish them abundant success in all their academic and professional pursuits.`,
+        ],
+      };
+
+    case 'WARNING_SHOWCAUSE':
+      return {
+        title: 'FORMAL SHOW CAUSE NOTICE / ADVISORY',
+        salutation: `Dear ${boldName},`,
+        paragraphs: [
+          `<strong class="font-bold text-rose-700">Official Notice Regarding: ${data.warningSubject}</strong>`,
+          `It has been formally brought to the attention of People Operations that on or around <strong class="font-bold text-slate-900">${data.warningIncidentDate}</strong>, your conduct was found to be in non-adherence with company workplace guidelines regarding <strong class="font-bold text-slate-900">${data.warningSubject}</strong>.`,
+          `Punctuality, professional conduct, and policy compliance are essential core expectations for every team member at ${boldCompany}. You are hereby requested to provide a written explanation addressing the above matter within <strong class="font-bold text-slate-900">${data.explanationDeadlineDays} working days</strong> from the receipt of this notice.`,
+          `Failure to submit a satisfactory written explanation within the stipulated window may necessitate formal disciplinary action in accordance with standard organizational governance policies.`,
+        ],
+      };
+  }
+};
+
+interface EditableParagraphProps {
+  html: string;
+  onChange: (newHtml: string) => void;
+  onDelete?: () => void;
+  canDelete?: boolean;
+}
+
+const EditableParagraph: React.FC<EditableParagraphProps> = ({
+  html,
+  onChange,
+  onDelete,
+  canDelete,
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const lastHtmlRef = useRef<string>('');
+  const isInitializedRef = useRef<boolean>(false);
+
+  // Synchronize innerHTML only on initial mount or when external html changes (e.g. template reset)
+  useEffect(() => {
+    if (!ref.current) return;
+    if (!isInitializedRef.current || (html !== lastHtmlRef.current && ref.current.innerHTML !== html)) {
+      ref.current.innerHTML = html;
+      lastHtmlRef.current = html;
+      isInitializedRef.current = true;
+    }
+  }, [html]);
+
+  return (
+    <div className="relative group/p">
+      <div
+        ref={ref}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={(e) => {
+          const newHtml = e.currentTarget.innerHTML;
+          lastHtmlRef.current = newHtml;
+          onChange(newHtml);
+        }}
+        className="w-full bg-transparent p-2.5 -m-2.5 rounded-xl border border-transparent hover:border-indigo-200 hover:bg-slate-50/50 focus:border-indigo-500 focus:bg-indigo-50/15 focus:ring-1 focus:ring-indigo-400 outline-none font-sans text-xs sm:text-sm text-slate-800 leading-relaxed text-justify transition-all"
+      />
+      {canDelete && onDelete && (
+        <button
+          type="button"
+          onClick={onDelete}
+          className="absolute -right-6 top-1.5 opacity-0 group-hover/p:opacity-100 transition-opacity p-1 rounded-md bg-rose-50 hover:bg-rose-100 text-rose-600 print:hidden cursor-pointer"
+          title="Delete paragraph"
+        >
+          <IconTrash className="w-3.5 h-3.5" />
+        </button>
+      )}
+    </div>
+  );
+};
 
 export const HrLettersPage: React.FC = () => {
   const { company, user } = useAuth();
@@ -84,6 +221,7 @@ export const HrLettersPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'GENERATE' | 'REPOSITORY'>('GENERATE');
   const [selectedLetterType, setSelectedLetterType] = useState<LetterType>('RELIEVING_EXPERIENCE');
   const [search, setSearch] = useState('');
+  const [copied, setCopied] = useState(false);
 
   // Form State for Letter Generation
   const [formData, setFormData] = useState({
@@ -111,6 +249,42 @@ export const HrLettersPage: React.FC = () => {
     explanationDeadlineDays: 3,
   });
 
+  // Direct In-Place Editable Content State with HTML formatting support
+  const [letterTitle, setLetterTitle] = useState('');
+  const [letterSalutation, setLetterSalutation] = useState('');
+  const [letterParagraphs, setLetterParagraphs] = useState<string[]>([]);
+  const [isCustomEdited, setIsCustomEdited] = useState(false);
+
+  // Sync default template content when inputs change (unless user manually modified text)
+  useEffect(() => {
+    if (!isCustomEdited) {
+      const defaultContent = getDefaultLetterContent(selectedLetterType, formData, company?.name || '');
+      setLetterTitle(defaultContent.title);
+      setLetterSalutation(defaultContent.salutation);
+      setLetterParagraphs(defaultContent.paragraphs);
+    }
+  }, [
+    selectedLetterType,
+    formData.recipientName,
+    formData.designation,
+    formData.department,
+    formData.joiningDate,
+    formData.relievingDate,
+    formData.bonafidePurpose,
+    formData.annualCtc,
+    formData.previousCtc,
+    formData.revisedCtc,
+    formData.incrementPercentage,
+    formData.effectiveDate,
+    formData.internshipProject,
+    formData.internshipDurationMonths,
+    formData.warningSubject,
+    formData.warningIncidentDate,
+    formData.explanationDeadlineDays,
+    company?.name,
+    isCustomEdited,
+  ]);
+
   // Fetch employees
   useEffect(() => {
     const fetchStaff = async () => {
@@ -131,7 +305,7 @@ export const HrLettersPage: React.FC = () => {
     } catch (_) {}
   }, [issuedLetters]);
 
-  // When an employee is picked from dropdown, auto-fill fields
+  // When an employee is picked from dropdown, auto-fill fields & refresh letter
   const handleSelectEmployee = (empId: string) => {
     const emp = employees.find((e) => String(e.id) === String(empId));
     if (!emp) return;
@@ -148,8 +322,75 @@ export const HrLettersPage: React.FC = () => {
       revisedCtc: Math.round(Number(emp.monthlySalary || 50000) * 12 * 1.15),
       incrementPercentage: 15,
     }));
+    setIsCustomEdited(false);
   };
 
+  // Switch template
+  const handleSelectTemplate = (typeId: LetterType) => {
+    setSelectedLetterType(typeId);
+    setFormData((p) => ({
+      ...p,
+      referenceNumber: `UPTX/HR/${typeId.slice(0, 3)}/${new Date().getFullYear()}/${Math.floor(
+        100 + Math.random() * 900
+      )}`,
+    }));
+    setIsCustomEdited(false);
+  };
+
+  // Reset in-place edited text back to standard template
+  const handleResetToTemplate = () => {
+    const defaultContent = getDefaultLetterContent(selectedLetterType, formData, company?.name || '');
+    setLetterTitle(defaultContent.title);
+    setLetterSalutation(defaultContent.salutation);
+    setLetterParagraphs(defaultContent.paragraphs);
+    setIsCustomEdited(false);
+  };
+
+  // Paragraph handlers
+  const handleParagraphChange = (index: number, val: string) => {
+    setIsCustomEdited(true);
+    setLetterParagraphs((prev) => {
+      const copy = [...prev];
+      copy[index] = val;
+      return copy;
+    });
+  };
+
+  const handleAddParagraph = () => {
+    setIsCustomEdited(true);
+    setLetterParagraphs((prev) => [...prev, 'Type your custom paragraph here...']);
+  };
+
+  const handleDeleteParagraph = (index: number) => {
+    setIsCustomEdited(true);
+    setLetterParagraphs((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  // Copy letter text to clipboard
+  const handleCopyFullText = () => {
+    const fullText = [
+      formData.referenceNumber,
+      `Date: ${formData.issueDate}`,
+      '',
+      stripHtml(letterSalutation),
+      formData.recipientName,
+      `${formData.designation} - ${formData.department}`,
+      '',
+      letterTitle,
+      '',
+      ...letterParagraphs.map(stripHtml),
+      '',
+      formData.signatoryName,
+      formData.signatoryDesignation,
+      company?.name || 'Kyadari Technologies Pvt Ltd',
+    ].join('\n\n');
+
+    navigator.clipboard.writeText(fullText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Issue Letter
   const handleIssueLetter = () => {
     const newRecord: IssuedLetter = {
       id: `LTR-${new Date().getFullYear()}-${String(issuedLetters.length + 1).padStart(3, '0')}`,
@@ -160,7 +401,13 @@ export const HrLettersPage: React.FC = () => {
       department: formData.department,
       issueDate: formData.issueDate,
       referenceNumber: formData.referenceNumber,
-      contentSnapshot: { ...formData },
+      contentSnapshot: {
+        ...formData,
+        letterTitle,
+        letterSalutation,
+        letterParagraphs,
+        isCustomEdited,
+      },
     };
 
     setIssuedLetters([newRecord, ...issuedLetters]);
@@ -170,21 +417,21 @@ export const HrLettersPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print:hidden">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
             <IconFileCertificate className="w-7 h-7 text-indigo-600" />
             HR Letters & Certificates Hub
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Generate, customize, and issue verified corporate letters on company letterhead with one-click print/PDF.
+            Generate, customize, and issue verified corporate letters on company letterhead with direct in-place editing.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveTab('GENERATE')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'GENERATE'
                 ? 'bg-indigo-600 text-white shadow-xs'
                 : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -194,7 +441,7 @@ export const HrLettersPage: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('REPOSITORY')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'REPOSITORY'
                 ? 'bg-indigo-600 text-white shadow-xs'
                 : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -208,7 +455,7 @@ export const HrLettersPage: React.FC = () => {
       {activeTab === 'GENERATE' ? (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Column: Letter Configuration Form (col-span 5) */}
-          <div className="lg:col-span-5 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-5">
+          <div className="lg:col-span-5 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-5 print:hidden">
             <div>
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
                 1. Select Letter Template
@@ -251,16 +498,8 @@ export const HrLettersPage: React.FC = () => {
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => {
-                        setSelectedLetterType(item.id as LetterType);
-                        setFormData((p) => ({
-                          ...p,
-                          referenceNumber: `UPTX/HR/${item.id.slice(0, 3)}/${new Date().getFullYear()}/${Math.floor(
-                            100 + Math.random() * 900
-                          )}`,
-                        }));
-                      }}
-                      className={`w-full p-3 rounded-2xl border text-left flex items-start gap-3 transition-all ${
+                      onClick={() => handleSelectTemplate(item.id as LetterType)}
+                      className={`w-full p-3 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
                         selectedLetterType === item.id
                           ? 'bg-indigo-50/70 border-indigo-300 ring-2 ring-indigo-500/20'
                           : 'border-slate-200 hover:bg-slate-50'
@@ -295,12 +534,12 @@ export const HrLettersPage: React.FC = () => {
               <select
                 value={formData.employeeId}
                 onChange={(e) => handleSelectEmployee(e.target.value)}
-                className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl"
+                className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl cursor-pointer outline-none focus:ring-1 focus:ring-indigo-500 font-medium"
               >
                 <option value="">-- Choose Existing Employee or Enter Custom --</option>
                 {employees.map((e) => (
                   <option key={e.id} value={e.id}>
-                    {e.firstName} {e.lastName} ({e.department?.name || 'General'} - {e.jobTitle})
+                    {e.firstName} {e.lastName} ({e.department?.name || 'General'} - {e.jobTitle || 'Staff'})
                   </option>
                 ))}
               </select>
@@ -314,7 +553,7 @@ export const HrLettersPage: React.FC = () => {
                   type="text"
                   value={formData.recipientName}
                   onChange={(e) => setFormData({ ...formData, recipientName: e.target.value })}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-semibold"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
               <div>
@@ -323,7 +562,7 @@ export const HrLettersPage: React.FC = () => {
                   type="text"
                   value={formData.designation}
                   onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
             </div>
@@ -335,7 +574,7 @@ export const HrLettersPage: React.FC = () => {
                   type="text"
                   value={formData.department}
                   onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
               <div>
@@ -344,7 +583,7 @@ export const HrLettersPage: React.FC = () => {
                   type="date"
                   value={formData.issueDate}
                   onChange={(e) => setFormData({ ...formData, issueDate: e.target.value })}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
             </div>
@@ -358,7 +597,7 @@ export const HrLettersPage: React.FC = () => {
                     type="date"
                     value={formData.joiningDate}
                     onChange={(e) => setFormData({ ...formData, joiningDate: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
@@ -367,7 +606,7 @@ export const HrLettersPage: React.FC = () => {
                     type="date"
                     value={formData.relievingDate}
                     onChange={(e) => setFormData({ ...formData, relievingDate: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
               </div>
@@ -381,7 +620,7 @@ export const HrLettersPage: React.FC = () => {
                     type="text"
                     value={formData.bonafidePurpose}
                     onChange={(e) => setFormData({ ...formData, bonafidePurpose: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
@@ -390,7 +629,7 @@ export const HrLettersPage: React.FC = () => {
                     type="number"
                     value={formData.annualCtc}
                     onChange={(e) => setFormData({ ...formData, annualCtc: Number(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500 font-bold"
                   />
                 </div>
               </div>
@@ -404,7 +643,7 @@ export const HrLettersPage: React.FC = () => {
                     type="number"
                     value={formData.previousCtc}
                     onChange={(e) => setFormData({ ...formData, previousCtc: Number(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
@@ -413,7 +652,7 @@ export const HrLettersPage: React.FC = () => {
                     type="number"
                     value={formData.revisedCtc}
                     onChange={(e) => setFormData({ ...formData, revisedCtc: Number(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl font-bold text-emerald-600"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl font-bold text-emerald-600 outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
                 <div className="col-span-2">
@@ -422,7 +661,7 @@ export const HrLettersPage: React.FC = () => {
                     type="date"
                     value={formData.effectiveDate}
                     onChange={(e) => setFormData({ ...formData, effectiveDate: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
               </div>
@@ -436,7 +675,7 @@ export const HrLettersPage: React.FC = () => {
                     type="text"
                     value={formData.internshipProject}
                     onChange={(e) => setFormData({ ...formData, internshipProject: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
@@ -447,7 +686,7 @@ export const HrLettersPage: React.FC = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, internshipDurationMonths: Number(e.target.value) || 3 })
                     }
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
               </div>
@@ -461,7 +700,7 @@ export const HrLettersPage: React.FC = () => {
                     type="text"
                     value={formData.warningSubject}
                     onChange={(e) => setFormData({ ...formData, warningSubject: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl font-semibold text-rose-700"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl font-semibold text-rose-700 outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -471,7 +710,7 @@ export const HrLettersPage: React.FC = () => {
                       type="date"
                       value={formData.warningIncidentDate}
                       onChange={(e) => setFormData({ ...formData, warningIncidentDate: e.target.value })}
-                      className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl"
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500"
                     />
                   </div>
                   <div>
@@ -482,7 +721,7 @@ export const HrLettersPage: React.FC = () => {
                       onChange={(e) =>
                         setFormData({ ...formData, explanationDeadlineDays: Number(e.target.value) || 2 })
                       }
-                      className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl"
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500"
                     />
                   </div>
                 </div>
@@ -493,36 +732,99 @@ export const HrLettersPage: React.FC = () => {
               <button
                 type="button"
                 onClick={handleIssueLetter}
-                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
               >
                 Save to HR Repository
               </button>
             </div>
           </div>
 
-          {/* Right Column: Live Letterhead Preview (col-span 7) */}
-          <div className="lg:col-span-7 space-y-3">
-            <div className="flex items-center justify-between px-2">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                <IconEye className="w-4 h-4 text-indigo-600" />
-                Live Corporate Letterhead Preview
-              </span>
-              <button
-                onClick={() => window.print()}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
-              >
-                <IconPrinter className="w-4 h-4" />
-                Print / Save as PDF
-              </button>
+          {/* Right Column: Live Letterhead Preview & Direct In-Place Editor (col-span 7) */}
+          <div className="lg:col-span-7 space-y-3 print:w-full print:col-span-12 print:p-0 print:m-0">
+            {/* Editor Action Toolbar with Rich Formatting Bar */}
+            <div className="flex items-center justify-between px-2 print:hidden flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <IconPencil className="w-4 h-4 text-indigo-600" />
+                  Live Letterhead
+                </span>
+
+                {/* Quick Formatting Buttons for In-Place Editor */}
+                <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 ml-1">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      document.execCommand('bold', false);
+                    }}
+                    className="p-1 hover:bg-white rounded text-slate-700 hover:text-slate-900 transition-colors cursor-pointer"
+                    title="Bold selected text (Ctrl+B)"
+                  >
+                    <IconBold className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      document.execCommand('italic', false);
+                    }}
+                    className="p-1 hover:bg-white rounded text-slate-700 hover:text-slate-900 transition-colors cursor-pointer"
+                    title="Italic selected text (Ctrl+I)"
+                  >
+                    <IconItalic className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      document.execCommand('underline', false);
+                    }}
+                    className="p-1 hover:bg-white rounded text-slate-700 hover:text-slate-900 transition-colors cursor-pointer"
+                    title="Underline selected text (Ctrl+U)"
+                  >
+                    <IconUnderline className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {isCustomEdited && (
+                  <button
+                    type="button"
+                    onClick={handleResetToTemplate}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                    title="Reset letter text back to standard template"
+                  >
+                    <IconRotateClockwise className="w-3.5 h-3.5" />
+                    Reset Template
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleCopyFullText}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  {copied ? <IconCheck className="w-3.5 h-3.5 text-emerald-600" /> : <IconCopy className="w-3.5 h-3.5" />}
+                  {copied ? 'Copied!' : 'Copy Text'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                >
+                  <IconPrinter className="w-4 h-4" />
+                  Print / Save as PDF
+                </button>
+              </div>
             </div>
 
             {/* Letterhead Paper Container */}
-            <div className="p-10 bg-white border border-slate-300 rounded-3xl shadow-sm min-h-[750px] font-serif text-slate-800 space-y-6 text-sm relative">
+            <div className="p-8 sm:p-10 bg-white border border-slate-300 rounded-3xl shadow-sm min-h-[750px] font-serif text-slate-800 space-y-6 text-sm relative print:border-none print:shadow-none print:p-0 print:m-0 print:w-full print:rounded-none">
               {/* Header Letterhead */}
               <div className="flex justify-between items-start border-b-2 border-slate-900 pb-5">
                 <div>
                   <h2 className="text-2xl font-black font-sans tracking-tight text-slate-900">
-                    {company?.name || 'UPTRIX TECHNOLOGIES'}
+                    {company?.name || 'Kyadari Technologies Pvt Ltd'}
                   </h2>
                   <p className="text-xs font-sans text-slate-500 mt-0.5">
                     Corporate Identity: HR-OPS • Human Capital & People Success Desk
@@ -533,7 +835,7 @@ export const HrLettersPage: React.FC = () => {
                 </div>
                 <div className="text-right font-sans text-xs">
                   <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white font-black flex items-center justify-center text-lg ml-auto mb-1">
-                    U
+                    {company?.name ? company.name.charAt(0).toUpperCase() : 'K'}
                   </div>
                   <span className="font-bold text-slate-900">CONFIDENTIAL</span>
                 </div>
@@ -557,162 +859,96 @@ export const HrLettersPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Salutation */}
+              {/* Salutation & Recipient Info (Candidate Name is explicitly bold and prominent) */}
               <div className="font-sans text-xs space-y-1">
-                <p className="font-semibold text-slate-500">To Whom It May Concern,</p>
-                <p className="text-sm font-bold text-slate-900">
+                <input
+                  type="text"
+                  value={letterSalutation}
+                  onChange={(e) => {
+                    setLetterSalutation(e.target.value);
+                    setIsCustomEdited(true);
+                  }}
+                  className="font-semibold text-slate-600 text-xs bg-transparent border-b border-transparent hover:border-indigo-300 focus:border-indigo-500 focus:bg-indigo-50/20 rounded px-1 -mx-1 outline-none w-full max-w-sm transition-all print:border-none print:p-0"
+                  placeholder="Salutation (e.g. To Whom It May Concern,)"
+                />
+                <p className="text-base font-black text-slate-950 px-1 -mx-1 tracking-tight">
                   {formData.recipientName}
                 </p>
-                <p className="text-slate-600">{formData.designation} - {formData.department}</p>
+                <p className="text-slate-600 font-medium px-1 -mx-1">
+                  {formData.designation} - {formData.department}
+                </p>
               </div>
 
-              {/* Letter Title Banner */}
+              {/* Letter Title Banner (In-Place Editable) */}
               <div className="text-center py-2 border-y border-slate-200 my-4">
-                <span className="font-sans font-black text-sm tracking-wide text-slate-900 uppercase">
-                  {selectedLetterType === 'RELIEVING_EXPERIENCE' && 'EXPERIENCE & SERVICE RELIEVING CERTIFICATE'}
-                  {selectedLetterType === 'BONAFIDE_EMPLOYMENT' && 'CERTIFICATE OF BONAFIDE EMPLOYMENT'}
-                  {selectedLetterType === 'INCREMENT_APPRAISAL' && 'ANNUAL COMPENSATION REVISION & APPRAISAL'}
-                  {selectedLetterType === 'INTERNSHIP_COMPLETION' && 'CERTIFICATE OF INTERNSHIP COMPLETION'}
-                  {selectedLetterType === 'WARNING_SHOWCAUSE' && 'FORMAL SHOW CAUSE NOTICE / ADVISORY'}
-                </span>
+                <input
+                  type="text"
+                  value={letterTitle}
+                  onChange={(e) => {
+                    setLetterTitle(e.target.value);
+                    setIsCustomEdited(true);
+                  }}
+                  className="w-full text-center font-sans font-black text-xs sm:text-sm tracking-wide text-slate-900 uppercase bg-transparent border-b border-transparent hover:border-indigo-300 focus:border-indigo-500 focus:bg-indigo-50/20 rounded px-2 outline-none transition-all print:border-none print:p-0"
+                  placeholder="Letter Title"
+                />
               </div>
 
-              {/* Letter Body Paragraphs based on type */}
-              <div className="space-y-4 leading-relaxed text-justify font-sans text-xs sm:text-sm text-slate-700">
-                {selectedLetterType === 'RELIEVING_EXPERIENCE' && (
-                  <>
-                    <p>
-                      This is to certify that <strong className="text-slate-900">{formData.recipientName}</strong> was
-                      employed with <strong className="text-slate-900">{company?.name || 'Uptrix Technologies'}</strong>{' '}
-                      from <strong className="text-slate-900">{formData.joiningDate}</strong> to{' '}
-                      <strong className="text-slate-900">{formData.relievingDate}</strong>. At the time of relieving, their
-                      designation was <strong className="text-slate-900">{formData.designation}</strong> in the{' '}
-                      <strong className="text-slate-900">{formData.department}</strong> department.
-                    </p>
-                    <p>
-                      During their tenure with us, we found them to be diligent, self-motivated, and committed to their
-                      responsibilities. They have successfully completed all handovers, and all organizational dues and
-                      clearances have been settled in full.
-                    </p>
-                    <p>
-                      They are relieved of their duties effective close of business hours on{' '}
-                      <strong className="text-slate-900">{formData.relievingDate}</strong>. We sincerely thank them for their
-                      valuable contributions and wish them the very best in all their future endeavors.
-                    </p>
-                  </>
-                )}
+              {/* Letter Body: Direct In-Place Rich Editable Paragraphs with Bold Candidate Names */}
+              <div className="space-y-4">
+                {letterParagraphs.map((paraHtml, idx) => (
+                  <EditableParagraph
+                    key={idx}
+                    html={paraHtml}
+                    onChange={(newHtml) => handleParagraphChange(idx, newHtml)}
+                    canDelete={letterParagraphs.length > 1}
+                    onDelete={() => handleDeleteParagraph(idx)}
+                  />
+                ))}
 
-                {selectedLetterType === 'BONAFIDE_EMPLOYMENT' && (
-                  <>
-                    <p>
-                      This is to formally certify that <strong className="text-slate-900">{formData.recipientName}</strong> is
-                      a bonafide full-time employee of <strong className="text-slate-900">{company?.name || 'Uptrix Technologies'}</strong>,
-                      holding the position of <strong className="text-slate-900">{formData.designation}</strong> in the{' '}
-                      <strong className="text-slate-900">{formData.department}</strong> department since{' '}
-                      <strong className="text-slate-900">{formData.joiningDate}</strong>.
-                    </p>
-                    <p>
-                      Their current Annual Cost to Company (CTC) is{' '}
-                      <strong className="text-slate-900">₹{Number(formData.annualCtc).toLocaleString()}</strong> (Indian
-                      Rupees). Their employment status is active and in good standing.
-                    </p>
-                    <p>
-                      This certificate is being issued upon the specific request of the employee for the purpose of{' '}
-                      <strong className="text-slate-900">{formData.bonafidePurpose}</strong>, without any financial liability on the part of the company.
-                    </p>
-                  </>
-                )}
-
+                {/* Increment appraisal CTC breakdown card */}
                 {selectedLetterType === 'INCREMENT_APPRAISAL' && (
-                  <>
-                    <p>
-                      Dear <strong className="text-slate-900">{formData.recipientName}</strong>,
-                    </p>
-                    <p>
-                      Following your annual performance review and in recognition of your dedication and contributions to the{' '}
-                      <strong className="text-slate-900">{formData.department}</strong> department, the management is pleased
-                      to inform you of the revision in your annual compensation package.
-                    </p>
-                    <div className="my-3 p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2 font-sans text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Designation:</span>
-                        <span className="font-bold text-slate-900">{formData.designation}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Effective Date:</span>
-                        <span className="font-bold text-slate-900">{formData.effectiveDate}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Previous Annual CTC:</span>
-                        <span className="font-bold text-slate-600">₹{Number(formData.previousCtc).toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between border-t border-slate-200 pt-1 text-sm">
-                        <span className="font-bold text-slate-900">Revised Annual CTC:</span>
-                        <span className="font-black text-emerald-600">
-                          ₹{Number(formData.revisedCtc).toLocaleString()} (+{formData.incrementPercentage}%)
-                        </span>
-                      </div>
+                  <div className="my-3 p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2 font-sans text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Designation:</span>
+                      <span className="font-bold text-slate-900">{formData.designation}</span>
                     </div>
-                    <p>
-                      All other terms and conditions of your original employment agreement remain unaltered. We appreciate your
-                      continued dedication and look forward to scaling new milestones together.
-                    </p>
-                  </>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Effective Date:</span>
+                      <span className="font-bold text-slate-900">{formData.effectiveDate}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Previous Annual CTC:</span>
+                      <span className="font-bold text-slate-600">
+                        ₹{Number(formData.previousCtc || 0).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-t border-slate-200 pt-1 text-sm">
+                      <span className="font-bold text-slate-900">Revised Annual CTC:</span>
+                      <span className="font-black text-emerald-600">
+                        ₹{Number(formData.revisedCtc || 0).toLocaleString('en-IN')} (+{formData.incrementPercentage}%)
+                      </span>
+                    </div>
+                  </div>
                 )}
 
-                {selectedLetterType === 'INTERNSHIP_COMPLETION' && (
-                  <>
-                    <p>
-                      This is to certify that <strong className="text-slate-900">{formData.recipientName}</strong> has
-                      successfully completed an internship training program of{' '}
-                      <strong className="text-slate-900">{formData.internshipDurationMonths} months</strong> with{' '}
-                      <strong className="text-slate-900">{company?.name || 'Uptrix Technologies'}</strong> in the{' '}
-                      <strong className="text-slate-900">{formData.department}</strong> division.
-                    </p>
-                    <p>
-                      During this tenure, they actively contributed to the project entitled:{' '}
-                      <strong className="text-slate-900">&ldquo;{formData.internshipProject}&rdquo;</strong>. Their
-                      performance, analytical aptitude, and willingness to learn were commendable throughout the duration of
-                      the internship.
-                    </p>
-                    <p>
-                      We congratulate them on the successful completion of the internship and wish them all success in their
-                      academic and professional journey.
-                    </p>
-                  </>
-                )}
-
-                {selectedLetterType === 'WARNING_SHOWCAUSE' && (
-                  <>
-                    <p>
-                      Dear <strong className="text-slate-900">{formData.recipientName}</strong>,
-                    </p>
-                    <p className="text-rose-700 font-semibold">
-                      Subject: Official Notice Regarding {formData.warningSubject}
-                    </p>
-                    <p>
-                      It has been formally brought to the attention of People Operations that on or around{' '}
-                      <strong className="text-slate-900">{formData.warningIncidentDate}</strong>, your conduct was found to be in
-                      breach of company workplace guidelines regarding{' '}
-                      <strong className="text-slate-900">{formData.warningSubject}</strong>.
-                    </p>
-                    <p>
-                      Punctuality, professional conduct, and policy compliance are essential expectations for every team member
-                      at {company?.name || 'Uptrix Technologies'}. You are hereby requested to provide a written explanation
-                      addressing the above within{' '}
-                      <strong className="text-slate-900">{formData.explanationDeadlineDays} working days</strong> from the receipt
-                      of this notice.
-                    </p>
-                    <p>
-                      Failure to submit a satisfactory response may lead to formal disciplinary action in accordance with company
-                      policies.
-                    </p>
-                  </>
-                )}
+                {/* Editor Action Buttons below Body */}
+                <div className="pt-2 print:hidden flex items-center justify-between border-t border-dashed border-slate-200">
+                  <button
+                    type="button"
+                    onClick={handleAddParagraph}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-dashed border-indigo-300 text-indigo-700 bg-indigo-50/50 hover:bg-indigo-100/70 text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    <IconPlus className="w-3.5 h-3.5" />
+                    <span>Add New Paragraph</span>
+                  </button>
+                  <span className="text-[11px] text-slate-400 italic">
+                    💡 Click anywhere to edit text. Highlight words and press <kbd className="px-1 py-0.5 bg-slate-100 rounded border border-slate-300 font-mono text-[10px]">Ctrl+B</kbd> to bold.
+                  </span>
+                </div>
               </div>
 
-              {/* Signatory Footer */}
-              <div className="pt-12 flex justify-between items-end border-t border-slate-100 font-sans text-xs">
+              {/* Signatory Footer (In-Place Editable) */}
+              <div className="pt-10 flex justify-between items-end border-t border-slate-100 font-sans text-xs">
                 <div>
                   <div className="inline-block px-3 py-1 bg-slate-100 rounded-lg text-[10px] font-bold text-slate-500 uppercase tracking-widest border border-slate-200 mb-2">
                     OFFICIAL HR SEAL
@@ -720,10 +956,24 @@ export const HrLettersPage: React.FC = () => {
                   <p className="text-slate-400 text-[10px]">Issued via Uptrix Enterprise HRMS Core</p>
                 </div>
 
-                <div className="text-right">
-                  <div className="font-bold text-slate-900 text-sm">{formData.signatoryName}</div>
-                  <div className="text-slate-500 text-xs">{formData.signatoryDesignation}</div>
-                  <div className="text-slate-400 text-[11px]">{company?.name || 'Uptrix Technologies'}</div>
+                <div className="text-right space-y-0.5">
+                  <input
+                    type="text"
+                    value={formData.signatoryName}
+                    onChange={(e) => setFormData({ ...formData, signatoryName: e.target.value })}
+                    className="font-bold text-slate-900 text-sm bg-transparent border-b border-transparent hover:border-indigo-300 focus:border-indigo-500 outline-none text-right w-56 block ml-auto rounded px-1 transition-all print:border-none print:p-0"
+                    placeholder="Signatory Name"
+                  />
+                  <input
+                    type="text"
+                    value={formData.signatoryDesignation}
+                    onChange={(e) => setFormData({ ...formData, signatoryDesignation: e.target.value })}
+                    className="text-slate-500 text-xs bg-transparent border-b border-transparent hover:border-indigo-300 focus:border-indigo-500 outline-none text-right w-56 block ml-auto rounded px-1 transition-all print:border-none print:p-0"
+                    placeholder="Signatory Title"
+                  />
+                  <div className="text-slate-400 text-[11px] pr-1">
+                    {company?.name || 'Kyadari Technologies Pvt Ltd'}
+                  </div>
                 </div>
               </div>
             </div>
@@ -740,7 +990,7 @@ export const HrLettersPage: React.FC = () => {
                 placeholder="Search issued letters..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl"
+                className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500"
               />
             </div>
           </div>
@@ -765,7 +1015,7 @@ export const HrLettersPage: React.FC = () => {
                       <td className="px-6 py-4 font-bold text-slate-900">{letter.referenceNumber}</td>
                       <td className="px-6 py-4">
                         <span className="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-semibold text-[10px]">
-                          {letter.type.replace('_', ' ')}
+                          {letter.type.replace(/_/g, ' ')}
                         </span>
                       </td>
                       <td className="px-6 py-4 font-semibold text-slate-900">{letter.employeeName}</td>
@@ -776,9 +1026,17 @@ export const HrLettersPage: React.FC = () => {
                           onClick={() => {
                             setSelectedLetterType(letter.type);
                             setFormData((p) => ({ ...p, ...letter.contentSnapshot }));
+                            if (letter.contentSnapshot?.letterParagraphs) {
+                              setLetterTitle(letter.contentSnapshot.letterTitle || '');
+                              setLetterSalutation(letter.contentSnapshot.letterSalutation || '');
+                              setLetterParagraphs(letter.contentSnapshot.letterParagraphs);
+                              setIsCustomEdited(true);
+                            } else {
+                              setIsCustomEdited(false);
+                            }
                             setActiveTab('GENERATE');
                           }}
-                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-800 font-bold"
+                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-800 font-bold cursor-pointer transition-colors"
                         >
                           View & Print
                         </button>

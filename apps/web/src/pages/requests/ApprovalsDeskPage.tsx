@@ -51,11 +51,30 @@ export const ApprovalsDeskPage: React.FC = () => {
   const [search, setSearch] = useState<string>('');
   const [actionModal, setActionModal] = useState<{
     open: boolean;
+    req?: ApprovalRequest;
     reqId?: number;
     decision?: 'APPROVED' | 'REJECTED';
     note: string;
   }>({ open: false, note: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const getRequestTypeHeading = (type?: string, decision?: 'APPROVED' | 'REJECTED') => {
+    const action = decision === 'APPROVED' ? 'Approve' : 'Reject';
+    switch (type) {
+      case 'LEAVE':
+        return `${action} Leave Request`;
+      case 'REGULARIZATION':
+        return `${action} Attendance Regularization`;
+      case 'COMP_OFF':
+        return `${action} Comp-Off Request`;
+      case 'CLAIM':
+        return `${action} Expense Claim`;
+      case 'GOAL':
+        return `${action} Performance Goal`;
+      default:
+        return `${action} Request`;
+    }
+  };
 
   useEffect(() => {
     if (location.pathname.includes('/leaves')) setSelectedType('LEAVE');
@@ -329,7 +348,7 @@ export const ApprovalsDeskPage: React.FC = () => {
                             {req.user?.firstName} {req.user?.lastName}
                           </div>
                           <div className="text-[11px] text-slate-400 font-normal">
-                            {req.user?.jobTitle || req.user?.email}
+                            {req.user?.email}
                           </div>
                         </div>
                       </div>
@@ -399,7 +418,7 @@ export const ApprovalsDeskPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() =>
-                              setActionModal({ open: true, reqId: req.id, decision: 'REJECTED', note: '' })
+                              setActionModal({ open: true, req, reqId: req.id, decision: 'REJECTED', note: '' })
                             }
                             className="px-2.5 py-1.5 rounded-lg border border-rose-200 text-rose-700 bg-rose-50/60 hover:bg-rose-100 font-bold text-[11px] transition-colors flex items-center gap-1 cursor-pointer"
                           >
@@ -409,7 +428,7 @@ export const ApprovalsDeskPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() =>
-                              setActionModal({ open: true, reqId: req.id, decision: 'APPROVED', note: '' })
+                              setActionModal({ open: true, req, reqId: req.id, decision: 'APPROVED', note: '' })
                             }
                             className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-xs transition-colors flex items-center gap-1 cursor-pointer"
                           >
@@ -432,56 +451,103 @@ export const ApprovalsDeskPage: React.FC = () => {
       {/* Decision Note Modal with Portal */}
       {actionModal.open && typeof document !== 'undefined' ? (
         createPortal(
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
             <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl p-6 border border-slate-100 animate-in zoom-in-95">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-bold text-slate-900">
-                  Confirm {actionModal.decision === 'APPROVED' ? 'Approval' : 'Rejection'}
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setActionModal({ open: false, note: '' })}
-                  className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 cursor-pointer"
-                >
-                  <IconX className="w-4 h-4" />
-                </button>
-              </div>
+              {(() => {
+                const targetReq = actionModal.req || requests.find((r) => r.id === actionModal.reqId);
+                return (
+                  <>
+                    <div className="flex items-start justify-between mb-4 gap-3">
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
+                            actionModal.decision === 'APPROVED'
+                              ? 'bg-emerald-50 text-emerald-600 border-emerald-200/80'
+                              : 'bg-rose-50 text-rose-600 border-rose-200/80'
+                          }`}
+                        >
+                          {actionModal.decision === 'APPROVED' ? (
+                            <IconCheck className="w-5 h-5" />
+                          ) : (
+                            <IconX className="w-5 h-5" />
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="text-base font-bold text-slate-900 leading-tight">
+                            {getRequestTypeHeading(targetReq?.type, actionModal.decision)}
+                          </h3>
+                          {targetReq?.user && (
+                            <p className="text-xs text-slate-500 mt-1">
+                              Requested by <span className="font-semibold text-slate-800">{targetReq.user.firstName} {targetReq.user.lastName}</span>
+                              {targetReq.days ? <span className="text-slate-600 font-medium"> ({targetReq.days} days)</span> : null}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActionModal({ open: false, note: '' })}
+                        className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 cursor-pointer shrink-0"
+                      >
+                        <IconX className="w-4 h-4" />
+                      </button>
+                    </div>
 
-              <form onSubmit={handleDecisionSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Optional Feedback / Approver Note
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="e.g. Approved, please hand over shift duties..."
-                    value={actionModal.note}
-                    onChange={(e) => setActionModal({ ...actionModal, note: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] resize-none"
-                  />
-                </div>
+                    <form onSubmit={handleDecisionSubmit} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                          {actionModal.decision === 'APPROVED'
+                            ? 'Approver Remarks / Note (Optional)'
+                            : 'Reason for Rejection (Optional)'}
+                        </label>
+                        <textarea
+                          rows={3}
+                          placeholder={
+                            actionModal.decision === 'APPROVED'
+                              ? 'e.g. Approved. Please coordinate handover before taking leave...'
+                              : 'e.g. Please provide additional documentation or reschedule...'
+                          }
+                          value={actionModal.note}
+                          onChange={(e) => setActionModal({ ...actionModal, note: e.target.value })}
+                          className="w-full px-3.5 py-2.5 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] focus:ring-2 focus:ring-[#5E4BE2]/10 resize-none transition-all placeholder:text-slate-400"
+                        />
+                      </div>
 
-                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => setActionModal({ open: false, note: '' })}
-                    className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className={`px-5 py-2 text-xs font-bold rounded-xl text-white shadow-xs disabled:opacity-50 cursor-pointer transition-colors ${
-                      actionModal.decision === 'APPROVED'
-                        ? 'bg-emerald-600 hover:bg-emerald-700'
-                        : 'bg-rose-600 hover:bg-rose-700'
-                    }`}
-                  >
-                    {isSubmitting ? 'Recording...' : `Confirm ${actionModal.decision}`}
-                  </button>
-                </div>
-              </form>
+                      <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                        <button
+                          type="button"
+                          onClick={() => setActionModal({ open: false, note: '' })}
+                          className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={isSubmitting}
+                          className={`inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold rounded-xl text-white shadow-xs disabled:opacity-50 cursor-pointer transition-colors ${
+                            actionModal.decision === 'APPROVED'
+                              ? 'bg-emerald-600 hover:bg-emerald-700'
+                              : 'bg-rose-600 hover:bg-rose-700'
+                          }`}
+                        >
+                          {isSubmitting ? (
+                            <span>Recording...</span>
+                          ) : (
+                            <>
+                              {actionModal.decision === 'APPROVED' ? (
+                                <IconCheck className="w-3.5 h-3.5" />
+                              ) : (
+                                <IconX className="w-3.5 h-3.5" />
+                              )}
+                              <span>{actionModal.decision === 'APPROVED' ? 'Approve Request' : 'Reject Request'}</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </form>
+                  </>
+                );
+              })()}
             </div>
           </div>,
           document.body

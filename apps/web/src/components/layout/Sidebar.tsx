@@ -354,6 +354,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           ) {
             return true;
           }
+          if (
+            sub.path === '/payroll/attendance-salary' &&
+            ['/payroll/attendance-salary', '/payroll/dashboard'].includes(location.pathname)
+          ) {
+            return true;
+          }
           return false;
         });
         if (hasMatch) return cat.id;
@@ -545,13 +551,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
                           '/performance/goals/manage',
                         ].includes(location.pathname);
 
+                      const isPayrollActive =
+                        subItem.path === '/payroll/attendance-salary' &&
+                        ['/payroll/attendance-salary', '/payroll/dashboard'].includes(location.pathname);
+
                       return (
                         <NavLink
                           key={subItem.path}
                           to={subItem.path}
                           end
                           className={({ isActive }) => {
-                            const active = isActive || isApprovalsActive;
+                            const active = isActive || isApprovalsActive || isPayrollActive;
                             return `flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all group ${active
                               ? 'bg-[#5E4BE2] text-white shadow-xs shadow-indigo-600/20'
                               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -559,7 +569,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
                           }}
                         >
                           {({ isActive }) => {
-                            const active = isActive || isApprovalsActive;
+                            const active = isActive || isApprovalsActive || isPayrollActive;
                             return (
                               <>
                                 <div className="flex items-center gap-2 min-w-0">
