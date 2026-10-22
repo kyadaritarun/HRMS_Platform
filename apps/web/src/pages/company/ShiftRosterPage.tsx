@@ -298,7 +298,7 @@ export const ShiftRosterPage: React.FC = () => {
           <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-600">
-                <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase border-b border-slate-100">
+                <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
                   <tr>
                     <th className="px-6 py-4 w-64">Employee</th>
                     {currentWeekDates.map((d) => {

@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../api/client';
+import TablePagination from '../../components/common/TablePagination';
 import {
   IconBuilding,
   IconPlus,
-  IconTrash,
+  IconPower,
+  IconCheck,
   IconUsers,
   IconX,
   IconAlertCircle,
@@ -36,6 +38,7 @@ interface DepartmentUser {
 interface Department {
   id: number;
   name: string;
+  isActive?: boolean;
   parentId?: number | null;
   parent?: { id: number; name: string } | null;
   users?: DepartmentUser[];
@@ -47,6 +50,12 @@ export const DepartmentsPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterType]);
 
   // Members Modal state
   const [viewingMembersDept, setViewingMembersDept] = useState<Department | null>(null);
@@ -57,6 +66,7 @@ export const DepartmentsPage: React.FC = () => {
   const [editingDept, setEditingDept] = useState<Department | null>(null);
   const [name, setName] = useState('');
   const [parentId, setParentId] = useState<string>('');
+  const [isActive, setIsActive] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,6 +90,7 @@ export const DepartmentsPage: React.FC = () => {
     setEditingDept(null);
     setName('');
     setParentId('');
+    setIsActive(true);
     setError(null);
     setIsModalOpen(true);
   };
@@ -88,6 +99,7 @@ export const DepartmentsPage: React.FC = () => {
     setEditingDept(dept);
     setName(dept.name);
     setParentId(dept.parentId ? String(dept.parentId) : '');
+    setIsActive(dept.isActive !== false);
     setError(null);
     setIsModalOpen(true);
   };
@@ -102,16 +114,19 @@ export const DepartmentsPage: React.FC = () => {
         await api.patch(`/company/departments/${editingDept.id}`, {
           name: name.trim(),
           parentId: parentId ? Number(parentId) : null,
+          isActive,
         });
       } else {
         await api.post('/company/departments', {
           name: name.trim(),
           parentId: parentId ? Number(parentId) : null,
+          isActive,
         });
       }
       setIsModalOpen(false);
       setName('');
       setParentId('');
+      setIsActive(true);
       fetchDepartments();
     } catch (err: any) {
       setError(err.response?.data?.error || err.response?.data?.message || 'Failed to save department');
@@ -120,13 +135,25 @@ export const DepartmentsPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this department? Members will be unassigned.')) return;
+  const handleToggleStatus = async (dept: Department) => {
+    const isCurrentlyActive = dept.isActive !== false;
+    const actionWord = isCurrentlyActive ? 'deactivate' : 'activate';
+    const confirmMessage = isCurrentlyActive
+      ? `Are you sure you want to deactivate "${dept.name}"? Members will remain assigned, but this department will be marked as inactive.`
+      : `Are you sure you want to activate "${dept.name}"?`;
+
+    if (!window.confirm(confirmMessage)) return;
+
     try {
-      await api.delete(`/company/departments/${id}`);
-      fetchDepartments();
+      await api.patch(`/company/departments/${dept.id}`, {
+        isActive: !isCurrentlyActive,
+      });
+      setDepartments((prev) =>
+        prev.map((d) => (d.id === dept.id ? { ...d, isActive: !isCurrentlyActive } : d))
+      );
     } catch (err: any) {
-      alert(err.response?.data?.error || err.response?.data?.message || 'Failed to delete department');
+      alert(err.response?.data?.error || err.response?.data?.message || `Failed to ${actionWord} department`);
+      fetchDepartments();
     }
   };
 
@@ -195,6 +222,12 @@ export const DepartmentsPage: React.FC = () => {
     const meta = getDepartmentMeta(d.name);
     const matchesSearch = !q || d.name.toLowerCase().includes(q) || meta.description.toLowerCase().includes(q);
 
+    if (filterType === 'ACTIVE') {
+      return matchesSearch && d.isActive !== false;
+    }
+    if (filterType === 'INACTIVE') {
+      return matchesSearch && d.isActive === false;
+    }
     if (filterType === 'WITH_MEMBERS') {
       return matchesSearch && ((d._count?.users || 0) > 0);
     }
@@ -203,6 +236,11 @@ export const DepartmentsPage: React.FC = () => {
     }
     return matchesSearch;
   });
+
+  const paginatedDepartments = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredDepartments.slice(start, start + pageSize);
+  }, [filteredDepartments, currentPage, pageSize]);
 
   return (
     <div className="space-y-6 pb-12">
@@ -228,7 +266,7 @@ export const DepartmentsPage: React.FC = () => {
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white text-xs font-bold shadow-xs hover:shadow-md transition-all cursor-pointer shrink-0"
         >
           <IconPlus className="w-4 h-4" />
-          <span>Add Department</span>
+          <span>Create</span>
         </button>
       </div>
 
@@ -268,6 +306,8 @@ export const DepartmentsPage: React.FC = () => {
                 className="appearance-none pl-8 pr-7 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-700 cursor-pointer"
               >
                 <option value="ALL">All Departments</option>
+                <option value="ACTIVE">Active Only</option>
+                <option value="INACTIVE">Inactive Only</option>
                 <option value="WITH_MEMBERS">With Members</option>
                 <option value="TOP_LEVEL">Top-level Units</option>
               </select>
@@ -282,19 +322,20 @@ export const DepartmentsPage: React.FC = () => {
         {/* Table Structure */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 bg-slate-50/50">
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
-                <th className="px-4 py-3">DEPARTMENT NAME</th>
-                <th className="px-4 py-3">DESCRIPTION</th>
-                <th className="px-4 py-3">MEMBERS</th>
-                <th className="px-4 py-3">DEPARTMENT CODE</th>
-                <th className="px-4 py-3 text-right">ACTIONS</th>
+                <th className="px-5 py-3.5">Department Name</th>
+                <th className="px-5 py-3.5">Description</th>
+                <th className="px-5 py-3.5">Members</th>
+                <th className="px-5 py-3.5">Department Code</th>
+                <th className="px-5 py-3.5">Status</th>
+                <th className="px-5 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredDepartments.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center">
+                  <td colSpan={6} className="py-12 text-center">
                     <div className="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-2">
                       <IconBuilding className="w-6 h-6" />
                     </div>
@@ -314,20 +355,39 @@ export const DepartmentsPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredDepartments.map((dept) => {
+                paginatedDepartments.map((dept) => {
                   const meta = getDepartmentMeta(dept.name);
                   const Icon = meta.icon;
                   const memberCount = dept._count?.users || dept.users?.length || 0;
                   const users = dept.users || [];
+                  const isDeactivated = dept.isActive === false;
 
                   return (
-                    <tr key={dept.id} className="hover:bg-slate-50/60 transition-colors">
+                    <tr
+                      key={dept.id}
+                      className={`hover:bg-slate-50/60 transition-colors ${
+                        isDeactivated ? 'bg-slate-50/40' : ''
+                      }`}
+                    >
                       <td className="px-4 py-3.5 font-bold text-slate-900 flex items-center gap-2.5">
-                        <div className={`w-7 h-7 rounded-lg ${meta.iconBg} flex items-center justify-center shrink-0`}>
+                        <div
+                          className={`w-7 h-7 rounded-lg ${
+                            isDeactivated ? 'bg-slate-100 text-slate-400' : meta.iconBg
+                          } flex items-center justify-center shrink-0`}
+                        >
                           <Icon className="w-3.5 h-3.5" />
                         </div>
                         <div>
-                          <span>{dept.name}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className={isDeactivated ? 'text-slate-600' : 'text-slate-900'}>
+                              {dept.name}
+                            </span>
+                            {isDeactivated && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 font-medium">
+                                Deactivated
+                              </span>
+                            )}
+                          </div>
                           {dept.parent && (
                             <span className="text-[10px] text-slate-400 block font-normal">
                               Parent: {dept.parent.name}
@@ -371,6 +431,19 @@ export const DepartmentsPage: React.FC = () => {
                           DEPT #{dept.id}
                         </span>
                       </td>
+                      <td className="px-4 py-3.5">
+                        {!isDeactivated ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Active
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                            Inactive
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button
@@ -390,13 +463,23 @@ export const DepartmentsPage: React.FC = () => {
                           >
                             <IconPencil className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => handleDelete(dept.id)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                            title="Delete Department"
-                          >
-                            <IconTrash className="w-4 h-4" />
-                          </button>
+                          {!isDeactivated ? (
+                            <button
+                              onClick={() => handleToggleStatus(dept)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer"
+                              title="Deactivate Department"
+                            >
+                              <IconPower className="w-4 h-4" />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleToggleStatus(dept)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer"
+                              title="Activate Department"
+                            >
+                              <IconCheck className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -406,6 +489,19 @@ export const DepartmentsPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        <TablePagination
+          currentPage={currentPage}
+          totalItems={filteredDepartments.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[5, 10, 20, 50]}
+          itemName="departments"
+        />
       </div>
 
       {/* Add / Edit Department Modal */}
@@ -464,6 +560,39 @@ export const DepartmentsPage: React.FC = () => {
                 </select>
               </div>
 
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Department Status</label>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsActive(true)}
+                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300 ring-2 ring-emerald-500/20'
+                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span>Active</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsActive(false)}
+                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                      !isActive
+                        ? 'bg-amber-50 text-amber-700 border-amber-300 ring-2 ring-amber-500/20'
+                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                    <span>Inactive</span>
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Departments cannot be permanently deleted. Select Inactive to deactivate this department.
+                </p>
+              </div>
+
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
@@ -477,7 +606,7 @@ export const DepartmentsPage: React.FC = () => {
                   disabled={isSubmitting}
                   className="px-5 py-2 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm disabled:opacity-50 cursor-pointer"
                 >
-                  {isSubmitting ? 'Saving...' : editingDept ? 'Update Department' : 'Create Department'}
+                  {isSubmitting ? 'Saving...' : editingDept ? 'Update' : 'Create'}
                 </button>
               </div>
             </form>
@@ -519,7 +648,10 @@ export const DepartmentsPage: React.FC = () => {
         };
 
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+            onClick={() => setViewingMembersDept(null)}
+          >
             <div
               className="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-150"
               onClick={(e) => e.stopPropagation()}
@@ -652,25 +784,10 @@ export const DepartmentsPage: React.FC = () => {
               </div>
 
               {/* Footer */}
-              <div className="p-4 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between gap-3">
+              <div className="px-5 py-3.5 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between">
                 <span className="text-xs text-slate-500 font-medium">
                   Showing {filteredMembers.length} of {totalCount} {totalCount === 1 ? 'member' : 'members'}
                 </span>
-                <div className="flex items-center gap-2">
-                  <Link
-                    to={`/company/employees?departmentId=${viewingMembersDept.id}`}
-                    className="px-3.5 py-1.5 text-xs font-semibold rounded-xl text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 transition-colors"
-                  >
-                    View in Directory &rarr;
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => setViewingMembersDept(null)}
-                    className="px-4 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 cursor-pointer shadow-2xs"
-                  >
-                    Close
-                  </button>
-                </div>
               </div>
             </div>
           </div>

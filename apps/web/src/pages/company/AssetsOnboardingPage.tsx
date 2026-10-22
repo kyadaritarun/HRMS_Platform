@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../api/client';
+import TablePagination from '../../components/common/TablePagination';
 import { useAuth } from '../../context/AuthContext';
 import {
   IconDevices,
@@ -126,6 +127,13 @@ export const AssetsOnboardingPage: React.FC = () => {
   });
 
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
   const [showAddAssetModal, setShowAddAssetModal] = useState(false);
   const [newAsset, setNewAsset] = useState({
     tag: `AST-${Math.floor(100 + Math.random() * 900)}`,
@@ -238,6 +246,20 @@ export const AssetsOnboardingPage: React.FC = () => {
   const assignedCount = assets.filter((a) => a.status === 'ASSIGNED').length;
   const inStockCount = assets.filter((a) => a.status === 'IN_STOCK').length;
 
+  const filteredAssets = useMemo(() => {
+    return assets.filter(
+      (a) =>
+        a.tag.toLowerCase().includes(search.toLowerCase()) ||
+        a.name.toLowerCase().includes(search.toLowerCase()) ||
+        (a.assignedToName || '').toLowerCase().includes(search.toLowerCase())
+    );
+  }, [assets, search]);
+
+  const paginatedAssets = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredAssets.slice(start, start + pageSize);
+  }, [filteredAssets, currentPage, pageSize]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -303,7 +325,7 @@ export const AssetsOnboardingPage: React.FC = () => {
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-600">
-                <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase border-b border-slate-100">
+                <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
                   <tr>
                     <th className="px-6 py-3.5">Asset Tag</th>
                     <th className="px-6 py-3.5">Device Description</th>
@@ -315,14 +337,14 @@ export const AssetsOnboardingPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {assets
-                    .filter(
-                      (a) =>
-                        a.tag.toLowerCase().includes(search.toLowerCase()) ||
-                        a.name.toLowerCase().includes(search.toLowerCase()) ||
-                        (a.assignedToName || '').toLowerCase().includes(search.toLowerCase())
-                    )
-                    .map((item) => (
+                  {filteredAssets.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                        No assets found matching your search.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedAssets.map((item) => (
                       <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
                         <td className="px-6 py-4 font-mono font-bold text-slate-900">{item.tag}</td>
                         <td className="px-6 py-4">
@@ -375,10 +397,24 @@ export const AssetsOnboardingPage: React.FC = () => {
                           )}
                         </td>
                       </tr>
-                    ))}
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
+
+            <TablePagination
+              currentPage={currentPage}
+              totalItems={filteredAssets.length}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setCurrentPage(1);
+              }}
+              pageSizeOptions={[5, 10, 20, 50]}
+              itemName="assets"
+            />
           </div>
         </div>
       ) : (

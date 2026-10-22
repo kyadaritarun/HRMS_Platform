@@ -370,16 +370,16 @@ export const InvoicesPage: React.FC = () => {
         {/* Table View */}
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/70 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                <th className="px-6 py-4 whitespace-nowrap min-w-[170px]">INVOICE #</th>
-                <th className="px-6 py-4 min-w-[190px]">TENANT COMPANY</th>
-                <th className="px-6 py-4 whitespace-nowrap min-w-[110px]">AMOUNT</th>
-                <th className="px-6 py-4 whitespace-nowrap min-w-[120px]">BILLING CYCLE</th>
-                <th className="px-6 py-4 whitespace-nowrap min-w-[170px]">PAYMENT METHOD</th>
-                <th className="px-6 py-4 whitespace-nowrap min-w-[140px]">STATUS</th>
-                <th className="px-6 py-4 whitespace-nowrap min-w-[110px]">ISSUE DATE</th>
-                <th className="px-6 py-4 text-right whitespace-nowrap min-w-[170px]">ACTIONS</th>
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
+              <tr>
+                <th className="px-6 py-3.5 whitespace-nowrap min-w-[170px]">Invoice #</th>
+                <th className="px-6 py-3.5 min-w-[190px]">Tenant Company</th>
+                <th className="px-6 py-3.5 whitespace-nowrap min-w-[110px]">Amount</th>
+                <th className="px-6 py-3.5 whitespace-nowrap min-w-[120px]">Billing Cycle</th>
+                <th className="px-6 py-3.5 whitespace-nowrap min-w-[170px]">Payment Method</th>
+                <th className="px-6 py-3.5 whitespace-nowrap min-w-[140px]">Status</th>
+                <th className="px-6 py-3.5 whitespace-nowrap min-w-[110px]">Issue Date</th>
+                <th className="px-6 py-3.5 text-right whitespace-nowrap min-w-[170px]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">

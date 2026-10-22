@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const DepartmentSchema = z.object({
   name: z.string().min(1, 'Department name is required'),
   parentId: z.number().nullable().optional(),
+  isActive: z.boolean().optional(),
 });
 
 export const HolidaySchema = z.object({

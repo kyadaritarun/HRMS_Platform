@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../api/client';
+import TablePagination from '../../components/common/TablePagination';
 import {
   IconReceipt2,
   IconEdit,
@@ -37,6 +38,12 @@ export const SalaryMasterPage: React.FC = () => {
   const [employees, setEmployees] = useState<EmployeeSalary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
   const [selectedEmp, setSelectedEmp] = useState<EmployeeSalary | null>(null);
   const [editForm, setEditForm] = useState<{
     monthlySalary: string;
@@ -230,6 +237,11 @@ export const SalaryMasterPage: React.FC = () => {
     return name.includes(search.toLowerCase()) || e.email.toLowerCase().includes(search.toLowerCase());
   });
 
+  const paginatedEmployees = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage, pageSize]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -263,7 +275,7 @@ export const SalaryMasterPage: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-600">
-            <thead className="bg-slate-50/80 text-xs font-semibold text-slate-500 uppercase border-b border-slate-100">
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
                 <th className="px-6 py-3.5">Employee</th>
                 <th className="px-6 py-3.5">Department</th>
@@ -294,7 +306,7 @@ export const SalaryMasterPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filtered.map((emp) => {
+                paginatedEmployees.map((emp) => {
                   const struct = emp.bankDetails?.salaryStructure || {};
                   const basic = struct.basicSalary !== undefined ? struct.basicSalary : Math.round((emp.monthlySalary || 0) * 0.5);
                   const hra = struct.hra !== undefined ? struct.hra : Math.round((emp.monthlySalary || 0) * 0.2);
@@ -365,6 +377,19 @@ export const SalaryMasterPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        <TablePagination
+          currentPage={currentPage}
+          totalItems={filtered.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[5, 10, 20, 50]}
+          itemName="employee records"
+        />
       </div>
 
       {/* Edit Modal */}
@@ -448,7 +473,7 @@ export const SalaryMasterPage: React.FC = () => {
                 {/* Unified Components Table */}
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs text-slate-700">
-                    <thead className="bg-slate-50/90 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                    <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
                       <tr>
                         <th className="px-4 py-2.5">Salary / Tax Component</th>
                         <th className="px-3 py-2.5">Type</th>

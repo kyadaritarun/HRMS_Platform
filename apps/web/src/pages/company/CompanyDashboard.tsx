@@ -13,7 +13,6 @@ import {
   IconReceipt2,
   IconCalendar,
   IconFileDescription,
-  IconChartBar,
   IconDownload,
   IconChevronDown,
   IconBriefcase,
@@ -25,6 +24,7 @@ import {
   IconSend,
   IconLoader2,
   IconCheck,
+  IconSparkles,
 } from '@tabler/icons-react';
 import { getHolidayIcon } from '../../utils/holidayIcons';
 import { EventEmailsModal } from '../../components/company/EventEmailsModal';
@@ -962,7 +962,7 @@ export const CompanyDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Card 4: Quick Access (8 Functional Apps) */}
+        {/* Card 4: Quick Access (6 Functional Apps) */}
         <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3">
@@ -972,22 +972,9 @@ export const CompanyDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* 8-App Grid */}
-            <div className="grid grid-cols-4 gap-2 pt-1">
-              {/* 1. Add Employee */}
-              <button
-                onClick={() => navigate('/company/employees/new')}
-                className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-slate-50 transition-colors group cursor-pointer"
-              >
-                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <IconUserPlus className="w-4 h-4" />
-                </div>
-                <span className="text-[10px] font-bold text-slate-600 mt-1 leading-tight text-center">
-                  Add Staff
-                </span>
-              </button>
-
-              {/* 2. Leaves Desk */}
+            {/* 6-App Grid */}
+            <div className="grid grid-cols-3 gap-2 pt-1">
+              {/* 1. Leaves */}
               <button
                 onClick={() => navigate('/company/leaves/manage')}
                 className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-slate-50 transition-colors group cursor-pointer"
@@ -1000,7 +987,46 @@ export const CompanyDashboard: React.FC = () => {
                 </span>
               </button>
 
-              {/* 3. Attendance */}
+              {/* 2. Policies */}
+              <button
+                onClick={() => navigate('/company/policies/manage')}
+                className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-slate-50 transition-colors group cursor-pointer"
+              >
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <IconFileDescription className="w-4 h-4" />
+                </div>
+                <span className="text-[10px] font-bold text-slate-600 mt-1 leading-tight text-center">
+                  Policies
+                </span>
+              </button>
+
+              {/* 3. Add Staff */}
+              <button
+                onClick={() => navigate('/company/employees/new')}
+                className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-slate-50 transition-colors group cursor-pointer"
+              >
+                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <IconUserPlus className="w-4 h-4" />
+                </div>
+                <span className="text-[10px] font-bold text-slate-600 mt-1 leading-tight text-center">
+                  Add Staff
+                </span>
+              </button>
+
+              {/* 4. AI Assistant */}
+              <button
+                onClick={() => navigate('/assistant')}
+                className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-slate-50 transition-colors group cursor-pointer"
+              >
+                <div className="w-9 h-9 rounded-xl bg-purple-50 text-[#5E4BE2] flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <IconSparkles className="w-4 h-4" />
+                </div>
+                <span className="text-[10px] font-bold text-slate-600 mt-1 leading-tight text-center">
+                  AI Assistant
+                </span>
+              </button>
+
+              {/* 5. Attendance */}
               <button
                 onClick={() => navigate('/company/attendance')}
                 className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-slate-50 transition-colors group cursor-pointer"
@@ -1010,32 +1036,6 @@ export const CompanyDashboard: React.FC = () => {
                 </div>
                 <span className="text-[10px] font-bold text-slate-600 mt-1 leading-tight text-center">
                   Attendance
-                </span>
-              </button>
-
-              {/* 4. Payroll */}
-              <button
-                onClick={() => navigate('/payroll/attendance-salary')}
-                className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-slate-50 transition-colors group cursor-pointer"
-              >
-                <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <IconReceipt2 className="w-4 h-4" />
-                </div>
-                <span className="text-[10px] font-bold text-slate-600 mt-1 leading-tight text-center">
-                  Payroll
-                </span>
-              </button>
-
-              {/* 5. Employees */}
-              <button
-                onClick={() => navigate('/company/employees')}
-                className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-slate-50 transition-colors group cursor-pointer"
-              >
-                <div className="w-9 h-9 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <IconUsers className="w-4 h-4" />
-                </div>
-                <span className="text-[10px] font-bold text-slate-600 mt-1 leading-tight text-center">
-                  Staff List
                 </span>
               </button>
 
@@ -1049,32 +1049,6 @@ export const CompanyDashboard: React.FC = () => {
                 </div>
                 <span className="text-[10px] font-bold text-slate-600 mt-1 leading-tight text-center">
                   Approvals
-                </span>
-              </button>
-
-              {/* 7. Policies */}
-              <button
-                onClick={() => navigate('/company/policies/manage')}
-                className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-slate-50 transition-colors group cursor-pointer"
-              >
-                <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <IconFileDescription className="w-4 h-4" />
-                </div>
-                <span className="text-[10px] font-bold text-slate-600 mt-1 leading-tight text-center">
-                  Policies
-                </span>
-              </button>
-
-              {/* 8. Activity Logs */}
-              <button
-                onClick={() => navigate('/company/activity-logs')}
-                className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-slate-50 transition-colors group cursor-pointer"
-              >
-                <div className="w-9 h-9 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <IconChartBar className="w-4 h-4" />
-                </div>
-                <span className="text-[10px] font-bold text-slate-600 mt-1 leading-tight text-center">
-                  Audit Logs
                 </span>
               </button>
             </div>

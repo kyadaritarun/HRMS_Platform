@@ -266,15 +266,15 @@ export const MyCompOffPage: React.FC = () => {
         {/* Table Content */}
         <div className="overflow-x-auto -mx-5 -mb-5">
           <table className="w-full min-w-[850px] text-left text-xs">
-            <thead className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-y border-slate-100 bg-slate-50/50">
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
-                <th className="px-5 py-3.5 whitespace-nowrap">HOLIDAY WORKED</th>
-                <th className="px-5 py-3.5 whitespace-nowrap">DATE</th>
-                <th className="px-5 py-3.5 whitespace-nowrap">DAYS</th>
-                <th className="px-5 py-3.5 whitespace-nowrap">STATUS</th>
-                <th className="px-5 py-3.5 whitespace-nowrap">APPROVER</th>
-                <th className="px-5 py-3.5">REASON / NOTE</th>
-                <th className="px-5 py-3.5 text-right whitespace-nowrap">ACTION</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Holiday Worked</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Date</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Days</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Status</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Approver</th>
+                <th className="px-5 py-3.5">Reason / Note</th>
+                <th className="px-5 py-3.5 text-right whitespace-nowrap">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

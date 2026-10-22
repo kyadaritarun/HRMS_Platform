@@ -178,7 +178,7 @@ export const PayrollDashboardPage: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-600">
-            <thead className="bg-slate-50/80 text-xs font-semibold text-slate-500 uppercase border-b border-slate-100">
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
                 <th className="px-6 py-3.5">Employee</th>
                 <th className="px-6 py-3.5">Department</th>

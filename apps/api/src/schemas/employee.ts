@@ -20,6 +20,9 @@ export const CreateEmployeeSchema = z.object({
   probationEnd: z.string().optional(),
   noticePeriodDays: z.number().nullable().optional(),
   personalEmail: z.string().default(''),
+  address: z.string().default(''),
+  workingAddress: z.string().min(1, 'Working address is required'),
+  shiftTiming: z.string().default(''),
   emergencyContact: z
     .object({
       name: z.string().default(''),

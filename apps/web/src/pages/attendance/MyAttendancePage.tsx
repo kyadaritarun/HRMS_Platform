@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../../api/client';
+import TablePagination from '../../components/common/TablePagination';
 import {
   IconClock,
   IconMapPin,
@@ -38,6 +39,12 @@ export const MyAttendancePage: React.FC = () => {
   // Time filter dropdown
   const [filterPeriod, setFilterPeriod] = useState<'7' | '14' | '30' | 'all'>('7');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterPeriod]);
 
   // Regularization modal state
   const [isRegModalOpen, setIsRegModalOpen] = useState(false);
@@ -184,6 +191,11 @@ export const MyAttendancePage: React.FC = () => {
     cutoff.setDate(cutoff.getDate() - days);
     return date >= cutoff;
   });
+
+  const paginatedRecords = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredRecords.slice(start, start + pageSize);
+  }, [filteredRecords, currentPage, pageSize]);
 
   // Calculate statistics
   const totalWorkedMinutes = recentRecords.reduce((acc, r) => acc + (Number(r.durationHours) || 0) * 60, 0);
@@ -370,16 +382,16 @@ export const MyAttendancePage: React.FC = () => {
         {/* Table Content */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-600">
-            <thead className="bg-slate-50/60 text-[11px] font-bold text-slate-400 tracking-wider uppercase border-b border-slate-100">
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
-                <th className="px-6 py-3.5">DATE</th>
-                <th className="px-6 py-3.5">CHECK-IN</th>
-                <th className="px-6 py-3.5">CHECK-OUT</th>
-                <th className="px-6 py-3.5">WORK MODE</th>
-                <th className="px-6 py-3.5">DURATION</th>
-                <th className="px-6 py-3.5">NOTE</th>
-                <th className="px-6 py-3.5">LOCATION</th>
-                <th className="px-6 py-3.5 text-right">ACTIONS</th>
+                <th className="px-6 py-3.5">Date</th>
+                <th className="px-6 py-3.5">Check-In</th>
+                <th className="px-6 py-3.5">Check-Out</th>
+                <th className="px-6 py-3.5">Work Mode</th>
+                <th className="px-6 py-3.5">Duration</th>
+                <th className="px-6 py-3.5">Note</th>
+                <th className="px-6 py-3.5">Location</th>
+                <th className="px-6 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -427,7 +439,7 @@ export const MyAttendancePage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredRecords.map((r) => {
+                paginatedRecords.map((r) => {
                   const checkInDate = new Date(r.checkIn);
                   const checkOutDate = r.checkOut ? new Date(r.checkOut) : null;
                   return (
@@ -506,6 +518,19 @@ export const MyAttendancePage: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        <TablePagination
+          currentPage={currentPage}
+          totalItems={filteredRecords.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[5, 10, 20, 50]}
+          itemName="records"
+        />
       </div>
 
       {/* Regularization Right-Side Slide-Over Drawer */}

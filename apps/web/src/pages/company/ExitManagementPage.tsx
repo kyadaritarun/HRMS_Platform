@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../../api/client';
+import TablePagination from '../../components/common/TablePagination';
 import { useAuth } from '../../context/AuthContext';
 import {
   IconDoorExit,
@@ -105,6 +106,13 @@ export const ExitManagementPage: React.FC = () => {
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter]);
+
   const [showInitiateModal, setShowInitiateModal] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<ExitRecord | null>(null);
   const [activeTab, setActiveTab] = useState<'NOC' | 'FF_CALC' | 'STATEMENT'>('NOC');
@@ -279,6 +287,11 @@ export const ExitManagementPage: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
+  const paginatedRecords = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredRecords.slice(start, start + pageSize);
+  }, [filteredRecords, currentPage, pageSize]);
+
   // Metrics
   const activeExitsCount = exitRecords.filter((r) => r.status !== 'SETTLED' && r.status !== 'REJECTED').length;
   const pendingNocCount = exitRecords.filter((r) => {
@@ -366,16 +379,16 @@ export const ExitManagementPage: React.FC = () => {
         {/* Responsive Table with horizontal scroll support */}
         <div className="overflow-x-auto">
           <table className="w-full min-w-[850px] text-left text-xs">
-            <thead className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 bg-slate-50/50">
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
-                <th className="px-4 py-3 whitespace-nowrap">EMPLOYEE</th>
-                <th className="px-4 py-3 whitespace-nowrap">DEPARTMENT</th>
-                <th className="px-4 py-3 whitespace-nowrap">RESIGNATION DATE</th>
-                <th className="px-4 py-3 whitespace-nowrap">LAST WORKING DAY</th>
-                <th className="px-4 py-3 whitespace-nowrap">NOC STATUS</th>
-                <th className="px-4 py-3 whitespace-nowrap">NET F&amp;F PAYABLE</th>
-                <th className="px-4 py-3 whitespace-nowrap">STATUS</th>
-                <th className="px-4 py-3 text-right whitespace-nowrap">ACTION</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Employee</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Department</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Resignation Date</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Last Working Day</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">NOC Status</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Net F&amp;F Payable</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Status</th>
+                <th className="px-5 py-3.5 text-right whitespace-nowrap">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -392,7 +405,7 @@ export const ExitManagementPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredRecords.map((r) => {
+                paginatedRecords.map((r) => {
                   const nocClearedCount = [
                     r.nocClearance.it.cleared,
                     r.nocClearance.admin.cleared,
@@ -471,6 +484,19 @@ export const ExitManagementPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        <TablePagination
+          currentPage={currentPage}
+          totalItems={filteredRecords.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[5, 10, 20, 50]}
+          itemName="exit records"
+        />
       </div>
 
       {/* Right-Side Slide-Over Drawer for Clearance & F&F Settlement Details */}
@@ -848,11 +874,11 @@ export const ExitManagementPage: React.FC = () => {
 
                   {/* Financial Breakdown Table */}
                   <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b border-slate-200 font-bold text-slate-700">
-                        <th className="py-2 text-left">Component Description</th>
-                        <th className="py-2 text-right">Earnings (₹)</th>
-                        <th className="py-2 text-right">Deductions (₹)</th>
+                    <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Component Description</th>
+                        <th className="px-3 py-2 text-right">Earnings (₹)</th>
+                        <th className="px-3 py-2 text-right">Deductions (₹)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">

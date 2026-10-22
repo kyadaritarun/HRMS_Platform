@@ -195,6 +195,9 @@ router.post(
           employmentType: data.employmentType,
           employeeNumber: data.employeeNumber || '',
           personalEmail: data.personalEmail || '',
+          address: data.address || '',
+          workingAddress: data.workingAddress || '',
+          shiftTiming: data.shiftTiming || '',
           joiningDate: data.joiningDate ? new Date(data.joiningDate) : new Date(),
           dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
           monthlySalary: data.monthlySalary,
@@ -336,7 +339,10 @@ router.get('/template', roleGuard('COMPANY_ADMIN', 'HR'), hrPermission('employee
       { header: 'Phone Number', key: 'phone', width: 20 },
       { header: 'Work Mode (WFO / WFH)', key: 'workMode', width: 24 },
       { header: 'Joining Date (YYYY-MM-DD)', key: 'joiningDate', width: 26 },
-      { header: 'Monthly Salary', key: 'monthlySalary', width: 18 },
+      { header: 'Shift Timing', key: 'shiftTiming', width: 34 },
+      { header: 'Residential / Permanent Address', key: 'address', width: 36 },
+      { header: 'Working Address *', key: 'workingAddress', width: 34 },
+      { header: 'Cost to Company (CTC)', key: 'monthlySalary', width: 22 },
       { header: 'Currency (INR / USD)', key: 'currency', width: 20 },
       { header: 'Emergency Contact Name *', key: 'emergencyContactName', width: 26 },
       { header: 'Emergency Contact Relationship *', key: 'emergencyContactRelationship', width: 30 },
@@ -368,6 +374,9 @@ router.get('/template', roleGuard('COMPANY_ADMIN', 'HR'), hrPermission('employee
       phone: '+91 9876543210',
       workMode: 'WFO',
       joiningDate: '2026-01-15',
+      shiftTiming: 'General Shift (09:30 AM - 06:30 PM)',
+      address: 'Flat 402, Green Meadows, Indiranagar, Bengaluru, KA 560038',
+      workingAddress: 'Uptrix Tower, 5th Floor, Outer Ring Road, Bengaluru',
       monthlySalary: 85000,
       currency: 'INR',
       emergencyContactName: 'Mary Doe',
@@ -388,6 +397,9 @@ router.get('/template', roleGuard('COMPANY_ADMIN', 'HR'), hrPermission('employee
       phone: '+91 9811223344',
       workMode: 'WFH',
       joiningDate: '2026-02-01',
+      shiftTiming: 'Flexible Shift',
+      address: 'House 12, Palm Grove, Koramangala, Bengaluru, KA 560034',
+      workingAddress: 'Remote / Work From Home',
       monthlySalary: 65000,
       currency: 'INR',
       emergencyContactName: 'Robert Connor',
@@ -418,6 +430,10 @@ router.get('/template', roleGuard('COMPANY_ADMIN', 'HR'), hrPermission('employee
     instrSheet.addRow({ field: 'Role', required: 'NO', notes: 'EMPLOYEE, HR, or COMPANY_ADMIN (Default: EMPLOYEE)' });
     instrSheet.addRow({ field: 'Work Mode', required: 'NO', notes: 'WFO (Office) or WFH (Work From Home). Default: WFO' });
     instrSheet.addRow({ field: 'Joining Date', required: 'NO', notes: 'Format: YYYY-MM-DD, e.g. 2026-01-15' });
+    instrSheet.addRow({ field: 'Shift Timing', required: 'NO', notes: 'e.g. General Shift (09:30 AM - 06:30 PM), Morning, Afternoon, Night, Flexible' });
+    instrSheet.addRow({ field: 'Residential Address', required: 'NO', notes: 'Residential or permanent home address' });
+    instrSheet.addRow({ field: 'Working Address', required: 'YES', notes: 'Office or branch location address' });
+    instrSheet.addRow({ field: 'Cost to Company (CTC)', required: 'NO', notes: 'Base monthly CTC amount, e.g. 85000' });
     instrSheet.addRow({ field: 'Emergency Contact', required: 'YES', notes: 'Provide Name, Relationship, and Phone number' });
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -530,6 +546,12 @@ router.post(
           continue;
         }
 
+        const workingAddress = String(item.workingAddress || '').trim();
+        if (!workingAddress) {
+          results.push({ row: rowNum, email, success: false, error: 'Working Address is required.' });
+          continue;
+        }
+
         // Domain check
         if (allowedDomains) {
           const domain = email.split('@')[1]?.toLowerCase();
@@ -572,6 +594,9 @@ router.post(
               employmentType: String(item.workType || item.employmentType || '').toUpperCase() === 'CONTRACT' ? 'CONTRACT' : 'PERMANENT',
               employeeNumber: String(item.employeeNumber || '').trim(),
               personalEmail: String(item.personalEmail || '').trim(),
+              address: String(item.address || '').trim(),
+              workingAddress: String(item.workingAddress || '').trim(),
+              shiftTiming: String(item.shiftTiming || 'General Shift (09:30 AM - 06:30 PM)').trim(),
               joiningDate: parseSafeDate(item.joiningDate) || new Date(),
               dateOfBirth: parseSafeDate(item.dateOfBirth),
               monthlySalary: Number(item.monthlySalary) || 0,

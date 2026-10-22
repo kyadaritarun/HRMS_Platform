@@ -350,13 +350,13 @@ export const RenewalsPage: React.FC = () => {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/70 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                <th className="px-6 py-4">COMPANY</th>
-                <th className="px-6 py-4">PLAN</th>
-                <th className="px-6 py-4">RENEWAL / END</th>
-                <th className="px-6 py-4">STATUS</th>
-                <th className="px-6 py-4 text-right">ACTIONS</th>
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
+              <tr>
+                <th className="px-6 py-3.5">Company</th>
+                <th className="px-6 py-3.5">Plan</th>
+                <th className="px-6 py-3.5">Renewal / End</th>
+                <th className="px-6 py-3.5">Status</th>
+                <th className="px-6 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
@@ -457,16 +457,16 @@ export const RenewalsPage: React.FC = () => {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/70 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                <th className="px-6 py-4">COMPANY</th>
-                <th className="px-6 py-4">LOCATION</th>
-                <th className="px-6 py-4">PLAN TYPE</th>
-                <th className="px-6 py-4">DATE FOR RENEWAL</th>
-                <th className="px-6 py-4">DATE OF EXPIRED</th>
-                <th className="px-6 py-4">COMPANY ADMIN</th>
-                <th className="px-6 py-4">PHONE</th>
-                <th className="px-6 py-4 text-right">ACTIONS</th>
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
+              <tr>
+                <th className="px-6 py-3.5">Company</th>
+                <th className="px-6 py-3.5">Location</th>
+                <th className="px-6 py-3.5">Plan Type</th>
+                <th className="px-6 py-3.5">Date for Renewal</th>
+                <th className="px-6 py-3.5">Date of Expired</th>
+                <th className="px-6 py-3.5">Company Admin</th>
+                <th className="px-6 py-3.5">Phone</th>
+                <th className="px-6 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
@@ -597,14 +597,14 @@ export const RenewalsPage: React.FC = () => {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/70 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                <th className="px-6 py-4">INVOICE</th>
-                <th className="px-6 py-4">COMPANY</th>
-                <th className="px-6 py-4">DUE</th>
-                <th className="px-6 py-4">AMOUNT</th>
-                <th className="px-6 py-4">STATUS</th>
-                <th className="px-6 py-4 text-right">ACTIONS</th>
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
+              <tr>
+                <th className="px-6 py-3.5">Invoice</th>
+                <th className="px-6 py-3.5">Company</th>
+                <th className="px-6 py-3.5">Due</th>
+                <th className="px-6 py-3.5">Amount</th>
+                <th className="px-6 py-3.5">Status</th>
+                <th className="px-6 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">

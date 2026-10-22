@@ -236,13 +236,13 @@ export const ClaimCategoriesPage: React.FC = () => {
         {/* Table Content */}
         <div className="overflow-x-auto -mx-5 -mb-5">
           <table className="w-full min-w-[850px] text-left text-xs">
-            <thead className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-y border-slate-100 bg-slate-50/50">
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
-                <th className="px-5 py-3.5 whitespace-nowrap">CATEGORY NAME</th>
-                <th className="px-5 py-3.5">DESCRIPTION & GUIDELINES</th>
-                <th className="px-5 py-3.5 whitespace-nowrap">MAX CAP PER CLAIM</th>
-                <th className="px-5 py-3.5 whitespace-nowrap">PROOF REQUIRED</th>
-                <th className="px-5 py-3.5 text-right whitespace-nowrap">STATUS</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Category Name</th>
+                <th className="px-5 py-3.5">Description &amp; Guidelines</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Max Cap Per Claim</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Proof Required</th>
+                <th className="px-5 py-3.5 text-right whitespace-nowrap">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

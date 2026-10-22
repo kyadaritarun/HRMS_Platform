@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import api from '../../api/client';
+import TablePagination from '../../components/common/TablePagination';
 import { useAuth } from '../../context/AuthContext';
 import {
   IconChecklist,
@@ -49,6 +50,12 @@ export const ApprovalsDeskPage: React.FC = () => {
   const [selectedType, setSelectedType] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('PENDING');
   const [search, setSearch] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedType, selectedStatus, search]);
   const [actionModal, setActionModal] = useState<{
     open: boolean;
     req?: ApprovalRequest;
@@ -172,6 +179,11 @@ export const ApprovalsDeskPage: React.FC = () => {
     });
   }, [requests, search]);
 
+  const paginatedRequests = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredRequests.slice(start, start + pageSize);
+  }, [filteredRequests, currentPage, pageSize]);
+
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'LEAVE':
@@ -294,15 +306,15 @@ export const ApprovalsDeskPage: React.FC = () => {
         {/* Table Structure */}
         <div className="overflow-x-auto">
           <table className="w-full min-w-[920px] text-left text-xs">
-            <thead className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 bg-slate-50/50">
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
-                <th className="px-4 py-3 whitespace-nowrap">EMPLOYEE</th>
-                <th className="px-4 py-3 whitespace-nowrap">TYPE</th>
-                <th className="px-4 py-3 whitespace-nowrap">REQUEST TITLE</th>
-                <th className="px-4 py-3 whitespace-nowrap">REASON &amp; DETAILS</th>
-                <th className="px-4 py-3 whitespace-nowrap">APPLIED ON</th>
-                <th className="px-4 py-3 whitespace-nowrap">STATUS</th>
-                <th className="px-4 py-3 text-right whitespace-nowrap">ACTIONS</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Employee</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Type</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Request Title</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Reason &amp; Details</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Applied On</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Status</th>
+                <th className="px-5 py-3.5 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -335,7 +347,7 @@ export const ApprovalsDeskPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredRequests.map((req) => (
+                paginatedRequests.map((req) => (
                   <tr key={req.id} className="hover:bg-slate-50/60 transition-colors">
                     {/* Employee info */}
                     <td className="px-4 py-3.5 whitespace-nowrap">
@@ -446,6 +458,19 @@ export const ApprovalsDeskPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        <TablePagination
+          currentPage={currentPage}
+          totalItems={filteredRequests.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[5, 10, 20, 50]}
+          itemName="requests"
+        />
       </div>
 
       {/* Decision Note Modal with Portal */}

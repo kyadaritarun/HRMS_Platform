@@ -625,16 +625,16 @@ export const PackagesPage: React.FC = () => {
         {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/70 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                <th className="px-5 py-4 whitespace-nowrap min-w-[190px]">PLAN NAME</th>
-                <th className="px-5 py-4 whitespace-nowrap min-w-[150px]">TIER &amp; COMPANY</th>
-                <th className="px-5 py-4 whitespace-nowrap min-w-[110px]">MONTHLY PRICE</th>
-                <th className="px-5 py-4 whitespace-nowrap min-w-[110px]">QUARTERLY PRICE</th>
-                <th className="px-5 py-4 whitespace-nowrap min-w-[110px]">YEARLY PRICE</th>
-                <th className="px-5 py-4 whitespace-nowrap min-w-[90px]">LIMIT</th>
-                <th className="px-5 py-4 min-w-[260px]">FEATURES</th>
-                <th className="px-5 py-4 text-right whitespace-nowrap min-w-[90px]">ACTIONS</th>
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
+              <tr>
+                <th className="px-5 py-3.5 whitespace-nowrap min-w-[190px]">Plan Name</th>
+                <th className="px-5 py-3.5 whitespace-nowrap min-w-[150px]">Tier &amp; Company</th>
+                <th className="px-5 py-3.5 whitespace-nowrap min-w-[110px]">Monthly Price</th>
+                <th className="px-5 py-3.5 whitespace-nowrap min-w-[110px]">Quarterly Price</th>
+                <th className="px-5 py-3.5 whitespace-nowrap min-w-[110px]">Yearly Price</th>
+                <th className="px-5 py-3.5 whitespace-nowrap min-w-[90px]">Limit</th>
+                <th className="px-5 py-3.5 min-w-[260px]">Features</th>
+                <th className="px-5 py-3.5 text-right whitespace-nowrap min-w-[90px]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">

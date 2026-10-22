@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import api from '../../api/client';
+import TablePagination from '../../components/common/TablePagination';
 import {
   IconClock,
   IconDownload,
@@ -49,6 +50,10 @@ export const CompanyAttendancePage: React.FC = () => {
   const [selectedDept, setSelectedDept] = useState<string>('');
   const [selectedWorkMode, setSelectedWorkMode] = useState<'ALL' | 'OFFICE' | 'WFH'>('ALL');
   const [isExporting, setIsExporting] = useState(false);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Export dropdown & range state
   const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
@@ -211,6 +216,12 @@ export const CompanyAttendancePage: React.FC = () => {
       return true;
     });
   }, [logs, search, selectedDept, selectedWorkMode]);
+
+  // Paginated logs for current page
+  const paginatedLogs = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredLogs.slice(start, start + pageSize);
+  }, [filteredLogs, currentPage, pageSize]);
 
   const getWorkModeBadge = (mode: string) => {
     if (mode === 'WFH' || mode === 'REMOTE') {
@@ -467,12 +478,18 @@ export const CompanyAttendancePage: React.FC = () => {
             type="text"
             placeholder="Search employee by name or email..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full pl-10 pr-10 py-2.5 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all placeholder:text-slate-400 text-slate-800"
           />
           {search && (
             <button
-              onClick={() => setSearch('')}
+              onClick={() => {
+                setSearch('');
+                setCurrentPage(1);
+              }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
             >
               <IconX className="w-3.5 h-3.5" />
@@ -489,7 +506,10 @@ export const CompanyAttendancePage: React.FC = () => {
             <input
               type="date"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              onChange={(e) => {
+                setDate(e.target.value);
+                setCurrentPage(1);
+              }}
               className="text-xs font-bold text-slate-800 bg-transparent focus:outline-hidden cursor-pointer"
             />
           </div>
@@ -498,7 +518,10 @@ export const CompanyAttendancePage: React.FC = () => {
           <div className="min-w-[170px]">
             <select
               value={selectedDept}
-              onChange={(e) => setSelectedDept(e.target.value)}
+              onChange={(e) => {
+                setSelectedDept(e.target.value);
+                setCurrentPage(1);
+              }}
               className="w-full px-3 py-2.5 text-xs font-semibold bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all text-slate-700 cursor-pointer"
             >
               <option value="">All Departments</option>
@@ -523,7 +546,10 @@ export const CompanyAttendancePage: React.FC = () => {
               return (
                 <button
                   key={mode}
-                  onClick={() => setSelectedWorkMode(mode)}
+                  onClick={() => {
+                    setSelectedWorkMode(mode);
+                    setCurrentPage(1);
+                  }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     isActive
                       ? 'bg-white text-[#5E4BE2] shadow-2xs'
@@ -547,7 +573,7 @@ export const CompanyAttendancePage: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-600">
-            <thead className="bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
                 <th className="px-6 py-3.5">Employee</th>
                 <th className="px-6 py-3.5">Department</th>
@@ -604,7 +630,7 @@ export const CompanyAttendancePage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredLogs.map((log) => {
+                paginatedLogs.map((log) => {
                   const checkInDate = new Date(log.checkIn);
                   const checkOutDate = log.checkOut ? new Date(log.checkOut) : null;
                   const initials = `${log.user?.firstName?.[0] || ''}${log.user?.lastName?.[0] || ''}`.toUpperCase() || 'U';
@@ -695,6 +721,17 @@ export const CompanyAttendancePage: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Bar */}
+        <TablePagination
+          currentPage={currentPage}
+          totalItems={filteredLogs.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+          pageSizeOptions={[10, 25, 50, 100]}
+          itemName="attendance logs"
+        />
       </div>
     </div>
   );

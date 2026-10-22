@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import api from '../../api/client';
+import TablePagination from '../../components/common/TablePagination';
 import { useAuth } from '../../context/AuthContext';
 import {
   IconReceipt2,
@@ -51,6 +52,12 @@ export const ClaimsPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [search, setSearch] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, categoryFilter, search]);
 
   // Form State
   const [category, setCategory] = useState<string>('');
@@ -191,6 +198,11 @@ export const ClaimsPage: React.FC = () => {
       return true;
     });
   }, [claims, statusFilter, categoryFilter, search]);
+
+  const paginatedClaims = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredClaims.slice(start, start + pageSize);
+  }, [filteredClaims, currentPage, pageSize]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -513,15 +525,15 @@ export const ClaimsPage: React.FC = () => {
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 bg-slate-50/50">
+                <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
                   <tr>
-                    <th className="px-6 py-3.5">CLAIM DETAILS</th>
-                    <th className="px-6 py-3.5">EMPLOYEE</th>
-                    <th className="px-6 py-3.5">CATEGORY</th>
-                    <th className="px-6 py-3.5">AMOUNT</th>
-                    <th className="px-6 py-3.5">STATUS</th>
-                    <th className="px-6 py-3.5">DATE</th>
-                    {canPay && <th className="px-6 py-3.5 text-right">FINANCE ACTION</th>}
+                    <th className="px-6 py-3.5">Claim Details</th>
+                    <th className="px-6 py-3.5">Employee</th>
+                    <th className="px-6 py-3.5">Category</th>
+                    <th className="px-6 py-3.5">Amount</th>
+                    <th className="px-6 py-3.5">Status</th>
+                    <th className="px-6 py-3.5">Date</th>
+                    {canPay && <th className="px-6 py-3.5 text-right">Finance Action</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -562,7 +574,7 @@ export const ClaimsPage: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    filteredClaims.map((claim) => (
+                    paginatedClaims.map((claim) => (
                       <tr key={claim.id} className="hover:bg-slate-50/60 transition-colors">
                         <td className="px-6 py-4">
                           <div className="font-bold text-slate-900">{claim.title}</div>
@@ -605,6 +617,19 @@ export const ClaimsPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            <TablePagination
+              currentPage={currentPage}
+              totalItems={filteredClaims.length}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setCurrentPage(1);
+              }}
+              pageSizeOptions={[5, 10, 20, 50]}
+              itemName="claims"
+            />
           </div>
         </div>
       )}

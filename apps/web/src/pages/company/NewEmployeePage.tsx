@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../../api/client';
 import {
@@ -27,6 +27,8 @@ import {
   IconEyeOff,
   IconCopy,
   IconArrowRight,
+  IconClock,
+  IconMapPin,
 } from '@tabler/icons-react';
 import BulkEmployeeImport from './BulkEmployeeImport';
 
@@ -55,9 +57,22 @@ export const NewEmployeePage: React.FC = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [managers, setManagers] = useState<Manager[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{
+    title: string;
+    message: string;
+    type: 'error' | 'success' | 'warning';
+  } | null>(null);
   const [onboardingMode, setOnboardingMode] = useState<'single' | 'bulk'>('single');
   const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
+
+  // Auto dismiss toast after 5 seconds
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => {
+      setToast(null);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   const handleDownloadTemplate = async () => {
     setIsDownloadingTemplate(true);
@@ -93,6 +108,9 @@ export const NewEmployeePage: React.FC = () => {
     managerId: '',
     workMode: 'WFO',
     workType: 'PERMANENT',
+    shiftTiming: 'General Shift (09:30 AM - 06:30 PM)',
+    address: '',
+    workingAddress: '',
     joiningDate: new Date().toISOString().split('T')[0],
     monthlySalary: '',
     currency: 'INR',
@@ -101,6 +119,251 @@ export const NewEmployeePage: React.FC = () => {
     emergencyContactPhone: '',
     canManagePerformance: false,
   });
+
+  // Validation states
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  const maxDobDate = useMemo(() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 18);
+    return d.toISOString().split('T')[0];
+  }, []);
+
+  const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (
+      ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key) ||
+      ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase()))
+    ) {
+      return;
+    }
+    if (!/^[0-9]$/.test(e.key)) {
+      e.preventDefault();
+    }
+  };
+
+  const validateField = (name: string, value: string, currentForm = form) => {
+    let errorMsg = '';
+    const trimmed = (value || '').trim();
+
+    switch (name) {
+      case 'firstName':
+        if (!trimmed) errorMsg = 'First name is required.';
+        else if (trimmed.length < 2) errorMsg = 'First name must be at least 2 characters.';
+        else if (!/^[a-zA-Z\s'-]+$/.test(trimmed)) errorMsg = 'First name can only contain letters, spaces, and hyphens.';
+        break;
+      case 'lastName':
+        if (trimmed && !/^[a-zA-Z\s'-]+$/.test(trimmed)) errorMsg = 'Last name can only contain letters, spaces, and hyphens.';
+        break;
+      case 'employeeNumber':
+        if (!trimmed) errorMsg = 'Employee ID is required.';
+        else if (!/^[a-zA-Z0-9_\-\/]+$/.test(trimmed)) errorMsg = 'Employee ID can only contain letters, numbers, hyphens, and slashes.';
+        break;
+      case 'dateOfBirth':
+        if (!trimmed) {
+          errorMsg = 'Date of birth is required.';
+        } else {
+          const dob = new Date(trimmed);
+          const today = new Date();
+          if (isNaN(dob.getTime())) {
+            errorMsg = 'Please enter a valid date of birth.';
+          } else if (dob > today) {
+            errorMsg = 'Date of birth cannot be in the future.';
+          } else {
+            let age = today.getFullYear() - dob.getFullYear();
+            const m = today.getMonth() - dob.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+            if (age < 18) errorMsg = 'Employee must be at least 18 years old.';
+            else if (age > 100) errorMsg = 'Please enter a valid date of birth (under 100 years).';
+          }
+        }
+        break;
+      case 'email':
+        if (!trimmed) errorMsg = 'Work email is required.';
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(trimmed)) errorMsg = 'Please enter a valid work email address.';
+        break;
+      case 'personalEmail':
+        if (!trimmed) errorMsg = 'Personal email address is required.';
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(trimmed)) errorMsg = 'Please enter a valid personal email address.';
+        else if (currentForm.email && trimmed.toLowerCase() === currentForm.email.trim().toLowerCase()) {
+          errorMsg = 'Personal email cannot be the same as work email.';
+        }
+        break;
+      case 'username':
+        if (!trimmed) errorMsg = 'System username is required.';
+        else if (trimmed.length < 3) errorMsg = 'Username must be at least 3 characters.';
+        else if (!/^[a-zA-Z0-9._-]+$/.test(trimmed)) errorMsg = 'Username can only contain letters, numbers, dots, hyphens, and underscores.';
+        break;
+      case 'phone':
+        if (!trimmed) {
+          errorMsg = 'Phone number is required.';
+        } else if (!/^\d{10}$/.test(trimmed)) {
+          errorMsg = 'Phone number must be exactly 10 numeric digits.';
+        }
+        break;
+      case 'joiningDate':
+        if (!trimmed) errorMsg = 'Joining date is required.';
+        break;
+      case 'emergencyContactName':
+        if (!trimmed) errorMsg = 'Emergency contact name is required.';
+        else if (trimmed.length < 2) errorMsg = 'Name must be at least 2 characters.';
+        else if (!/^[a-zA-Z\s'-]+$/.test(trimmed)) errorMsg = 'Name can only contain letters, spaces, and hyphens.';
+        break;
+      case 'emergencyContactRelationship':
+        if (!trimmed) errorMsg = 'Relationship is required (e.g. Spouse, Parent).';
+        else if (trimmed.length < 2) errorMsg = 'Relationship must be at least 2 characters.';
+        break;
+      case 'emergencyContactPhone':
+        if (!trimmed) errorMsg = 'Emergency contact number is required.';
+        else if (!/^\d{10}$/.test(trimmed)) errorMsg = 'Contact number must be exactly 10 numeric digits.';
+        break;
+      case 'shiftTiming':
+        if (!trimmed) errorMsg = 'Shift timing is required.';
+        break;
+      case 'address':
+        if (trimmed && trimmed.length < 3) errorMsg = 'Address should be at least 3 characters.';
+        break;
+      case 'workingAddress':
+        if (!trimmed) errorMsg = 'Working address is required.';
+        else if (trimmed.length < 3) errorMsg = 'Working address should be at least 3 characters.';
+        break;
+      case 'monthlySalary':
+        if (trimmed === '' || isNaN(Number(trimmed)) || Number(trimmed) <= 0) {
+          errorMsg = 'Cost to Company (CTC) must be a positive number greater than 0.';
+        }
+        break;
+      default:
+        break;
+    }
+
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (errorMsg) next[name] = errorMsg;
+      else delete next[name];
+      return next;
+    });
+
+    return errorMsg;
+  };
+
+  const validateAll = (data = form) => {
+    const newErrors: Record<string, string> = {};
+
+    // First Name
+    if (!data.firstName?.trim()) newErrors.firstName = 'First name is required.';
+    else if (data.firstName.trim().length < 2) newErrors.firstName = 'First name must be at least 2 characters.';
+    else if (!/^[a-zA-Z\s'-]+$/.test(data.firstName.trim())) newErrors.firstName = 'First name can only contain letters, spaces, and hyphens.';
+
+    // Last Name
+    if (data.lastName?.trim() && !/^[a-zA-Z\s'-]+$/.test(data.lastName.trim())) {
+      newErrors.lastName = 'Last name can only contain letters, spaces, and hyphens.';
+    }
+
+    // Employee ID
+    if (!data.employeeNumber?.trim()) newErrors.employeeNumber = 'Employee ID is required.';
+    else if (!/^[a-zA-Z0-9_\-\/]+$/.test(data.employeeNumber.trim())) newErrors.employeeNumber = 'Employee ID can only contain letters, numbers, hyphens, and slashes.';
+
+    // Date of Birth
+    if (!data.dateOfBirth?.trim()) {
+      newErrors.dateOfBirth = 'Date of birth is required.';
+    } else {
+      const dob = new Date(data.dateOfBirth);
+      const today = new Date();
+      if (isNaN(dob.getTime())) newErrors.dateOfBirth = 'Please enter a valid date of birth.';
+      else if (dob > today) newErrors.dateOfBirth = 'Date of birth cannot be in the future.';
+      else {
+        let age = today.getFullYear() - dob.getFullYear();
+        const m = today.getMonth() - dob.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+        if (age < 18) newErrors.dateOfBirth = 'Employee must be at least 18 years old.';
+        else if (age > 100) newErrors.dateOfBirth = 'Please enter a valid date of birth (under 100 years).';
+      }
+    }
+
+    // Work Email
+    if (!data.email?.trim()) newErrors.email = 'Work email is required.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email.trim())) newErrors.email = 'Please enter a valid work email address.';
+
+    // Personal Email
+    if (!data.personalEmail?.trim()) newErrors.personalEmail = 'Personal email address is required.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.personalEmail.trim())) newErrors.personalEmail = 'Please enter a valid personal email address.';
+    else if (data.email && data.personalEmail.trim().toLowerCase() === data.email.trim().toLowerCase()) {
+      newErrors.personalEmail = 'Personal email cannot be the same as work email.';
+    }
+
+    // Username
+    if (!data.username?.trim()) newErrors.username = 'System username is required.';
+    else if (data.username.trim().length < 3) newErrors.username = 'Username must be at least 3 characters.';
+    else if (!/^[a-zA-Z0-9._-]+$/.test(data.username.trim())) newErrors.username = 'Username can only contain letters, numbers, dots, hyphens, and underscores.';
+
+    // Phone (Required, exactly 10 digits)
+    if (!data.phone?.trim()) {
+      newErrors.phone = 'Phone number is required.';
+    } else if (!/^\d{10}$/.test(data.phone.trim())) {
+      newErrors.phone = 'Phone number must be exactly 10 numeric digits.';
+    }
+
+    // Joining Date
+    if (!data.joiningDate?.trim()) newErrors.joiningDate = 'Joining date is required.';
+
+    // Emergency Contact Name
+    if (!data.emergencyContactName?.trim()) newErrors.emergencyContactName = 'Emergency contact name is required.';
+    else if (data.emergencyContactName.trim().length < 2) newErrors.emergencyContactName = 'Name must be at least 2 characters.';
+    else if (!/^[a-zA-Z\s'-]+$/.test(data.emergencyContactName.trim())) newErrors.emergencyContactName = 'Name can only contain letters, spaces, and hyphens.';
+
+    // Emergency Contact Relationship
+    if (!data.emergencyContactRelationship?.trim()) newErrors.emergencyContactRelationship = 'Relationship is required (e.g. Spouse, Parent).';
+    else if (data.emergencyContactRelationship.trim().length < 2) newErrors.emergencyContactRelationship = 'Relationship must be at least 2 characters.';
+
+    // Emergency Contact Phone
+    if (!data.emergencyContactPhone?.trim()) newErrors.emergencyContactPhone = 'Emergency contact number is required.';
+    else if (!/^\d{10}$/.test(data.emergencyContactPhone.trim())) newErrors.emergencyContactPhone = 'Contact number must be exactly 10 numeric digits.';
+
+    // Cost to Company (CTC)
+    if (data.monthlySalary === '' || data.monthlySalary === undefined || data.monthlySalary === null) {
+      newErrors.monthlySalary = 'Cost to Company (CTC) is required.';
+    } else if (isNaN(Number(data.monthlySalary)) || Number(data.monthlySalary) <= 0) {
+      newErrors.monthlySalary = 'Cost to Company (CTC) must be a positive number greater than 0.';
+    }
+
+    // Shift Timing
+    if (!data.shiftTiming?.trim()) newErrors.shiftTiming = 'Shift timing is required.';
+
+    // Address
+    if (data.address?.trim() && data.address.trim().length < 3) {
+      newErrors.address = 'Address should be at least 3 characters.';
+    }
+
+    // Working Address
+    if (!data.workingAddress?.trim()) {
+      newErrors.workingAddress = 'Working address is required.';
+    } else if (data.workingAddress.trim().length < 3) {
+      newErrors.workingAddress = 'Working address should be at least 3 characters.';
+    }
+
+    return newErrors;
+  };
+
+  const getInputClass = (fieldName: string, basePadding = 'pl-10 pr-3.5') => {
+    const hasError = touched[fieldName] && errors[fieldName];
+    return `w-full ${basePadding} py-2.5 text-xs font-semibold text-slate-900 rounded-xl transition-all shadow-2xs ${
+      hasError
+        ? 'bg-rose-50/40 border border-rose-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-rose-500/15 focus:border-rose-500'
+        : 'bg-[#f1f5f9] border border-slate-200 focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] hover:bg-slate-100 hover:border-slate-300'
+    } placeholder:text-slate-400`;
+  };
+
+  const renderFieldError = (fieldName: string) => {
+    if (touched[fieldName] && errors[fieldName]) {
+      return (
+        <p className="text-[11px] text-rose-600 font-semibold mt-1 flex items-center gap-1 animate-in fade-in duration-150">
+          <IconAlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-500" />
+          <span>{errors[fieldName]}</span>
+        </p>
+      );
+    }
+    return null;
+  };
 
   // State for Success Credentials Modal
   const [createdCredentials, setCreatedCredentials] = useState<{
@@ -129,6 +392,9 @@ export const NewEmployeePage: React.FC = () => {
 
   const handleResetForm = () => {
     setCreatedCredentials(null);
+    setErrors({});
+    setTouched({});
+    setToast(null);
     setForm({
       firstName: '',
       lastName: '',
@@ -144,6 +410,9 @@ export const NewEmployeePage: React.FC = () => {
       managerId: '',
       workMode: 'WFO',
       workType: 'PERMANENT',
+      shiftTiming: 'General Shift (09:30 AM - 06:30 PM)',
+      address: '',
+      workingAddress: '',
       joiningDate: new Date().toISOString().split('T')[0],
       monthlySalary: '',
       currency: 'INR',
@@ -180,18 +449,41 @@ export const NewEmployeePage: React.FC = () => {
     loadPrerequisites();
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+
+    // Strict 10-digit numeric filter for phone & emergency contact
+    if (name === 'phone' || name === 'emergencyContactPhone') {
+      const numericVal = value.replace(/\D/g, '').slice(0, 10);
+      setForm((prev) => ({ ...prev, [name]: numericVal }));
+      if (touched[name]) {
+        validateField(name, numericVal);
+      }
+      return;
+    }
 
     // Auto generate username from email prefix if empty
-    if (name === 'email' && !form.username) {
-      const prefix = value.split('@')[0];
-      setForm((prev) => ({ ...prev, username: prefix }));
+    if (name === 'email') {
+      const prefix = !form.username ? value.split('@')[0] : form.username;
+      setForm((prev) => ({ ...prev, email: value, username: prefix }));
+      if (touched.email) validateField('email', value);
+      if (touched.personalEmail && form.personalEmail) {
+        validateField('personalEmail', form.personalEmail, { ...form, email: value });
+      }
+      return;
+    }
+
+    setForm((prev) => ({ ...prev, [name]: value }));
+    if (touched[name]) {
+      validateField(name, value);
     }
   };
 
-
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setTouched((prev) => ({ ...prev, [name]: true }));
+    validateField(name, value);
+  };
 
   const handleFileUpload = (key: 'offerLetter', file: File | null) => {
     if (!file) {
@@ -214,7 +506,32 @@ export const NewEmployeePage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    setToast(null);
+
+    const validationErrors = validateAll(form);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      // Mark all error fields as touched so their red borders & messages show
+      const touchedMap: Record<string, boolean> = {};
+      Object.keys(validationErrors).forEach((k) => (touchedMap[k] = true));
+      setTouched((prev) => ({ ...prev, ...touchedMap }));
+
+      // Focus and scroll to first invalid field
+      const firstErrorField = Object.keys(validationErrors)[0];
+      const targetElement = document.querySelector(`[name="${firstErrorField}"]`) as HTMLElement;
+      if (targetElement) {
+        targetElement.focus();
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
+      setToast({
+        title: 'Employee Creation Failed',
+        message: 'Please resolve all highlighted validation errors below before creating the employee.',
+        type: 'error',
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -231,6 +548,9 @@ export const NewEmployeePage: React.FC = () => {
         jobTitle: form.jobTitle.trim(),
         workMode: form.workMode,
         employmentType: form.workType, // 'PERMANENT' or 'CONTRACT'
+        shiftTiming: form.shiftTiming.trim(),
+        address: form.address.trim(),
+        workingAddress: form.workingAddress.trim(),
         joiningDate: form.joiningDate,
         monthlySalary: Number(form.monthlySalary) || 0,
         currency: form.currency,
@@ -259,14 +579,65 @@ export const NewEmployeePage: React.FC = () => {
     } catch (err: any) {
       console.error('Failed to onboard employee:', err);
       const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to create employee profile.';
-      setError(msg);
+      setToast({
+        title: 'Employee Creation Failed',
+        message: msg,
+        type: 'error',
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {/* ===================== FLOATING TOASTER NOTIFICATION ===================== */}
+      {toast && (
+        <div className="fixed top-6 right-6 z-50 max-w-sm sm:max-w-md w-[calc(100%-3rem)] pointer-events-auto animate-in slide-in-from-top-4 fade-in duration-200">
+          <div
+            className={`p-4 rounded-2xl border shadow-xl flex items-start gap-3 backdrop-blur-md transition-all ${
+              toast.type === 'error'
+                ? 'bg-rose-50/95 border-rose-200 text-rose-950 shadow-rose-900/10'
+                : toast.type === 'success'
+                ? 'bg-emerald-50/95 border-emerald-200 text-emerald-950 shadow-emerald-900/10'
+                : 'bg-amber-50/95 border-amber-200 text-amber-950 shadow-amber-900/10'
+            }`}
+          >
+            <div
+              className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                toast.type === 'error'
+                  ? 'bg-rose-100 text-rose-600'
+                  : toast.type === 'success'
+                  ? 'bg-emerald-100 text-emerald-600'
+                  : 'bg-amber-100 text-amber-600'
+              }`}
+            >
+              {toast.type === 'error' ? (
+                <IconAlertCircle className="w-5 h-5 stroke-[2.2]" />
+              ) : toast.type === 'success' ? (
+                <IconCheck className="w-5 h-5 stroke-[2.2]" />
+              ) : (
+                <IconAlertCircle className="w-5 h-5 stroke-[2.2]" />
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0 pt-0.5">
+              <p className="font-bold text-xs leading-snug">{toast.title}</p>
+              <p className="mt-0.5 text-[11px] font-medium leading-relaxed opacity-90">{toast.message}</p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              className="p-1 -mr-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-black/5 transition-colors cursor-pointer shrink-0"
+              title="Dismiss"
+            >
+              <IconX className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ===================== TOP HEADER BAR ===================== */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -319,7 +690,7 @@ export const NewEmployeePage: React.FC = () => {
                 }`}
             >
               <IconFileSpreadsheet className="w-3.5 h-3.5" />
-              <span>Bulk Excel & Grid</span>
+              <span>Bulk Upload</span>
             </button>
           </div>
         </div>
@@ -332,19 +703,8 @@ export const NewEmployeePage: React.FC = () => {
         />
       ) : (
         <>
-
-          {error && (
-            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 flex items-start gap-3 text-xs animate-in fade-in shadow-xs">
-              <IconAlertCircle className="w-5 h-5 shrink-0 text-rose-500 mt-0.5" />
-              <div>
-                <p className="font-bold text-sm">Employee Creation Failed</p>
-                <p className="mt-0.5 text-rose-600 font-medium">{error}</p>
-              </div>
-            </div>
-          )}
-
           {/* ===================== FORM ===================== */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} noValidate className="space-y-6">
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
               {/* Section 1: Identity & Contact */}
               <div className="space-y-4">
@@ -352,7 +712,7 @@ export const NewEmployeePage: React.FC = () => {
                   <div className="w-7 h-7 rounded-lg bg-indigo-50 text-[#5E4BE2] flex items-center justify-center shrink-0">
                     <IconUser className="w-4 h-4" />
                   </div>
-                  <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  <h2 className="text-xs font-bold text-slate-900">
                     Identity & Contact
                   </h2>
                 </div>
@@ -370,10 +730,12 @@ export const NewEmployeePage: React.FC = () => {
                         required
                         value={form.firstName}
                         onChange={handleChange}
+                        onBlur={handleBlur}
                         placeholder="Jane"
-                        className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all placeholder:text-slate-400"
+                        className={getInputClass('firstName')}
                       />
                     </div>
+                    {renderFieldError('firstName')}
                   </div>
 
                   <div>
@@ -387,10 +749,12 @@ export const NewEmployeePage: React.FC = () => {
                         name="lastName"
                         value={form.lastName}
                         onChange={handleChange}
+                        onBlur={handleBlur}
                         placeholder="Doe"
-                        className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all placeholder:text-slate-400"
+                        className={getInputClass('lastName')}
                       />
                     </div>
+                    {renderFieldError('lastName')}
                   </div>
 
                   <div>
@@ -405,14 +769,19 @@ export const NewEmployeePage: React.FC = () => {
                         required
                         value={form.employeeNumber}
                         onChange={handleChange}
+                        onBlur={handleBlur}
                         placeholder="EMP-001"
-                        className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all placeholder:text-slate-400"
+                        className={getInputClass('employeeNumber')}
                       />
                     </div>
+                    {renderFieldError('employeeNumber')}
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Date of Birth *</label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-slate-700">Date of Birth *</label>
+                      <span className="text-[10px] text-slate-400 font-medium">Min 18 years</span>
+                    </div>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-rose-500">
                         <IconCalendar className="w-4 h-4" />
@@ -421,11 +790,14 @@ export const NewEmployeePage: React.FC = () => {
                         type="date"
                         name="dateOfBirth"
                         required
+                        max={maxDobDate}
                         value={form.dateOfBirth}
                         onChange={handleChange}
-                        className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer"
+                        onBlur={handleBlur}
+                        className={getInputClass('dateOfBirth')}
                       />
                     </div>
+                    {renderFieldError('dateOfBirth')}
                   </div>
 
                   <div>
@@ -440,10 +812,12 @@ export const NewEmployeePage: React.FC = () => {
                         required
                         value={form.email}
                         onChange={handleChange}
+                        onBlur={handleBlur}
                         placeholder="jane.doe@acme.com"
-                        className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all placeholder:text-slate-400"
+                        className={getInputClass('email')}
                       />
                     </div>
+                    {renderFieldError('email')}
                   </div>
 
                   <div>
@@ -458,10 +832,12 @@ export const NewEmployeePage: React.FC = () => {
                         required
                         value={form.personalEmail}
                         onChange={handleChange}
+                        onBlur={handleBlur}
                         placeholder="jane.personal@gmail.com"
-                        className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all placeholder:text-slate-400"
+                        className={getInputClass('personalEmail')}
                       />
                     </div>
+                    {renderFieldError('personalEmail')}
                   </div>
 
                   <div>
@@ -476,14 +852,23 @@ export const NewEmployeePage: React.FC = () => {
                         required
                         value={form.username}
                         onChange={handleChange}
+                        onBlur={handleBlur}
                         placeholder="jane.doe"
-                        className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all placeholder:text-slate-400"
+                        className={getInputClass('username')}
                       />
                     </div>
+                    {renderFieldError('username')}
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Phone Number</label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-slate-700">Phone Number *</label>
+                      <span className={`text-[10px] font-mono font-bold ${
+                        form.phone.length === 10 ? 'text-emerald-600' : 'text-slate-400'
+                      }`}>
+                        {form.phone.length}/10 digits
+                      </span>
+                    </div>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-600">
                         <IconPhone className="w-4 h-4" />
@@ -491,16 +876,23 @@ export const NewEmployeePage: React.FC = () => {
                       <input
                         type="tel"
                         name="phone"
+                        required
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={10}
                         value={form.phone}
                         onChange={handleChange}
-                        placeholder="+91 9876543210"
-                        className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all placeholder:text-slate-400"
+                        onBlur={handleBlur}
+                        onKeyDown={handleNumericKeyDown}
+                        placeholder="9876543210"
+                        className={getInputClass('phone')}
                       />
                     </div>
+                    {renderFieldError('phone')}
                   </div>
 
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Joining Date</label>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Joining Date *</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-indigo-600">
                         <IconCalendar className="w-4 h-4" />
@@ -508,11 +900,90 @@ export const NewEmployeePage: React.FC = () => {
                       <input
                         type="date"
                         name="joiningDate"
+                        required
                         value={form.joiningDate}
                         onChange={handleChange}
-                        className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer"
+                        onBlur={handleBlur}
+                        className={getInputClass('joiningDate')}
                       />
                     </div>
+                    {renderFieldError('joiningDate')}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Residential / Permanent Address</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-rose-500">
+                        <IconMapPin className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="text"
+                        name="address"
+                        value={form.address}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        placeholder="House / Flat No., Street, Area, City, State, PIN Code"
+                        className={getInputClass('address')}
+                      />
+                    </div>
+                    {renderFieldError('address')}
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-slate-700">Working Address *</label>
+                      {form.address && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setForm((prev) => ({ ...prev, workingAddress: prev.address }));
+                            validateField('workingAddress', form.address);
+                          }}
+                          className="text-[10px] text-[#5E4BE2] hover:text-[#4B39C3] font-bold hover:underline cursor-pointer"
+                        >
+                          Same as Residential
+                        </button>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-purple-600">
+                        <IconBuildingSkyscraper className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="text"
+                        name="workingAddress"
+                        required
+                        value={form.workingAddress}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        placeholder="Office or branch location address"
+                        className={getInputClass('workingAddress')}
+                      />
+                    </div>
+                    {renderFieldError('workingAddress')}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Shift Timing *</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-indigo-600">
+                        <IconClock className="w-4 h-4" />
+                      </div>
+                      <select
+                        name="shiftTiming"
+                        value={form.shiftTiming}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        className={getInputClass('shiftTiming')}
+                      >
+                        <option value="General Shift (09:30 AM - 06:30 PM)">General Shift (09:30 AM - 06:30 PM)</option>
+                        <option value="Morning Shift (06:00 AM - 02:30 PM)">Morning Shift (06:00 AM - 02:30 PM)</option>
+                        <option value="Evening Shift (02:00 PM - 10:30 PM)">Evening Shift (02:00 PM - 10:30 PM)</option>
+                        <option value="Night Shift (10:00 PM - 06:30 AM)">Night Shift (10:00 PM - 06:30 AM)</option>
+                        <option value="Flexible Hours (09:00 AM - 06:00 PM)">Flexible Hours (09:00 AM - 06:00 PM)</option>
+                      </select>
+                    </div>
+                    {renderFieldError('shiftTiming')}
                   </div>
                 </div>
               </div>
@@ -526,7 +997,7 @@ export const NewEmployeePage: React.FC = () => {
                   <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
                     <IconBuildingSkyscraper className="w-4 h-4" />
                   </div>
-                  <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  <h2 className="text-xs font-bold text-slate-900">
                     Role & Reporting
                   </h2>
                 </div>
@@ -557,10 +1028,12 @@ export const NewEmployeePage: React.FC = () => {
                         name="jobTitle"
                         value={form.jobTitle}
                         onChange={handleChange}
+                        onBlur={handleBlur}
                         placeholder="Senior Full Stack Engineer"
-                        className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all placeholder:text-slate-400"
+                        className={getInputClass('jobTitle')}
                       />
                     </div>
+                    {renderFieldError('jobTitle')}
                   </div>
 
                   <div>
@@ -572,7 +1045,7 @@ export const NewEmployeePage: React.FC = () => {
                       className="w-full px-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer"
                     >
                       <option value="">Unassigned</option>
-                      {departments.map((d) => (
+                      {departments.filter((d: any) => d.isActive !== false).map((d) => (
                         <option key={d.id} value={d.id}>{d.name}</option>
                       ))}
                     </select>
@@ -636,7 +1109,7 @@ export const NewEmployeePage: React.FC = () => {
                     <IconHeartHandshake className="w-4 h-4" />
                   </div>
                   <div>
-                    <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    <h2 className="text-xs font-bold text-slate-900">
                       Emergency Contact
                     </h2>
                     <p className="text-[11px] text-slate-500 mt-0.5">
@@ -658,10 +1131,12 @@ export const NewEmployeePage: React.FC = () => {
                         required
                         value={form.emergencyContactName}
                         onChange={handleChange}
+                        onBlur={handleBlur}
                         placeholder="e.g. Sarah Vance"
-                        className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all placeholder:text-slate-400"
+                        className={getInputClass('emergencyContactName')}
                       />
                     </div>
+                    {renderFieldError('emergencyContactName')}
                   </div>
 
                   <div>
@@ -676,14 +1151,23 @@ export const NewEmployeePage: React.FC = () => {
                         required
                         value={form.emergencyContactRelationship}
                         onChange={handleChange}
+                        onBlur={handleBlur}
                         placeholder="e.g. Spouse / Parent / Sibling"
-                        className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all placeholder:text-slate-400"
+                        className={getInputClass('emergencyContactRelationship')}
                       />
                     </div>
+                    {renderFieldError('emergencyContactRelationship')}
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Contact *</label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-slate-700">Contact *</label>
+                      <span className={`text-[10px] font-mono font-bold ${
+                        form.emergencyContactPhone.length === 10 ? 'text-emerald-600' : 'text-slate-400'
+                      }`}>
+                        {form.emergencyContactPhone.length}/10 digits
+                      </span>
+                    </div>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-rose-500">
                         <IconPhone className="w-4 h-4" />
@@ -692,12 +1176,18 @@ export const NewEmployeePage: React.FC = () => {
                         type="tel"
                         name="emergencyContactPhone"
                         required
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={10}
                         value={form.emergencyContactPhone}
                         onChange={handleChange}
-                        placeholder="e.g. +91 9876543210"
-                        className="w-full pl-10 pr-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all placeholder:text-slate-400"
+                        onBlur={handleBlur}
+                        onKeyDown={handleNumericKeyDown}
+                        placeholder="9876543210"
+                        className={getInputClass('emergencyContactPhone')}
                       />
                     </div>
+                    {renderFieldError('emergencyContactPhone')}
                   </div>
                 </div>
               </div>
@@ -705,50 +1195,52 @@ export const NewEmployeePage: React.FC = () => {
               {/* Line Separation */}
               <hr className="border-slate-200/80" />
 
-              {/* Section 3: Salary Master Configuration */}
+              {/* Section 4: Salary Master Configuration */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2.5 pb-2">
                   <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
                     <IconCash className="w-4 h-4" />
                   </div>
-                  <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  <h2 className="text-xs font-bold text-slate-900">
                     Salary Master Configuration
                   </h2>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Monthly Gross Salary (CTC) *</label>
-                    <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-black text-xs text-emerald-600">
-                        {form.currency}
-                      </span>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Cost to Company (CTC) *</label>
+                    <div className="relative flex rounded-xl shadow-2xs">
+                      {/* Compact Currency Dropdown directly before amount */}
+                      <select
+                        name="currency"
+                        value={form.currency}
+                        onChange={handleChange}
+                        aria-label="Currency"
+                        className="w-24 sm:w-28 shrink-0 px-2.5 py-2.5 text-xs font-bold text-slate-800 bg-slate-100 border border-r-0 border-slate-200 rounded-l-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] hover:bg-slate-200/70 hover:border-slate-300 transition-all cursor-pointer z-0 focus:z-10"
+                      >
+                        <option value="INR">INR (₹)</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="GBP">GBP (£)</option>
+                      </select>
+                      {/* Amount Input */}
                       <input
                         type="number"
                         name="monthlySalary"
-                        min="0"
+                        min="1"
                         required
                         value={form.monthlySalary}
                         onChange={handleChange}
+                        onBlur={handleBlur}
                         placeholder="60000"
-                        className="w-full pl-14 pr-4 py-2.5 text-xs font-bold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all"
+                        className={`flex-1 min-w-0 !rounded-l-none pl-3.5 pr-4 py-2.5 text-xs font-semibold text-slate-900 rounded-r-xl transition-all z-0 focus:z-10 ${
+                          touched.monthlySalary && errors.monthlySalary
+                            ? 'bg-rose-50/40 border border-rose-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-rose-500/15 focus:border-rose-500'
+                            : 'bg-[#f1f5f9] border border-slate-200 focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] hover:bg-slate-100 hover:border-slate-300'
+                        } placeholder:text-slate-400`}
                       />
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Currency</label>
-                    <select
-                      name="currency"
-                      value={form.currency}
-                      onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer"
-                    >
-                      <option value="INR">INR (₹)</option>
-                      <option value="USD">USD ($)</option>
-                      <option value="EUR">EUR (€)</option>
-                      <option value="GBP">GBP (£)</option>
-                    </select>
+                    {renderFieldError('monthlySalary')}
                   </div>
                 </div>
               </div>
@@ -765,7 +1257,7 @@ export const NewEmployeePage: React.FC = () => {
                       <IconPaperclip className="w-4 h-4" />
                     </div>
                     <div>
-                      <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                      <h2 className="text-xs font-bold text-slate-900">
                         Offer Letter / Agreement
                       </h2>
                       <p className="text-[11px] text-slate-500 mt-0.5">
@@ -887,7 +1379,7 @@ export const NewEmployeePage: React.FC = () => {
               {/* Work Email / Username */}
               <div className="flex items-center justify-between bg-white p-2.5 rounded-lg border border-slate-200">
                 <div className="min-w-0 pr-2">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block font-sans">Work Email / Username</span>
+                  <span className="text-[10px] font-bold text-slate-400 block font-sans">Work Email / Username</span>
                   <span className="text-slate-800 font-semibold truncate block select-all">{createdCredentials.email}</span>
                 </div>
                 <button
@@ -903,7 +1395,7 @@ export const NewEmployeePage: React.FC = () => {
               {/* Password */}
               <div className="flex items-center justify-between bg-white p-2.5 rounded-lg border border-slate-200">
                 <div className="min-w-0 pr-2">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block font-sans">Initial Password</span>
+                  <span className="text-[10px] font-bold text-slate-400 block font-sans">Initial Password</span>
                   <span className="text-slate-800 font-bold truncate block select-all">
                     {showCreatedPassword ? createdCredentials.password : '••••••••••••'}
                   </span>

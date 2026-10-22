@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../api/client';
+import TablePagination from '../../components/common/TablePagination';
 import {
   IconFileText,
   IconPlus,
@@ -49,6 +50,10 @@ export const ManagePoliciesPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [selectedCompliance, setSelectedCompliance] = useState('ALL');
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Modals
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -258,6 +263,12 @@ export const ManagePoliciesPage: React.FC = () => {
     });
   }, [policies, search, selectedCategory, selectedCompliance]);
 
+  // Paginated policies for current page
+  const paginatedPolicies = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredPolicies.slice(start, start + pageSize);
+  }, [filteredPolicies, currentPage, pageSize]);
+
   return (
     <div className="space-y-6 pb-12">
       {/* ===================== TOP HERO BAR ===================== */}
@@ -297,7 +308,10 @@ export const ManagePoliciesPage: React.FC = () => {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
               placeholder="Search policies by title, category, or clauses..."
               className="w-full pl-10 pr-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-800 placeholder-slate-400 font-medium"
             />
@@ -309,7 +323,10 @@ export const ManagePoliciesPage: React.FC = () => {
             <div className="relative flex-1 sm:flex-none">
               <select
                 value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="w-full sm:w-auto appearance-none pl-8 pr-7 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-700 cursor-pointer"
               >
                 <option value="ALL">All Categories</option>
@@ -328,7 +345,10 @@ export const ManagePoliciesPage: React.FC = () => {
             <div className="relative flex-1 sm:flex-none">
               <select
                 value={selectedCompliance}
-                onChange={(e) => setSelectedCompliance(e.target.value)}
+                onChange={(e) => {
+                  setSelectedCompliance(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="w-full sm:w-auto appearance-none pl-8 pr-7 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-700 cursor-pointer"
               >
                 <option value="ALL">All Compliance</option>
@@ -349,15 +369,15 @@ export const ManagePoliciesPage: React.FC = () => {
         {/* Table View */}
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px] text-left text-xs">
-            <thead className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 bg-slate-50/60">
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
-                <th className="px-5 py-3.5 whitespace-nowrap min-w-[280px]">POLICY TITLE & GUIDELINES</th>
-                <th className="px-5 py-3.5 whitespace-nowrap">CATEGORY</th>
-                <th className="px-5 py-3.5 whitespace-nowrap">VERSION</th>
-                <th className="px-5 py-3.5 whitespace-nowrap">COMPLIANCE TYPE</th>
-                <th className="px-5 py-3.5 whitespace-nowrap min-w-[170px]">STAFF ACKNOWLEDGMENT</th>
-                <th className="px-5 py-3.5 whitespace-nowrap">PUBLISHED DATE</th>
-                <th className="px-5 py-3.5 whitespace-nowrap text-right">ACTIONS</th>
+                <th className="px-5 py-3.5 whitespace-nowrap min-w-[280px]">Policy Title & Guidelines</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Category</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Version</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Compliance Type</th>
+                <th className="px-5 py-3.5 whitespace-nowrap min-w-[170px]">Staff Acknowledgment</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Published Date</th>
+                <th className="px-5 py-3.5 whitespace-nowrap text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -416,7 +436,7 @@ export const ManagePoliciesPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredPolicies.map((p) => {
+                paginatedPolicies.map((p) => {
                   const meta = getCategoryMeta(p.category || p.policyType);
                   const Icon = meta.icon;
                   const isMandatoryPolicy = p.isMandatory !== false;
@@ -559,6 +579,17 @@ export const ManagePoliciesPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Bar */}
+        <TablePagination
+          currentPage={currentPage}
+          totalItems={filteredPolicies.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+          pageSizeOptions={[10, 25, 50, 100]}
+          itemName="policies"
+        />
       </div>
 
       {/* ===================== MODAL 1: VIEW / READ POLICY MODAL ===================== */}

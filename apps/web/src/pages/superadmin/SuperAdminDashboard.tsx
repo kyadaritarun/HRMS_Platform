@@ -512,14 +512,14 @@ export const SuperAdminDashboard: React.FC = () => {
           {activeTab === 'companies' && (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-slate-100 text-slate-400 uppercase tracking-wider font-semibold">
-                    <th className="pb-3 pl-2">Company</th>
-                    <th className="pb-3">Subdomain</th>
-                    <th className="pb-3">Status</th>
-                    <th className="pb-3">Assigned Package</th>
-                    <th className="pb-3">Plan Type</th>
-                    <th className="pb-3 pr-2 text-right">Created</th>
+                <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
+                  <tr>
+                    <th className="py-3 pl-3">Company</th>
+                    <th className="py-3 px-3">Subdomain</th>
+                    <th className="py-3 px-3">Status</th>
+                    <th className="py-3 px-3">Assigned Package</th>
+                    <th className="py-3 px-3">Plan Type</th>
+                    <th className="py-3 pr-3 text-right">Created</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -568,13 +568,13 @@ export const SuperAdminDashboard: React.FC = () => {
           {activeTab === 'renewals' && (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-slate-100 text-slate-400 uppercase tracking-wider font-semibold">
-                    <th className="pb-3 pl-2">Company</th>
-                    <th className="pb-3">Status</th>
-                    <th className="pb-3">Plan / Package</th>
-                    <th className="pb-3">Primary Contact</th>
-                    <th className="pb-3 pr-2 text-right">Expiration / Due Date</th>
+                <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
+                  <tr>
+                    <th className="py-3 pl-3">Company</th>
+                    <th className="py-3 px-3">Status</th>
+                    <th className="py-3 px-3">Plan / Package</th>
+                    <th className="py-3 px-3">Primary Contact</th>
+                    <th className="py-3 pr-3 text-right">Expiration / Due Date</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -620,14 +620,14 @@ export const SuperAdminDashboard: React.FC = () => {
           {activeTab === 'overuse' && (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-slate-100 text-slate-400 uppercase tracking-wider font-semibold">
-                    <th className="pb-3 pl-2">Company</th>
-                    <th className="pb-3">Primary Contact</th>
-                    <th className="pb-3">Phone</th>
-                    <th className="pb-3 text-center">Seat Limit</th>
-                    <th className="pb-3 text-center">Active Users</th>
-                    <th className="pb-3 pr-2 text-right">Quota Overrun</th>
+                <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
+                  <tr>
+                    <th className="py-3 pl-3">Company</th>
+                    <th className="py-3 px-3">Primary Contact</th>
+                    <th className="py-3 px-3">Phone</th>
+                    <th className="py-3 px-3 text-center">Seat Limit</th>
+                    <th className="py-3 px-3 text-center">Active Users</th>
+                    <th className="py-3 pr-3 text-right">Quota Overrun</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -663,13 +663,13 @@ export const SuperAdminDashboard: React.FC = () => {
           {activeTab === 'subscriptions' && (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-slate-100 text-slate-400 uppercase tracking-wider font-semibold">
-                    <th className="pb-3 pl-2">Company</th>
-                    <th className="pb-3">Package</th>
-                    <th className="pb-3">Plan Cycle</th>
-                    <th className="pb-3">Subdomain</th>
-                    <th className="pb-3 pr-2 text-right">Subscription Start</th>
+                <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
+                  <tr>
+                    <th className="py-3 pl-3">Company</th>
+                    <th className="py-3 px-3">Package</th>
+                    <th className="py-3 px-3">Plan Cycle</th>
+                    <th className="py-3 px-3">Subdomain</th>
+                    <th className="py-3 pr-3 text-right">Subscription Start</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">

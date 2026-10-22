@@ -262,7 +262,7 @@ export const OfferLetterPdfDrawer: React.FC<OfferLetterPdfDrawerProps> = ({
                     </p>
 
                     <table className="w-full border border-slate-200 text-xs text-left mb-4">
-                      <thead className="bg-slate-50 border-b border-slate-200 font-bold text-slate-700">
+                      <thead className="bg-[#e5e7eb] border-b border-slate-300 font-bold text-xs text-slate-900">
                         <tr>
                           <th className="p-2.5 border-r border-slate-200">Component</th>
                           <th className="p-2.5 border-r border-slate-200 text-right">Monthly (₹)</th>

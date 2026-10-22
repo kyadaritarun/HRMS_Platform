@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
+import TablePagination from '../../components/common/TablePagination';
 import {
   IconCalendarEvent,
   IconCalendar,
@@ -54,6 +55,12 @@ export const MyLeavesPage: React.FC = () => {
   // Filters
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>('ALL');
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedTypeFilter]);
 
   const [form, setForm] = useState({
     leaveTypeId: '',
@@ -239,6 +246,11 @@ export const MyLeavesPage: React.FC = () => {
       req.leaveType?.name?.toLowerCase().includes(selectedTypeFilter.toLowerCase())
     );
   });
+
+  const paginatedRequests = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredRequests.slice(start, start + pageSize);
+  }, [filteredRequests, currentPage, pageSize]);
 
   const renderQuotaIcon = (type: LeaveQuota['type'], iconColor: string) => {
     switch (type) {
@@ -455,15 +467,15 @@ export const MyLeavesPage: React.FC = () => {
         {/* Table Content */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-600">
-            <thead className="bg-slate-50/60 text-[11px] font-bold text-slate-400 tracking-wider uppercase border-b border-slate-100">
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
-                <th className="px-6 py-3.5">LEAVE TYPE</th>
-                <th className="px-6 py-3.5">DATES DURATION</th>
-                <th className="px-6 py-3.5">DAYS</th>
-                <th className="px-6 py-3.5">REASON</th>
-                <th className="px-6 py-3.5">STATUS</th>
-                <th className="px-6 py-3.5">APPROVER</th>
-                <th className="px-6 py-3.5 text-right">ACTION</th>
+                <th className="px-6 py-3.5">Leave Type</th>
+                <th className="px-6 py-3.5">Dates Duration</th>
+                <th className="px-6 py-3.5">Days</th>
+                <th className="px-6 py-3.5">Reason</th>
+                <th className="px-6 py-3.5">Status</th>
+                <th className="px-6 py-3.5">Approver</th>
+                <th className="px-6 py-3.5 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -506,7 +518,7 @@ export const MyLeavesPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredRequests.map((req) => (
+                paginatedRequests.map((req) => (
                   <tr key={req.id} className="hover:bg-slate-50/60 transition-colors">
                     <td className="px-6 py-4 font-semibold text-slate-900">
                       <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700 mr-2">
@@ -546,6 +558,19 @@ export const MyLeavesPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        <TablePagination
+          currentPage={currentPage}
+          totalItems={filteredRequests.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[5, 10, 20, 50]}
+          itemName="leave requests"
+        />
       </div>
 
       {/* Apply for Leave Right-Side Slide-Over Drawer */}

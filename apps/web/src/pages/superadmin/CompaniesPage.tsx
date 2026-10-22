@@ -569,7 +569,7 @@ export const CompaniesPage: React.FC = () => {
             {/* Table */}
             <div className="overflow-x-auto border border-slate-100 rounded-lg">
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#f4f5f7] text-slate-700 font-semibold border-b border-slate-200/80">
+                <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
                   <tr>
                     <th className="py-3 px-4">Name</th>
                     <th className="py-3 px-4">Email</th>
@@ -921,16 +921,16 @@ export const CompaniesPage: React.FC = () => {
         {/* Table View */}
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/70 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                <th className="px-5 py-4">COMPANY NAME</th>
-                <th className="px-5 py-4">EMAIL</th>
-                <th className="px-5 py-4">ACCOUNT URL</th>
-                <th className="px-5 py-4">PLAN</th>
-                <th className="px-5 py-4">ADMIN</th>
-                <th className="px-5 py-4">CREATED DATE</th>
-                <th className="px-5 py-4 text-center">STATUS</th>
-                <th className="px-5 py-4 text-right">ACTIONS</th>
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
+              <tr>
+                <th className="px-5 py-3.5">Company Name</th>
+                <th className="px-5 py-3.5">Email</th>
+                <th className="px-5 py-3.5">Account URL</th>
+                <th className="px-5 py-3.5">Plan</th>
+                <th className="px-5 py-3.5">Admin</th>
+                <th className="px-5 py-3.5">Created Date</th>
+                <th className="px-5 py-3.5 text-center">Status</th>
+                <th className="px-5 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">

@@ -9,7 +9,6 @@ import {
   IconCheck,
   IconAlertCircle,
   IconLoader2,
-  IconPlayerPlay,
 } from '@tabler/icons-react';
 
 interface EventEmailsModalProps {
@@ -20,7 +19,6 @@ interface EventEmailsModalProps {
 export const EventEmailsModal: React.FC<EventEmailsModalProps> = ({ isOpen, onClose }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const [settings, setSettings] = useState({
@@ -68,27 +66,6 @@ export const EventEmailsModal: React.FC<EventEmailsModalProps> = ({ isOpen, onCl
       });
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const handleTriggerTest = async () => {
-    setIsTesting(true);
-    setFeedback(null);
-    try {
-      const res = await api.post('/company/event-emails/trigger-test');
-      const bCount = res.data?.result?.birthdayEmailsSent ?? 0;
-      const hCount = res.data?.result?.holidayEmailsSent ?? 0;
-      setFeedback({
-        type: 'success',
-        message: `Check completed: ${bCount} birthday email(s) and ${hCount} holiday announcement(s) sent!`,
-      });
-    } catch (err: any) {
-      setFeedback({
-        type: 'error',
-        message: err.response?.data?.message || 'Failed to trigger automated check.',
-      });
-    } finally {
-      setIsTesting(false);
     }
   };
 
@@ -288,31 +265,6 @@ export const EventEmailsModal: React.FC<EventEmailsModalProps> = ({ isOpen, onCl
                 )}
               </div>
 
-              {/* Server Automation Status Indicator */}
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-800 block">Server Scheduler: Active</span>
-                    <span className="text-[11px] text-slate-500">
-                      The server automatically runs daily at morning 9:00 AM to dispatch configured emails.
-                    </span>
-                  </div>
-                </div>
-                <button
-                  onClick={handleTriggerTest}
-                  disabled={isTesting}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 shadow-2xs transition-colors cursor-pointer disabled:opacity-60"
-                  title="Run automated check now"
-                >
-                  {isTesting ? (
-                    <IconLoader2 className="w-3.5 h-3.5 animate-spin text-[#5E4BE2]" />
-                  ) : (
-                    <IconPlayerPlay className="w-3.5 h-3.5 text-[#5E4BE2]" />
-                  )}
-                  <span>Test Run Now</span>
-                </button>
-              </div>
             </>
           ) : (
             /* Email Preview Tab */

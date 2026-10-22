@@ -148,13 +148,13 @@ export const PoliciesPage: React.FC = () => {
         {/* Table Content */}
         <div className="overflow-x-auto -mx-5 -mb-5">
           <table className="w-full min-w-[850px] text-left text-xs">
-            <thead className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-y border-slate-100 bg-slate-50/50">
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
-                <th className="px-5 py-3.5 whitespace-nowrap">POLICY TITLE</th>
-                <th className="px-5 py-3.5 whitespace-nowrap">VERSION</th>
-                <th className="px-5 py-3.5 whitespace-nowrap">STATUS</th>
-                <th className="px-5 py-3.5 whitespace-nowrap">SIGNED DATE</th>
-                <th className="px-5 py-3.5 text-right whitespace-nowrap">ACTIONS</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Policy Title</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Version</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Status</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Signed Date</th>
+                <th className="px-5 py-3.5 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

@@ -582,7 +582,7 @@ export const RolesHierarchyPage: React.FC = () => {
           {/* Directory Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm text-slate-600">
-              <thead className="bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+              <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
                 <tr>
                   <th className="px-6 py-3.5">Employee</th>
                   <th className="px-6 py-3.5">Role</th>
@@ -704,7 +704,7 @@ export const RolesHierarchyPage: React.FC = () => {
         <div className="bg-white rounded-2xl border border-slate-200/70 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm text-slate-600">
-              <thead className="bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+              <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
                 <tr>
                   <th className="px-6 py-3.5">Capability & Operation</th>
                   <th className="px-6 py-3.5">Module Scope</th>

@@ -34,6 +34,9 @@ export interface BulkEmployeeRow {
   role: 'EMPLOYEE' | 'HR' | 'COMPANY_ADMIN';
   phone: string;
   workMode: 'WFO' | 'WFH';
+  shiftTiming: string;
+  address: string;
+  workingAddress: string;
   joiningDate: string;
   monthlySalary: string;
   currency: string;
@@ -54,14 +57,17 @@ const DEMO_ROWS: BulkEmployeeRow[] = [
     workType: 'PERMANENT',
     jobTitle: 'Senior Software Engineer',
     role: 'EMPLOYEE',
-    phone: '+91 9876543210',
+    phone: '9876543210',
     workMode: 'WFO',
+    shiftTiming: 'General Shift (09:30 AM - 06:30 PM)',
+    address: 'Flat 402, Green Meadows, Indiranagar, Bengaluru, KA 560038',
+    workingAddress: 'Uptrix Tower, 5th Floor, Outer Ring Road, Bengaluru',
     joiningDate: new Date().toISOString().split('T')[0],
     monthlySalary: '85000',
     currency: 'INR',
     emergencyContactName: 'Mary Doe',
     emergencyContactRelationship: 'Spouse',
-    emergencyContactPhone: '+91 9876543219',
+    emergencyContactPhone: '9876543219',
   },
   {
     id: 'demo-2',
@@ -74,14 +80,17 @@ const DEMO_ROWS: BulkEmployeeRow[] = [
     workType: 'CONTRACT',
     jobTitle: 'Product Designer',
     role: 'EMPLOYEE',
-    phone: '+91 9811223344',
+    phone: '9811223344',
     workMode: 'WFH',
+    shiftTiming: 'Flexible Shift',
+    address: 'House 12, Palm Grove, Koramangala, Bengaluru, KA 560034',
+    workingAddress: 'Remote / Work From Home',
     joiningDate: new Date().toISOString().split('T')[0],
     monthlySalary: '65000',
     currency: 'INR',
     emergencyContactName: 'Robert Connor',
     emergencyContactRelationship: 'Brother',
-    emergencyContactPhone: '+91 9811223399',
+    emergencyContactPhone: '9811223399',
   },
 ];
 
@@ -98,6 +107,9 @@ const createEmptyRow = (): BulkEmployeeRow => ({
   role: 'EMPLOYEE',
   phone: '',
   workMode: 'WFO',
+  shiftTiming: 'General Shift (09:30 AM - 06:30 PM)',
+  address: '',
+  workingAddress: '',
   joiningDate: new Date().toISOString().split('T')[0],
   monthlySalary: '',
   currency: 'INR',
@@ -189,6 +201,7 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
     const rawWorkType = getString(['worktype', 'work type', 'employmenttype', 'employment type']).toUpperCase();
     const rawWorkMode = getString(['workmode', 'work mode']).toUpperCase();
     const rawRole = getString(['role', 'system role']).toUpperCase();
+    const rawShiftTiming = getString(['shifttiming', 'shift timing', 'shift', 'timing']);
 
     return {
       firstName: getString(['firstname', 'first name']),
@@ -202,8 +215,11 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
       role: ['HR', 'COMPANY_ADMIN'].includes(rawRole) ? (rawRole as any) : 'EMPLOYEE',
       phone: getString(['phone', 'phonenumber', 'phone number', 'contact']),
       workMode: rawWorkMode === 'WFH' ? 'WFH' : 'WFO',
+      shiftTiming: rawShiftTiming || 'General Shift (09:30 AM - 06:30 PM)',
+      address: getString(['address', 'residentialaddress', 'residential address', 'permanentaddress', 'permanent address']),
+      workingAddress: getString(['workingaddress', 'working address', 'officeaddress', 'office address', 'workaddress', 'work address']),
       joiningDate: parseExcelDate(getRaw(['joiningdate', 'joining date', 'date of joining', 'doj'])) || new Date().toISOString().split('T')[0],
-      monthlySalary: getString(['monthlysalary', 'monthly salary', 'salary']) || '',
+      monthlySalary: getString(['monthlysalary', 'monthly salary', 'salary', 'ctc', 'costtocompany', 'cost to company']) || '',
       currency: getString(['currency']) || 'INR',
       emergencyContactName: getString(['emergencycontactname', 'emergency contact name', 'emergency name', 'guardian name']),
       emergencyContactRelationship: getString(['emergencycontactrelationship', 'emergency contact relationship', 'relationship']),
@@ -293,6 +309,7 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
     if (!r.emergencyContactName.trim()) missing.push('Emergency Name');
     if (!r.emergencyContactRelationship.trim()) missing.push('Emergency Relationship');
     if (!r.emergencyContactPhone.trim()) missing.push('Emergency Phone');
+    if (!r.workingAddress.trim()) missing.push('Working Address');
     return missing;
   };
 
@@ -599,8 +616,8 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
 
         {/* Horizontal Scrollable Table */}
         <div className="overflow-x-auto max-h-[550px]">
-          <table className="w-full min-w-[2000px] text-left text-xs">
-            <thead className="text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-100/80 border-b border-slate-200 sticky top-0 z-10">
+          <table className="w-full min-w-[2500px] text-left text-xs">
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300 sticky top-0 z-10">
               <tr>
                 <th className="px-3 py-3 w-12 text-center">#</th>
                 <th className="px-3 py-3 w-14 text-center">STATUS</th>
@@ -616,7 +633,10 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
                 <th className="px-3 py-3 min-w-[140px]">PHONE</th>
                 <th className="px-3 py-3 min-w-[120px]">WORK MODE</th>
                 <th className="px-3 py-3 min-w-[140px]">JOINING DATE</th>
-                <th className="px-3 py-3 min-w-[120px]">SALARY</th>
+                <th className="px-3 py-3 min-w-[200px]">SHIFT TIMING</th>
+                <th className="px-3 py-3 min-w-[220px]">RESIDENTIAL ADDRESS</th>
+                <th className="px-3 py-3 min-w-[220px]">WORKING ADDRESS *</th>
+                <th className="px-3 py-3 min-w-[140px]">COST TO COMPANY (CTC)</th>
                 <th className="px-3 py-3 min-w-[160px]">EMERGENCY NAME *</th>
                 <th className="px-3 py-3 min-w-[160px]">EMERGENCY REL *</th>
                 <th className="px-3 py-3 min-w-[150px]">EMERGENCY PHONE *</th>
@@ -782,7 +802,43 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
                         className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 focus:bg-white focus:outline-hidden"
                       />
                     </td>
-                    {/* Monthly Salary */}
+                    {/* Shift Timing */}
+                    <td className="px-2 py-1.5">
+                      <select
+                        value={r.shiftTiming}
+                        onChange={(e) => handleCellChange(r.id, 'shiftTiming', e.target.value)}
+                        className="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-hidden cursor-pointer"
+                      >
+                        <option value="General Shift (09:30 AM - 06:30 PM)">General Shift (09:30 AM - 06:30 PM)</option>
+                        <option value="Morning Shift (06:00 AM - 03:00 PM)">Morning Shift (06:00 AM - 03:00 PM)</option>
+                        <option value="Afternoon Shift (02:00 PM - 11:00 PM)">Afternoon Shift (02:00 PM - 11:00 PM)</option>
+                        <option value="Night Shift (10:00 PM - 07:00 AM)">Night Shift (10:00 PM - 07:00 AM)</option>
+                        <option value="Flexible Shift">Flexible Shift</option>
+                      </select>
+                    </td>
+                    {/* Residential Address */}
+                    <td className="px-2 py-1.5">
+                      <input
+                        type="text"
+                        value={r.address}
+                        onChange={(e) => handleCellChange(r.id, 'address', e.target.value)}
+                        placeholder="House / Flat No., City..."
+                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 focus:bg-white focus:outline-hidden"
+                      />
+                    </td>
+                    {/* Working Address */}
+                    <td className="px-2 py-1.5">
+                      <input
+                        type="text"
+                        value={r.workingAddress}
+                        onChange={(e) => handleCellChange(r.id, 'workingAddress', e.target.value)}
+                        placeholder="Office or site address..."
+                        className={`w-full px-2.5 py-1.5 text-xs rounded-lg border focus:bg-white focus:outline-hidden ${
+                          !r.workingAddress.trim() ? 'border-amber-300 bg-amber-50/40' : 'border-slate-200'
+                        }`}
+                      />
+                    </td>
+                    {/* Cost to Company (CTC) */}
                     <td className="px-2 py-1.5">
                       <input
                         type="number"
@@ -911,7 +967,7 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
               ) : (
                 <>
                   <IconCheck className="w-4 h-4" />
-                  <span>Import & Onboard {validCount} Employee{validCount === 1 ? '' : 's'}</span>
+                  <span>Import</span>
                 </>
               )}
             </button>

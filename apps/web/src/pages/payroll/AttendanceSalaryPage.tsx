@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../api/client';
+import TablePagination from '../../components/common/TablePagination';
 import { useAuth } from '../../context/AuthContext';
 import {
   IconCalendar,
@@ -90,6 +91,13 @@ export const AttendanceSalaryPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isPublishing, setIsPublishing] = useState(false);
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, month, year]);
+
   const [selectedEmp, setSelectedEmp] = useState<AttendanceSalaryEmployee | null>(null);
   const [activeTab, setActiveTab] = useState<'statement' | 'adjust'>('statement');
   const [adjustForm, setAdjustForm] = useState<{
@@ -434,6 +442,11 @@ export const AttendanceSalaryPage: React.FC = () => {
       .includes(search.toLowerCase());
   });
 
+  const paginatedEmployees = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredEmployees.slice(start, start + pageSize);
+  }, [filteredEmployees, currentPage, pageSize]);
+
   return (
     <div className="space-y-4">
       {/* Top Header */}
@@ -541,7 +554,7 @@ export const AttendanceSalaryPage: React.FC = () => {
         {/* Detailed Attendance & Salary Matrix */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-600 whitespace-nowrap">
-            <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase border-b border-slate-100">
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
                 <th className="px-5 py-3.5">Employee</th>
                 <th className="px-4 py-3.5 text-center">Workable</th>
@@ -573,7 +586,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredEmployees.map((item) => {
+                paginatedEmployees.map((item) => {
                   const c = item.calculation || {};
                   const workable = c.workingDaysCount || 22;
                   const present = c.presentDays || 0;
@@ -728,6 +741,19 @@ export const AttendanceSalaryPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        <TablePagination
+          currentPage={currentPage}
+          totalItems={filteredEmployees.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[10, 20, 50, 100]}
+          itemName="payroll records"
+        />
       </div>
 
       {/* Modal: Full Employee Monthly Statement & Formula Breakdown */}
@@ -1021,7 +1047,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                   {/* Unified Components Table */}
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs text-slate-700">
-                      <thead className="bg-slate-50/90 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                      <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
                         <tr>
                           <th className="px-4 py-2.5">Component</th>
                           <th className="px-3 py-2.5">Type</th>

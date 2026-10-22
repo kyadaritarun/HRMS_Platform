@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../api/client';
+import TablePagination from '../../components/common/TablePagination';
 import {
   IconHistory,
   IconShield,
@@ -7,8 +8,6 @@ import {
   IconUser,
   IconSearch,
   IconFilter,
-  IconChevronLeft,
-  IconChevronRight,
   IconRefresh,
   IconX,
   IconLock,
@@ -42,7 +41,7 @@ export const ActivityLogsPage: React.FC = () => {
   const [logs, setLogs] = useState<ActivityLogItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(15);
+  const [pageSize, setPageSize] = useState(15);
   const [search, setSearch] = useState('');
   const [actionFilter, setActionFilter] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -65,7 +64,7 @@ export const ActivityLogsPage: React.FC = () => {
 
   useEffect(() => {
     fetchLogs();
-  }, [page, actionFilter]);
+  }, [page, pageSize, actionFilter]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -202,8 +201,6 @@ export const ActivityLogsPage: React.FC = () => {
       return isoString;
     }
   };
-
-  const totalPages = Math.ceil(total / pageSize) || 1;
 
   return (
     <div className="space-y-6">
@@ -433,35 +430,18 @@ export const ActivityLogsPage: React.FC = () => {
         )}
 
         {/* ===================== PAGINATION FOOTER ===================== */}
-        {total > pageSize && (
-          <div className="p-4 bg-slate-50/70 border-t border-slate-100/90 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <span className="text-xs font-semibold text-slate-500">
-              Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, total)} of{' '}
-              <strong className="text-slate-800">{total}</strong> events
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="p-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 text-slate-600 transition-colors cursor-pointer shadow-2xs"
-                title="Previous Page"
-              >
-                <IconChevronLeft className="w-4 h-4" />
-              </button>
-              <span className="text-xs font-bold text-slate-700 px-2.5">
-                Page {page} of {totalPages}
-              </span>
-              <button
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="p-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 text-slate-600 transition-colors cursor-pointer shadow-2xs"
-                title="Next Page"
-              >
-                <IconChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
+        <TablePagination
+          currentPage={page}
+          totalItems={total}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setPage(1);
+          }}
+          pageSizeOptions={[10, 15, 25, 50, 100]}
+          itemName="events"
+        />
       </div>
     </div>
   );

@@ -997,7 +997,7 @@ export const HrLettersPage: React.FC = () => {
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-600">
-              <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase border-b border-slate-100">
+              <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
                 <tr>
                   <th className="px-6 py-3.5">Ref Number</th>
                   <th className="px-6 py-3.5">Letter Type</th>

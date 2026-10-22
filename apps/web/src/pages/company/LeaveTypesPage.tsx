@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../api/client';
+import TablePagination from '../../components/common/TablePagination';
 import {
   IconFileCertificate,
   IconPlus,
@@ -41,6 +42,12 @@ export const LeaveTypesPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterType]);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -202,6 +209,11 @@ export const LeaveTypesPage: React.FC = () => {
     return matchesSearch;
   });
 
+  const paginatedLeaveTypes = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredLeaveTypes.slice(start, start + pageSize);
+  }, [filteredLeaveTypes, currentPage, pageSize]);
+
   // KPI calculations
   const totalPolicies = leaveTypes.length;
   const paidPolicies = leaveTypes.filter((l) => l.isPaid).length;
@@ -287,15 +299,15 @@ export const LeaveTypesPage: React.FC = () => {
         {/* Data Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 bg-slate-50/50">
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
-                <th className="px-4 py-3">LEAVE TYPE & CODE</th>
-                <th className="px-4 py-3">ANNUAL QUOTA</th>
-                <th className="px-4 py-3">TYPE</th>
-                <th className="px-4 py-3">RULES & APPROVAL</th>
-                <th className="px-4 py-3">CARRY FORWARD</th>
-                <th className="px-4 py-3">STATUS</th>
-                <th className="px-4 py-3 text-right">ACTIONS</th>
+                <th className="px-5 py-3.5">Leave Type & Code</th>
+                <th className="px-5 py-3.5">Annual Quota</th>
+                <th className="px-5 py-3.5">Type</th>
+                <th className="px-5 py-3.5">Rules & Approval</th>
+                <th className="px-5 py-3.5">Carry Forward</th>
+                <th className="px-5 py-3.5">Status</th>
+                <th className="px-5 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -319,7 +331,7 @@ export const LeaveTypesPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredLeaveTypes.map((policy) => {
+                paginatedLeaveTypes.map((policy) => {
                   const quota = policy.defaultAllocation ?? policy.daysAllowed ?? 0;
                   const colorMeta = getPolicyColor(policy.code, policy.color);
 
@@ -432,6 +444,19 @@ export const LeaveTypesPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        <TablePagination
+          currentPage={currentPage}
+          totalItems={filteredLeaveTypes.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[5, 10, 20, 50]}
+          itemName="leave types"
+        />
       </div>
 
       {/* Add / Edit Policy Modal */}

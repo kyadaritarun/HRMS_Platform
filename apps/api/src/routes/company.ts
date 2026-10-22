@@ -266,6 +266,17 @@ router.patch(
         data: req.body,
       });
 
+      if (req.body.isActive !== undefined && req.body.isActive !== (department as any).isActive) {
+        await logActivity({
+          companyId,
+          actorId: req.user!.id,
+          action: req.body.isActive ? 'ACTIVATE_DEPARTMENT' : 'DEACTIVATE_DEPARTMENT',
+          objectType: 'Department',
+          objectId: String(deptId),
+          message: `${req.body.isActive ? 'Activated' : 'Deactivated'} department: ${department.name}`,
+        });
+      }
+
       return res.json({ department: updated });
     } catch (error) {
       next(error);
@@ -278,11 +289,29 @@ router.delete('/departments/:id', roleGuard('COMPANY_ADMIN', 'HR'), hrPermission
     const companyId = req.user!.companyId!;
     const deptId = Number(req.params.id);
 
-    await prisma.department.deleteMany({
+    const department = await prisma.department.findFirst({
       where: { id: deptId, companyId },
     });
+    if (!department) {
+      return next(new AppError(404, 'NOT_FOUND', 'Department not found'));
+    }
 
-    return res.json({ success: true, message: 'Department deleted' });
+    // Departments cannot be permanently deleted to preserve referential integrity; deactivate instead
+    await prisma.department.update({
+      where: { id: deptId },
+      data: { isActive: false },
+    });
+
+    await logActivity({
+      companyId,
+      actorId: req.user!.id,
+      action: 'DEACTIVATE_DEPARTMENT',
+      objectType: 'Department',
+      objectId: String(deptId),
+      message: `Deactivated department: ${department.name}`,
+    });
+
+    return res.json({ success: true, message: 'Department deactivated' });
   } catch (error) {
     next(error);
   }

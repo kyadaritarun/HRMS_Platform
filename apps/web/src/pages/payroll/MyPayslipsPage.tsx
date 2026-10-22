@@ -165,15 +165,15 @@ export const MyPayslipsPage: React.FC = () => {
         {/* Table Content */}
         <div className="overflow-x-auto">
           <table className="w-full min-w-[850px] text-left text-xs">
-            <thead className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 bg-slate-50/50">
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
-                <th className="px-5 py-3.5 whitespace-nowrap">PAYSLIP PERIOD</th>
-                <th className="px-5 py-3.5 whitespace-nowrap">GROSS SALARY</th>
-                <th className="px-5 py-3.5 whitespace-nowrap">DEDUCTIONS</th>
-                <th className="px-5 py-3.5 whitespace-nowrap">NET TAKE-HOME</th>
-                <th className="px-5 py-3.5 whitespace-nowrap">PAYMENT MODE</th>
-                <th className="px-5 py-3.5 whitespace-nowrap">STATUS</th>
-                <th className="px-5 py-3.5 text-right whitespace-nowrap">ACTIONS</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Payslip Period</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Gross Salary</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Deductions</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Net Take-Home</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Payment Mode</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Status</th>
+                <th className="px-5 py-3.5 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

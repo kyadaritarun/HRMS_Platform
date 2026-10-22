@@ -260,13 +260,13 @@ export const ManageCyclesPage: React.FC = () => {
               </div>
             ) : (
               <table className="w-full min-w-[850px] text-left text-xs">
-                <thead className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-y border-slate-100 bg-slate-50/50">
+                <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
                   <tr>
-                    <th className="px-5 py-3.5 whitespace-nowrap">CYCLE NAME & DESCRIPTION</th>
-                    <th className="px-5 py-3.5 whitespace-nowrap">EVALUATION WINDOW</th>
-                    <th className="px-5 py-3.5 whitespace-nowrap">DURATION</th>
-                    <th className="px-5 py-3.5 whitespace-nowrap">STATUS</th>
-                    <th className="px-5 py-3.5 text-right whitespace-nowrap">ACTION</th>
+                    <th className="px-5 py-3.5 whitespace-nowrap">Cycle Name &amp; Description</th>
+                    <th className="px-5 py-3.5 whitespace-nowrap">Evaluation Window</th>
+                    <th className="px-5 py-3.5 whitespace-nowrap">Duration</th>
+                    <th className="px-5 py-3.5 whitespace-nowrap">Status</th>
+                    <th className="px-5 py-3.5 text-right whitespace-nowrap">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -376,14 +376,14 @@ export const ManageCyclesPage: React.FC = () => {
             </div>
           ) : (
             <table className="w-full min-w-[850px] text-left text-xs">
-              <thead className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-y border-slate-100 bg-slate-50/50">
+              <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
                 <tr>
-                  <th className="px-5 py-3.5 whitespace-nowrap">PAYROLL RUN NAME</th>
-                  <th className="px-5 py-3.5 whitespace-nowrap">CUTOFF DAY</th>
-                  <th className="px-5 py-3.5 whitespace-nowrap">DISBURSEMENT / PAY DAY</th>
-                  <th className="px-5 py-3.5 whitespace-nowrap">ATTENDANCE LOCK</th>
-                  <th className="px-5 py-3.5 whitespace-nowrap">STATUS</th>
-                  <th className="px-5 py-3.5 text-right whitespace-nowrap">ACTION</th>
+                  <th className="px-5 py-3.5 whitespace-nowrap">Payroll Run Name</th>
+                  <th className="px-5 py-3.5 whitespace-nowrap">Cutoff Day</th>
+                  <th className="px-5 py-3.5 whitespace-nowrap">Disbursement / Pay Day</th>
+                  <th className="px-5 py-3.5 whitespace-nowrap">Attendance Lock</th>
+                  <th className="px-5 py-3.5 whitespace-nowrap">Status</th>
+                  <th className="px-5 py-3.5 text-right whitespace-nowrap">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import { OfferLetterPdfDrawer } from '../../components/pdf';
+import TablePagination from '../../components/common/TablePagination';
 import api from '../../api/client';
 import {
   IconFileCertificate,
@@ -122,8 +123,14 @@ export const OfferLettersPage: React.FC = () => {
 
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [previewLetter, setPreviewLetter] = useState<OfferLetterItem | null>(null);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterStatus]);
 
   // Form State
   const [form, setForm] = useState({
@@ -209,6 +216,11 @@ export const OfferLettersPage: React.FC = () => {
     if (filterStatus === 'DRAFT') return matchesSearch && o.status === 'DRAFT';
     return matchesSearch;
   });
+
+  const paginatedLetters = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage, pageSize]);
 
   return (
     <div className="space-y-6 pb-12">
@@ -304,16 +316,16 @@ export const OfferLettersPage: React.FC = () => {
         {/* Table Structure */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 bg-slate-50/50">
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
-                <th className="px-4 py-3">REF ID</th>
-                <th className="px-4 py-3">CANDIDATE</th>
-                <th className="px-4 py-3">ROLE &amp; DEPARTMENT</th>
-                <th className="px-4 py-3">ANNUAL CTC</th>
-                <th className="px-4 py-3">MONTHLY GROSS</th>
-                <th className="px-4 py-3">JOINING DATE</th>
-                <th className="px-4 py-3">STATUS</th>
-                <th className="px-4 py-3 text-right">ACTIONS</th>
+                <th className="px-5 py-3.5">Ref ID</th>
+                <th className="px-5 py-3.5">Candidate</th>
+                <th className="px-5 py-3.5">Role &amp; Department</th>
+                <th className="px-5 py-3.5">Annual CTC</th>
+                <th className="px-5 py-3.5">Monthly Gross</th>
+                <th className="px-5 py-3.5">Joining Date</th>
+                <th className="px-5 py-3.5">Status</th>
+                <th className="px-5 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -330,7 +342,7 @@ export const OfferLettersPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filtered.map((item) => (
+                paginatedLetters.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
                     {/* Clean Sans-serif Ref ID (matching DEPT # styling, NO font-mono) */}
                     <td className="px-4 py-3.5 font-bold text-[#5E4BE2]">
@@ -395,6 +407,19 @@ export const OfferLettersPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        <TablePagination
+          currentPage={currentPage}
+          totalItems={filtered.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[5, 10, 20, 50]}
+          itemName="offer letters"
+        />
       </div>
 
       {/* GENERATE OFFER LETTER DRAWER (RIGHT SIDE SLIDE-OVER) */}

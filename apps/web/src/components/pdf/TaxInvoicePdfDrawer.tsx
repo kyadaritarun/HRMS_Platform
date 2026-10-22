@@ -212,7 +212,7 @@ export const TaxInvoicePdfDrawer: React.FC<TaxInvoicePdfDrawerProps> = ({
 
               <div className="border border-slate-200 rounded-2xl overflow-hidden">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 font-bold text-slate-600 border-b border-slate-200">
+                  <thead className="bg-[#e5e7eb] font-bold text-xs text-slate-900 border-b border-slate-300">
                     <tr>
                       <th className="px-4 py-3">Item Description</th>
                       <th className="px-4 py-3 text-center">HSN/SAC</th>

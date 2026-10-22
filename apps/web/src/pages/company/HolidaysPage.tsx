@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../api/client';
+import TablePagination from '../../components/common/TablePagination';
 import {
   IconCalendarEvent,
   IconPlus,
@@ -38,6 +39,10 @@ export const HolidaysPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('ALL');
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -226,6 +231,12 @@ export const HolidaysPage: React.FC = () => {
     }
     return matchesSearch;
   });
+
+  // Paginated holidays for current page
+  const paginatedHolidays = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredHolidays.slice(start, start + pageSize);
+  }, [filteredHolidays, currentPage, pageSize]);
 
   // KPI calculations
   const totalHolidays = holidays.length;
@@ -428,7 +439,10 @@ export const HolidaysPage: React.FC = () => {
               type="text"
               placeholder="Search holidays by title, description..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
               className="w-full pl-10 pr-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-800 placeholder-slate-400 font-medium"
             />
           </div>
@@ -439,7 +453,10 @@ export const HolidaysPage: React.FC = () => {
             <div className="relative flex-1 sm:flex-none">
               <select
                 value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
+                onChange={(e) => {
+                  setFilterType(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="w-full sm:w-auto appearance-none pl-8 pr-7 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-700 cursor-pointer"
               >
                 <option value="ALL">All Holidays</option>
@@ -462,15 +479,15 @@ export const HolidaysPage: React.FC = () => {
         {/* Data Table */}
         <div className="overflow-x-auto">
           <table className="w-full min-w-[920px] text-left text-xs">
-            <thead className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 bg-slate-50/60">
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
-                <th className="px-5 py-3.5 whitespace-nowrap min-w-[240px]">HOLIDAY NAME</th>
-                <th className="px-5 py-3.5 whitespace-nowrap min-w-[190px]">CALENDAR DATE</th>
-                <th className="px-5 py-3.5 whitespace-nowrap min-w-[150px]">DAY OF WEEK</th>
-                <th className="px-5 py-3.5 whitespace-nowrap min-w-[160px]">CATEGORY</th>
-                <th className="px-5 py-3.5 whitespace-nowrap">NOTES / DESCRIPTION</th>
-                <th className="px-5 py-3.5 whitespace-nowrap min-w-[130px]">STATUS</th>
-                <th className="px-5 py-3.5 whitespace-nowrap text-right">ACTIONS</th>
+                <th className="px-5 py-3.5 whitespace-nowrap min-w-[240px]">Holiday Name</th>
+                <th className="px-5 py-3.5 whitespace-nowrap min-w-[190px]">Calendar Date</th>
+                <th className="px-5 py-3.5 whitespace-nowrap min-w-[150px]">Day of Week</th>
+                <th className="px-5 py-3.5 whitespace-nowrap min-w-[160px]">Category</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Notes / Description</th>
+                <th className="px-5 py-3.5 whitespace-nowrap min-w-[130px]">Status</th>
+                <th className="px-5 py-3.5 whitespace-nowrap text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -528,7 +545,7 @@ export const HolidaysPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredHolidays.map((holiday) => {
+                paginatedHolidays.map((holiday) => {
                   const dateObj = parseDateString(holiday.date);
                   const relInfo = getRelativeDateInfo(holiday.date);
                   const dayOfWeek = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
@@ -661,6 +678,17 @@ export const HolidaysPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Bar */}
+        <TablePagination
+          currentPage={currentPage}
+          totalItems={filteredHolidays.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+          pageSizeOptions={[10, 25, 50, 100]}
+          itemName="holidays"
+        />
       </div>
 
       {/* Add / Edit Holiday Modal with Left Interactive Calendar & Right Form Fields */}
