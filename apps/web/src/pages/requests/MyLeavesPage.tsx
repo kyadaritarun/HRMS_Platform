@@ -25,8 +25,9 @@ interface RequestItem {
   startDate?: string;
   endDate?: string;
   days?: number;
+  leaveTypeId?: number;
   createdAt: string;
-  leaveType?: { name: string; code: string };
+  leaveType?: { id?: number; name: string; code: string };
   approver?: { firstName: string; lastName: string };
 }
 
@@ -163,7 +164,7 @@ export const MyLeavesPage: React.FC = () => {
       code: 'CL',
       name: 'Casual Leave',
       allowed: 15,
-      used: 12,
+      used: 0,
       badgeBg: 'bg-blue-100/80',
       badgeText: 'text-blue-700',
       iconBg: 'bg-blue-50',
@@ -175,7 +176,7 @@ export const MyLeavesPage: React.FC = () => {
       code: 'SL',
       name: 'Sick Leave',
       allowed: 15,
-      used: 10,
+      used: 0,
       badgeBg: 'bg-emerald-100/80',
       badgeText: 'text-emerald-700',
       iconBg: 'bg-emerald-50',
@@ -187,7 +188,7 @@ export const MyLeavesPage: React.FC = () => {
       code: 'EL',
       name: 'Earned Leave',
       allowed: 20,
-      used: 15,
+      used: 0,
       badgeBg: 'bg-purple-100/80',
       badgeText: 'text-purple-700',
       iconBg: 'bg-purple-50',
@@ -199,7 +200,7 @@ export const MyLeavesPage: React.FC = () => {
       code: 'FH',
       name: 'Floater Holiday',
       allowed: 5,
-      used: 2,
+      used: 0,
       badgeBg: 'bg-amber-100/80',
       badgeText: 'text-amber-700',
       iconBg: 'bg-amber-50',
@@ -221,22 +222,70 @@ export const MyLeavesPage: React.FC = () => {
     },
   ];
 
-  // Dynamically map API types if available
-  const mappedQuotas = quotaCategories.map((base) => {
-    const apiType = leaveTypes.find(
-      (lt) =>
-        lt.code?.toUpperCase() === base.code ||
-        lt.name?.toLowerCase().includes(base.name.toLowerCase().split(' ')[0])
-    );
-    const allowed = apiType?.daysAllowed ?? base.allowed;
-    const used = base.used;
-    const remaining = Math.max(0, allowed - used);
-    return {
-      ...base,
-      allowed,
-      remaining,
-    };
-  });
+  // Calculate live approved usage from requests
+  const { approvedUsageByTypeId, approvedUsageByCode } = useMemo(() => {
+    const byId: Record<number, number> = {};
+    const byCode: Record<string, number> = {};
+
+    requests.forEach((req) => {
+      if (req.status === 'APPROVED' && req.days) {
+        const d = Number(req.days);
+        const tid = (req as any).leaveTypeId || req.leaveType?.id;
+        if (tid) {
+          byId[tid] = (byId[tid] || 0) + d;
+        }
+        const c = req.leaveType?.code?.toUpperCase();
+        if (c) {
+          byCode[c] = (byCode[c] || 0) + d;
+        }
+      }
+    });
+
+    return { approvedUsageByTypeId: byId, approvedUsageByCode: byCode };
+  }, [requests]);
+
+  // Dynamically map API types and real approved usage
+  const mappedQuotas = useMemo(() => {
+    return quotaCategories.map((base) => {
+      const apiType = leaveTypes.find(
+        (lt) =>
+          lt.code?.toUpperCase() === base.code ||
+          (base.code === 'EL' && lt.code?.toUpperCase() === 'PL') ||
+          (base.code === 'CO' && (lt.code?.toUpperCase() === 'CO' || lt.isCompOff)) ||
+          lt.name?.toLowerCase().includes(base.name.toLowerCase().split(' ')[0])
+      );
+
+      const allowed = apiType
+        ? Number(apiType.defaultAllocation ?? apiType.daysAllowed ?? base.allowed)
+        : base.allowed;
+
+      // Calculate approved used days
+      let used = 0;
+      if (apiType?.id && approvedUsageByTypeId[apiType.id] !== undefined) {
+        used = approvedUsageByTypeId[apiType.id];
+      } else if (approvedUsageByCode[base.code] !== undefined) {
+        used = approvedUsageByCode[base.code];
+      } else if (base.code === 'EL' && approvedUsageByCode['PL'] !== undefined) {
+        used = approvedUsageByCode['PL'];
+      } else if (apiType?.used !== undefined) {
+        used = Number(apiType.used);
+      }
+
+      // Remaining balance: must reflect allowed - used (updating whenever company leave policy changes)
+      let remaining = Math.max(0, allowed - used);
+      if (apiType?.balance !== undefined) {
+        const b = Number(apiType.balance);
+        remaining = b <= allowed ? b : Math.max(0, allowed - used);
+      }
+
+      return {
+        ...base,
+        allowed,
+        used,
+        remaining,
+      };
+    });
+  }, [leaveTypes, requests, approvedUsageByTypeId, approvedUsageByCode]);
 
   // Filter requests
   const filteredRequests = requests.filter((req) => {
@@ -332,9 +381,8 @@ export const MyLeavesPage: React.FC = () => {
                   navigate('/comp-off');
                 }
               }}
-              className={`bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col justify-between transition-all hover:border-slate-300 ${
-                isCompOff ? 'cursor-pointer hover:border-indigo-300' : ''
-              }`}
+              className={`bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col justify-between transition-all hover:border-slate-300 ${isCompOff ? 'cursor-pointer hover:border-indigo-300' : ''
+                }`}
             >
               <div>
                 <div className="flex items-center justify-between gap-2">
@@ -404,7 +452,7 @@ export const MyLeavesPage: React.FC = () => {
                   {selectedTypeFilter === 'ALL'
                     ? 'All Leave Types'
                     : mappedQuotas.find((q) => q.code === selectedTypeFilter)?.name ||
-                      selectedTypeFilter}
+                    selectedTypeFilter}
                 </span>
                 <IconChevronDown className="w-3.5 h-3.5 text-slate-400" />
               </button>
@@ -416,11 +464,10 @@ export const MyLeavesPage: React.FC = () => {
                       setSelectedTypeFilter('ALL');
                       setIsTypeDropdownOpen(false);
                     }}
-                    className={`w-full text-left px-3.5 py-2 text-xs font-medium transition-colors ${
-                      selectedTypeFilter === 'ALL'
+                    className={`w-full text-left px-3.5 py-2 text-xs font-medium transition-colors ${selectedTypeFilter === 'ALL'
                         ? 'bg-indigo-50 text-[#5E4BE2] font-semibold'
                         : 'text-slate-600 hover:bg-slate-50'
-                    }`}
+                      }`}
                   >
                     All Leave Types
                   </button>
@@ -431,11 +478,10 @@ export const MyLeavesPage: React.FC = () => {
                         setSelectedTypeFilter(q.code);
                         setIsTypeDropdownOpen(false);
                       }}
-                      className={`w-full text-left px-3.5 py-2 text-xs font-medium transition-colors ${
-                        selectedTypeFilter === q.code
+                      className={`w-full text-left px-3.5 py-2 text-xs font-medium transition-colors ${selectedTypeFilter === q.code
                           ? 'bg-indigo-50 text-[#5E4BE2] font-semibold'
                           : 'text-slate-600 hover:bg-slate-50'
-                      }`}
+                        }`}
                     >
                       {q.name}
                     </button>

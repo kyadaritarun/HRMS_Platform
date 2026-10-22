@@ -549,11 +549,74 @@ router.post('/holidays/:id/send-announcement', roleGuard('COMPANY_ADMIN', 'HR'),
 router.get('/leave-types', async (req, res, next) => {
   try {
     const companyId = req.user!.companyId!;
+    const userId = req.user?.id;
+
     const leaveTypes = await prisma.leaveType.findMany({
       where: { companyId, isActive: true },
       orderBy: { name: 'asc' },
     });
-    return res.json({ leaveTypes });
+
+    let userBalances: any[] = [];
+    const approvedDaysByType: Record<number, number> = {};
+
+    if (userId) {
+      userBalances = await prisma.leaveBalance.findMany({
+        where: { userId },
+      });
+
+      const approvedLeaves = await prisma.request.findMany({
+        where: {
+          userId,
+          companyId,
+          type: 'LEAVE',
+          status: 'APPROVED',
+        },
+        select: {
+          leaveTypeId: true,
+          days: true,
+        },
+      });
+
+      for (const reqItem of approvedLeaves) {
+        if (reqItem.leaveTypeId) {
+          approvedDaysByType[reqItem.leaveTypeId] =
+            (approvedDaysByType[reqItem.leaveTypeId] || 0) + Number(reqItem.days || 0);
+        }
+      }
+    }
+
+    const leaveTypesWithUserData = await Promise.all(
+      leaveTypes.map(async (lt) => {
+        const ub = userBalances.find((b) => b.leaveTypeId === lt.id);
+        const totalAllocated = Number(lt.defaultAllocation);
+        const usedDays = approvedDaysByType[lt.id] || 0;
+        const remainingBalance = Math.max(0, totalAllocated - usedDays);
+
+        // Keep database leaveBalance in sync for the requesting user
+        if (userId && (!ub || Number(ub.balance) !== remainingBalance)) {
+          await prisma.leaveBalance.upsert({
+            where: { userId_leaveTypeId: { userId, leaveTypeId: lt.id } },
+            update: { balance: remainingBalance },
+            create: {
+              userId,
+              leaveTypeId: lt.id,
+              balance: remainingBalance,
+              carriedOver: 0,
+            },
+          }).catch(() => {});
+        }
+
+        return {
+          ...lt,
+          defaultAllocation: totalAllocated,
+          daysAllowed: totalAllocated,
+          balance: remainingBalance,
+          used: usedDays,
+        };
+      })
+    );
+
+    return res.json({ leaveTypes: leaveTypesWithUserData });
   } catch (error) {
     next(error);
   }
@@ -592,7 +655,7 @@ router.post(
       for (const u of users) {
         await prisma.leaveBalance.upsert({
           where: { userId_leaveTypeId: { userId: u.id, leaveTypeId: leaveType.id } },
-          update: {},
+          update: { balance: data.defaultAllocation },
           create: {
             userId: u.id,
             leaveTypeId: leaveType.id,
@@ -637,6 +700,48 @@ router.patch(
         where: { id },
         data: req.body,
       });
+
+      // When defaultAllocation is updated, sync leave balance for all users in this company
+      if (req.body.defaultAllocation !== undefined) {
+        const newAllocation = Number(req.body.defaultAllocation);
+        const users = await prisma.user.findMany({
+          where: { companyId, isActive: true },
+          select: { id: true },
+        });
+
+        const approvedLeaves = await prisma.request.findMany({
+          where: {
+            companyId,
+            leaveTypeId: id,
+            type: 'LEAVE',
+            status: 'APPROVED',
+          },
+          select: { userId: true, days: true },
+        });
+
+        const usedDaysByUser: Record<number, number> = {};
+        for (const reqItem of approvedLeaves) {
+          usedDaysByUser[reqItem.userId] =
+            (usedDaysByUser[reqItem.userId] || 0) + Number(reqItem.days || 0);
+        }
+
+        for (const u of users) {
+          const used = usedDaysByUser[u.id] || 0;
+          const newBal = Math.max(0, newAllocation - used);
+
+          await prisma.leaveBalance.upsert({
+            where: { userId_leaveTypeId: { userId: u.id, leaveTypeId: id } },
+            update: { balance: newBal },
+            create: {
+              userId: u.id,
+              leaveTypeId: id,
+              balance: newBal,
+              carriedOver: 0,
+            },
+          });
+        }
+      }
+
       return res.json({ leaveType: updated });
     } catch (error) {
       next(error);

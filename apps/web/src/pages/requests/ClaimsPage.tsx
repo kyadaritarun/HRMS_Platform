@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import api from '../../api/client';
 import TablePagination from '../../components/common/TablePagination';
 import { useAuth } from '../../context/AuthContext';
@@ -40,6 +41,24 @@ interface ClaimCategory {
 
 export const ClaimsPage: React.FC = () => {
   const { user } = useAuth();
+  const location = useLocation();
+  const isManager = Boolean(user?.isManager || (user as any)?._count?.reports > 0);
+  const canPay = user?.role === 'COMPANY_ADMIN' || user?.role === 'HR';
+
+  const getInitialScope = () => {
+    if (canPay) return 'company';
+    if (location.pathname.includes('/manage')) return 'assigned';
+    return 'mine';
+  };
+
+  const [scope, setScope] = useState<string>(getInitialScope);
+
+  useEffect(() => {
+    if (location.pathname.includes('/manage')) {
+      setScope(canPay ? 'company' : 'assigned');
+    }
+  }, [location.pathname, canPay]);
+
   const [claims, setClaims] = useState<ClaimItem[]>([]);
   const [categories, setCategories] = useState<ClaimCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,7 +76,7 @@ export const ClaimsPage: React.FC = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, categoryFilter, search]);
+  }, [statusFilter, categoryFilter, search, scope]);
 
   // Form State
   const [category, setCategory] = useState<string>('');
@@ -68,14 +87,12 @@ export const ClaimsPage: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const canPay = user?.role === 'COMPANY_ADMIN' || user?.role === 'HR';
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const scope = canPay ? 'company' : 'mine';
       const [claimsRes, catRes] = await Promise.all([
-        api.get('/requests?type=CLAIM&scope=' + scope),
+        api.get('/requests', { params: { type: 'CLAIM', scope } }),
         api.get('/company/claims/categories').catch(() => ({ data: { categories: [] } })),
       ]);
       setClaims(claimsRes.data?.items || []);
@@ -90,7 +107,7 @@ export const ClaimsPage: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [scope]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -235,200 +252,35 @@ export const ClaimsPage: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* View 1: Submit Claim Form */}
-      {isCreating ? (
-        <div className="space-y-4">
-          <button
-            onClick={() => setIsCreating(false)}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#5E4BE2] transition-colors cursor-pointer"
-          >
-            <IconArrowLeft className="w-4 h-4" />
-            <span>Back to Claims Desk</span>
-          </button>
-
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
-            <div className="flex items-center gap-2.5 mb-1">
+      {/* ===================== CLAIMS OVERVIEW & TABLE ===================== */}
+      <div className="space-y-6">
+        {/* ===================== TOP HEADER BAR ===================== */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0">
-                <IconPlus className="w-4 h-4" />
+                <IconReceipt2 className="w-4 h-4" />
               </div>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                File Expense Claim
+                Claims
               </h1>
             </div>
-            <p className="text-xs text-slate-500 font-medium mb-6">
+            <p className="text-xs text-slate-500 font-medium mt-1">
               Submit out-of-pocket expenses, travel allowances, and track disbursement status.
             </p>
-
-            {error && (
-              <div className="p-3 mb-5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-                <IconAlertCircle className="w-4 h-4 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmitClaim} className="space-y-5">
-              {/* Category */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Category <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl text-slate-700 appearance-none focus:outline-hidden focus:border-[#5E4BE2] focus:ring-2 focus:ring-[#5E4BE2]/20 transition-all cursor-pointer"
-                  >
-                    <option value="">Select category</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.name}>
-                        {c.name}
-                      </option>
-                    ))}
-                    {categories.length === 0 && (
-                      <>
-                        <option value="Travel & Transport">Travel & Transport</option>
-                        <option value="Meals & Client Dinners">Meals & Client Dinners</option>
-                        <option value="Office Equipment">Office Equipment</option>
-                        <option value="Internet & Phone">Internet & Phone</option>
-                        <option value="Miscellaneous">Miscellaneous</option>
-                      </>
-                    )}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400">
-                    <IconChevronDown className="w-4 h-4" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Claim Date */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Claim Date <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={claimDate}
-                  onChange={(e) => setClaimDate(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl text-slate-700 focus:outline-hidden focus:border-[#5E4BE2] focus:ring-2 focus:ring-[#5E4BE2]/20 transition-all"
-                />
-              </div>
-
-              {/* Amount & Currency */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Reimbursement Amount <span className="text-rose-500">*</span>
-                </label>
-                <div className="flex gap-2">
-                  <select
-                    value={currency}
-                    onChange={(e) => setCurrency(e.target.value)}
-                    className="w-24 px-3 py-2.5 text-xs font-bold bg-slate-50/70 border border-slate-200/80 rounded-xl text-slate-700 focus:outline-hidden focus:border-[#5E4BE2]"
-                  >
-                    <option value="INR">₹ INR</option>
-                    <option value="USD">$ USD</option>
-                    <option value="EUR">€ EUR</option>
-                    <option value="GBP">£ GBP</option>
-                  </select>
-                  <input
-                    type="number"
-                    min="1"
-                    step="any"
-                    required
-                    placeholder="e.g. 2500"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="flex-1 px-3.5 py-2.5 text-xs font-bold bg-slate-50/70 border border-slate-200/80 rounded-xl text-slate-800 focus:outline-hidden focus:border-[#5E4BE2] focus:ring-2 focus:ring-[#5E4BE2]/20"
-                  />
-                </div>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Purpose / Details <span className="text-rose-500">*</span>
-                </label>
-                <textarea
-                  rows={3}
-                  required
-                  placeholder="e.g. Flight ticket for client demonstration meeting"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl text-slate-800 focus:outline-hidden focus:border-[#5E4BE2] focus:ring-2 focus:ring-[#5E4BE2]/20 resize-none"
-                />
-              </div>
-
-              {/* File Upload */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Receipt or Invoice (Optional)
-                </label>
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-slate-200 hover:border-[#5E4BE2] rounded-xl p-5 text-center cursor-pointer transition-colors bg-slate-50/50 hover:bg-indigo-50/20"
-                >
-                  <IconUpload className="w-7 h-7 text-[#5E4BE2] mx-auto mb-1.5" />
-                  <p className="text-xs font-bold text-slate-700">
-                    {selectedFile ? selectedFile.name : 'Click to upload proof (PDF or Image)'}
-                  </p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Max size: 5MB</p>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    className="hidden"
-                    accept=".pdf,image/*"
-                    onChange={handleFileChange}
-                  />
-                </div>
-              </div>
-
-              {/* Submit Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsCreating(false)}
-                  className="px-4 py-2 text-xs font-bold text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Submitting...' : 'Submit Claim'}
-                </button>
-              </div>
-            </form>
           </div>
+
+          <button
+            onClick={() => {
+              setError(null);
+              setIsCreating(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 transition-all active:scale-[0.98] cursor-pointer"
+          >
+            <IconPlus className="w-4 h-4" />
+            <span>File New Claim</span>
+          </button>
         </div>
-      ) : (
-        /* View 2: Claims Overview & Table */
-        <div className="space-y-6">
-          {/* ===================== TOP HEADER BAR ===================== */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0">
-                  <IconReceipt2 className="w-4 h-4" />
-                </div>
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                  Claims
-                </h1>
-              </div>
-              <p className="text-xs text-slate-500 font-medium mt-1">
-                Submit out-of-pocket expenses, travel allowances, and track disbursement status.
-              </p>
-            </div>
-
-            <button
-              onClick={() => setIsCreating(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 transition-all active:scale-[0.98] cursor-pointer"
-            >
-              <IconPlus className="w-4 h-4" />
-              <span>File New Claim</span>
-            </button>
-          </div>
 
           {successMsg && (
             <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold flex items-center justify-between">
@@ -449,6 +301,56 @@ export const ClaimsPage: React.FC = () => {
 
           {/* ===================== ROW 2: SEARCH & FILTERS BAR ===================== */}
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+            {/* Scope Tabs (My Claims / Team Claims / Company) */}
+            {(isManager || canPay) && (
+              <div className="flex items-center bg-slate-50/80 border border-slate-200/70 p-1 rounded-xl shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScope('mine');
+                    setCurrentPage(1);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    scope === 'mine'
+                      ? 'bg-white text-[#5E4BE2] shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  My Claims
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScope('assigned');
+                    setCurrentPage(1);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    scope === 'assigned'
+                      ? 'bg-white text-[#5E4BE2] shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  {isManager ? 'Team Claims' : 'Assigned to Me'}
+                </button>
+                {canPay && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setScope('company');
+                      setCurrentPage(1);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      scope === 'company'
+                        ? 'bg-white text-[#5E4BE2] shadow-2xs'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    All Company
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Search Input */}
             <div className="relative flex-1">
               <IconSearch className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -630,6 +532,189 @@ export const ClaimsPage: React.FC = () => {
               pageSizeOptions={[5, 10, 20, 50]}
               itemName="claims"
             />
+          </div>
+        </div>
+
+      {/* ===================== RIGHT SIDEBAR DRAWER: FILE EXPENSE CLAIM ===================== */}
+      {isCreating && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+            onClick={() => setIsCreating(false)}
+          />
+
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+            <div
+              className="w-screen max-w-lg bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 pointer-events-auto animate-in slide-in-from-right duration-250 overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drawer Header */}
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0">
+                    <IconReceipt2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900">File Expense Claim</h2>
+                    <p className="text-xs text-slate-500 font-medium">Submit out-of-pocket expenses and upload receipts</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsCreating(false)}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  title="Close Drawer"
+                >
+                  <IconX className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Drawer Form Body */}
+              <form onSubmit={handleSubmitClaim} className="flex-1 flex flex-col justify-between overflow-y-auto">
+                <div className="p-6 space-y-5 flex-1">
+                  {error && (
+                    <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                      <IconAlertCircle className="w-4 h-4 shrink-0" />
+                      <span>{error}</span>
+                    </div>
+                  )}
+
+                  {/* Category */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Category <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        className="w-full px-3.5 py-2.5 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl text-slate-700 appearance-none focus:outline-hidden focus:border-[#5E4BE2] focus:ring-2 focus:ring-[#5E4BE2]/20 transition-all cursor-pointer"
+                      >
+                        <option value="">Select category</option>
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.name}>
+                            {c.name}
+                          </option>
+                        ))}
+                        {categories.length === 0 && (
+                          <>
+                            <option value="Travel & Transport">Travel & Transport</option>
+                            <option value="Meals & Client Dinners">Meals & Client Dinners</option>
+                            <option value="Office Equipment">Office Equipment</option>
+                            <option value="Internet & Phone">Internet & Phone</option>
+                            <option value="Miscellaneous">Miscellaneous</option>
+                          </>
+                        )}
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400">
+                        <IconChevronDown className="w-4 h-4" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Claim Date */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Claim Date <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={claimDate}
+                      onChange={(e) => setClaimDate(e.target.value)}
+                      className="w-full px-3.5 py-2.5 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl text-slate-700 focus:outline-hidden focus:border-[#5E4BE2] focus:ring-2 focus:ring-[#5E4BE2]/20 transition-all"
+                    />
+                  </div>
+
+                  {/* Amount & Currency */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Reimbursement Amount <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <select
+                        value={currency}
+                        onChange={(e) => setCurrency(e.target.value)}
+                        className="w-24 px-3 py-2.5 text-xs font-bold bg-slate-50/70 border border-slate-200/80 rounded-xl text-slate-700 focus:outline-hidden focus:border-[#5E4BE2]"
+                      >
+                        <option value="INR">₹ INR</option>
+                        <option value="USD">$ USD</option>
+                        <option value="EUR">€ EUR</option>
+                        <option value="GBP">£ GBP</option>
+                      </select>
+                      <input
+                        type="number"
+                        min="1"
+                        step="any"
+                        required
+                        placeholder="e.g. 2500"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        className="flex-1 px-3.5 py-2.5 text-xs font-bold bg-slate-50/70 border border-slate-200/80 rounded-xl text-slate-800 focus:outline-hidden focus:border-[#5E4BE2] focus:ring-2 focus:ring-[#5E4BE2]/20"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Purpose / Details <span className="text-rose-500">*</span>
+                    </label>
+                    <textarea
+                      rows={3}
+                      required
+                      placeholder="e.g. Flight ticket for client demonstration meeting"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="w-full px-3.5 py-2.5 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl text-slate-800 focus:outline-hidden focus:border-[#5E4BE2] focus:ring-2 focus:ring-[#5E4BE2]/20 resize-none"
+                    />
+                  </div>
+
+                  {/* File Upload */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Receipt or Invoice (Optional)
+                    </label>
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border-2 border-dashed border-slate-200 hover:border-[#5E4BE2] rounded-xl p-5 text-center cursor-pointer transition-colors bg-slate-50/50 hover:bg-indigo-50/20"
+                    >
+                      <IconUpload className="w-7 h-7 text-[#5E4BE2] mx-auto mb-1.5" />
+                      <p className="text-xs font-bold text-slate-700">
+                        {selectedFile ? selectedFile.name : 'Click to upload proof (PDF or Image)'}
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Max size: 5MB</p>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,image/*"
+                        onChange={handleFileChange}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Drawer Sticky Footer */}
+                <div className="p-5 bg-white border-t border-slate-100 flex items-center justify-end gap-3 sticky bottom-0 z-10 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsCreating(false)}
+                    className="px-4 py-2.5 text-xs font-bold text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-5 py-2.5 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Submit Claim'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

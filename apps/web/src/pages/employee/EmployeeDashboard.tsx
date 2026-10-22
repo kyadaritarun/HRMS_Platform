@@ -444,8 +444,8 @@ export const EmployeeDashboard: React.FC = () => {
         const mapped = userBalances.map((b: any) => {
           const lt = b.leaveType || {};
           const style = getLeaveStyle(lt.code || '', lt.name || '');
-          const bal = Number(b.balance ?? 0);
-          const maxVal = Number(lt.defaultAllocation || 20) || Math.max(bal, 1);
+          const maxVal = Number(lt.defaultAllocation || 20) || 1;
+          const bal = Math.min(Number(b.balance ?? 0), maxVal);
           return {
             code: lt.code || 'LV',
             name: lt.name || 'Leave',

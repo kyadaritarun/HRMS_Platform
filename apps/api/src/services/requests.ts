@@ -4,6 +4,101 @@ import { RequestType, RequestStatus } from '@prisma/client';
 import { isWorkableDay, toDateKey } from '../lib/dates.js';
 import { logActivity } from './activityLog.js';
 
+/**
+ * Resolves the appropriate approver based on the strict 3-tier organizational hierarchy:
+ * 1. Regular Employee -> reports to their direct Manager (user.managerId)
+ * 2. Manager (user with reports) -> reports to HR
+ * 3. HR (role HR) -> reports to Company Admin
+ */
+export async function resolveWorkflowApprover(userId: number, companyId: number): Promise<number | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      manager: true,
+      _count: { select: { reports: true } },
+    },
+  });
+
+  if (!user) return null;
+
+  // Tier 3: If requester is HR -> Reports to COMPANY_ADMIN
+  if (user.role === 'HR') {
+    if (user.manager && user.manager.role === 'COMPANY_ADMIN' && user.manager.isActive) {
+      return user.manager.id;
+    }
+    const adminApprover = await prisma.user.findFirst({
+      where: {
+        companyId,
+        id: { not: user.id },
+        role: 'COMPANY_ADMIN',
+        isActive: true,
+      },
+      select: { id: true },
+    });
+    return adminApprover ? adminApprover.id : (user.managerId || null);
+  }
+
+  // Tier 2: If requester is a Manager (has direct reports) -> Reports to HR
+  const isManager = (user._count?.reports ?? 0) > 0;
+  if (isManager && user.role !== 'COMPANY_ADMIN') {
+    // If manager has an assigned manager who is HR or Admin, use them
+    if (user.manager && (user.manager.role === 'HR' || user.manager.role === 'COMPANY_ADMIN') && user.manager.isActive) {
+      return user.manager.id;
+    }
+    // Otherwise route to active HR in the company
+    const hrApprover = await prisma.user.findFirst({
+      where: {
+        companyId,
+        id: { not: user.id },
+        role: 'HR',
+        isActive: true,
+      },
+      select: { id: true },
+    });
+    if (hrApprover) return hrApprover.id;
+
+    // Fallback to Company Admin if no HR exists
+    const adminApprover = await prisma.user.findFirst({
+      where: {
+        companyId,
+        id: { not: user.id },
+        role: 'COMPANY_ADMIN',
+        isActive: true,
+      },
+      select: { id: true },
+    });
+    return adminApprover ? adminApprover.id : (user.managerId || null);
+  }
+
+  // Tier 1: Regular Employee -> Reports to their direct Manager
+  if (user.managerId && user.manager && user.manager.isActive) {
+    return user.manager.id;
+  }
+
+  // If no direct manager assigned, fallback to HR, then Company Admin
+  const hrApprover = await prisma.user.findFirst({
+    where: {
+      companyId,
+      id: { not: user.id },
+      role: 'HR',
+      isActive: true,
+    },
+    select: { id: true },
+  });
+  if (hrApprover) return hrApprover.id;
+
+  const adminApprover = await prisma.user.findFirst({
+    where: {
+      companyId,
+      id: { not: user.id },
+      role: 'COMPANY_ADMIN',
+      isActive: true,
+    },
+    select: { id: true },
+  });
+  return adminApprover ? adminApprover.id : null;
+}
+
 export async function createRequest(opts: {
   userId: number;
   companyId: number;
@@ -29,20 +124,8 @@ export async function createRequest(opts: {
     throw new AppError(404, 'NOT_FOUND', 'User not found');
   }
 
-  // 1. Determine approver: direct manager, else any HR/Admin in the company
-  let approverId = user.managerId;
-  if (!approverId) {
-    const defaultApprover = await prisma.user.findFirst({
-      where: {
-        companyId: opts.companyId,
-        id: { not: user.id },
-        role: { in: ['COMPANY_ADMIN', 'HR'] },
-        isActive: true,
-      },
-      select: { id: true },
-    });
-    approverId = defaultApprover ? defaultApprover.id : null;
-  }
+  // Determine approver via reporting hierarchy (Employee -> Manager -> HR -> Admin)
+  const approverId = await resolveWorkflowApprover(user.id, opts.companyId);
 
   let finalDays = opts.days ? opts.days : 0;
   const parsedStartDate = opts.startDate ? new Date(opts.startDate) : null;
@@ -115,10 +198,34 @@ export async function createRequest(opts: {
 
     // Check balance for paid leave types
     if (leaveType.isPaid) {
-      const balance = await prisma.leaveBalance.findUnique({
+      let balance = await prisma.leaveBalance.findUnique({
         where: { userId_leaveTypeId: { userId: opts.userId, leaveTypeId: leaveType.id } },
       });
-      const currentBalance = balance ? Number(balance.balance) : 0;
+      if (!balance) {
+        const approvedCount = await prisma.request.findMany({
+          where: {
+            userId: opts.userId,
+            companyId: opts.companyId,
+            leaveTypeId: leaveType.id,
+            type: 'LEAVE',
+            status: 'APPROVED',
+          },
+          select: { days: true },
+        });
+        const used = approvedCount.reduce((s, r) => s + Number(r.days || 0), 0);
+        const bal = Math.max(0, Number(leaveType.defaultAllocation) - used);
+        balance = await prisma.leaveBalance.upsert({
+          where: { userId_leaveTypeId: { userId: opts.userId, leaveTypeId: leaveType.id } },
+          update: { balance: bal },
+          create: {
+            userId: opts.userId,
+            leaveTypeId: leaveType.id,
+            balance: bal,
+            carriedOver: 0,
+          },
+        });
+      }
+      const currentBalance = Number(balance.balance);
       if (currentBalance < finalDays) {
         throw new AppError(
           400,
@@ -217,6 +324,11 @@ export async function decideRequest(opts: {
     throw new AppError(403, 'CANNOT_APPROVE_OWN_REQUEST', 'You are not permitted to approve or reject your own request');
   }
 
+  // RULE: HR requests report to Company Admin (another HR cannot approve an HR's request)
+  if (request.user.role === 'HR' && opts.actorRole === 'HR') {
+    throw new AppError(403, 'HR_REQUIRES_ADMIN_APPROVAL', 'HR requests must be approved by Company Admin');
+  }
+
   // RULE: Only the assigned approver or HR/Admin can decide the request
   const isApprover = request.approverId === opts.actorId;
   const isAdminOrHr = ['COMPANY_ADMIN', 'HR', 'PRODUCT_SUPER_ADMIN'].includes(opts.actorRole);
@@ -235,15 +347,24 @@ export async function decideRequest(opts: {
       // Side effect for LEAVE
       if (request.type === 'LEAVE' && request.leaveTypeId && request.days) {
         const daysToDeduct = Number(request.days);
-        await tx.leaveBalance.update({
+        const lt = await tx.leaveType.findUnique({ where: { id: request.leaveTypeId } });
+        const defaultAllocation = Number(lt?.defaultAllocation || 15);
+
+        await tx.leaveBalance.upsert({
           where: {
             userId_leaveTypeId: {
               userId: request.userId,
               leaveTypeId: request.leaveTypeId,
             },
           },
-          data: {
+          update: {
             balance: { decrement: daysToDeduct },
+          },
+          create: {
+            userId: request.userId,
+            leaveTypeId: request.leaveTypeId,
+            balance: Math.max(0, defaultAllocation - daysToDeduct),
+            carriedOver: 0,
           },
         });
       }

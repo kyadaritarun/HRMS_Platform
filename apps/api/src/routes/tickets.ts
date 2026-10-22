@@ -9,6 +9,7 @@ import { AppError } from '../middlewares/errorHandler.js';
 import { CreateTicketSchema, AddTicketCommentSchema, UpdateTicketSchema } from '../schemas/ticket.js';
 import { TicketCommentJson } from '../schemas/json.js';
 import { logActivity } from '../services/activityLog.js';
+import { resolveWorkflowApprover } from '../services/requests.js';
 
 const router = Router();
 
@@ -51,8 +52,20 @@ router.get('/', async (req, res, next) => {
     const where: any = { companyId };
     if (scope === 'mine') {
       where.requesterId = userId;
-    } else if (scope === 'assigned') {
-      where.assigneeId = userId;
+    } else if (scope === 'assigned' || scope === 'team') {
+      if (userRole === 'COMPANY_ADMIN' || userRole === 'HR' || userRole === 'PRODUCT_SUPER_ADMIN') {
+        where.assigneeId = userId;
+      } else {
+        // For managers: tickets assigned to them OR tickets raised by their team (direct reports)
+        where.OR = [
+          { assigneeId: userId },
+          { requester: { managerId: userId } },
+        ];
+      }
+    } else if (scope === 'company') {
+      if (userRole !== 'COMPANY_ADMIN' && userRole !== 'HR' && userRole !== 'PRODUCT_SUPER_ADMIN') {
+        return next(new AppError(403, 'FORBIDDEN_SCOPE', 'Only HR and Company Admin can view tenant-wide tickets'));
+      }
     }
 
     const tickets = await prisma.ticket.findMany({
@@ -82,10 +95,15 @@ router.post('/', validateBody(CreateTicketSchema), async (req, res, next) => {
     const subject = data.subject || data.title;
     const category = data.category || data.department || 'GENERAL';
 
+    const assigneeId = data.assigneeId !== undefined
+      ? data.assigneeId
+      : await resolveWorkflowApprover(userId, companyId);
+
     const ticket = await prisma.ticket.create({
       data: {
         companyId,
         requesterId: userId,
+        assigneeId,
         code,
         category,
         subject,
@@ -120,13 +138,15 @@ router.post('/', validateBody(CreateTicketSchema), async (req, res, next) => {
 // GET /tickets/:id
 router.get('/:id', async (req, res, next) => {
   try {
+    const userId = req.user!.id;
+    const userRole = req.user!.role;
     const companyId = req.user!.companyId!;
     const ticketId = Number(req.params.id);
 
     const ticket = await prisma.ticket.findFirst({
       where: { id: ticketId, companyId },
       include: {
-        requester: { select: { id: true, firstName: true, lastName: true, email: true } },
+        requester: { select: { id: true, firstName: true, lastName: true, email: true, managerId: true } },
         assignee: { select: { id: true, firstName: true, lastName: true, email: true } },
         department: { select: { id: true, name: true } },
       },
@@ -134,6 +154,15 @@ router.get('/:id', async (req, res, next) => {
 
     if (!ticket) {
       return next(new AppError(404, 'NOT_FOUND', 'Ticket not found'));
+    }
+
+    const isAdminOrHr = ['COMPANY_ADMIN', 'HR', 'PRODUCT_SUPER_ADMIN'].includes(userRole);
+    const isAssignee = ticket.assignee?.id === userId;
+    const isRequester = ticket.requester?.id === userId;
+    const isRequesterManager = ticket.requester?.managerId === userId;
+
+    if (!isAdminOrHr && !isAssignee && !isRequester && !isRequesterManager) {
+      return next(new AppError(403, 'FORBIDDEN', 'You do not have access to view this ticket'));
     }
 
     return res.json({ ticket: formatTicket(ticket) });
@@ -168,10 +197,22 @@ router.post('/:id/comments', validateBody(AddTicketCommentSchema), async (req, r
 
       const ticket = await tx.ticket.findFirst({
         where: { id: ticketId, companyId },
+        include: {
+          requester: { select: { id: true, managerId: true } },
+        },
       });
 
       if (!ticket) {
         throw new AppError(404, 'NOT_FOUND', 'Ticket not found');
+      }
+
+      const isAdminOrHr = ['COMPANY_ADMIN', 'HR', 'PRODUCT_SUPER_ADMIN'].includes(req.user!.role);
+      const isAssignee = ticket.assigneeId === userId;
+      const isRequester = ticket.requesterId === userId;
+      const isRequesterManager = ticket.requester?.managerId === userId;
+
+      if (!isAdminOrHr && !isAssignee && !isRequester && !isRequesterManager) {
+        throw new AppError(403, 'FORBIDDEN', 'You do not have access to comment on this ticket');
       }
 
       const existingComments = Array.isArray(ticket.comments) ? (ticket.comments as any[]) : [];
@@ -194,14 +235,28 @@ router.post('/:id/comments', validateBody(AddTicketCommentSchema), async (req, r
 // PATCH /tickets/:id or /tickets/:id/status
 router.patch(['/:id', '/:id/status'], validateBody(UpdateTicketSchema), async (req, res, next) => {
   try {
+    const userId = req.user!.id;
+    const userRole = req.user!.role;
     const companyId = req.user!.companyId!;
     const ticketId = Number(req.params.id);
 
     const ticket = await prisma.ticket.findFirst({
       where: { id: ticketId, companyId },
+      include: {
+        requester: { select: { id: true, managerId: true } },
+      },
     });
     if (!ticket) {
       return next(new AppError(404, 'NOT_FOUND', 'Ticket not found'));
+    }
+
+    const isAdminOrHr = ['COMPANY_ADMIN', 'HR', 'PRODUCT_SUPER_ADMIN'].includes(userRole);
+    const isAssignee = ticket.assigneeId === userId;
+    const isRequester = ticket.requesterId === userId;
+    const isRequesterManager = ticket.requester?.managerId === userId;
+
+    if (!isAdminOrHr && !isAssignee && !isRequester && !isRequesterManager) {
+      return next(new AppError(403, 'FORBIDDEN', 'You can only update tickets assigned to you or from your team'));
     }
 
     const updated = await prisma.ticket.update({

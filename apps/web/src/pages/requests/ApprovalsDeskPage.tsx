@@ -44,6 +44,9 @@ interface ApprovalRequest {
 export const ApprovalsDeskPage: React.FC = () => {
   const { user } = useAuth();
   const location = useLocation();
+  const isAdminOrHr = user?.role === 'COMPANY_ADMIN' || user?.role === 'HR';
+  const isManager = Boolean(user?.isManager || (user as any)?._count?.reports > 0);
+  const [scope, setScope] = useState<'assigned' | 'company'>(isAdminOrHr ? 'company' : 'assigned');
   const [requests, setRequests] = useState<ApprovalRequest[]>([]);
   const [allMetricsRequests, setAllMetricsRequests] = useState<ApprovalRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -93,8 +96,8 @@ export const ApprovalsDeskPage: React.FC = () => {
 
   const fetchMetricsOverview = async () => {
     try {
-      const scope = user?.role === 'COMPANY_ADMIN' || user?.role === 'HR' ? 'company' : 'assigned';
-      const res = await api.get('/requests', { params: { scope, pageSize: 100 } });
+      const activeScope = isAdminOrHr ? scope : 'assigned';
+      const res = await api.get('/requests', { params: { scope: activeScope, pageSize: 100 } });
       setAllMetricsRequests(res.data?.items || []);
     } catch (err) {
       console.error('Failed to load metric overview requests:', err);
@@ -104,8 +107,8 @@ export const ApprovalsDeskPage: React.FC = () => {
   const fetchRequests = async () => {
     setIsLoading(true);
     try {
-      const scope = user?.role === 'COMPANY_ADMIN' || user?.role === 'HR' ? 'company' : 'assigned';
-      const params: any = { scope };
+      const activeScope = isAdminOrHr ? scope : 'assigned';
+      const params: any = { scope: activeScope };
       if (selectedStatus && selectedStatus !== 'ALL') {
         params.status = selectedStatus;
       }
@@ -124,7 +127,7 @@ export const ApprovalsDeskPage: React.FC = () => {
   useEffect(() => {
     fetchRequests();
     fetchMetricsOverview();
-  }, [selectedType, selectedStatus]);
+  }, [selectedType, selectedStatus, scope]);
 
   const handleDecisionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -215,7 +218,9 @@ export const ApprovalsDeskPage: React.FC = () => {
             </h1>
           </div>
           <p className="text-xs text-slate-500 font-medium mt-1">
-            Review, authorize, or return leave requests, attendance regularizations, and performance goals.
+            {isManager && !isAdminOrHr
+              ? 'Review, authorize, or return leave, attendance, and expense requests submitted by your team members.'
+              : 'Review, authorize, or return leave requests, attendance regularizations, and performance goals.'}
           </p>
         </div>
 
@@ -256,8 +261,41 @@ export const ApprovalsDeskPage: React.FC = () => {
             )}
           </div>
 
-          {/* Right Controls: Category & Status */}
+          {/* Right Controls: Scope, Category & Status */}
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* Scope Toggle for HR / Admin */}
+            {isAdminOrHr && (
+              <div className="flex items-center bg-slate-50 border border-slate-200 p-1 rounded-xl shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScope('company');
+                    setCurrentPage(1);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    scope === 'company'
+                      ? 'bg-white text-[#5E4BE2] shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  All Company
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScope('assigned');
+                    setCurrentPage(1);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    scope === 'assigned'
+                      ? 'bg-white text-[#5E4BE2] shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Assigned to Me
+                </button>
+              </div>
+            )}
             {/* Request Type Dropdown */}
             <div className="relative shrink-0">
               <select

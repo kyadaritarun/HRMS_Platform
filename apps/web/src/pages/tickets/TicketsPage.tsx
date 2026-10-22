@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import TablePagination from '../../components/common/TablePagination';
@@ -50,6 +51,23 @@ interface Ticket {
 
 export const TicketsPage: React.FC = () => {
   const { user } = useAuth();
+  const location = useLocation();
+  const isManager = Boolean(user?.isManager || (user as any)?._count?.reports > 0);
+  const isAdminOrHr = user?.role === 'COMPANY_ADMIN' || user?.role === 'HR';
+
+  const getInitialScope = () => {
+    if (location.pathname.includes('/assigned')) return 'assigned';
+    if (location.pathname.includes('/manage')) return 'company';
+    return 'mine';
+  };
+
+  const [scope, setScope] = useState<string>(getInitialScope);
+
+  useEffect(() => {
+    if (location.pathname.includes('/assigned')) setScope('assigned');
+    else if (location.pathname.includes('/manage')) setScope('company');
+  }, [location.pathname]);
+
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -73,7 +91,7 @@ export const TicketsPage: React.FC = () => {
   const fetchTickets = async () => {
     setIsLoading(true);
     try {
-      const res = await api.get('/tickets');
+      const res = await api.get('/tickets', { params: { scope } });
       const fetchedTickets = res.data?.tickets || [];
       setTickets(fetchedTickets);
 
@@ -86,6 +104,8 @@ export const TicketsPage: React.FC = () => {
           }
           return fetchedTickets[0];
         });
+      } else {
+        setSelectedTicket(null);
       }
     } catch (err) {
       console.error('Failed to load tickets:', err);
@@ -96,7 +116,7 @@ export const TicketsPage: React.FC = () => {
 
   useEffect(() => {
     fetchTickets();
-  }, []);
+  }, [scope]);
 
   const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -270,7 +290,11 @@ export const TicketsPage: React.FC = () => {
             </h1>
           </div>
           <p className="text-xs text-slate-500 font-medium mt-1">
-            Submit IT tickets, HR inquiries, facility requests, and track threaded discussions.
+            {scope === 'assigned'
+              ? 'View, reply to, and resolve support tickets submitted by your team members or assigned to you.'
+              : scope === 'company'
+              ? 'Manage organization-wide employee support requests, IT issues, and facility inquiries.'
+              : 'Submit IT tickets, HR inquiries, facility requests, and track threaded discussions.'}
           </p>
         </div>
 
@@ -286,6 +310,56 @@ export const TicketsPage: React.FC = () => {
 
       {/* ===================== ROW 2: SEARCH & STATUS FILTER TOOLBAR ===================== */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200/70 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        {/* Scope Tabs (My Tickets / Team Tickets / Company) */}
+        {(isManager || isAdminOrHr) && (
+          <div className="flex items-center bg-slate-50/80 border border-slate-200/70 p-1 rounded-xl shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setScope('mine');
+                setCurrentPage(1);
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                scope === 'mine'
+                  ? 'bg-white text-[#5E4BE2] shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              My Tickets
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setScope('assigned');
+                setCurrentPage(1);
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                scope === 'assigned'
+                  ? 'bg-white text-[#5E4BE2] shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              {isManager ? 'Team Tickets' : 'Assigned to Me'}
+            </button>
+            {isAdminOrHr && (
+              <button
+                type="button"
+                onClick={() => {
+                  setScope('company');
+                  setCurrentPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  scope === 'company'
+                    ? 'bg-white text-[#5E4BE2] shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                All Company
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Search Input */}
         <div className="relative flex-1">
           <IconSearch className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
