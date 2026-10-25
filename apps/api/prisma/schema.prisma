@@ -410,6 +410,7 @@ model Policy {
   extractedText String    @default("")
   validUntil    DateTime? @db.Date
   version       Int       @default(1)
+  isActive      Boolean   @default(true)
   acceptances   Json      @default("[]") // [{userId, version, at}]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

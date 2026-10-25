@@ -63,11 +63,13 @@ export const AppLayout: React.FC = () => {
 
   // Live punch-in attendance session & timer beside profile
   const [activeAttendance, setActiveAttendance] = useState<{ checkIn?: string; workMode?: string } | null>(null);
+  const [isShiftCompletedToday, setIsShiftCompletedToday] = useState(false);
   const [punchSeconds, setPunchSeconds] = useState(0);
 
   const fetchActiveAttendance = async () => {
     if (!user || user.role === 'PRODUCT_SUPER_ADMIN') {
       setActiveAttendance(null);
+      setIsShiftCompletedToday(false);
       return;
     }
     try {
@@ -77,6 +79,7 @@ export const AppLayout: React.FC = () => {
       } else {
         setActiveAttendance(null);
       }
+      setIsShiftCompletedToday(Boolean(res.data?.isShiftCompletedToday));
     } catch {
       // Graceful fallback
     }
@@ -402,7 +405,7 @@ export const AppLayout: React.FC = () => {
             </div>
 
             {/* Active Punch-In Live Timer Badge beside Profile */}
-            {activeAttendance && (
+            {activeAttendance ? (
               <button
                 type="button"
                 onClick={() => navigate('/employee')}
@@ -424,7 +427,17 @@ export const AppLayout: React.FC = () => {
                   </span>
                 </span>
               </button>
-            )}
+            ) : isShiftCompletedToday ? (
+              <button
+                type="button"
+                onClick={() => navigate('/employee')}
+                title="Shift completed for today • Click to view dashboard"
+                className="h-9 px-3 rounded-full bg-emerald-50/90 border border-emerald-200/90 hover:bg-emerald-100/90 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+              >
+                <IconCheck className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
+                <span className="text-[11px] font-bold text-emerald-800">Shift Done</span>
+              </button>
+            ) : null}
 
             {/* User Profile Menu */}
             <div className="relative pl-1">
@@ -504,6 +517,11 @@ export const AppLayout: React.FC = () => {
                         <IconPlayerStop className="w-4 h-4 text-rose-500 shrink-0 fill-rose-500" />
                         <span>{isCheckActionLoading ? 'Checking Out...' : 'Check Out'}</span>
                       </button>
+                    ) : isShiftCompletedToday ? (
+                      <div className="w-full px-3.5 py-2 text-left text-xs text-emerald-800 bg-emerald-50/80 flex items-center gap-2.5 font-semibold cursor-default">
+                        <IconCheck className="w-4 h-4 text-emerald-600 shrink-0 stroke-[2.5]" />
+                        <span>Shift Completed Today</span>
+                      </div>
                     ) : (
                       <button
                         onClick={handleCheckInAction}

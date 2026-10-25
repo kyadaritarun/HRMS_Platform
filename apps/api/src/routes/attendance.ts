@@ -78,10 +78,72 @@ router.get('/me', async (req, res, next) => {
   try {
     const userId = req.user!.id;
 
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        shiftId: true,
+        shiftTiming: true,
+        company: { select: { shifts: true } },
+      },
+    });
+
+    const companyShifts = Array.isArray(user?.company?.shifts) ? (user.company.shifts as any[]) : [];
+    let matchedShift = companyShifts.find((s: any) => s.id === user?.shiftId);
+    if (!matchedShift) {
+      matchedShift = companyShifts.find((s: any) => s.isDefault) || companyShifts[0];
+    }
+
+    const format12Hour = (time24?: string) => {
+      if (!time24) return '';
+      const [hStr, mStr] = time24.split(':');
+      let h = parseInt(hStr, 10);
+      const m = mStr || '00';
+      if (isNaN(h)) return time24;
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      return `${String(h).padStart(2, '0')}:${m} ${ampm}`;
+    };
+
+    const shiftName = matchedShift?.name || 'General Day Shift (IST)';
+    const startTime = matchedShift?.startTime || '09:30';
+    const endTime = matchedShift?.endTime || '18:30';
+    const gracePeriodMinutes = Number(matchedShift?.gracePeriodMinutes) || 15;
+
+    let targetHours = 9.0;
+    if (startTime && endTime) {
+      const [sh, sm] = startTime.split(':').map(Number);
+      const [eh, em] = endTime.split(':').map(Number);
+      if (!isNaN(sh) && !isNaN(sm) && !isNaN(eh) && !isNaN(em)) {
+        let diffMinutes = eh * 60 + em - (sh * 60 + sm);
+        if (diffMinutes < 0) diffMinutes += 24 * 60;
+        targetHours = Math.round((diffMinutes / 60) * 10) / 10;
+      }
+    }
+
+    let dynamicShiftTiming = user?.shiftTiming?.trim();
+    if (!dynamicShiftTiming) {
+      dynamicShiftTiming = `${shiftName} (${format12Hour(startTime)} – ${format12Hour(endTime)})`;
+    }
+
     // Active session
     const activeSession = await prisma.attendance.findFirst({
       where: { userId, checkOut: null },
     });
+
+    // Today's latest session (whether active or completed)
+    const todaySession = await prisma.attendance.findFirst({
+      where: {
+        userId,
+        checkIn: { gte: startOfToday, lte: endOfToday },
+      },
+      orderBy: { checkIn: 'desc' },
+    });
+
+    const isShiftCompletedToday = Boolean(!activeSession && todaySession?.checkOut);
 
     let checkInFilter: any;
     if (req.query.startDate && req.query.endDate) {
@@ -116,6 +178,19 @@ router.get('/me', async (req, res, next) => {
 
     return res.json({
       activeSession,
+      todaySession,
+      isShiftCompletedToday,
+      userShift: {
+        shiftId: user?.shiftId || matchedShift?.id || 'shift-gen',
+        shiftName,
+        startTime,
+        endTime,
+        startTime12: format12Hour(startTime),
+        endTime12: format12Hour(endTime),
+        gracePeriodMinutes,
+        targetHours,
+        shiftTiming: dynamicShiftTiming,
+      },
       recentSessions: sessions,
       sessions,
     });

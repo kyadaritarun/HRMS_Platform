@@ -1,30 +1,34 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import { OfferLetterPdfDrawer } from '../../components/pdf';
 import TablePagination from '../../components/common/TablePagination';
-import api from '../../api/client';
 import {
   IconFileCertificate,
   IconPlus,
-  IconPrinter,
-  IconDownload,
   IconSearch,
   IconFilter,
   IconChevronDown,
-  IconCheck,
   IconX,
-  IconUser,
-  IconBuilding,
-  IconCash,
-  IconCalendar,
-  IconMail,
-  IconPhone,
-  IconBriefcase,
-  IconArrowLeft,
   IconEye,
   IconSparkles,
+  IconTrash,
+  IconPaperclip,
+  IconRefresh,
+  IconFileText,
 } from '@tabler/icons-react';
+
+export interface SalaryComponentItem {
+  id: string;
+  name: string;
+  monthly: number | string;
+}
+
+export interface AttachedFileItem {
+  id: string;
+  name: string;
+  size: string;
+}
 
 export interface OfferLetterItem {
   id: string;
@@ -36,8 +40,10 @@ export interface OfferLetterItem {
   annualCtc: number;
   monthlySalary: number;
   joiningDate: string;
-  status: 'DRAFT' | 'SENT' | 'ACCEPTED';
+  status: 'DRAFT' | 'SENT' | 'ACCEPTED' | 'JOINED' | 'DECLINED';
   createdAt: string;
+  includeSalaryBreakdown?: boolean;
+  includeTermsAndConditions?: boolean;
   terms?: {
     probationMonths: number;
     noticeDays: number;
@@ -48,14 +54,16 @@ export interface OfferLetterItem {
     basicMonthly: number;
     hraMonthly: number;
     specialAllowanceMonthly: number;
-    pfMonthly: number;
-    ptMonthly: number;
+    pfMonthly?: number;
+    ptMonthly?: number;
     netMonthly: number;
+    customComponents?: Array<{ name: string; monthly: number }>;
   };
+  attachedFiles?: Array<{ name: string; size?: string }>;
 }
 
 export const OfferLettersPage: React.FC = () => {
-  const { company, user } = useAuth();
+  const { company } = useAuth();
 
   // Local state for generated offer letters repository
   const [offerLetters, setOfferLetters] = useState<OfferLetterItem[]>(() => {
@@ -79,7 +87,7 @@ export const OfferLettersPage: React.FC = () => {
         terms: {
           probationMonths: 3,
           noticeDays: 30,
-          workMode: 'Hybrid',
+          workMode: 'On-site (WFO)',
           workingHours: '09:30 AM - 06:30 PM (Mon-Fri)',
         },
         breakdown: {
@@ -106,7 +114,7 @@ export const OfferLettersPage: React.FC = () => {
         terms: {
           probationMonths: 3,
           noticeDays: 30,
-          workMode: 'On-site',
+          workMode: 'On-site (WFO)',
           workingHours: '09:00 AM - 06:00 PM (Mon-Fri)',
         },
         breakdown: {
@@ -116,6 +124,33 @@ export const OfferLettersPage: React.FC = () => {
           pfMonthly: 2500,
           ptMonthly: 200,
           netMonthly: 72300,
+        },
+      },
+      {
+        id: 'OL-2026-103',
+        candidateName: 'Rohan Mehra',
+        candidateEmail: 'rohan.mehra@example.com',
+        candidatePhone: '+91 98222 33445',
+        jobTitle: 'Backend Developer',
+        department: 'Engineering',
+        annualCtc: 1000000,
+        monthlySalary: 83333,
+        joiningDate: '2026-10-20',
+        status: 'JOINED',
+        createdAt: '2026-10-05',
+        terms: {
+          probationMonths: 3,
+          noticeDays: 30,
+          workMode: 'On-site (WFO)',
+          workingHours: '09:30 AM - 06:30 PM (Mon-Fri)',
+        },
+        breakdown: {
+          basicMonthly: 41667,
+          hraMonthly: 16667,
+          specialAllowanceMonthly: 21200,
+          pfMonthly: 3600,
+          ptMonthly: 200,
+          netMonthly: 79533,
         },
       },
     ];
@@ -132,6 +167,8 @@ export const OfferLettersPage: React.FC = () => {
     setCurrentPage(1);
   }, [search, filterStatus]);
 
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   // Form State
   const [form, setForm] = useState({
     candidateName: '',
@@ -139,43 +176,169 @@ export const OfferLettersPage: React.FC = () => {
     candidatePhone: '',
     jobTitle: '',
     department: 'Engineering',
-    workMode: 'Hybrid',
+    workMode: 'On-site (WFO)',
     annualCtc: '600000',
     joiningDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
     probationMonths: '3',
     noticeDays: '30',
     workingHours: '09:30 AM - 06:30 PM (Mon to Fri)',
+    status: 'DRAFT' as OfferLetterItem['status'],
+    includeSalaryBreakdown: true,
+    includeTermsAndConditions: true,
+    basicMonthly: '25000',
+    hraMonthly: '10000',
+    specialAllowanceMonthly: '15000',
+    customComponents: [] as SalaryComponentItem[],
+    attachedFiles: [] as AttachedFileItem[],
   });
 
-  // Calculate salary components live
-  const ctcAnnual = Number(form.annualCtc) || 0;
-  const ctcMonthly = Math.round(ctcAnnual / 12);
-  const basicMonthly = Math.round(ctcMonthly * 0.5);
-  const hraMonthly = Math.round(ctcMonthly * 0.2);
-  const pfMonthly = Math.round(Math.min(basicMonthly * 0.12, 1800));
-  const ptMonthly = 200;
-  const specialAllowance = Math.max(0, ctcMonthly - basicMonthly - hraMonthly);
-  const netMonthly = ctcMonthly - pfMonthly - ptMonthly;
+  // Handle live recalculation when Annual CTC is edited
+  const handleCtcChange = (newAnnualCtc: string) => {
+    const ctc = Number(newAnnualCtc) || 0;
+    const monthly = Math.round(ctc / 12);
+    const basic = Math.round(monthly * 0.5);
+    const hra = Math.round(monthly * 0.2);
+    const customSum = form.customComponents.reduce((sum, c) => sum + (Number(c.monthly) || 0), 0);
+    const special = Math.max(0, monthly - basic - hra - customSum);
+
+    setForm((prev) => ({
+      ...prev,
+      annualCtc: newAnnualCtc,
+      basicMonthly: String(basic),
+      hraMonthly: String(hra),
+      specialAllowanceMonthly: String(special),
+    }));
+  };
+
+  const handleResetToStandardSplit = () => {
+    const ctc = Number(form.annualCtc) || 0;
+    const monthly = Math.round(ctc / 12);
+    const basic = Math.round(monthly * 0.5);
+    const hra = Math.round(monthly * 0.2);
+    const customSum = form.customComponents.reduce((sum, c) => sum + (Number(c.monthly) || 0), 0);
+    const special = Math.max(0, monthly - basic - hra - customSum);
+
+    setForm((prev) => ({
+      ...prev,
+      basicMonthly: String(basic),
+      hraMonthly: String(hra),
+      specialAllowanceMonthly: String(special),
+    }));
+  };
+
+  const handleAddCustomField = () => {
+    const newField: SalaryComponentItem = {
+      id: `comp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      name: 'Custom Allowance',
+      monthly: 0,
+    };
+    setForm((prev) => ({
+      ...prev,
+      customComponents: [...prev.customComponents, newField],
+    }));
+  };
+
+  const handleUpdateCustomField = (id: string, updates: Partial<SalaryComponentItem>) => {
+    setForm((prev) => ({
+      ...prev,
+      customComponents: prev.customComponents.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+    }));
+  };
+
+  const handleRemoveCustomField = (id: string) => {
+    setForm((prev) => ({
+      ...prev,
+      customComponents: prev.customComponents.filter((c) => c.id !== id),
+    }));
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newFiles: AttachedFileItem[] = Array.from(files).map((f) => {
+      const sizeInKb = Math.round(f.size / 1024);
+      const sizeStr = sizeInKb > 1024 ? `${(sizeInKb / 1024).toFixed(1)} MB` : `${sizeInKb} KB`;
+      return {
+        id: `file_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        name: f.name,
+        size: sizeStr,
+      };
+    });
+
+    setForm((prev) => ({
+      ...prev,
+      attachedFiles: [...prev.attachedFiles, ...newFiles],
+    }));
+
+    if (e.target) e.target.value = '';
+  };
+
+  const handleRemoveFile = (id: string) => {
+    setForm((prev) => ({
+      ...prev,
+      attachedFiles: prev.attachedFiles.filter((f) => f.id !== id),
+    }));
+  };
+
+  // Calculate live salary totals accurately
+  const basicVal = Number(form.basicMonthly) || 0;
+  const hraVal = Number(form.hraMonthly) || 0;
+  const specialVal = Number(form.specialAllowanceMonthly) || 0;
+  const customSum = form.customComponents.reduce((sum, c) => sum + (Number(c.monthly) || 0), 0);
+
+  const ctcMonthly = basicVal + hraVal + specialVal + customSum;
+  const ctcAnnual = Number(form.annualCtc) || ctcMonthly * 12;
+  const pfMonthly = ctcMonthly > 0 ? Math.round(Math.min(basicVal * 0.12, 1800)) : 0;
+  const ptMonthly = ctcMonthly > 0 ? 200 : 0;
+  const netMonthly = Math.max(0, ctcMonthly - pfMonthly - ptMonthly);
+
+  const handleUpdateStatus = (id: string, newStatus: OfferLetterItem['status']) => {
+    const updated = offerLetters.map((item) => (item.id === id ? { ...item, status: newStatus } : item));
+    setOfferLetters(updated);
+    try {
+      localStorage.setItem('uptrix_offer_letters', JSON.stringify(updated));
+    } catch (_) {}
+    if (previewLetter && previewLetter.id === id) {
+      setPreviewLetter({ ...previewLetter, status: newStatus });
+    }
+  };
+
+  const handleUpdateOptions = (
+    id: string,
+    options: { includeSalaryBreakdown?: boolean; includeTermsAndConditions?: boolean }
+  ) => {
+    const updated = offerLetters.map((item) => (item.id === id ? { ...item, ...options } : item));
+    setOfferLetters(updated);
+    try {
+      localStorage.setItem('uptrix_offer_letters', JSON.stringify(updated));
+    } catch (_) {}
+    if (previewLetter && previewLetter.id === id) {
+      setPreviewLetter({ ...previewLetter, ...options });
+    }
+  };
 
   const handleSaveOffer = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.candidateName || !form.jobTitle || !form.annualCtc) {
+    if (!form.candidateName || !form.jobTitle || (!form.annualCtc && ctcAnnual <= 0)) {
       alert('Please fill in candidate name, job title, and CTC.');
       return;
     }
 
     const newOffer: OfferLetterItem = {
       id: `OL-2026-${Math.floor(100 + Math.random() * 900)}`,
-      candidateName: form.candidateName,
-      candidateEmail: form.candidateEmail,
-      candidatePhone: form.candidatePhone,
-      jobTitle: form.jobTitle,
+      candidateName: form.candidateName.trim(),
+      candidateEmail: form.candidateEmail.trim(),
+      candidatePhone: form.candidatePhone.trim(),
+      jobTitle: form.jobTitle.trim(),
       department: form.department,
       annualCtc: ctcAnnual,
       monthlySalary: ctcMonthly,
       joiningDate: form.joiningDate,
-      status: 'SENT',
+      status: form.status || 'DRAFT',
       createdAt: new Date().toISOString().split('T')[0],
+      includeSalaryBreakdown: form.includeSalaryBreakdown,
+      includeTermsAndConditions: form.includeTermsAndConditions,
       terms: {
         probationMonths: Number(form.probationMonths) || 3,
         noticeDays: Number(form.noticeDays) || 30,
@@ -183,13 +346,21 @@ export const OfferLettersPage: React.FC = () => {
         workingHours: form.workingHours,
       },
       breakdown: {
-        basicMonthly,
-        hraMonthly,
-        specialAllowanceMonthly: specialAllowance,
+        basicMonthly: basicVal,
+        hraMonthly: hraVal,
+        specialAllowanceMonthly: specialVal,
         pfMonthly,
         ptMonthly,
         netMonthly,
+        customComponents: form.customComponents.map((c) => ({
+          name: c.name,
+          monthly: Number(c.monthly) || 0,
+        })),
       },
+      attachedFiles: form.attachedFiles.map((f) => ({
+        name: f.name,
+        size: f.size,
+      })),
     };
 
     const updated = [newOffer, ...offerLetters];
@@ -208,13 +379,10 @@ export const OfferLettersPage: React.FC = () => {
       !q ||
       o.candidateName.toLowerCase().includes(q) ||
       o.jobTitle.toLowerCase().includes(q) ||
-      o.department.toLowerCase().includes(q) ||
-      o.id.toLowerCase().includes(q);
+      o.department.toLowerCase().includes(q);
 
-    if (filterStatus === 'SENT') return matchesSearch && o.status === 'SENT';
-    if (filterStatus === 'ACCEPTED') return matchesSearch && o.status === 'ACCEPTED';
-    if (filterStatus === 'DRAFT') return matchesSearch && o.status === 'DRAFT';
-    return matchesSearch;
+    if (filterStatus === 'ALL') return matchesSearch;
+    return matchesSearch && o.status === filterStatus;
   });
 
   const paginatedLetters = useMemo(() => {
@@ -224,7 +392,7 @@ export const OfferLettersPage: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Top Banner (Hero Banner) - Exactly matching Departments Page typography */}
+      {/* Top Banner (Hero Banner) */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
@@ -232,7 +400,7 @@ export const OfferLettersPage: React.FC = () => {
               <IconFileCertificate className="w-4 h-4" />
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Offer Letters &amp; Employment Contracts
+              Offer Letters 
             </h1>
           </div>
           <p className="text-xs text-slate-500 font-medium mt-1">
@@ -248,24 +416,32 @@ export const OfferLettersPage: React.FC = () => {
               candidateEmail: '',
               candidatePhone: '',
               jobTitle: '',
-              department: 'Engineering',
-              workMode: 'Hybrid',
-              annualCtc: '600000',
+              department: '',
+              workMode: 'On-site (WFO)',
+              annualCtc: '',
               joiningDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
               probationMonths: '3',
               noticeDays: '30',
               workingHours: '09:30 AM - 06:30 PM (Mon to Fri)',
+              status: 'DRAFT',
+              includeSalaryBreakdown: true,
+              includeTermsAndConditions: true,
+              basicMonthly: '0',
+              hraMonthly: '0',
+              specialAllowanceMonthly: '0',
+              customComponents: [],
+              attachedFiles: [],
             });
             setIsModalOpen(true);
           }}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white text-xs font-bold shadow-xs hover:shadow-md transition-all cursor-pointer shrink-0"
         >
           <IconPlus className="w-4 h-4" />
-          <span>Generate New Offer Letter</span>
+          <span>Generate Letter</span>
         </button>
       </div>
 
-      {/* Main Table Card (Card structure matching Departments Page) */}
+      {/* Main Table Card */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -288,7 +464,7 @@ export const OfferLettersPage: React.FC = () => {
               <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search candidate, role, or ID..."
+                placeholder="Search candidate, role, or department..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-9 pr-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-800 placeholder-slate-400"
@@ -303,9 +479,11 @@ export const OfferLettersPage: React.FC = () => {
                 className="appearance-none pl-8 pr-7 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-700 cursor-pointer"
               >
                 <option value="ALL">All Status</option>
-                <option value="SENT">Sent</option>
-                <option value="ACCEPTED">Accepted / Joined</option>
                 <option value="DRAFT">Draft</option>
+                <option value="SENT">Sent</option>
+                <option value="ACCEPTED">Accepted</option>
+                <option value="JOINED">Joined</option>
+                <option value="DECLINED">Declined</option>
               </select>
               <IconFilter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -318,11 +496,9 @@ export const OfferLettersPage: React.FC = () => {
           <table className="w-full text-left text-xs">
             <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
-                <th className="px-5 py-3.5">Ref ID</th>
                 <th className="px-5 py-3.5">Candidate</th>
                 <th className="px-5 py-3.5">Role &amp; Department</th>
                 <th className="px-5 py-3.5">Annual CTC</th>
-                <th className="px-5 py-3.5">Monthly Gross</th>
                 <th className="px-5 py-3.5">Joining Date</th>
                 <th className="px-5 py-3.5">Status</th>
                 <th className="px-5 py-3.5 text-right">Actions</th>
@@ -331,7 +507,7 @@ export const OfferLettersPage: React.FC = () => {
             <tbody className="divide-y divide-slate-100">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center">
+                  <td colSpan={6} className="py-12 text-center">
                     <div className="w-12 h-12 rounded-full bg-indigo-50 text-[#5E4BE2] flex items-center justify-center mx-auto mb-2">
                       <IconFileCertificate className="w-6 h-6" />
                     </div>
@@ -344,32 +520,27 @@ export const OfferLettersPage: React.FC = () => {
               ) : (
                 paginatedLetters.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
-                    {/* Clean Sans-serif Ref ID (matching DEPT # styling, NO font-mono) */}
-                    <td className="px-4 py-3.5 font-bold text-[#5E4BE2]">
-                      {item.id}
-                    </td>
-
-                    <td className="px-4 py-3.5">
+                    {/* Candidate */}
+                    <td className="px-5 py-3.5">
                       <div className="font-bold text-slate-900 text-xs">{item.candidateName}</div>
                       <div className="text-[11px] text-slate-400 font-normal">{item.candidateEmail}</div>
                     </td>
 
-                    <td className="px-4 py-3.5">
+                    {/* Role & Department */}
+                    <td className="px-5 py-3.5">
                       <div className="font-semibold text-slate-800 text-xs">{item.jobTitle}</div>
                       <span className="inline-block mt-0.5 text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
                         {item.department}
                       </span>
                     </td>
 
-                    <td className="px-4 py-3.5 font-bold text-slate-900 text-xs">
+                    {/* Annual CTC */}
+                    <td className="px-5 py-3.5 font-bold text-slate-900 text-xs">
                       ₹{item.annualCtc.toLocaleString('en-IN')}
                     </td>
 
-                    <td className="px-4 py-3.5 font-bold text-emerald-600 text-xs">
-                      ₹{item.monthlySalary.toLocaleString('en-IN')}/mo
-                    </td>
-
-                    <td className="px-4 py-3.5 text-xs text-slate-600 font-medium">
+                    {/* Joining Date */}
+                    <td className="px-5 py-3.5 text-xs text-slate-600 font-medium">
                       {new Date(item.joiningDate).toLocaleDateString('en-IN', {
                         day: 'numeric',
                         month: 'short',
@@ -377,28 +548,55 @@ export const OfferLettersPage: React.FC = () => {
                       })}
                     </td>
 
-                    <td className="px-4 py-3.5">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          item.status === 'ACCEPTED'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    {/* Interactive Status Selector */}
+                    <td className="px-5 py-3.5">
+                      <div className="relative inline-block">
+                        <select
+                          value={item.status}
+                          onChange={(e) => handleUpdateStatus(item.id, e.target.value as any)}
+                          className={`appearance-none pl-6 pr-6 py-1 rounded-full text-[10px] font-bold cursor-pointer border transition-colors ${
+                            item.status === 'JOINED'
+                              ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100/70'
+                              : item.status === 'ACCEPTED'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/70'
+                              : item.status === 'SENT'
+                              ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100/70'
+                              : item.status === 'DECLINED'
+                              ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100/70'
+                              : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200/70'
+                          }`}
+                          title="Click to update status"
+                        >
+                          <option value="DRAFT">Draft</option>
+                          <option value="SENT">Sent</option>
+                          <option value="ACCEPTED">Accepted</option>
+                          <option value="JOINED">Joined</option>
+                          <option value="DECLINED">Declined</option>
+                        </select>
+                        <span className={`w-1.5 h-1.5 rounded-full absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${
+                          item.status === 'JOINED'
+                            ? 'bg-purple-600'
+                            : item.status === 'ACCEPTED'
+                            ? 'bg-emerald-600'
                             : item.status === 'SENT'
-                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                            : 'bg-slate-100 text-slate-700'
-                        }`}
-                      >
-                        {item.status}
-                      </span>
+                            ? 'bg-blue-600'
+                            : item.status === 'DECLINED'
+                            ? 'bg-rose-600'
+                            : 'bg-slate-500'
+                        }`} />
+                        <IconChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
                     </td>
 
-                    <td className="px-4 py-3.5 text-right">
+                    {/* Clean View Action Icon */}
+                    <td className="px-5 py-3.5 text-right">
                       <button
                         type="button"
                         onClick={() => setPreviewLetter(item)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-[#5E4BE2] font-bold text-[11px] transition-colors cursor-pointer"
+                        className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-indigo-50 hover:border-indigo-300 text-slate-700 hover:text-[#5E4BE2] inline-flex items-center justify-center shadow-2xs transition-all cursor-pointer"
+                        title="View Offer Letter"
                       >
-                        <IconEye className="w-3.5 h-3.5" />
-                        <span>View &amp; Print</span>
+                        <IconEye className="w-4 h-4 stroke-[1.8]" />
                       </button>
                     </td>
                   </tr>
@@ -444,7 +642,7 @@ export const OfferLettersPage: React.FC = () => {
                     <div className="w-7 h-7 rounded-lg bg-indigo-50 text-[#5E4BE2] flex items-center justify-center shrink-0">
                       <IconFileCertificate className="w-4 h-4" />
                     </div>
-                    Generate Employment Offer Letter
+                    Employment Offer Letter
                   </h3>
                   <p className="text-xs text-slate-400 mt-0.5">
                     Enter candidate details and CTC salary. The compensation components will be calculated automatically.
@@ -526,7 +724,7 @@ export const OfferLettersPage: React.FC = () => {
                       <select
                         value={form.department}
                         onChange={(e) => setForm({ ...form, department: e.target.value })}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] cursor-pointer"
                       >
                         <option value="Engineering">Engineering</option>
                         <option value="Product">Product</option>
@@ -537,6 +735,7 @@ export const OfferLettersPage: React.FC = () => {
                       </select>
                     </div>
 
+                    {/* Work Mode: Only On-site and Remote (Hybrid Removed) */}
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
                         Work Mode
@@ -544,10 +743,9 @@ export const OfferLettersPage: React.FC = () => {
                       <select
                         value={form.workMode}
                         onChange={(e) => setForm({ ...form, workMode: e.target.value })}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] cursor-pointer"
                       >
                         <option value="On-site (WFO)">On-site (WFO)</option>
-                        <option value="Hybrid">Hybrid</option>
                         <option value="Remote (WFH)">Remote (WFH)</option>
                       </select>
                     </div>
@@ -574,46 +772,309 @@ export const OfferLettersPage: React.FC = () => {
                         <input
                           type="number"
                           required
-                          min="10000"
+                          min="0"
                           step="5000"
                           value={form.annualCtc}
-                          onChange={(e) => setForm({ ...form, annualCtc: e.target.value })}
+                          onChange={(e) => handleCtcChange(e.target.value)}
                           placeholder="e.g. 600000"
                           className="w-full pl-7 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
                         />
                       </div>
                     </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Initial Offer Status
+                      </label>
+                      <select
+                        value={form.status}
+                        onChange={(e) => setForm({ ...form, status: e.target.value as any })}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] cursor-pointer"
+                      >
+                        <option value="DRAFT">Draft (Internal review)</option>
+                        <option value="SENT">Sent (Issued to candidate)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Probation Period
+                      </label>
+                      <select
+                        value={form.probationMonths}
+                        onChange={(e) => setForm({ ...form, probationMonths: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] cursor-pointer"
+                      >
+                        <option value="3">3 Months</option>
+                        <option value="6">6 Months</option>
+                        <option value="1">1 Month</option>
+                        <option value="0">Direct Confirmation (0 Months)</option>
+                      </select>
+                    </div>
                   </div>
 
-                  {/* Live Salary Structure Breakdown Card */}
-                  <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-4 mt-2">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
-                        <IconSparkles className="w-4 h-4 text-[#5E4BE2]" /> Automated Salary &amp; CTC Structure
-                      </span>
-                      <span className="text-xs font-bold text-[#5E4BE2]">
-                        Gross: ₹{ctcMonthly.toLocaleString('en-IN')}/mo
-                      </span>
+                  {/* Live Salary Structure Breakdown Card with Editable Fields & + Add Field */}
+                  <div className={`border rounded-2xl p-4 mt-2 transition-all ${form.includeSalaryBreakdown ? 'bg-indigo-50/50 border-indigo-100' : 'bg-slate-50 border-slate-200'}`}>
+                    <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
+                          <IconSparkles className="w-4 h-4 text-[#5E4BE2]" /> Automated Salary &amp; CTC Structure
+                        </span>
+                        {form.includeSalaryBreakdown && (
+                          <span className="text-xs font-bold text-[#5E4BE2] bg-white px-2 py-0.5 rounded-lg border border-indigo-100">
+                            Gross: ₹{ctcMonthly.toLocaleString('en-IN')}/mo
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {form.includeSalaryBreakdown && (
+                          <button
+                            type="button"
+                            onClick={handleResetToStandardSplit}
+                            className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-200 transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                            title="Recalculate 50% Basic, 20% HRA, remainder Special Allowance"
+                          >
+                            <IconRefresh className="w-3 h-3" />
+                            <span>Auto Split</span>
+                          </button>
+                        )}
+                        {/* Option: Include or omit breakdown table in offer letter */}
+                        <label className="flex items-center gap-2 cursor-pointer select-none bg-white px-2.5 py-1 rounded-lg border border-indigo-100 shadow-2xs hover:border-[#5E4BE2] transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={form.includeSalaryBreakdown}
+                            onChange={(e) => setForm({ ...form, includeSalaryBreakdown: e.target.checked })}
+                            className="w-3.5 h-3.5 text-[#5E4BE2] rounded border-slate-300 focus:ring-[#5E4BE2] cursor-pointer"
+                          />
+                          <span className="text-xs font-semibold text-slate-700">
+                            Include breakdown in Offer Letter
+                          </span>
+                        </label>
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                      <div className="bg-white p-2.5 rounded-xl border border-indigo-100/60">
-                        <span className="text-[10px] text-slate-400 font-semibold block">Basic (50%)</span>
-                        <span className="font-bold text-slate-900">₹{basicMonthly.toLocaleString('en-IN')}</span>
+                    {form.includeSalaryBreakdown ? (
+                      <div className="space-y-3">
+                        {/* Editable Component Fields */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                          {/* Basic Salary */}
+                          <div className="bg-white p-2.5 rounded-xl border border-indigo-100/60 shadow-2xs">
+                            <span className="text-[10px] text-slate-500 font-semibold block mb-1">Basic Salary</span>
+                            <div className="relative">
+                              <span className="absolute left-2 top-1.5 text-slate-400 text-xs font-bold">₹</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={form.basicMonthly}
+                                onChange={(e) => setForm({ ...form, basicMonthly: e.target.value })}
+                                className="w-full pl-5 pr-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
+                              />
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-medium block mt-1">
+                              ₹{((Number(form.basicMonthly) || 0) * 12).toLocaleString('en-IN')}/yr
+                            </span>
+                          </div>
+
+                          {/* HRA */}
+                          <div className="bg-white p-2.5 rounded-xl border border-indigo-100/60 shadow-2xs">
+                            <span className="text-[10px] text-slate-500 font-semibold block mb-1">House Rent (HRA)</span>
+                            <div className="relative">
+                              <span className="absolute left-2 top-1.5 text-slate-400 text-xs font-bold">₹</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={form.hraMonthly}
+                                onChange={(e) => setForm({ ...form, hraMonthly: e.target.value })}
+                                className="w-full pl-5 pr-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
+                              />
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-medium block mt-1">
+                              ₹{((Number(form.hraMonthly) || 0) * 12).toLocaleString('en-IN')}/yr
+                            </span>
+                          </div>
+
+                          {/* Special Allowance */}
+                          <div className="bg-white p-2.5 rounded-xl border border-indigo-100/60 shadow-2xs">
+                            <span className="text-[10px] text-slate-500 font-semibold block mb-1">Special Allowance</span>
+                            <div className="relative">
+                              <span className="absolute left-2 top-1.5 text-slate-400 text-xs font-bold">₹</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={form.specialAllowanceMonthly}
+                                onChange={(e) => setForm({ ...form, specialAllowanceMonthly: e.target.value })}
+                                className="w-full pl-5 pr-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
+                              />
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-medium block mt-1">
+                              ₹{((Number(form.specialAllowanceMonthly) || 0) * 12).toLocaleString('en-IN')}/yr
+                            </span>
+                          </div>
+
+                          {/* Net Take-Home (Calculated) */}
+                          <div className="bg-emerald-50 p-2.5 rounded-xl border border-emerald-100 shadow-2xs flex flex-col justify-between">
+                            <div>
+                              <span className="text-[10px] text-emerald-700 font-semibold block">Net Take-Home</span>
+                              <span className="font-bold text-emerald-800 text-sm mt-1 block">
+                                ₹{netMonthly.toLocaleString('en-IN')}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-emerald-600 block mt-1">
+                              (Pre-tax • -₹{pfMonthly} PF)
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Custom Component Fields Added by User */}
+                        {form.customComponents.length > 0 && (
+                          <div className="space-y-2 pt-2 border-t border-indigo-100">
+                            <span className="text-[11px] font-bold text-indigo-900 block">
+                              Additional Salary Components:
+                            </span>
+                            {form.customComponents.map((comp) => (
+                              <div
+                                key={comp.id}
+                                className="flex items-center gap-2 bg-white p-2 rounded-xl border border-indigo-100 shadow-2xs"
+                              >
+                                <input
+                                  type="text"
+                                  value={comp.name}
+                                  onChange={(e) => handleUpdateCustomField(comp.id, { name: e.target.value })}
+                                  placeholder="Component Name (e.g. Conveyance, Medical)"
+                                  className="flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
+                                />
+                                <div className="relative w-36">
+                                  <span className="absolute left-2.5 top-1.5 text-slate-400 text-xs font-bold">₹</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={comp.monthly}
+                                    onChange={(e) =>
+                                      handleUpdateCustomField(comp.id, { monthly: Number(e.target.value) || 0 })
+                                    }
+                                    placeholder="Monthly"
+                                    className="w-full pl-6 pr-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
+                                  />
+                                </div>
+                                <span className="text-[11px] text-slate-400 font-medium w-24 text-right">
+                                  ₹{((Number(comp.monthly) || 0) * 12).toLocaleString('en-IN')}/yr
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveCustomField(comp.id)}
+                                  className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                                  title="Remove component"
+                                >
+                                  <IconTrash className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* + Add Component / Field Button */}
+                        <div className="flex items-center justify-between pt-1">
+                          <button
+                            type="button"
+                            onClick={handleAddCustomField}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-indigo-50 border border-dashed border-[#5E4BE2] text-[#5E4BE2] text-xs font-bold transition-all cursor-pointer shadow-2xs hover:shadow-xs"
+                          >
+                            <IconPlus className="w-3.5 h-3.5" />
+                            <span>+ Add Salary Field / Component</span>
+                          </button>
+
+                          <div className="text-right text-[11px] text-slate-500">
+                            Total Annual CTC: <strong className="text-slate-900">₹{ctcAnnual.toLocaleString('en-IN')}</strong>
+                          </div>
+                        </div>
                       </div>
-                      <div className="bg-white p-2.5 rounded-xl border border-indigo-100/60">
-                        <span className="text-[10px] text-slate-400 font-semibold block">HRA (20%)</span>
-                        <span className="font-bold text-slate-900">₹{hraMonthly.toLocaleString('en-IN')}</span>
+                    ) : (
+                      <div className="text-xs text-slate-500 bg-white/70 p-2.5 rounded-xl border border-slate-200/60 flex items-center justify-between">
+                        <span>
+                          Breakdown table <strong>will not be included</strong> in the offer letter. The letter will state the total CTC (<strong>₹{ctcAnnual.toLocaleString('en-IN')}/yr</strong>).
+                        </span>
+                        <span className="text-[11px] text-[#5E4BE2] font-semibold">
+                          Gross: ₹{ctcMonthly.toLocaleString('en-IN')}/mo
+                        </span>
                       </div>
-                      <div className="bg-white p-2.5 rounded-xl border border-indigo-100/60">
-                        <span className="text-[10px] text-slate-400 font-semibold block">Special Allowance</span>
-                        <span className="font-bold text-slate-900">₹{specialAllowance.toLocaleString('en-IN')}</span>
+                    )}
+                  </div>
+
+                  {/* Attached Files & Documents Section */}
+                  <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                          <IconPaperclip className="w-4 h-4 text-slate-500" />
+                          <span>Enclosed Files &amp; Attachments</span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">
+                          Attach signed offer letters, NDAs, company handbook, or joining policies.
+                        </div>
                       </div>
-                      <div className="bg-emerald-50 p-2.5 rounded-xl border border-emerald-100">
-                        <span className="text-[10px] text-emerald-700 font-semibold block">Net Take-Home</span>
-                        <span className="font-bold text-emerald-800">₹{netMonthly.toLocaleString('en-IN')}</span>
+
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 text-xs font-semibold cursor-pointer transition-colors shadow-2xs"
+                      >
+                        <IconPlus className="w-3.5 h-3.5 text-[#5E4BE2]" />
+                        <span>Add File</span>
+                      </button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+                    </div>
+
+                    {/* File List */}
+                    {form.attachedFiles.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {form.attachedFiles.map((f) => (
+                          <div
+                            key={f.id}
+                            className="inline-flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg border border-slate-200 text-xs text-slate-700 shadow-2xs"
+                          >
+                            <IconFileText className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                            <span className="font-medium max-w-[180px] truncate" title={f.name}>
+                              {f.name}
+                            </span>
+                            <span className="text-[10px] text-slate-400">({f.size})</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveFile(f.id)}
+                              className="text-slate-400 hover:text-red-500 p-0.5 ml-1 transition-colors cursor-pointer"
+                            >
+                              <IconX className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Standard Terms & Conditions Option Card */}
+                  <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-bold text-slate-800">
+                        Include Standard Terms &amp; Conditions (Annexure B)
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">
+                        Attaches legal clauses (code of conduct, working hours, probation, notice period, confidentiality, IP, BGV).
                       </div>
                     </div>
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={form.includeTermsAndConditions}
+                        onChange={(e) => setForm({ ...form, includeTermsAndConditions: e.target.checked })}
+                        className="w-4 h-4 text-[#5E4BE2] rounded border-slate-300 focus:ring-[#5E4BE2] cursor-pointer"
+                      />
+                    </label>
                   </div>
                 </div>
 
@@ -630,7 +1091,7 @@ export const OfferLettersPage: React.FC = () => {
                     className="px-5 py-2.5 rounded-xl bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white text-xs font-bold shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-1.5"
                   >
                     <IconSparkles className="w-4 h-4" />
-                    <span>Generate &amp; Preview Offer Letter</span>
+                    <span>Generate</span>
                   </button>
                 </div>
               </form>
@@ -645,7 +1106,15 @@ export const OfferLettersPage: React.FC = () => {
         letter={previewLetter}
         company={company}
         onClose={() => setPreviewLetter(null)}
+        onUpdateStatus={(newStatus) => {
+          if (previewLetter) {
+            handleUpdateStatus(previewLetter.id, newStatus);
+          }
+        }}
+        onUpdateOptions={handleUpdateOptions}
       />
     </div>
   );
 };
+
+export default OfferLettersPage;

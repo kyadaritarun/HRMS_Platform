@@ -23,9 +23,6 @@ import {
   IconHeartHandshake,
   IconFileSpreadsheet,
   IconDownload,
-  IconEye,
-  IconEyeOff,
-  IconCopy,
   IconArrowRight,
   IconClock,
   IconMapPin,
@@ -61,16 +58,20 @@ export const NewEmployeePage: React.FC = () => {
     title: string;
     message: string;
     type: 'error' | 'success' | 'warning';
+    action?: {
+      label: string;
+      onClick: () => void;
+    };
   } | null>(null);
   const [onboardingMode, setOnboardingMode] = useState<'single' | 'bulk'>('single');
   const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
 
-  // Auto dismiss toast after 5 seconds
+  // Auto dismiss toast after 7 seconds
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => {
       setToast(null);
-    }, 5000);
+    }, 7000);
     return () => clearTimeout(timer);
   }, [toast]);
 
@@ -346,11 +347,10 @@ export const NewEmployeePage: React.FC = () => {
 
   const getInputClass = (fieldName: string, basePadding = 'pl-10 pr-3.5') => {
     const hasError = touched[fieldName] && errors[fieldName];
-    return `w-full ${basePadding} py-2.5 text-xs font-semibold text-slate-900 rounded-xl transition-all shadow-2xs ${
-      hasError
+    return `w-full ${basePadding} py-2.5 text-xs font-semibold text-slate-900 rounded-xl transition-all shadow-2xs ${hasError
         ? 'bg-rose-50/40 border border-rose-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-rose-500/15 focus:border-rose-500'
         : 'bg-[#f1f5f9] border border-slate-200 focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] hover:bg-slate-100 hover:border-slate-300'
-    } placeholder:text-slate-400`;
+      } placeholder:text-slate-400`;
   };
 
   const renderFieldError = (fieldName: string) => {
@@ -365,36 +365,9 @@ export const NewEmployeePage: React.FC = () => {
     return null;
   };
 
-  // State for Success Credentials Modal
-  const [createdCredentials, setCreatedCredentials] = useState<{
-    name: string;
-    email: string;
-    employeeNumber: string;
-    password: string;
-    mustChangePassword: boolean;
-  } | null>(null);
-  const [showCreatedPassword, setShowCreatedPassword] = useState(false);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
-
-  const handleCopy = (text: string, fieldName: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(fieldName);
-    setTimeout(() => setCopiedField(null), 2000);
-  };
-
-  const handleCopyAll = () => {
-    if (!createdCredentials) return;
-    const text = `HRMS Login Credentials\nEmployee: ${createdCredentials.name} (ID: ${createdCredentials.employeeNumber || 'N/A'})\nWork Email / Username: ${createdCredentials.email}\nPassword: ${createdCredentials.password}\nFirst-Time Login Requirement: ${createdCredentials.mustChangePassword ? 'Must change password on first login' : 'Direct access enabled'}`;
-    navigator.clipboard.writeText(text);
-    setCopiedField('all');
-    setTimeout(() => setCopiedField(null), 2500);
-  };
-
   const handleResetForm = () => {
-    setCreatedCredentials(null);
     setErrors({});
     setTouched({});
-    setToast(null);
     setForm({
       firstName: '',
       lastName: '',
@@ -566,15 +539,38 @@ export const NewEmployeePage: React.FC = () => {
       if (form.managerId) payload.managerId = Number(form.managerId);
 
       const createRes = await api.post('/employees', payload);
+      const createdEmployeeId = createRes.data?.employee?.id;
 
-      // Display the credentials modal to the administrator
-      const returnedPassword = createRes.data?.temporaryPassword || '';
-      setCreatedCredentials({
-        name: `${form.firstName} ${form.lastName}`.trim(),
-        email: form.email.trim(),
-        employeeNumber: form.employeeNumber.trim(),
-        password: returnedPassword,
-        mustChangePassword: true,
+      // If an offer letter or employment contract file was attached, save it to the employee's documents repository
+      if (createdEmployeeId && uploadedFiles.offerLetter.file) {
+        try {
+          const docFormData = new FormData();
+          docFormData.append('file', uploadedFiles.offerLetter.file);
+          docFormData.append('category', 'ONBOARDING');
+          docFormData.append('title', 'Offer Letter / Employment Agreement');
+          docFormData.append('userId', String(createdEmployeeId));
+          await api.post('/documents', docFormData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+        } catch (docErr) {
+          console.error('Failed to attach offer letter document:', docErr);
+        }
+      }
+
+      const employeeName = `${form.firstName} ${form.lastName}`.trim() || 'Employee';
+      const employeeEmail = form.email.trim();
+
+      // Reset form so the administrator can add another employee if needed
+      handleResetForm();
+
+      // Scroll smoothly to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Display floating success toaster
+      setToast({
+        title: 'Employee Created Successfully',
+        message: `Employee account for ${employeeName} has been created and login credentials have been sent to their email (${employeeEmail}).`,
+        type: 'success',
       });
     } catch (err: any) {
       console.error('Failed to onboard employee:', err);
@@ -595,22 +591,20 @@ export const NewEmployeePage: React.FC = () => {
       {toast && (
         <div className="fixed top-6 right-6 z-50 max-w-sm sm:max-w-md w-[calc(100%-3rem)] pointer-events-auto animate-in slide-in-from-top-4 fade-in duration-200">
           <div
-            className={`p-4 rounded-2xl border shadow-xl flex items-start gap-3 backdrop-blur-md transition-all ${
-              toast.type === 'error'
+            className={`p-4 rounded-2xl border shadow-xl flex items-start gap-3 backdrop-blur-md transition-all ${toast.type === 'error'
                 ? 'bg-rose-50/95 border-rose-200 text-rose-950 shadow-rose-900/10'
                 : toast.type === 'success'
-                ? 'bg-emerald-50/95 border-emerald-200 text-emerald-950 shadow-emerald-900/10'
-                : 'bg-amber-50/95 border-amber-200 text-amber-950 shadow-amber-900/10'
-            }`}
+                  ? 'bg-emerald-50/95 border-emerald-200 text-emerald-950 shadow-emerald-900/10'
+                  : 'bg-amber-50/95 border-amber-200 text-amber-950 shadow-amber-900/10'
+              }`}
           >
             <div
-              className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                toast.type === 'error'
+              className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${toast.type === 'error'
                   ? 'bg-rose-100 text-rose-600'
                   : toast.type === 'success'
-                  ? 'bg-emerald-100 text-emerald-600'
-                  : 'bg-amber-100 text-amber-600'
-              }`}
+                    ? 'bg-emerald-100 text-emerald-600'
+                    : 'bg-amber-100 text-amber-600'
+                }`}
             >
               {toast.type === 'error' ? (
                 <IconAlertCircle className="w-5 h-5 stroke-[2.2]" />
@@ -624,6 +618,18 @@ export const NewEmployeePage: React.FC = () => {
             <div className="flex-1 min-w-0 pt-0.5">
               <p className="font-bold text-xs leading-snug">{toast.title}</p>
               <p className="mt-0.5 text-[11px] font-medium leading-relaxed opacity-90">{toast.message}</p>
+              {toast.action && (
+                <div className="mt-2.5">
+                  <button
+                    type="button"
+                    onClick={toast.action.onClick}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-colors cursor-pointer"
+                  >
+                    <span>{toast.action.label}</span>
+                    <IconArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
             </div>
 
             <button
@@ -863,9 +869,8 @@ export const NewEmployeePage: React.FC = () => {
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block text-xs font-bold text-slate-700">Phone Number *</label>
-                      <span className={`text-[10px] font-mono font-bold ${
-                        form.phone.length === 10 ? 'text-emerald-600' : 'text-slate-400'
-                      }`}>
+                      <span className={`text-[10px] font-mono font-bold ${form.phone.length === 10 ? 'text-emerald-600' : 'text-slate-400'
+                        }`}>
                         {form.phone.length}/10 digits
                       </span>
                     </div>
@@ -1162,9 +1167,8 @@ export const NewEmployeePage: React.FC = () => {
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block text-xs font-bold text-slate-700">Contact *</label>
-                      <span className={`text-[10px] font-mono font-bold ${
-                        form.emergencyContactPhone.length === 10 ? 'text-emerald-600' : 'text-slate-400'
-                      }`}>
+                      <span className={`text-[10px] font-mono font-bold ${form.emergencyContactPhone.length === 10 ? 'text-emerald-600' : 'text-slate-400'
+                        }`}>
                         {form.emergencyContactPhone.length}/10 digits
                       </span>
                     </div>
@@ -1233,11 +1237,10 @@ export const NewEmployeePage: React.FC = () => {
                         onChange={handleChange}
                         onBlur={handleBlur}
                         placeholder="60000"
-                        className={`flex-1 min-w-0 !rounded-l-none pl-3.5 pr-4 py-2.5 text-xs font-semibold text-slate-900 rounded-r-xl transition-all z-0 focus:z-10 ${
-                          touched.monthlySalary && errors.monthlySalary
+                        className={`flex-1 min-w-0 !rounded-l-none pl-3.5 pr-4 py-2.5 text-xs font-semibold text-slate-900 rounded-r-xl transition-all z-0 focus:z-10 ${touched.monthlySalary && errors.monthlySalary
                             ? 'bg-rose-50/40 border border-rose-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-rose-500/15 focus:border-rose-500'
                             : 'bg-[#f1f5f9] border border-slate-200 focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] hover:bg-slate-100 hover:border-slate-300'
-                        } placeholder:text-slate-400`}
+                          } placeholder:text-slate-400`}
                       />
                     </div>
                     {renderFieldError('monthlySalary')}
@@ -1326,7 +1329,7 @@ export const NewEmployeePage: React.FC = () => {
 
               {/* Informational Notice */}
               <div className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/60 text-[11px] text-slate-500 font-medium leading-relaxed">
-                Upon creating the profile, a secure temporary login password will be auto-generated and emailed to the employee. A credentials summary pop-up will also appear for you to copy.
+                Upon creating the employee profile, login credentials will be emailed directly to the employee. Any attached offer letter or employment contract will be safely stored and accessible to the employee under their workspace documents.
               </div>
 
               {/* Line Separation */}
@@ -1358,107 +1361,6 @@ export const NewEmployeePage: React.FC = () => {
             </div>
           </form>
         </>
-      )}
-
-      {/* ===================== CREDENTIALS CREATED SUCCESS MODAL ===================== */}
-      {createdCredentials && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl p-6 space-y-6">
-            <div className="text-center space-y-1.5">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center shadow-xs">
-                <IconCheck className="w-6 h-6 stroke-[2.5]" />
-              </div>
-              <h2 className="text-lg font-bold text-slate-900">Employee Account Created!</h2>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                <span className="font-semibold text-slate-700">{createdCredentials.name}</span> has been successfully onboarded. Here are their login credentials:
-              </p>
-            </div>
-
-            {/* Credentials Card */}
-            <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 space-y-3 font-mono text-xs">
-              {/* Work Email / Username */}
-              <div className="flex items-center justify-between bg-white p-2.5 rounded-lg border border-slate-200">
-                <div className="min-w-0 pr-2">
-                  <span className="text-[10px] font-bold text-slate-400 block font-sans">Work Email / Username</span>
-                  <span className="text-slate-800 font-semibold truncate block select-all">{createdCredentials.email}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleCopy(createdCredentials.email, 'email')}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-sans font-semibold rounded-md border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 cursor-pointer transition-colors shrink-0"
-                >
-                  {copiedField === 'email' ? <IconCheck className="w-3.5 h-3.5 text-emerald-600" /> : <IconCopy className="w-3.5 h-3.5" />}
-                  <span>{copiedField === 'email' ? 'Copied' : 'Copy'}</span>
-                </button>
-              </div>
-
-              {/* Password */}
-              <div className="flex items-center justify-between bg-white p-2.5 rounded-lg border border-slate-200">
-                <div className="min-w-0 pr-2">
-                  <span className="text-[10px] font-bold text-slate-400 block font-sans">Initial Password</span>
-                  <span className="text-slate-800 font-bold truncate block select-all">
-                    {showCreatedPassword ? createdCredentials.password : '••••••••••••'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setShowCreatedPassword(!showCreatedPassword)}
-                    className="p-1.5 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-100 transition-colors cursor-pointer"
-                    title={showCreatedPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showCreatedPassword ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(createdCredentials.password, 'password')}
-                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-sans font-semibold rounded-md border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 cursor-pointer transition-colors"
-                  >
-                    {copiedField === 'password' ? <IconCheck className="w-3.5 h-3.5 text-emerald-600" /> : <IconCopy className="w-3.5 h-3.5" />}
-                    <span>{copiedField === 'password' ? 'Copied' : 'Copy'}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Security Note */}
-              {createdCredentials.mustChangePassword && (
-                <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2.5 font-sans flex items-start gap-2">
-                  <IconAlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                  <span>Employee will be prompted to change this password upon their first sign-in.</span>
-                </div>
-              )}
-            </div>
-
-            {/* Copy All Button */}
-            <button
-              type="button"
-              onClick={handleCopyAll}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-indigo-50 hover:bg-indigo-100 text-[#5E4BE2] font-bold text-xs rounded-xl border border-indigo-200 transition-colors cursor-pointer"
-            >
-              {copiedField === 'all' ? <IconCheck className="w-4 h-4 text-emerald-600" /> : <IconCopy className="w-4 h-4" />}
-              <span>{copiedField === 'all' ? 'Copied Full Credentials Message!' : 'Copy Full Credentials Message'}</span>
-            </button>
-
-            {/* Action buttons */}
-            <div className="flex items-center justify-between gap-3 pt-2">
-              <button
-                type="button"
-                onClick={handleResetForm}
-                className="flex-1 px-4 py-2.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer text-center"
-              >
-                Create Another
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/company/employees')}
-                className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] rounded-xl shadow-sm transition-all cursor-pointer text-center"
-              >
-                <span>View Directory</span>
-                <IconArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );

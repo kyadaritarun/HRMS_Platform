@@ -9,8 +9,10 @@ import { validateBody } from '../middlewares/validate.js';
 import { AppError } from '../middlewares/errorHandler.js';
 import { CreatePolicySchema, UpdatePolicySchema } from '../schemas/policy.js';
 import { logActivity } from '../services/activityLog.js';
+import { upload } from '../lib/storage.js';
 
 const router = Router();
+
 
 router.use(authMiddleware, tenantMatchMiddleware, policyComplianceMiddleware);
 
@@ -19,10 +21,16 @@ router.get('/', async (req, res, next) => {
   try {
     const userId = req.user!.id;
     const companyId = req.user!.companyId!;
+    const showAll = req.query.all === 'true';
+
+    const whereClause: any = { companyId };
+    if (!showAll && (req.user?.role === 'EMPLOYEE' || req.query.activeOnly === 'true')) {
+      whereClause.isActive = true;
+    }
 
     const policies = await prisma.policy.findMany({
-      where: { companyId },
-      orderBy: { createdAt: 'desc' },
+      where: whereClause,
+      orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],
     });
 
     const enriched = policies.map((p) => {
@@ -100,6 +108,7 @@ router.post(
   ['/', '/company'],
   roleGuard('COMPANY_ADMIN', 'HR'),
   hrPermission('policies'),
+  upload.single('file'),
   validateBody(CreatePolicySchema),
   async (req, res, next) => {
     try {
@@ -112,7 +121,26 @@ router.post(
       const slug = `${baseSlug}-${Date.now().toString(36).slice(-4)}`;
 
       const policyType = data.category || data.policyType || 'HR';
-      const body = data.body || data.content || '';
+      let fileUrl: string | null = null;
+      if (req.file) {
+        fileUrl = `/uploads/${req.file.filename}`;
+      } else if (data.documentUrl) {
+        fileUrl = data.documentUrl.includes('amazonaws.com')
+          ? `/uploads/${data.documentUrl.split('/uploads/').pop()}`
+          : data.documentUrl;
+      }
+
+      const body = data.body || data.content || (req.file ? req.file.originalname : '');
+
+      if (data.validUntil && data.validUntil.trim()) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const selectedDate = new Date(data.validUntil);
+        selectedDate.setHours(0, 0, 0, 0);
+        if (selectedDate < today) {
+          return next(new AppError(400, 'INVALID_DATE', 'Review / Valid Until Date cannot be in the past'));
+        }
+      }
 
       const versionNum = typeof data.version === 'string' ? parseFloat(data.version) || 1 : data.version || 1;
 
@@ -123,10 +151,11 @@ router.post(
           title: data.title,
           slug,
           body,
-          documentUrl: data.documentUrl || null,
+          documentUrl: fileUrl,
           extractedText: data.extractedText || body,
-          validUntil: data.validUntil ? new Date(data.validUntil) : null,
+          validUntil: data.validUntil && data.validUntil.trim() ? new Date(data.validUntil) : null,
           version: Math.max(1, Math.round(versionNum)),
+          isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
           acceptances: [],
         },
       });
@@ -152,6 +181,7 @@ router.patch(
   ['/:id', '/company/:id'],
   roleGuard('COMPANY_ADMIN', 'HR'),
   hrPermission('policies'),
+  upload.single('file'),
   validateBody(UpdatePolicySchema),
   async (req, res, next) => {
     try {
@@ -175,12 +205,37 @@ router.patch(
       }
       delete updateData.category;
       delete updateData.content;
+      delete updateData.isMandatory;
+
+      if (req.file) {
+        updateData.documentUrl = `/uploads/${req.file.filename}`;
+      } else if (data.documentUrl && data.documentUrl.includes('amazonaws.com')) {
+        updateData.documentUrl = `/uploads/${data.documentUrl.split('/uploads/').pop()}`;
+      }
 
       if (bumpVersion) {
         updateData.version = policy.version + 1;
+      } else if (data.version !== undefined) {
+        const vNum = typeof data.version === 'string' ? parseFloat(data.version) || 1 : data.version || 1;
+        updateData.version = Math.max(1, Math.round(vNum));
       }
-      if (data.validUntil) {
-        updateData.validUntil = new Date(data.validUntil);
+
+      if (data.validUntil !== undefined) {
+        if (data.validUntil && data.validUntil.trim()) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const selectedDate = new Date(data.validUntil);
+          selectedDate.setHours(0, 0, 0, 0);
+          if (selectedDate < today) {
+            return next(new AppError(400, 'INVALID_DATE', 'Review / Valid Until Date cannot be in the past'));
+          }
+          updateData.validUntil = selectedDate;
+        } else {
+          updateData.validUntil = null;
+        }
+      }
+      if (data.isActive !== undefined) {
+        updateData.isActive = Boolean(data.isActive);
       }
 
       const updated = await prisma.policy.update({
@@ -188,13 +243,20 @@ router.patch(
         data: updateData,
       });
 
+      const actionMessage =
+        data.isActive === false
+          ? `Deactivated policy '${policy.title}'`
+          : data.isActive === true
+          ? `Reactivated policy '${policy.title}'`
+          : `Updated policy '${updated.title}' to v${updated.version}`;
+
       await logActivity({
         companyId,
         actorId: req.user!.id,
         action: 'UPDATE_POLICY',
         objectType: 'Policy',
         objectId: String(policyId),
-        message: `Updated policy '${updated.title}' to v${updated.version}`,
+        message: actionMessage,
       });
 
       return res.json({ policy: updated });

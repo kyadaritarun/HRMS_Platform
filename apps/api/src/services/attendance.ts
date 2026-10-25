@@ -31,14 +31,43 @@ export async function checkIn(opts: {
     throw new AppError(400, 'ALREADY_CHECKED_IN', 'You already have an active check-in session. Please check out first.');
   }
 
-  const address = await reverseGeocode(opts.latitude, opts.longitude);
+  // 2. Prevent duplicate punch-in if shift is already completed today
   const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+  const completedToday = await prisma.attendance.findFirst({
+    where: {
+      userId: opts.userId,
+      checkIn: { gte: startOfDay, lte: endOfDay },
+      checkOut: { not: null },
+    },
+  });
+
+  if (completedToday) {
+    throw new AppError(
+      400,
+      'SHIFT_ALREADY_COMPLETED',
+      'You have already completed your attendance punch for today. Multiple shift punches are not allowed. Please submit a Regularization request if you need timing adjustments.'
+    );
+  }
+
+  let assignedShiftId = opts.shiftId || null;
+  if (!assignedShiftId) {
+    const user = await prisma.user.findUnique({
+      where: { id: opts.userId },
+      select: { shiftId: true, shiftTiming: true },
+    });
+    assignedShiftId = user?.shiftTiming || user?.shiftId || 'General Shift (09:30 AM - 06:30 PM)';
+  }
+
+  const address = await reverseGeocode(opts.latitude, opts.longitude);
 
   const record = await prisma.attendance.create({
     data: {
       companyId: opts.companyId,
       userId: opts.userId,
-      shiftId: opts.shiftId || null,
+      shiftId: assignedShiftId,
       checkIn: now,
       workMode: opts.workMode,
       note: opts.note || '',

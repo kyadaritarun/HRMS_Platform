@@ -25,6 +25,7 @@ import {
   IconId,
   IconHeartHandshake,
   IconClock,
+  IconTrash,
 } from '@tabler/icons-react';
 
 interface Employee {
@@ -225,26 +226,18 @@ export const EmployeesPage: React.FC = () => {
         firstName: editForm.firstName.trim(),
         lastName: editForm.lastName.trim(),
         phone: editForm.phone.trim(),
-        jobTitle: editForm.jobTitle.trim(),
         role: editForm.role,
         workMode: editForm.workMode,
         employmentType: editForm.employmentType,
         shiftTiming: editForm.shiftTiming.trim(),
-        address: editForm.address.trim(),
         workingAddress: editForm.workingAddress.trim(),
-        employeeNumber: editForm.employeeNumber.trim(),
         personalEmail: editForm.personalEmail.trim(),
-        monthlySalary: Number(editForm.monthlySalary) || 0,
-        departmentId: editForm.departmentId ? Number(editForm.departmentId) : null,
         emergencyContact: {
           name: editForm.emergencyContactName.trim(),
           relationship: editForm.emergencyContactRelationship.trim(),
           phone: editForm.emergencyContactPhone.trim(),
         },
       };
-      if (editForm.joiningDate) {
-        payload.joiningDate = editForm.joiningDate;
-      }
       if (editForm.dateOfBirth) {
         payload.dateOfBirth = editForm.dateOfBirth;
       }
@@ -477,9 +470,8 @@ export const EmployeesPage: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('ACTIVE')}
-          className={`bg-white rounded-2xl border p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-all text-left cursor-pointer ${
-            activeTab === 'ACTIVE' ? 'border-emerald-300 ring-2 ring-emerald-500/20' : 'border-slate-200'
-          }`}
+          className={`bg-white rounded-2xl border p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-all text-left cursor-pointer ${activeTab === 'ACTIVE' ? 'border-emerald-300 ring-2 ring-emerald-500/20' : 'border-slate-200'
+            }`}
         >
           <div>
             <span className="text-xs font-bold text-slate-500">Active</span>
@@ -499,9 +491,8 @@ export const EmployeesPage: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('OFFBOARDED')}
-          className={`bg-white rounded-2xl border p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-all text-left cursor-pointer ${
-            activeTab === 'OFFBOARDED' ? 'border-rose-300 ring-2 ring-rose-500/20' : 'border-slate-200'
-          }`}
+          className={`bg-white rounded-2xl border p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-all text-left cursor-pointer ${activeTab === 'OFFBOARDED' ? 'border-rose-300 ring-2 ring-rose-500/20' : 'border-slate-200'
+            }`}
         >
           <div>
             <span className="text-xs font-bold text-slate-500">Inactive</span>
@@ -542,18 +533,16 @@ export const EmployeesPage: React.FC = () => {
             setActiveTab('ACTIVE');
             setCurrentPage(1);
           }}
-          className={`flex items-center gap-2 pb-3 px-4 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-            activeTab === 'ACTIVE'
+          className={`flex items-center gap-2 pb-3 px-4 text-xs font-bold border-b-2 transition-all cursor-pointer ${activeTab === 'ACTIVE'
               ? 'border-[#5E4BE2] text-[#5E4BE2]'
               : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
+            }`}
         >
           <IconUsers className="w-4 h-4" />
           <span>Active Employees</span>
           <span
-            className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
-              activeTab === 'ACTIVE' ? 'bg-indigo-50 text-[#5E4BE2]' : 'bg-slate-100 text-slate-500'
-            }`}
+            className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${activeTab === 'ACTIVE' ? 'bg-indigo-50 text-[#5E4BE2]' : 'bg-slate-100 text-slate-500'
+              }`}
           >
             {activeCount}
           </span>
@@ -564,18 +553,16 @@ export const EmployeesPage: React.FC = () => {
             setActiveTab('OFFBOARDED');
             setCurrentPage(1);
           }}
-          className={`flex items-center gap-2 pb-3 px-4 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-            activeTab === 'OFFBOARDED'
+          className={`flex items-center gap-2 pb-3 px-4 text-xs font-bold border-b-2 transition-all cursor-pointer ${activeTab === 'OFFBOARDED'
               ? 'border-rose-600 text-rose-600'
               : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
+            }`}
         >
           <IconUserMinus className="w-4 h-4" />
           <span>Deactivated Employees</span>
           <span
-            className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
-              activeTab === 'OFFBOARDED' ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-500'
-            }`}
+            className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${activeTab === 'OFFBOARDED' ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-500'
+              }`}
           >
             {offboardedCount}
           </span>
@@ -644,8 +631,8 @@ export const EmployeesPage: React.FC = () => {
                 mode === 'ALL'
                   ? 'All'
                   : mode === 'OFFICE'
-                  ? 'Office'
-                  : 'Home';
+                    ? 'Office'
+                    : 'Home';
               const isActive = selectedWorkMode === mode;
               return (
                 <button
@@ -654,11 +641,10 @@ export const EmployeesPage: React.FC = () => {
                     setSelectedWorkMode(mode);
                     setCurrentPage(1);
                   }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    isActive
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${isActive
                       ? 'bg-white text-[#5E4BE2] shadow-2xs'
                       : 'text-slate-500 hover:text-slate-800'
-                  }`}
+                    }`}
                 >
                   {label}
                 </button>
@@ -815,24 +801,26 @@ export const EmployeesPage: React.FC = () => {
 
                       {/* Actions */}
                       <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
+                        <div className="flex items-center justify-end gap-2">
                           {/* View details */}
                           <button
+                            type="button"
                             onClick={() => setSelectedEmp(emp)}
-                            className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-[#5E4BE2] hover:bg-[#F0EEFF] transition-all cursor-pointer"
+                            className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-[#F0EEFF] hover:border-indigo-300 text-slate-700 hover:text-[#5E4BE2] flex items-center justify-center shadow-2xs transition-all cursor-pointer"
                             title="View Profile Details"
                           >
-                            <IconEye className="w-4 h-4" />
+                            <IconEye className="w-4 h-4 stroke-[1.8]" />
                           </button>
 
                           {/* Edit button (Admin & HR) */}
                           {canAdd && (
                             <button
+                              type="button"
                               onClick={() => handleOpenEdit(emp)}
-                              className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all cursor-pointer"
+                              className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-300 text-slate-900 hover:text-blue-600 flex items-center justify-center shadow-2xs transition-all cursor-pointer"
                               title="Edit Employee Details"
                             >
-                              <IconPencil className="w-4 h-4" />
+                              <IconPencil className="w-4 h-4 stroke-[1.8]" />
                             </button>
                           )}
 
@@ -840,19 +828,21 @@ export const EmployeesPage: React.FC = () => {
                           {canAdd && (
                             activeTab === 'ACTIVE' ? (
                               <button
+                                type="button"
                                 onClick={() => setOffboardTarget(emp)}
-                                className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
+                                className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-300 text-rose-600 hover:text-rose-700 flex items-center justify-center shadow-2xs transition-all cursor-pointer"
                                 title="Deactivate Employee"
                               >
-                                <IconUserMinus className="w-4 h-4" />
+                                <IconUserMinus className="w-4 h-4 stroke-[1.8]" />
                               </button>
                             ) : (
                               <button
+                                type="button"
                                 onClick={() => handleReactivate(emp)}
-                                className="px-2.5 py-1 rounded-lg text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 transition-all cursor-pointer flex items-center gap-1"
+                                className="px-2.5 py-1.5 rounded-xl border border-emerald-300 bg-white hover:bg-emerald-50 text-emerald-700 flex items-center gap-1.5 text-xs font-bold shadow-2xs transition-all cursor-pointer"
                                 title="Reactivate Employee"
                               >
-                                <IconUserCheck className="w-3.5 h-3.5" />
+                                <IconUserCheck className="w-3.5 h-3.5 stroke-[2]" />
                                 <span>Reactivate</span>
                               </button>
                             )
@@ -961,11 +951,10 @@ export const EmployeesPage: React.FC = () => {
                   <div>
                     <label className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Work Type</label>
                     <div className="flex items-center gap-1.5 font-bold text-slate-800 mt-1">
-                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                        selectedEmp.employmentType === 'CONTRACT'
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${selectedEmp.employmentType === 'CONTRACT'
                           ? 'bg-amber-50 text-amber-700 border border-amber-200/80'
                           : 'bg-indigo-50 text-indigo-700 border border-indigo-200/80'
-                      }`}>
+                        }`}>
                         {selectedEmp.employmentType === 'CONTRACT' ? 'Contract' : 'Permanent'}
                       </span>
                     </div>
@@ -998,10 +987,10 @@ export const EmployeesPage: React.FC = () => {
                       <span>
                         {selectedEmp.dateOfBirth
                           ? new Date(selectedEmp.dateOfBirth).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })
                           : '—'}
                       </span>
                     </div>
@@ -1025,12 +1014,12 @@ export const EmployeesPage: React.FC = () => {
                       <IconCalendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       <span>
                         {selectedEmp.joiningDate
-                           ? new Date(selectedEmp.joiningDate).toLocaleDateString('en-US', {
-                               month: 'short',
-                               day: 'numeric',
-                               year: 'numeric',
-                             })
-                           : 'N/A'}
+                          ? new Date(selectedEmp.joiningDate).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })
+                          : 'N/A'}
                       </span>
                     </div>
                   </div>
@@ -1261,6 +1250,7 @@ export const EmployeesPage: React.FC = () => {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {/* First Name (Editable) */}
                     <div>
                       <label className="block text-[11px] font-bold text-slate-700 mb-1">First Name *</label>
                       <input
@@ -1271,6 +1261,8 @@ export const EmployeesPage: React.FC = () => {
                         className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
                       />
                     </div>
+
+                    {/* Last Name (Editable) */}
                     <div>
                       <label className="block text-[11px] font-bold text-slate-700 mb-1">Last Name</label>
                       <input
@@ -1281,18 +1273,22 @@ export const EmployeesPage: React.FC = () => {
                       />
                     </div>
 
+                    {/* Employee ID (Read-only) */}
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Employee ID *</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[11px] font-bold text-slate-700">Employee ID</label>
+                        <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">Read-only</span>
+                      </div>
                       <input
                         type="text"
-                        required
-                        value={editForm.employeeNumber}
-                        onChange={(e) => setEditForm({ ...editForm, employeeNumber: e.target.value })}
-                        placeholder="EMP-001"
-                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
+                        disabled
+                        readOnly
+                        value={editForm.employeeNumber || '—'}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200 rounded-xl cursor-not-allowed select-none"
                       />
                     </div>
 
+                    {/* Date of Birth (Editable) */}
                     <div>
                       <label className="block text-[11px] font-bold text-slate-700 mb-1">Date of Birth *</label>
                       <input
@@ -1304,6 +1300,7 @@ export const EmployeesPage: React.FC = () => {
                       />
                     </div>
 
+                    {/* Personal Email Address (Editable) */}
                     <div>
                       <label className="block text-[11px] font-bold text-slate-700 mb-1">Personal Email Address *</label>
                       <input
@@ -1316,6 +1313,7 @@ export const EmployeesPage: React.FC = () => {
                       />
                     </div>
 
+                    {/* Phone Number (Editable) */}
                     <div>
                       <label className="block text-[11px] font-bold text-slate-700 mb-1">Phone Number</label>
                       <input
@@ -1326,32 +1324,37 @@ export const EmployeesPage: React.FC = () => {
                       />
                     </div>
 
+                    {/* Designation / Job Title (Read-only) */}
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Designation / Job Title</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[11px] font-bold text-slate-700">Designation / Job Title</label>
+                        <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">Read-only</span>
+                      </div>
                       <input
                         type="text"
-                        value={editForm.jobTitle}
-                        onChange={(e) => setEditForm({ ...editForm, jobTitle: e.target.value })}
-                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
+                        disabled
+                        readOnly
+                        value={editForm.jobTitle || '—'}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200 rounded-xl cursor-not-allowed select-none"
                       />
                     </div>
 
+                    {/* Department (Read-only) */}
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Department</label>
-                      <select
-                        value={editForm.departmentId}
-                        onChange={(e) => setEditForm({ ...editForm, departmentId: e.target.value })}
-                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
-                      >
-                        <option value="">Unassigned</option>
-                        {departments.map((d) => (
-                          <option key={d.id} value={d.id}>
-                            {d.name}{(d as any).isActive === false ? ' (Inactive)' : ''}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[11px] font-bold text-slate-700">Department</label>
+                        <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">Read-only</span>
+                      </div>
+                      <input
+                        type="text"
+                        disabled
+                        readOnly
+                        value={departments.find((d) => String(d.id) === String(editForm.departmentId))?.name || editTarget?.department?.name || 'Unassigned'}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200 rounded-xl cursor-not-allowed select-none"
+                      />
                     </div>
 
+                    {/* System Role (Editable) */}
                     <div>
                       <label className="block text-[11px] font-bold text-slate-700 mb-1">System Role</label>
                       <select
@@ -1365,6 +1368,7 @@ export const EmployeesPage: React.FC = () => {
                       </select>
                     </div>
 
+                    {/* Work Mode (Editable) */}
                     <div>
                       <label className="block text-[11px] font-bold text-slate-700 mb-1">Work Mode</label>
                       <select
@@ -1377,6 +1381,7 @@ export const EmployeesPage: React.FC = () => {
                       </select>
                     </div>
 
+                    {/* Work Type (Editable) */}
                     <div>
                       <label className="block text-[11px] font-bold text-slate-700 mb-1">Work Type *</label>
                       <select
@@ -1389,27 +1394,37 @@ export const EmployeesPage: React.FC = () => {
                       </select>
                     </div>
 
+                    {/* Monthly Salary (Read-only) */}
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Monthly Salary (INR)</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[11px] font-bold text-slate-700">Monthly Salary (INR)</label>
+                        <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">Read-only</span>
+                      </div>
                       <input
-                        type="number"
-                        min="0"
-                        value={editForm.monthlySalary}
-                        onChange={(e) => setEditForm({ ...editForm, monthlySalary: Number(e.target.value) })}
-                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
+                        type="text"
+                        disabled
+                        readOnly
+                        value={editForm.monthlySalary ? Number(editForm.monthlySalary).toLocaleString('en-IN') : '0'}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200 rounded-xl cursor-not-allowed select-none"
                       />
                     </div>
 
-                    <div className="sm:col-span-2">
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Joining Date</label>
+                    {/* Joining Date (Read-only) */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[11px] font-bold text-slate-700">Joining Date</label>
+                        <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">Read-only</span>
+                      </div>
                       <input
                         type="date"
+                        disabled
+                        readOnly
                         value={editForm.joiningDate}
-                        onChange={(e) => setEditForm({ ...editForm, joiningDate: e.target.value })}
-                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
+                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200 rounded-xl cursor-not-allowed select-none"
                       />
                     </div>
 
+                    {/* Shift Timing (Editable) */}
                     <div>
                       <label className="block text-[11px] font-bold text-slate-700 mb-1">Shift Timing</label>
                       <select
@@ -1425,7 +1440,8 @@ export const EmployeesPage: React.FC = () => {
                       </select>
                     </div>
 
-                    <div>
+                    {/* Working Address (Editable) */}
+                    <div className="sm:col-span-2">
                       <label className="block text-[11px] font-bold text-slate-700 mb-1">Working Address</label>
                       <input
                         type="text"
@@ -1436,14 +1452,18 @@ export const EmployeesPage: React.FC = () => {
                       />
                     </div>
 
+                    {/* Residential Address (Read-only) */}
                     <div className="sm:col-span-2">
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Residential Address</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[11px] font-bold text-slate-700">Residential Address</label>
+                        <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">Read-only</span>
+                      </div>
                       <textarea
                         rows={2}
-                        value={editForm.address}
-                        onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-                        placeholder="Residential / permanent address"
-                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
+                        disabled
+                        readOnly
+                        value={editForm.address || '—'}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200 rounded-xl cursor-not-allowed select-none resize-none"
                       />
                     </div>
                   </div>

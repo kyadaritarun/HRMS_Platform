@@ -10,6 +10,8 @@ import {
   IconEye,
   IconClock,
   IconSearch,
+  IconExternalLink,
+  IconFileTypePdf,
 } from '@tabler/icons-react';
 
 interface PolicyItem {
@@ -21,6 +23,7 @@ interface PolicyItem {
   isMandatory: boolean;
   acknowledged: boolean;
   acknowledgedAt?: string | null;
+  documentUrl?: string | null;
 }
 
 export const PoliciesPage: React.FC = () => {
@@ -76,6 +79,21 @@ export const PoliciesPage: React.FC = () => {
       return true;
     });
   }, [policies, search, filterStatus]);
+
+  const getDocumentPreviewUrl = (url?: string | null) => {
+    if (!url) return '';
+    if (url.includes('amazonaws.com')) {
+      const filename = url.split('/uploads/').pop() || url.split('/').pop();
+      return `/uploads/${filename}`;
+    }
+    if (url.startsWith('/uploads/')) {
+      return url;
+    }
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    return `/uploads/${url.replace(/^\/+/, '')}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -288,7 +306,45 @@ export const PoliciesPage: React.FC = () => {
 
               {/* Drawer Content */}
               <div className="p-6 flex-1 overflow-y-auto space-y-4 text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line">
-                {viewingPolicy.content}
+                {viewingPolicy.documentUrl && (
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-50/90 to-purple-50/50 border border-indigo-100 shadow-2xs flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-white text-[#5E4BE2] shadow-2xs border border-indigo-100 flex items-center justify-center shrink-0">
+                        {viewingPolicy.documentUrl.toLowerCase().includes('.pdf') ? (
+                          <IconFileTypePdf className="w-5 h-5 text-rose-600" />
+                        ) : (
+                          <IconFileText className="w-5 h-5 text-[#5E4BE2]" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 block">
+                          Official Attached Document
+                        </span>
+                        <h4 className="text-xs font-bold text-slate-900 truncate mt-0.5">
+                          {viewingPolicy.title}
+                        </h4>
+                      </div>
+                    </div>
+
+                    <a
+                      href={getDocumentPreviewUrl(viewingPolicy.documentUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white text-xs font-bold shadow-xs transition-colors shrink-0 cursor-pointer"
+                    >
+                      <IconExternalLink className="w-3.5 h-3.5" />
+                      <span>Open Document</span>
+                    </a>
+                  </div>
+                )}
+
+                {viewingPolicy.content ? (
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 whitespace-pre-line leading-relaxed">
+                    {viewingPolicy.content}
+                  </div>
+                ) : !viewingPolicy.documentUrl ? (
+                  <div className="text-slate-400 text-xs">No document or text content available.</div>
+                ) : null}
               </div>
 
               {/* Drawer Footer */}

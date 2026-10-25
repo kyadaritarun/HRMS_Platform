@@ -256,9 +256,20 @@ router.patch(
 
       const department = await prisma.department.findFirst({
         where: { id: deptId, companyId },
+        include: { _count: { select: { users: true } } },
       });
       if (!department) {
         return next(new AppError(404, 'NOT_FOUND', 'Department not found'));
+      }
+
+      if (req.body.isActive === false && department._count.users > 0) {
+        return next(
+          new AppError(
+            400,
+            'DEPARTMENT_HAS_MEMBERS',
+            `Cannot deactivate "${department.name}" because it currently has ${department._count.users} employee(s) assigned. Please reassign them to another department first.`
+          )
+        );
       }
 
       const updated = await prisma.department.update({
@@ -550,10 +561,16 @@ router.get('/leave-types', async (req, res, next) => {
   try {
     const companyId = req.user!.companyId!;
     const userId = req.user?.id;
+    const showAll = req.query.all === 'true' || req.query.includeInactive === 'true';
+
+    const whereClause: any = { companyId };
+    if (!showAll) {
+      whereClause.isActive = true;
+    }
 
     const leaveTypes = await prisma.leaveType.findMany({
-      where: { companyId, isActive: true },
-      orderBy: { name: 'asc' },
+      where: whereClause,
+      orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
     });
 
     let userBalances: any[] = [];
@@ -603,7 +620,7 @@ router.get('/leave-types', async (req, res, next) => {
               balance: remainingBalance,
               carriedOver: 0,
             },
-          }).catch(() => {});
+          }).catch(() => { });
         }
 
         return {
@@ -696,6 +713,26 @@ router.patch(
       if (!existing) {
         return next(new AppError(404, 'NOT_FOUND', 'Leave type not found'));
       }
+
+      if (req.body.code && req.body.code.toUpperCase() !== existing.code) {
+        const codeConflict = await prisma.leaveType.findFirst({
+          where: {
+            companyId,
+            code: req.body.code.toUpperCase(),
+            id: { not: id },
+          },
+        });
+        if (codeConflict) {
+          return next(
+            new AppError(
+              400,
+              'DUPLICATE_CODE',
+              `Leave code '${req.body.code.toUpperCase()}' is already used by "${codeConflict.name}"`
+            )
+          );
+        }
+      }
+
       const updated = await prisma.leaveType.update({
         where: { id },
         data: req.body,
@@ -763,11 +800,50 @@ router.delete(
       if (!existing) {
         return next(new AppError(404, 'NOT_FOUND', 'Leave type not found'));
       }
-      await prisma.leaveType.update({
-        where: { id },
-        data: { isActive: false },
+
+      if (req.query.mode === 'deactivate') {
+        await prisma.leaveType.update({
+          where: { id },
+          data: { isActive: false },
+        });
+        await logActivity({
+          companyId,
+          actorId: req.user!.id,
+          action: 'DEACTIVATE_LEAVE_TYPE',
+          objectType: 'LeaveType',
+          objectId: String(id),
+          message: `Deactivated leave type: ${existing.name} (${existing.code})`,
+        });
+        return res.json({ success: true, message: 'Leave policy deactivated' });
+      }
+
+      // Permanent delete:
+      // 1. Unlink historical requests so request history stays preserved without breaking FK
+      await prisma.request.updateMany({
+        where: { leaveTypeId: id },
+        data: { leaveTypeId: null },
       });
-      return res.json({ success: true, message: 'Leave policy deleted' });
+
+      // 2. Delete user leave balances for this leave type
+      await prisma.leaveBalance.deleteMany({
+        where: { leaveTypeId: id },
+      });
+
+      // 3. Delete the leave type itself
+      await prisma.leaveType.delete({
+        where: { id },
+      });
+
+      await logActivity({
+        companyId,
+        actorId: req.user!.id,
+        action: 'DELETE_LEAVE_TYPE',
+        objectType: 'LeaveType',
+        objectId: String(id),
+        message: `Permanently deleted leave type: ${existing.name} (${existing.code})`,
+      });
+
+      return res.json({ success: true, message: 'Leave policy permanently deleted' });
     } catch (error) {
       next(error);
     }

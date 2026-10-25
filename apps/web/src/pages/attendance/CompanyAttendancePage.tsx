@@ -58,15 +58,18 @@ export const CompanyAttendancePage: React.FC = () => {
   // Export dropdown & range state
   const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState<'xlsx' | 'csv'>('xlsx');
-  const [exportFromMonth, setExportFromMonth] = useState(() => {
+  const [exportFromDate, setExportFromDate] = useState(() => {
     const now = new Date();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    return `${now.getFullYear()}-${mm}`;
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}-01`;
   });
-  const [exportToMonth, setExportToMonth] = useState(() => {
+  const [exportToDate, setExportToDate] = useState(() => {
     const now = new Date();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    return `${now.getFullYear()}-${mm}`;
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
+    return `${y}-${m}-${String(lastDay).padStart(2, '0')}`;
   });
   const exportDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -130,13 +133,13 @@ export const CompanyAttendancePage: React.FC = () => {
       const res = await api.get('/company/attendance/export', {
         params: {
           format: fmt,
-          fromMonth: exportFromMonth,
-          toMonth: exportToMonth,
+          from: exportFromDate,
+          to: exportToDate,
         },
         responseType: 'blob',
       });
       const ext = fmt === 'csv' ? 'csv' : 'xlsx';
-      const filename = `Attendance_Report_${exportFromMonth}_to_${exportToMonth}.${ext}`;
+      const filename = `Attendance_Report_${exportFromDate}_to_${exportToDate}.${ext}`;
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -347,14 +350,16 @@ export const CompanyAttendancePage: React.FC = () => {
                 </div>
               </div>
 
-              {/* 2. Month to Month Range */}
+              {/* 2. Date Range (From Date - To Date) */}
               <div className="mt-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                    Month Range (From - To)
+                    Date Range (From - To)
                   </label>
                   <span className="text-[10px] font-semibold text-indigo-600">
-                    {exportFromMonth === exportToMonth ? '1 month' : `${exportFromMonth} → ${exportToMonth}`}
+                    {exportFromDate === exportToDate
+                      ? exportFromDate
+                      : `${exportFromDate} → ${exportToDate}`}
                   </span>
                 </div>
 
@@ -362,38 +367,54 @@ export const CompanyAttendancePage: React.FC = () => {
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {[
                     {
+                      label: 'Today',
+                      getRange: () => {
+                        const now = new Date();
+                        const y = now.getFullYear();
+                        const m = String(now.getMonth() + 1).padStart(2, '0');
+                        const d = String(now.getDate()).padStart(2, '0');
+                        return [`${y}-${m}-${d}`, `${y}-${m}-${d}`];
+                      },
+                    },
+                    {
                       label: 'This Month',
                       getRange: () => {
                         const now = new Date();
+                        const y = now.getFullYear();
                         const m = String(now.getMonth() + 1).padStart(2, '0');
-                        return [`${now.getFullYear()}-${m}`, `${now.getFullYear()}-${m}`];
+                        const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
+                        return [`${y}-${m}-01`, `${y}-${m}-${String(lastDay).padStart(2, '0')}`];
                       },
                     },
                     {
                       label: 'Last Month',
                       getRange: () => {
-                        const d = new Date();
-                        d.setMonth(d.getMonth() - 1);
+                        const now = new Date();
+                        const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                        const y = d.getFullYear();
                         const m = String(d.getMonth() + 1).padStart(2, '0');
-                        return [`${d.getFullYear()}-${m}`, `${d.getFullYear()}-${m}`];
+                        const lastDay = new Date(y, d.getMonth() + 1, 0).getDate();
+                        return [`${y}-${m}-01`, `${y}-${m}-${String(lastDay).padStart(2, '0')}`];
                       },
                     },
                     {
                       label: 'Last 3 Months',
                       getRange: () => {
                         const now = new Date();
-                        const past = new Date();
-                        past.setMonth(now.getMonth() - 2);
-                        const nm = String(now.getMonth() + 1).padStart(2, '0');
-                        const pm = String(past.getMonth() + 1).padStart(2, '0');
-                        return [`${past.getFullYear()}-${pm}`, `${now.getFullYear()}-${nm}`];
+                        const start = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+                        const sy = start.getFullYear();
+                        const sm = String(start.getMonth() + 1).padStart(2, '0');
+                        const ey = now.getFullYear();
+                        const em = String(now.getMonth() + 1).padStart(2, '0');
+                        const lastDay = new Date(ey, now.getMonth() + 1, 0).getDate();
+                        return [`${sy}-${sm}-01`, `${ey}-${em}-${String(lastDay).padStart(2, '0')}`];
                       },
                     },
                     {
                       label: 'Full Year',
                       getRange: () => {
                         const y = new Date().getFullYear();
-                        return [`${y}-01`, `${y}-12`];
+                        return [`${y}-01-01`, `${y}-12-31`];
                       },
                     },
                   ].map((preset) => (
@@ -402,8 +423,8 @@ export const CompanyAttendancePage: React.FC = () => {
                       type="button"
                       onClick={() => {
                         const [from, to] = preset.getRange();
-                        setExportFromMonth(from);
-                        setExportToMonth(to);
+                        setExportFromDate(from);
+                        setExportToDate(to);
                       }}
                       className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-slate-100 hover:bg-indigo-50 hover:text-[#5E4BE2] text-slate-600 transition-colors cursor-pointer"
                     >
@@ -412,17 +433,17 @@ export const CompanyAttendancePage: React.FC = () => {
                   ))}
                 </div>
 
-                {/* From Month & To Month Selectors */}
+                {/* From Date & To Date Selectors */}
                 <div className="grid grid-cols-2 gap-2 pt-1">
                   <div>
-                    <span className="text-[10px] font-bold text-slate-500 block mb-1">From Month</span>
+                    <span className="text-[10px] font-bold text-slate-500 block mb-1">From Date</span>
                     <input
-                      type="month"
-                      value={exportFromMonth}
+                      type="date"
+                      value={exportFromDate}
                       onChange={(e) => {
-                        setExportFromMonth(e.target.value);
-                        if (e.target.value > exportToMonth) {
-                          setExportToMonth(e.target.value);
+                        setExportFromDate(e.target.value);
+                        if (e.target.value > exportToDate) {
+                          setExportToDate(e.target.value);
                         }
                       }}
                       className="w-full px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] cursor-pointer"
@@ -430,12 +451,12 @@ export const CompanyAttendancePage: React.FC = () => {
                   </div>
 
                   <div>
-                    <span className="text-[10px] font-bold text-slate-500 block mb-1">To Month</span>
+                    <span className="text-[10px] font-bold text-slate-500 block mb-1">To Date</span>
                     <input
-                      type="month"
-                      value={exportToMonth}
-                      min={exportFromMonth}
-                      onChange={(e) => setExportToMonth(e.target.value)}
+                      type="date"
+                      value={exportToDate}
+                      min={exportFromDate}
+                      onChange={(e) => setExportToDate(e.target.value)}
                       className="w-full px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] cursor-pointer"
                     />
                   </div>

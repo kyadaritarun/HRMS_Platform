@@ -23,6 +23,7 @@ export const LeaveTypeSchema = z.object({
   allowHalfDay: z.boolean().default(false),
   allowCarry: z.boolean().default(false),
   isCompOff: z.boolean().default(false),
+  isActive: z.boolean().optional(),
   color: z.string().default('blue'),
   accrual: z
     .object({

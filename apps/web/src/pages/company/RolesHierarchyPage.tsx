@@ -14,6 +14,10 @@ import {
   IconChevronDown,
   IconFilter,
   IconKey,
+  IconSettings,
+  IconPalette,
+  IconTrendingUp,
+  IconInfoCircle,
 } from '@tabler/icons-react';
 
 interface HierarchyUser {
@@ -32,8 +36,18 @@ interface HierarchyUser {
   reports?: { id: number }[];
 }
 
+interface DepartmentItem {
+  id: number;
+  name: string;
+  isActive?: boolean;
+  parent?: { id: number; name: string } | null;
+  users?: any[];
+  _count?: { users: number };
+}
+
 export const RolesHierarchyPage: React.FC = () => {
   const [users, setUsers] = useState<HierarchyUser[]>([]);
+  const [departmentsList, setDepartmentsList] = useState<DepartmentItem[]>([]);
   const [rolesSummary, setRolesSummary] = useState<Record<string, HierarchyUser[]>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'ORG_TREE' | 'MATRIX' | 'PERSONNEL'>('ORG_TREE');
@@ -41,14 +55,21 @@ export const RolesHierarchyPage: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState('ALL');
   const [deptFilter, setDeptFilter] = useState('ALL');
   const [expandedManagers, setExpandedManagers] = useState<Record<number, boolean>>({});
+  const [expandedDepts, setExpandedDepts] = useState<Record<string, boolean>>({});
 
   const fetchRolesData = async () => {
     setIsLoading(true);
     try {
-      const res = await api.get('/company/roles-hierarchy');
-      const fetchedUsers: HierarchyUser[] = res.data?.users || [];
+      const [rolesRes, deptsRes] = await Promise.all([
+        api.get('/company/roles-hierarchy'),
+        api.get('/company/departments').catch(() => ({ data: { departments: [] } })),
+      ]);
+      const fetchedUsers: HierarchyUser[] = rolesRes.data?.users || [];
+      const fetchedDepts: DepartmentItem[] = deptsRes.data?.departments || [];
+
       setUsers(fetchedUsers);
-      setRolesSummary(res.data?.rolesSummary || {});
+      setRolesSummary(rolesRes.data?.rolesSummary || {});
+      setDepartmentsList(fetchedDepts);
 
       // Default expand all managers in org tree
       const expanded: Record<number, boolean> = {};
@@ -56,6 +77,16 @@ export const RolesHierarchyPage: React.FC = () => {
         if (u.isManager) expanded[u.id] = true;
       });
       setExpandedManagers(expanded);
+
+      // Default expand all department cards
+      const deptsExpanded: Record<string, boolean> = {};
+      fetchedDepts.forEach((d) => {
+        deptsExpanded[d.name] = true;
+      });
+      fetchedUsers.forEach((u) => {
+        if (u.department?.name) deptsExpanded[u.department.name] = true;
+      });
+      setExpandedDepts(deptsExpanded);
     } catch (err) {
       console.error('Failed to load roles and hierarchy:', err);
     } finally {
@@ -216,6 +247,125 @@ export const RolesHierarchyPage: React.FC = () => {
     };
   }, [users]);
 
+  const getDepartmentMeta = (deptName: string) => {
+    const lower = (deptName || '').toLowerCase();
+    if (lower.includes('eng') || lower.includes('tech') || lower.includes('dev')) {
+      return {
+        icon: IconSettings,
+        iconBg: 'bg-blue-50 text-blue-600',
+        badgeBg: 'bg-blue-50 text-blue-700 border-blue-200',
+        borderHover: 'hover:border-blue-300',
+        description: 'Product development and technical operations team.',
+      };
+    }
+    if (lower.includes('prod') || lower.includes('design') || lower.includes('ux') || lower.includes('ui')) {
+      return {
+        icon: IconPalette,
+        iconBg: 'bg-purple-50 text-purple-600',
+        badgeBg: 'bg-purple-50 text-purple-700 border-purple-200',
+        borderHover: 'hover:border-purple-300',
+        description: 'Product strategy, user experience research, and interface design.',
+      };
+    }
+    if (lower.includes('human') || lower.includes('hr') || lower.includes('people')) {
+      return {
+        icon: IconUsers,
+        iconBg: 'bg-orange-50 text-orange-600',
+        badgeBg: 'bg-orange-50 text-orange-700 border-orange-200',
+        borderHover: 'hover:border-orange-300',
+        description: 'People operations, recruitment, and employee support.',
+      };
+    }
+    if (lower.includes('sale') || lower.includes('market') || lower.includes('growth')) {
+      return {
+        icon: IconBriefcase,
+        iconBg: 'bg-rose-50 text-rose-600',
+        badgeBg: 'bg-rose-50 text-rose-700 border-rose-200',
+        borderHover: 'hover:border-rose-300',
+        description: 'Revenue generation, brand growth, and customer acquisition.',
+      };
+    }
+    if (lower.includes('finance') || lower.includes('operat') || lower.includes('account') || lower.includes('admin')) {
+      return {
+        icon: IconBuilding,
+        iconBg: 'bg-emerald-50 text-emerald-600',
+        badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        borderHover: 'hover:border-emerald-300',
+        description: 'Financial management, compliance, and corporate operations.',
+      };
+    }
+    if (lower.includes('exec') || lower.includes('lead') || lower.includes('manage')) {
+      return {
+        icon: IconTrendingUp,
+        iconBg: 'bg-indigo-50 text-indigo-600',
+        badgeBg: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+        borderHover: 'hover:border-indigo-300',
+        description: 'Corporate leadership, governance, and strategic management.',
+      };
+    }
+    return {
+      icon: IconBuilding,
+      iconBg: 'bg-indigo-50 text-indigo-600',
+      badgeBg: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      borderHover: 'hover:border-indigo-300',
+      description: 'Functional organizational unit and departmental administration.',
+    };
+  };
+
+  // Group all active users by their departments, incorporating official company departments
+  const departmentTeams = useMemo(() => {
+    const deptMap = new Map<
+      string,
+      { id?: number; name: string; members: HierarchyUser[] }
+    >();
+
+    // First initialize from official departmentsList if available
+    departmentsList.forEach((d) => {
+      deptMap.set(d.name, {
+        id: d.id,
+        name: d.name,
+        members: [],
+      });
+    });
+
+    // Populate with users
+    users.forEach((u) => {
+      const deptName = u.department?.name || 'Unassigned';
+      if (!deptMap.has(deptName)) {
+        deptMap.set(deptName, {
+          id: u.department?.id,
+          name: deptName,
+          members: [],
+        });
+      }
+      deptMap.get(deptName)!.members.push(u);
+    });
+
+    // Convert map to array and compute lead & manager info
+    return Array.from(deptMap.values())
+      .filter((dept) => dept.members.length > 0 || departmentsList.some((d) => d.name === dept.name))
+      .map((dept) => {
+        // Find lead: prefer user with isManager (excluding CEO if other members exist), or HR, or first member
+        const nonAdminMembers = dept.members.filter((m) => m.role !== 'COMPANY_ADMIN');
+        const candidatePool = nonAdminMembers.length > 0 ? nonAdminMembers : dept.members;
+
+        const lead =
+          candidatePool.find((m) => m.isManager) ||
+          candidatePool.find((m) => m.role === 'HR') ||
+          candidatePool[0] ||
+          null;
+
+        return {
+          id: dept.id || dept.name,
+          name: dept.name,
+          lead,
+          members: dept.members,
+          memberCount: dept.members.length,
+        };
+      })
+      .sort((a, b) => b.memberCount - a.memberCount);
+  }, [departmentsList, users]);
+
   const toggleManager = (id: number) => {
     setExpandedManagers((prev) => ({
       ...prev,
@@ -284,7 +434,7 @@ export const RolesHierarchyPage: React.FC = () => {
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
-            Personnel ({users.length})
+            Directory ({users.length})
           </button>
           <button
             onClick={() => setActiveTab('MATRIX')}
@@ -301,7 +451,7 @@ export const RolesHierarchyPage: React.FC = () => {
 
       
 
-      {/* ===================== TAB 1: INTERACTIVE ORGANIZATIONAL TREE ===================== */}
+      {/* ===================== TAB 1: ORGANIZATIONAL & TEAM HIERARCHY ===================== */}
       {activeTab === 'ORG_TREE' && (
         <div className="space-y-6">
           {isLoading ? (
@@ -317,41 +467,52 @@ export const RolesHierarchyPage: React.FC = () => {
               No organizational hierarchy data available.
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200/70 p-6 shadow-xs">
+            <div className="bg-white rounded-2xl border border-slate-200/70 p-6 shadow-xs space-y-6">
               {/* LEVEL 1: EXECUTIVE LEADERSHIP (CEO / COMPANY ADMIN) */}
               <div className="flex flex-col items-center">
-                <div className="relative inline-flex flex-col items-center p-4 bg-gradient-to-b from-indigo-50/90 to-purple-50/50 rounded-2xl border-2 border-[#5E4BE2] shadow-sm max-w-sm w-full text-center">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#5E4BE2] to-indigo-500 text-white flex items-center justify-center font-black text-sm shadow-sm mb-2 overflow-hidden relative border border-white/60">
-                    {orgTree.adminUser.profilePhoto ? (
-                      <img
-                        src={orgTree.adminUser.profilePhoto}
-                        alt={`${orgTree.adminUser.firstName} ${orgTree.adminUser.lastName}`}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <>
-                        {orgTree.adminUser.firstName?.[0]}
-                        {orgTree.adminUser.lastName?.[0]}
-                      </>
-                    )}
-                  </div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#5E4BE2] bg-white px-2 py-0.5 rounded-full border border-indigo-200 shadow-2xs">
-                    Chief Executive Officer
-                  </span>
-                  <h3 className="font-black text-base text-slate-900 mt-1">
-                    {orgTree.adminUser.firstName} {orgTree.adminUser.lastName}
-                  </h3>
-                  <p className="text-xs text-slate-500 font-medium">{orgTree.adminUser.email}</p>
-                  <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-600 font-semibold">
-                    <span className="bg-white px-2 py-0.5 rounded-md border border-slate-200">
-                      {orgTree.adminUser.department?.name || 'Executive'}
-                    </span>
-                    <span className="bg-indigo-100 text-[#5E4BE2] px-2 py-0.5 rounded-md">
-                      {users.length - 1} Total Direct & Indirect Reports
-                    </span>
+                <div className="border border-slate-200/80 rounded-2xl bg-slate-50/40 p-4 transition-all shadow-2xs hover:bg-white hover:border-indigo-200 max-w-md w-full">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-2xs overflow-hidden shrink-0 border border-purple-100">
+                        {orgTree.adminUser.profilePhoto ? (
+                          <img
+                            src={orgTree.adminUser.profilePhoto}
+                            alt={`${orgTree.adminUser.firstName} ${orgTree.adminUser.lastName}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <>
+                            {orgTree.adminUser.firstName?.[0]}
+                            {orgTree.adminUser.lastName?.[0]}
+                          </>
+                        )}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-bold text-sm text-slate-900">
+                            {orgTree.adminUser.firstName} {orgTree.adminUser.lastName}
+                          </h4>
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200/70 shadow-2xs">
+                            Chief Executive Officer
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {orgTree.adminUser.jobTitle || 'Executive Leadership'}
+                        </p>
+                        <div className="mt-2 flex items-center gap-2 text-[11px] font-semibold text-slate-600">
+                          <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-slate-200/80 shadow-2xs text-slate-700">
+                            <IconBuilding className="w-3 h-3 text-slate-400" />
+                            {orgTree.adminUser.department?.name || 'Executive'}
+                          </span>
+                          <span className="bg-indigo-50 text-[#5E4BE2] px-2 py-0.5 rounded-md border border-indigo-100">
+                            {users.length - 1} Direct & Indirect Reports
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -359,156 +520,158 @@ export const RolesHierarchyPage: React.FC = () => {
                 <div className="w-0.5 h-8 bg-indigo-200 my-1" />
               </div>
 
-              {/* LEVEL 2: DEPARTMENT MANAGERS & DIRECT REPORTS */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                {orgTree.managers.map((manager) => {
-                  const isExpanded = Boolean(expandedManagers[manager.id]);
-                  return (
-                    <div
-                      key={manager.id}
-                      className="border border-slate-200/80 rounded-2xl bg-slate-50/40 p-4 transition-all shadow-2xs hover:border-indigo-200"
-                    >
-                      {/* Manager Header Card */}
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-2xs overflow-hidden shrink-0 border border-purple-100">
-                            {manager.profilePhoto ? (
-                              <img
-                                src={manager.profilePhoto}
-                                alt={`${manager.firstName} ${manager.lastName}`}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                }}
-                              />
-                            ) : (
-                              <>
-                                {manager.firstName?.[0]}
-                                {manager.lastName?.[0]}
-                              </>
-                            )}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-bold text-sm text-slate-900">
-                                {manager.firstName} {manager.lastName}
-                              </h4>
-                              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-[#5E4BE2] border border-indigo-100">
-                                Manager
-                              </span>
-                            </div>
-                            <p className="text-xs text-slate-500">{manager.jobTitle}</p>
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 mt-0.5">
-                              <IconBuilding className="w-3 h-3 text-slate-400" />
-                              {manager.department?.name || 'Unassigned'}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Expand/Collapse Button */}
-                        <button
-                          onClick={() => toggleManager(manager.id)}
-                          className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold bg-white border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
-                        >
-                          <span>{manager.reports.length} Reports</span>
-                          {isExpanded ? (
-                            <IconChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                          ) : (
-                            <IconChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                          )}
-                        </button>
-                      </div>
-
-                      {/* Direct Reports List */}
-                      {isExpanded && (
-                        <div className="mt-3 pt-3 border-t border-slate-200/70 space-y-2">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block px-1">
-                            Direct Reports ({manager.reports.length})
-                          </span>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {manager.reports.map((emp) => (
-                              <div
-                                key={emp.id}
-                                className="flex items-center gap-2.5 p-2 rounded-xl bg-white border border-slate-200/60 shadow-2xs hover:border-slate-300 transition-colors"
-                              >
-                                <div className="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 font-bold text-[10px] flex items-center justify-center shrink-0 overflow-hidden border border-slate-200/60">
-                                  {emp.profilePhoto ? (
-                                    <img
-                                      src={emp.profilePhoto}
-                                      alt={`${emp.firstName} ${emp.lastName}`}
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        e.currentTarget.style.display = 'none';
-                                      }}
-                                    />
-                                  ) : (
-                                    <>
-                                      {emp.firstName?.[0]}
-                                      {emp.lastName?.[0]}
-                                    </>
-                                  )}
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="font-bold text-xs text-slate-900 truncate">
-                                    {emp.firstName} {emp.lastName}
-                                  </div>
-                                  <div className="text-[10px] text-slate-400 truncate">
-                                    {emp.jobTitle}
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Direct Reports to Executive */}
-              {orgTree.directToAdmin.length > 0 && (
-                <div className="mt-6 pt-4 border-t border-slate-200/70">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
-                    Corporate Staff & Operations (Reporting to Executive / Admin)
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {orgTree.directToAdmin.map((emp) => (
-                      <div
-                        key={emp.id}
-                        className="flex items-center gap-3 p-3 rounded-xl bg-slate-50/70 border border-slate-200/70 shadow-2xs"
-                      >
-                        <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 font-bold text-xs flex items-center justify-center border border-amber-200/60 shrink-0 overflow-hidden">
-                          {emp.profilePhoto ? (
-                            <img
-                              src={emp.profilePhoto}
-                              alt={`${emp.firstName} ${emp.lastName}`}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                              }}
-                            />
-                          ) : (
-                            <>
-                              {emp.firstName?.[0]}
-                              {emp.lastName?.[0]}
-                            </>
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="font-bold text-xs text-slate-900 truncate">
-                            {emp.firstName} {emp.lastName}
-                          </div>
-                          <div className="text-[11px] text-slate-500 truncate">{emp.jobTitle}</div>
-                          <span className="text-[10px] font-semibold text-slate-400">
-                            {emp.department?.name}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+              {/* ALL DEPARTMENT TEAMS (Engineering, Finance, HR, Product, Sales, etc.) */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between px-1">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">
+                      Company Departments & Functional Teams ({departmentTeams.length})
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      All functional units reporting to Executive Leadership with appointed team leads and rosters.
+                    </p>
                   </div>
                 </div>
-              )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
+                  {departmentTeams.map((dept) => {
+                    const isExpanded = expandedDepts[dept.name] !== false;
+                    const meta = getDepartmentMeta(dept.name);
+                    const Icon = meta.icon;
+
+                    return (
+                      <div
+                        key={dept.name}
+                        className={`border rounded-2xl bg-slate-50/40 p-4 transition-all shadow-2xs hover:bg-white hover:border-indigo-200 ${meta.borderHover}`}
+                      >
+                        {/* Department Card Header */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3">
+                            <div
+                              className={`w-10 h-10 rounded-xl ${meta.iconBg} flex items-center justify-center shrink-0 shadow-2xs`}
+                            >
+                              <Icon className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h4 className="font-bold text-sm text-slate-900">{dept.name}</h4>
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${meta.badgeBg}`}
+                                >
+                                  {dept.memberCount} {dept.memberCount === 1 ? 'Member' : 'Members'}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                                {meta.description}
+                              </p>
+
+                              {dept.lead && (
+                                <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-700 bg-white px-2 py-1 rounded-lg border border-slate-200/80 inline-flex shadow-2xs">
+                                  <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400">
+                                    Lead:
+                                  </span>
+                                  <span className="font-bold text-slate-900 text-[11px]">
+                                    {dept.lead.firstName} {dept.lead.lastName}
+                                  </span>
+                                  <span className="text-slate-300">•</span>
+                                  <span className="text-slate-500 text-[11px] truncate max-w-[140px]">
+                                    {dept.lead.jobTitle}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Expand/Collapse Button */}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedDepts((prev) => ({
+                                ...prev,
+                                [dept.name]: !isExpanded,
+                              }))
+                            }
+                            className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold bg-white border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs shrink-0"
+                          >
+                            <span>{dept.members.length} Members</span>
+                            {isExpanded ? (
+                              <IconChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                            ) : (
+                              <IconChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Team Members Roster */}
+                        {isExpanded && (
+                          <div className="mt-3 pt-3 border-t border-slate-200/70 space-y-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block px-1">
+                              Team Roster ({dept.members.length})
+                            </span>
+                            {dept.members.length === 0 ? (
+                              <div className="p-3 text-center text-xs text-slate-400 bg-white rounded-xl border border-dashed border-slate-200">
+                                No members currently assigned to this department.
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {dept.members.map((emp) => (
+                                  <div
+                                    key={emp.id}
+                                    className="flex items-center gap-2.5 p-2 rounded-xl bg-white border border-slate-200/60 shadow-2xs hover:border-slate-300 transition-colors"
+                                  >
+                                    <div className="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 font-bold text-[10px] flex items-center justify-center shrink-0 overflow-hidden border border-slate-200/60">
+                                      {emp.profilePhoto ? (
+                                        <img
+                                          src={emp.profilePhoto}
+                                          alt={`${emp.firstName} ${emp.lastName}`}
+                                          className="w-full h-full object-cover"
+                                          onError={(e) => {
+                                            e.currentTarget.style.display = 'none';
+                                          }}
+                                        />
+                                      ) : (
+                                        <>
+                                          {emp.firstName?.[0]}
+                                          {emp.lastName?.[0]}
+                                        </>
+                                      )}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-1">
+                                        <span className="font-bold text-xs text-slate-900 truncate">
+                                          {emp.firstName} {emp.lastName}
+                                        </span>
+                                        {emp.isManager && (
+                                          <span className="px-1 py-0.2 rounded text-[9px] font-extrabold bg-indigo-50 text-[#5E4BE2] border border-indigo-100 shrink-0">
+                                            Manager
+                                          </span>
+                                        )}
+                                        {emp.role === 'COMPANY_ADMIN' && (
+                                          <span className="px-1 py-0.2 rounded text-[9px] font-extrabold bg-purple-50 text-purple-700 border border-purple-100 shrink-0">
+                                            CEO
+                                          </span>
+                                        )}
+                                        {emp.role === 'HR' && (
+                                          <span className="px-1 py-0.2 rounded text-[9px] font-extrabold bg-amber-50 text-amber-700 border border-amber-100 shrink-0">
+                                            HR
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="text-[10px] text-slate-400 truncate">
+                                        {emp.jobTitle || emp.email}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
         </div>

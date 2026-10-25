@@ -11,9 +11,26 @@ export const CreatePolicySchema = z.object({
   extractedText: z.string().optional().default(''),
   validUntil: z.string().nullable().optional(),
   version: z.union([z.string(), z.number()]).optional(),
-  isMandatory: z.boolean().optional(),
+  isMandatory: z
+    .union([
+      z.boolean(),
+      z.string().transform((v) => v === 'true' || v === '1'),
+    ])
+    .optional(),
+  isActive: z
+    .union([
+      z.boolean(),
+      z.string().transform((v) => v === 'true' || v === '1'),
+    ])
+    .optional(),
 });
 
 export const UpdatePolicySchema = CreatePolicySchema.partial().extend({
-  bumpVersion: z.boolean().default(false),
+  bumpVersion: z
+    .union([
+      z.boolean(),
+      z.string().transform((v) => v === 'true' || v === '1'),
+    ])
+    .default(false),
 });
+

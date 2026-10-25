@@ -202,7 +202,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
             { label: 'Roles & Hierarchy', path: '/company/roles-hierarchy', icon: IconNetwork },
             { label: 'Leave Types', path: '/company/leaves/types', icon: IconFileCertificate, feature: 'leave_management' },
             { label: 'Manage Policies', path: '/company/policies/manage', icon: IconFileText, feature: 'policy_documents_management' },
-            { label: 'Tickets', path: '/company/tickets/manage', icon: IconHelpCircle, feature: 'support_ticket_management' },
             { label: 'Holiday Calendar', path: '/company/holidays', icon: IconCalendarEvent, feature: 'holiday_calendar' },
             { label: 'Billing', path: '/company/billing', icon: IconCreditCard, roles: ['COMPANY_ADMIN'] },
             { label: 'Activity Logs', path: '/company/activity-logs', icon: IconHistory, roles: ['COMPANY_ADMIN'] },

@@ -49,6 +49,20 @@ export const HolidaysPage: React.FC = () => {
   const [isEmailSettingsOpen, setIsEmailSettingsOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [editingHoliday, setEditingHoliday] = useState<Holiday | null>(null);
+
+  // Deleting Holiday confirmation toaster
+  const [deletingHoliday, setDeletingHoliday] = useState<Holiday | null>(null);
+  const [isDeletingHoliday, setIsDeletingHoliday] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
+  // Auto dismiss toast after 4.5 seconds
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => {
+      setToast(null);
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [toast]);
   const [form, setForm] = useState({
     name: '',
     date: new Date().toISOString().split('T')[0],
@@ -157,13 +171,33 @@ export const HolidaysPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Delete this holiday from the company calendar?')) return;
+  const handleDelete = (holiday: Holiday) => {
+    setDeletingHoliday(holiday);
+    setDeleteError('');
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingHoliday) return;
+    const holidayName = deletingHoliday.name;
+    setIsDeletingHoliday(true);
+    setDeleteError('');
     try {
-      await api.delete(`/company/holidays/${id}`);
+      await api.delete(`/company/holidays/${deletingHoliday.id}`);
+      setDeletingHoliday(null);
       fetchHolidays();
+      setToast({
+        type: 'success',
+        message: `Holiday "${holidayName}" was deleted from the calendar.`,
+      });
     } catch (err: any) {
-      alert(err.response?.data?.error || err.response?.data?.message || 'Failed to delete holiday');
+      const errMsg = err.response?.data?.error || err.response?.data?.message || 'Failed to delete holiday';
+      setDeleteError(errMsg);
+      setToast({
+        type: 'error',
+        message: errMsg,
+      });
+    } finally {
+      setIsDeletingHoliday(false);
     }
   };
 
@@ -209,8 +243,19 @@ export const HolidaysPage: React.FC = () => {
     );
   };
 
+  // Deduplicate holidays by name and date
+  const uniqueHolidays = useMemo(() => {
+    const seen = new Set<string>();
+    return holidays.filter((h) => {
+      const key = `${h.name.toLowerCase().trim()}_${(h.date || '').split('T')[0]}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [holidays]);
+
   // Filtered holidays for the main table
-  const filteredHolidays = holidays.filter((h) => {
+  const filteredHolidays = uniqueHolidays.filter((h) => {
     const q = search.toLowerCase().trim();
     const matchesSearch = !q || h.name.toLowerCase().includes(q) || (h.description || '').toLowerCase().includes(q);
 
@@ -239,18 +284,18 @@ export const HolidaysPage: React.FC = () => {
   }, [filteredHolidays, currentPage, pageSize]);
 
   // KPI calculations
-  const totalHolidays = holidays.length;
-  const upcomingList = holidays
+  const totalHolidays = uniqueHolidays.length;
+  const upcomingList = uniqueHolidays
     .filter((h) => getRelativeDateInfo(h.date).isUpcoming)
     .sort((a, b) => parseDateString(a.date).getTime() - parseDateString(b.date).getTime());
   const upcomingHolidays = upcomingList.length;
   const nextHoliday = upcomingList[0];
 
-  const mandatoryHolidays = holidays.filter((h) => {
+  const mandatoryHolidays = uniqueHolidays.filter((h) => {
     const t = (h.type || '').toUpperCase();
     return t === 'PUBLIC' || t === 'MANDATORY';
   }).length;
-  const floaterHolidays = holidays.filter((h) => {
+  const floaterHolidays = uniqueHolidays.filter((h) => {
     const t = (h.type || '').toUpperCase();
     return t === 'FLOATER' || t === 'OPTIONAL';
   }).length;
@@ -333,27 +378,42 @@ export const HolidaysPage: React.FC = () => {
 
       {/* Floating Status Notification */}
       {toast && (
-        <div
-          className={`p-3.5 rounded-2xl text-xs font-semibold flex items-center justify-between gap-3 shadow-sm animate-in fade-in duration-200 ${
-            toast.type === 'success'
-              ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
-              : 'bg-rose-50 border border-rose-200 text-rose-800'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            {toast.type === 'success' ? (
-              <IconCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            ) : (
-              <IconAlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-            )}
-            <span>{toast.message}</span>
-          </div>
-          <button
-            onClick={() => setToast(null)}
-            className="text-slate-400 hover:text-slate-600 cursor-pointer text-xs"
+        <div className="fixed top-6 right-6 z-50 max-w-sm sm:max-w-md w-[calc(100%-3rem)] pointer-events-auto animate-in slide-in-from-top-4 fade-in duration-200">
+          <div
+            className={`p-4 rounded-2xl border shadow-xl flex items-start gap-3 backdrop-blur-md transition-all ${
+              toast.type === 'error'
+                ? 'bg-rose-50/95 border-rose-200 text-rose-950 shadow-rose-900/10'
+                : 'bg-emerald-50/95 border-emerald-200 text-emerald-950 shadow-emerald-900/10'
+            }`}
           >
-            ✕
-          </button>
+            <div
+              className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                toast.type === 'error' ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'
+              }`}
+            >
+              {toast.type === 'error' ? (
+                <IconAlertCircle className="w-5 h-5 stroke-[2.2]" />
+              ) : (
+                <IconCheck className="w-5 h-5 stroke-[2.2]" />
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0 pt-0.5">
+              <p className="font-bold text-xs leading-snug">
+                {toast.type === 'error' ? 'Action Failed' : 'Success'}
+              </p>
+              <p className="mt-0.5 text-[11px] font-medium leading-relaxed opacity-90">{toast.message}</p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              className="p-1 -mr-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-black/5 transition-colors cursor-pointer shrink-0"
+              title="Dismiss"
+            >
+              <IconX className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -478,14 +538,13 @@ export const HolidaysPage: React.FC = () => {
 
         {/* Data Table */}
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[920px] text-left text-xs">
+          <table className="w-full min-w-[820px] text-left text-xs">
             <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
                 <th className="px-5 py-3.5 whitespace-nowrap min-w-[240px]">Holiday Name</th>
                 <th className="px-5 py-3.5 whitespace-nowrap min-w-[190px]">Calendar Date</th>
                 <th className="px-5 py-3.5 whitespace-nowrap min-w-[150px]">Day of Week</th>
                 <th className="px-5 py-3.5 whitespace-nowrap min-w-[160px]">Category</th>
-                <th className="px-5 py-3.5 whitespace-nowrap">Notes / Description</th>
                 <th className="px-5 py-3.5 whitespace-nowrap min-w-[130px]">Status</th>
                 <th className="px-5 py-3.5 whitespace-nowrap text-right">Actions</th>
               </tr>
@@ -497,23 +556,19 @@ export const HolidaysPage: React.FC = () => {
                     <td className="px-5 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-slate-200" />
-                        <div className="space-y-1.5">
-                          <div className="w-32 h-3.5 bg-slate-200 rounded-sm" />
-                          <div className="w-40 h-3 bg-slate-100 rounded-sm" />
-                        </div>
+                        <div className="w-32 h-3.5 bg-slate-200 rounded-sm" />
                       </div>
                     </td>
                     <td className="px-5 py-4 whitespace-nowrap"><div className="w-28 h-8 bg-slate-200 rounded-xl" /></td>
                     <td className="px-5 py-4 whitespace-nowrap"><div className="w-20 h-4 bg-slate-200 rounded-sm" /></td>
                     <td className="px-5 py-4 whitespace-nowrap"><div className="w-28 h-6 bg-slate-200 rounded-full" /></td>
-                    <td className="px-5 py-4 whitespace-nowrap"><div className="w-24 h-3 bg-slate-200 rounded-sm" /></td>
                     <td className="px-5 py-4 whitespace-nowrap"><div className="w-20 h-6 bg-slate-200 rounded-full" /></td>
                     <td className="px-5 py-4 whitespace-nowrap text-right"><div className="w-14 h-4 bg-slate-200 rounded-full ml-auto" /></td>
                   </tr>
                 ))
               ) : filteredHolidays.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-14 text-center">
+                  <td colSpan={6} className="px-5 py-14 text-center">
                     <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-[#5E4BE2] flex items-center justify-center mx-auto mb-3 shadow-2xs">
                       <IconCalendarEvent className="w-6 h-6" />
                     </div>
@@ -549,15 +604,11 @@ export const HolidaysPage: React.FC = () => {
                   const dateObj = parseDateString(holiday.date);
                   const relInfo = getRelativeDateInfo(holiday.date);
                   const dayOfWeek = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
-                  const monthShort = dateObj.toLocaleDateString('en-US', { month: 'short' });
-                  const dayNum = dateObj.getDate();
                   const formattedDate = dateObj.toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
                     year: 'numeric',
                   });
-                  const dayOfWeekNum = dateObj.getDay();
-                  const isWeekend = dayOfWeekNum === 0 || dayOfWeekNum === 6;
 
                   const holidayStyle = getHolidayIcon(holiday.name);
                   const HolidayIcon = holidayStyle.Icon;
@@ -570,71 +621,32 @@ export const HolidaysPage: React.FC = () => {
                           <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${holidayStyle.className}`}>
                             <HolidayIcon className="w-4 h-4" />
                           </div>
-                          <div>
-                            <span className="font-bold text-xs text-slate-900 block leading-tight">
-                              {holiday.name}
-                            </span>
-                            {holiday.description ? (
-                              <span className="text-[11px] text-slate-400 block line-clamp-1 mt-0.5 max-w-xs">
-                                {holiday.description}
-                              </span>
-                            ) : (
-                              <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
-                                Official Company Holiday
-                              </span>
-                            )}
-                          </div>
+                          <span className="font-bold text-xs text-slate-900 leading-tight">
+                            {holiday.name}
+                          </span>
                         </div>
                       </td>
 
                       {/* Calendar Date Block */}
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col items-center justify-center text-center shadow-2xs shrink-0 group-hover:border-indigo-200 transition-colors">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-[#5E4BE2] leading-none">
-                              {monthShort}
-                            </span>
-                            <span className="text-xs font-black text-slate-900 leading-tight">
-                              {dayNum}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-bold text-xs text-slate-900 block">
-                              {formattedDate}
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
-                              Year {dateObj.getFullYear()}
-                            </span>
-                          </div>
-                        </div>
+                        <span className="font-bold text-xs text-slate-900 block">
+                          {formattedDate}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
+                          Year {dateObj.getFullYear()}
+                        </span>
                       </td>
 
                       {/* Day of Week */}
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-slate-700">
-                            {dayOfWeek}
-                          </span>
-                          {isWeekend ? (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/70 whitespace-nowrap">
-                              Weekend
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-500 whitespace-nowrap">
-                              Weekday
-                            </span>
-                          )}
-                        </div>
+                        <span className="text-xs font-bold text-slate-700">
+                          {dayOfWeek}
+                        </span>
                       </td>
 
                       {/* Category */}
                       <td className="px-5 py-4 whitespace-nowrap">
                         {getTypeBadge(holiday.type)}
-                      </td>
-
-                      {/* Description */}
-                      <td className="px-5 py-4 text-slate-600 max-w-xs truncate">
-                        {holiday.description || '—'}
                       </td>
 
                       {/* Status */}
@@ -654,20 +666,22 @@ export const HolidaysPage: React.FC = () => {
 
                       {/* Actions */}
                       <td className="px-5 py-4 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1 shrink-0">
+                        <div className="flex items-center justify-end gap-2 shrink-0">
                           <button
+                            type="button"
                             onClick={() => handleOpenEdit(holiday)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
+                            className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-300 text-slate-900 hover:text-blue-600 flex items-center justify-center shadow-2xs transition-all cursor-pointer"
                             title="Edit Holiday"
                           >
-                            <IconPencil className="w-4 h-4" />
+                            <IconPencil className="w-4 h-4 stroke-[1.8]" />
                           </button>
                           <button
-                            onClick={() => handleDelete(holiday.id)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                            type="button"
+                            onClick={() => handleDelete(holiday)}
+                            className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-300 text-rose-600 hover:text-rose-700 flex items-center justify-center shadow-2xs transition-all cursor-pointer"
                             title="Delete Holiday"
                           >
-                            <IconTrash className="w-4 h-4" />
+                            <IconTrash className="w-4 h-4 stroke-[1.8]" />
                           </button>
                         </div>
                       </td>
@@ -706,7 +720,7 @@ export const HolidaysPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-base font-black text-slate-900">
-                    {editingHoliday ? 'Edit Company Holiday' : 'Add Company Holiday'}
+                    {editingHoliday ? 'Edit Holiday' : 'Add Holiday'}
                   </h3>
                   <p className="text-xs text-slate-400 mt-0.5">
                     Click a date on the interactive calendar or enter details manually.
@@ -802,6 +816,19 @@ export const HolidaysPage: React.FC = () => {
                         return hStr === cell.dateStr;
                       });
 
+                      const hasHoliday = existingHolidaysOnDate.length > 0;
+                      const firstHoliday = existingHolidaysOnDate[0];
+                      const holidayType = (firstHoliday?.type || 'PUBLIC').toUpperCase();
+
+                      // Determine color border and background for holidays
+                      let holidayBorderClasses = 'border-2 border-rose-400 bg-rose-50/70 text-rose-800 font-bold shadow-xs hover:border-rose-500 hover:bg-rose-100/80';
+
+                      if (holidayType === 'FLOATER' || holidayType === 'OPTIONAL') {
+                        holidayBorderClasses = 'border-2 border-sky-400 bg-sky-50/70 text-sky-800 font-bold shadow-xs hover:border-sky-500 hover:bg-sky-100/80';
+                      } else if (holidayType === 'RESTRICTED') {
+                        holidayBorderClasses = 'border-2 border-amber-400 bg-amber-50/70 text-amber-800 font-bold shadow-xs hover:border-amber-500 hover:bg-amber-100/80';
+                      }
+
                       return (
                         <button
                           key={`${cell.dateStr}-${idx}`}
@@ -813,27 +840,22 @@ export const HolidaysPage: React.FC = () => {
                           }}
                           className={`relative h-9 rounded-xl flex flex-col items-center justify-center text-xs font-semibold transition-all cursor-pointer ${
                             isSelected
-                              ? 'bg-[#5E4BE2] text-white font-bold shadow-md shadow-indigo-500/25 scale-105 z-10'
+                              ? `bg-[#5E4BE2] text-white font-bold shadow-md shadow-indigo-500/25 scale-105 z-10 ${
+                                  hasHoliday ? 'ring-2 ring-rose-400 ring-offset-1 border-2 border-indigo-300' : ''
+                                }`
+                              : hasHoliday
+                              ? holidayBorderClasses
                               : cell.isCurrentMonth
                               ? 'text-slate-800 hover:bg-indigo-50 hover:text-[#5E4BE2] bg-white border border-slate-100/80 shadow-2xs'
-                              : 'text-slate-300 hover:bg-slate-100/80 bg-slate-50/50'
-                          } ${isTodayDate && !isSelected ? 'ring-1.5 ring-indigo-400 text-[#5E4BE2]' : ''}`}
+                              : 'text-slate-300 hover:bg-slate-100/80 bg-slate-50/50 border border-transparent'
+                          } ${isTodayDate && !isSelected && !hasHoliday ? 'ring-1.5 ring-indigo-400 text-[#5E4BE2]' : ''}`}
                           title={
-                            existingHolidaysOnDate.length > 0
+                            hasHoliday
                               ? `Existing Holiday: ${existingHolidaysOnDate.map((h) => h.name).join(', ')}`
                               : cell.dateStr
                           }
                         >
                           <span>{cell.dayNum}</span>
-
-                          {/* Existing Holiday indicator dot */}
-                          {existingHolidaysOnDate.length > 0 && (
-                            <span
-                              className={`absolute bottom-1 w-1.5 h-1.5 rounded-full ${
-                                isSelected ? 'bg-amber-300' : 'bg-rose-500'
-                              }`}
-                            />
-                          )}
                         </button>
                       );
                     })}
@@ -847,12 +869,12 @@ export const HolidaysPage: React.FC = () => {
                     <span>Click day to set date</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1 text-[10px]">
-                      <span className="w-2 h-2 rounded-full bg-rose-500" />
+                    <span className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-600">
+                      <span className="w-3 h-3 rounded-md border-2 border-rose-400 bg-rose-50" />
                       Holiday
                     </span>
-                    <span className="flex items-center gap-1 text-[10px]">
-                      <span className="w-2 h-2 rounded-full bg-[#5E4BE2]" />
+                    <span className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-600">
+                      <span className="w-3 h-3 rounded-md bg-[#5E4BE2]" />
                       Selected
                     </span>
                   </div>
@@ -987,7 +1009,7 @@ export const HolidaysPage: React.FC = () => {
                       disabled={isSubmitting}
                       className="px-5 py-2 text-xs font-bold rounded-xl bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white shadow-xs disabled:opacity-50 cursor-pointer"
                     >
-                      {isSubmitting ? 'Saving...' : editingHoliday ? 'Update Holiday' : 'Add to Calendar'}
+                      {isSubmitting ? 'Saving...' : editingHoliday ? 'Update' : 'Add to Calendar'}
                     </button>
                   </div>
                 </form>
@@ -1002,6 +1024,67 @@ export const HolidaysPage: React.FC = () => {
         isOpen={isEmailSettingsOpen}
         onClose={() => setIsEmailSettingsOpen(false)}
       />
+
+      {/* ===================== FLOATING CONFIRMATION TOASTER ===================== */}
+      {deletingHoliday && (
+        <div className="fixed top-6 right-6 z-50 max-w-sm sm:max-w-md w-[calc(100%-3rem)] pointer-events-auto animate-in slide-in-from-top-4 fade-in duration-200">
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200 shadow-2xl p-4 sm:p-5 ring-1 ring-slate-900/10 transition-all">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                <IconTrash className="w-5 h-5 stroke-[1.8]" />
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <h4 className="text-sm font-bold text-slate-900">
+                    Delete Holiday?
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isDeletingHoliday) setDeletingHoliday(null);
+                    }}
+                    className="p-1 -mr-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                    title="Dismiss"
+                  >
+                    <IconX className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
+                  Are you sure you want to delete <strong className="text-slate-900">"{deletingHoliday.name}"</strong> ({deletingHoliday.date}) from the company calendar?
+                </p>
+
+                {deleteError && (
+                  <div className="mt-2.5 p-2 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium flex items-center gap-1.5">
+                    <IconAlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-600" />
+                    <span>{deleteError}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-end gap-2 mt-3.5 pt-2.5 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setDeletingHoliday(null)}
+                    disabled={isDeletingHoliday}
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmDelete}
+                    disabled={isDeletingHoliday}
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-sm shadow-rose-600/25 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isDeletingHoliday ? 'Deleting...' : 'Confirm Delete'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -145,9 +145,12 @@ router.get('/', async (req, res, next) => {
 // POST /documents (Upload new document)
 router.post('/', upload.single('file'), async (req, res, next) => {
   try {
-    const userId = req.user!.id;
-    const companyId = req.user!.companyId!;
+    const currentUserId = req.user!.id;
     const body = req.body;
+    const isHrOrAdmin = req.user?.role === 'COMPANY_ADMIN' || req.user?.role === 'HR';
+    const targetUserId = isHrOrAdmin && body.userId ? Number(body.userId) : currentUserId;
+    const initialStatus = isHrOrAdmin && body.userId ? 'VERIFIED' : 'PENDING';
+    const companyId = req.user!.companyId!;
 
     const validated = UploadDocumentSchema.parse({
       category: body.category,
@@ -165,7 +168,7 @@ router.post('/', upload.single('file'), async (req, res, next) => {
       {
         version: 1,
         fileUrl: fileUrl || '',
-        uploadedById: userId,
+        uploadedById: currentUserId,
         at: new Date().toISOString(),
         snapshot: validated.data,
       },
@@ -174,8 +177,8 @@ router.post('/', upload.single('file'), async (req, res, next) => {
     const document = await prisma.document.create({
       data: {
         companyId,
-        userId,
-        uploadedById: userId,
+        userId: targetUserId,
+        uploadedById: currentUserId,
         category: validated.category,
         title: validated.title,
         identifier: validated.identifier,
@@ -185,13 +188,13 @@ router.post('/', upload.single('file'), async (req, res, next) => {
         expiryDate: validated.expiryDate ? new Date(validated.expiryDate) : null,
         data: validated.data as any,
         versions: initialVersion as any,
-        status: 'PENDING',
+        status: initialStatus,
       },
     });
 
     await logActivity({
       companyId,
-      actorId: userId,
+      actorId: currentUserId,
       action: 'UPLOAD_DOCUMENT',
       objectType: 'Document',
       objectId: String(document.id),

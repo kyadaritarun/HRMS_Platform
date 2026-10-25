@@ -13,6 +13,7 @@ import {
   IconFileText,
   IconChevronDown,
   IconTrendingUp,
+  IconCheck,
 } from '@tabler/icons-react';
 
 interface AttendanceRecord {
@@ -28,6 +29,7 @@ interface AttendanceRecord {
 
 export const MyAttendancePage: React.FC = () => {
   const [activeSession, setActiveSession] = useState<AttendanceRecord | null>(null);
+  const [isShiftCompletedToday, setIsShiftCompletedToday] = useState(false);
   const [recentRecords, setRecentRecords] = useState<AttendanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [workMode, setWorkMode] = useState<'WFO' | 'WFH'>('WFO');
@@ -60,6 +62,7 @@ export const MyAttendancePage: React.FC = () => {
     try {
       const res = await api.get('/attendance/me');
       setActiveSession(res.data?.activeSession || null);
+      setIsShiftCompletedToday(Boolean(res.data?.isShiftCompletedToday));
       setRecentRecords(res.data?.recentSessions || []);
     } catch (err) {
       console.error('Failed to load attendance:', err);
@@ -238,6 +241,11 @@ export const MyAttendancePage: React.FC = () => {
               <IconPlayerStop className="w-4 h-4" />
               <span>{actionLoading ? 'Checking Out...' : 'Check Out Now'}</span>
             </button>
+          ) : isShiftCompletedToday ? (
+            <div className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl shadow-2xs">
+              <IconCheck className="w-4 h-4 text-emerald-600 stroke-[2.5]" />
+              <span>Shift Completed Today</span>
+            </div>
           ) : (
             <button
               onClick={handleClockIn}
@@ -272,16 +280,16 @@ export const MyAttendancePage: React.FC = () => {
         <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
             <span className="text-xs font-bold text-slate-500">Current Status</span>
-            <div className={`text-2xl font-black mt-1 leading-none tracking-tight ${activeSession ? 'text-emerald-600' : 'text-slate-900'}`}>
-              {activeSession ? 'On Duty' : 'Off Duty'}
+            <div className={`text-2xl font-black mt-1 leading-none tracking-tight ${activeSession || isShiftCompletedToday ? 'text-emerald-600' : 'text-slate-900'}`}>
+              {activeSession ? 'On Duty' : isShiftCompletedToday ? 'Completed' : 'Off Duty'}
             </div>
             <div className="text-[11px] font-bold text-slate-500 mt-2 flex items-center gap-1.5">
-              <span className={`w-2 h-2 rounded-full ${activeSession ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
-              <span>{activeSession ? `${activeSession.workMode === 'WFH' || activeSession.workMode === 'REMOTE' ? 'Work From Home' : 'Office'} Shift Active` : 'Not checked in'}</span>
+              <span className={`w-2 h-2 rounded-full ${activeSession ? 'bg-emerald-500 animate-pulse' : isShiftCompletedToday ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+              <span>{activeSession ? `${activeSession.workMode === 'WFH' || activeSession.workMode === 'REMOTE' ? 'Work From Home' : 'Office'} Shift Active` : isShiftCompletedToday ? 'Single daily shift completed' : 'Not checked in'}</span>
             </div>
           </div>
-          <div className={`w-11 h-11 rounded-2xl border flex items-center justify-center ${activeSession ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
-            <IconClock className="w-5 h-5" />
+          <div className={`w-11 h-11 rounded-2xl border flex items-center justify-center ${activeSession || isShiftCompletedToday ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
+            {isShiftCompletedToday ? <IconCheck className="w-5 h-5 stroke-[2.5]" /> : <IconClock className="w-5 h-5" />}
           </div>
         </div>
 

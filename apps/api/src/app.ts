@@ -104,7 +104,10 @@ app.get(['/image/:filename(*)', '/images/:filename(*)', '/api/v1/image/:filename
 
 // File serving for uploads: Stream directly from AWS S3
 app.get(['/uploads/:filename(*)', '/api/v1/uploads/:filename(*)'], async (req, res) => {
-  const filename = req.params.filename;
+  let filename = req.params.filename;
+  if (filename.startsWith('uploads/')) {
+    filename = filename.replace(/^uploads\//, '');
+  }
   const s3Key = filename.startsWith('image/') ? filename : `uploads/${filename}`;
 
   if (isS3Configured()) {
@@ -113,6 +116,7 @@ app.get(['/uploads/:filename(*)', '/api/v1/uploads/:filename(*)'], async (req, r
       if (s3Stream && s3Stream.Body) {
         if (s3Stream.ContentType) res.setHeader('Content-Type', s3Stream.ContentType);
         if (s3Stream.ContentLength) res.setHeader('Content-Length', s3Stream.ContentLength);
+        res.setHeader('Content-Disposition', 'inline');
         res.setHeader('Cache-Control', 'public, max-age=86400');
         return (s3Stream.Body as any).pipe(res);
       }

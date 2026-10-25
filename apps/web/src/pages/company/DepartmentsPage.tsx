@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import api from '../../api/client';
 import TablePagination from '../../components/common/TablePagination';
@@ -70,6 +71,27 @@ export const DepartmentsPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Status Toggle (Deactivate / Activate) Confirmation Toaster
+  const [statusToggleTarget, setStatusToggleTarget] = useState<Department | null>(null);
+  const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+  const [toggleError, setToggleError] = useState('');
+
+  // Floating Toast Notification
+  const [toast, setToast] = useState<{
+    type: 'success' | 'error' | 'info';
+    title: string;
+    message: string;
+  } | null>(null);
+
+  // Auto dismiss toast after 4.5 seconds
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => {
+      setToast(null);
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
   const fetchDepartments = async () => {
     setIsLoading(true);
     try {
@@ -116,11 +138,21 @@ export const DepartmentsPage: React.FC = () => {
           parentId: parentId ? Number(parentId) : null,
           isActive,
         });
+        setToast({
+          type: 'success',
+          title: 'Department Updated',
+          message: `Department "${name.trim()}" was updated successfully.`,
+        });
       } else {
         await api.post('/company/departments', {
           name: name.trim(),
           parentId: parentId ? Number(parentId) : null,
           isActive,
+        });
+        setToast({
+          type: 'success',
+          title: 'Department Created',
+          message: `Department "${name.trim()}" was created successfully.`,
         });
       }
       setIsModalOpen(false);
@@ -135,25 +167,54 @@ export const DepartmentsPage: React.FC = () => {
     }
   };
 
-  const handleToggleStatus = async (dept: Department) => {
-    const isCurrentlyActive = dept.isActive !== false;
+  const handleToggleStatus = (dept: Department) => {
+    setStatusToggleTarget(dept);
+    setToggleError('');
+  };
+
+  const handleConfirmToggleStatus = async () => {
+    if (!statusToggleTarget) return;
+    const isCurrentlyActive = statusToggleTarget.isActive !== false;
+    const deptName = statusToggleTarget.name;
+    const memberCount = statusToggleTarget._count?.users ?? statusToggleTarget.users?.length ?? 0;
     const actionWord = isCurrentlyActive ? 'deactivate' : 'activate';
-    const confirmMessage = isCurrentlyActive
-      ? `Are you sure you want to deactivate "${dept.name}"? Members will remain assigned, but this department will be marked as inactive.`
-      : `Are you sure you want to activate "${dept.name}"?`;
 
-    if (!window.confirm(confirmMessage)) return;
+    if (isCurrentlyActive && memberCount > 0) {
+      setToggleError(
+        `In this department there ${memberCount === 1 ? 'is' : 'are'} ${memberCount} employee${
+          memberCount > 1 ? 's' : ''
+        }. Please remove or reassign them to another department and then deactivate it.`
+      );
+      return;
+    }
 
+    setIsTogglingStatus(true);
+    setToggleError('');
     try {
-      await api.patch(`/company/departments/${dept.id}`, {
+      await api.patch(`/company/departments/${statusToggleTarget.id}`, {
         isActive: !isCurrentlyActive,
       });
       setDepartments((prev) =>
-        prev.map((d) => (d.id === dept.id ? { ...d, isActive: !isCurrentlyActive } : d))
+        prev.map((d) => (d.id === statusToggleTarget.id ? { ...d, isActive: !isCurrentlyActive } : d))
       );
+      setStatusToggleTarget(null);
+      setToast({
+        type: 'success',
+        title: isCurrentlyActive ? 'Department Deactivated' : 'Department Activated',
+        message: isCurrentlyActive
+          ? `"${deptName}" has been deactivated. Members remain assigned.`
+          : `"${deptName}" has been reactivated successfully.`,
+      });
     } catch (err: any) {
-      alert(err.response?.data?.error || err.response?.data?.message || `Failed to ${actionWord} department`);
-      fetchDepartments();
+      const errMsg = err.response?.data?.error || err.response?.data?.message || `Failed to ${actionWord} department`;
+      setToggleError(errMsg);
+      setToast({
+        type: 'error',
+        title: 'Action Failed',
+        message: errMsg,
+      });
+    } finally {
+      setIsTogglingStatus(false);
     }
   };
 
@@ -327,7 +388,6 @@ export const DepartmentsPage: React.FC = () => {
                 <th className="px-5 py-3.5">Department Name</th>
                 <th className="px-5 py-3.5">Description</th>
                 <th className="px-5 py-3.5">Members</th>
-                <th className="px-5 py-3.5">Department Code</th>
                 <th className="px-5 py-3.5">Status</th>
                 <th className="px-5 py-3.5 text-right">Actions</th>
               </tr>
@@ -335,7 +395,7 @@ export const DepartmentsPage: React.FC = () => {
             <tbody className="divide-y divide-slate-100">
               {filteredDepartments.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center">
+                  <td colSpan={5} className="py-12 text-center">
                     <div className="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-2">
                       <IconBuilding className="w-6 h-6" />
                     </div>
@@ -426,11 +486,7 @@ export const DepartmentsPage: React.FC = () => {
                           </span>
                         </button>
                       </td>
-                      <td className="px-4 py-3.5">
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold text-slate-500 bg-slate-100">
-                          DEPT #{dept.id}
-                        </span>
-                      </td>
+
                       <td className="px-4 py-3.5">
                         {!isDeactivated ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
@@ -444,40 +500,44 @@ export const DepartmentsPage: React.FC = () => {
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1">
+                      <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-2">
                           <button
+                            type="button"
                             onClick={() => {
                               setViewingMembersDept(dept);
                               setMemberSearch('');
                             }}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
+                            className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-[#F0EEFF] hover:border-indigo-300 text-slate-700 hover:text-[#5E4BE2] flex items-center justify-center shadow-2xs transition-all cursor-pointer"
                             title="View Department Members"
                           >
-                            <IconUsers className="w-4 h-4" />
+                            <IconUsers className="w-4 h-4 stroke-[1.8]" />
                           </button>
                           <button
+                            type="button"
                             onClick={() => handleOpenEditModal(dept)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
+                            className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-300 text-slate-900 hover:text-blue-600 flex items-center justify-center shadow-2xs transition-all cursor-pointer"
                             title="Edit Department"
                           >
-                            <IconPencil className="w-4 h-4" />
+                            <IconPencil className="w-4 h-4 stroke-[1.8]" />
                           </button>
                           {!isDeactivated ? (
                             <button
+                              type="button"
                               onClick={() => handleToggleStatus(dept)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer"
+                              className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-300 text-rose-600 hover:text-rose-700 flex items-center justify-center shadow-2xs transition-all cursor-pointer"
                               title="Deactivate Department"
                             >
-                              <IconPower className="w-4 h-4" />
+                              <IconPower className="w-4 h-4 stroke-[1.8]" />
                             </button>
                           ) : (
                             <button
+                              type="button"
                               onClick={() => handleToggleStatus(dept)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer"
+                              className="w-8 h-8 rounded-xl border border-emerald-300 bg-white hover:bg-emerald-50 text-emerald-700 flex items-center justify-center shadow-2xs transition-all cursor-pointer"
                               title="Activate Department"
                             >
-                              <IconCheck className="w-4 h-4" />
+                              <IconCheck className="w-4 h-4 stroke-[2]" />
                             </button>
                           )}
                         </div>
@@ -504,117 +564,153 @@ export const DepartmentsPage: React.FC = () => {
         />
       </div>
 
-      {/* Add / Edit Department Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div
-            className="bg-white rounded-3xl max-w-md w-full shadow-2xl p-6 border border-slate-100 animate-in fade-in zoom-in-95 duration-150"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <IconBuilding className="w-5 h-5 text-indigo-600" />
-                {editingDept ? 'Edit Department' : 'New Department'}
-              </h3>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
-              >
-                <IconX className="w-5 h-5" />
-              </button>
-            </div>
-
-            {error && (
-              <div className="p-3 mb-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-                <IconAlertCircle className="w-4 h-4 shrink-0" />
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSave} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Department Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Engineering, Executive, Human Resources"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-indigo-500 font-medium text-slate-800"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Parent Department (Optional)</label>
-                <select
-                  value={parentId}
-                  onChange={(e) => setParentId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-indigo-500 font-medium text-slate-800"
-                >
-                  <option value="">No Parent (Top-level Unit)</option>
-                  {departments
-                    .filter((d) => !editingDept || d.id !== editingDept.id)
-                    .map((d) => (
-                      <option key={d.id} value={d.id}>{d.name}</option>
-                    ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Department Status</label>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setIsActive(true)}
-                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                      isActive
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300 ring-2 ring-emerald-500/20'
-                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                    <span>Active</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsActive(false)}
-                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                      !isActive
-                        ? 'bg-amber-50 text-amber-700 border-amber-300 ring-2 ring-amber-500/20'
-                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                    <span>Inactive</span>
-                  </button>
-                </div>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Departments cannot be permanently deleted. Select Inactive to deactivate this department.
-                </p>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+      {/* ===================== ADD / EDIT DEPARTMENT RIGHT SIDEBAR DRAWER ===================== */}
+      {isModalOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] overflow-hidden bg-slate-900/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
+            <div
+              className="w-screen max-w-md bg-white shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-300 border-l border-slate-100"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drawer Header */}
+              <div className="relative bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] p-6 text-white shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  className="absolute top-5 right-5 p-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-colors cursor-pointer"
+                  title="Close panel"
                 >
-                  Cancel
+                  <IconX className="w-4 h-4" />
                 </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm disabled:opacity-50 cursor-pointer"
-                >
-                  {isSubmitting ? 'Saving...' : editingDept ? 'Update' : 'Create'}
-                </button>
+                <div className="flex items-center gap-3.5 pr-8">
+                  <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/25 flex items-center justify-center text-white shrink-0 shadow-sm">
+                    <IconBuilding className="w-6 h-6 stroke-[1.8]" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-lg font-black tracking-tight leading-tight truncate">
+                      {editingDept ? 'Edit Department' : 'New Department'}
+                    </h3>
+                    <p className="text-xs text-white/80 font-medium mt-0.5 truncate">
+                      {editingDept ? `Update details for "${editingDept.name}"` : 'Create a new organizational business unit'}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </form>
+
+              {/* Drawer Form Body */}
+              <form onSubmit={handleSave} className="flex-1 flex flex-col justify-between overflow-y-auto">
+                <div className="p-6 space-y-5">
+                  {error && (
+                    <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium flex items-center gap-2">
+                      <IconAlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                      <span>{error}</span>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Department Name <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Engineering, Executive, Human Resources"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-indigo-500 font-medium text-slate-800 transition-colors"
+                    />
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Give this department a clear, recognizable functional name.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Parent Department <span className="text-slate-400 font-normal">(Optional)</span>
+                    </label>
+                    <select
+                      value={parentId}
+                      onChange={(e) => setParentId(e.target.value)}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-indigo-500 font-medium text-slate-800 transition-colors"
+                    >
+                      <option value="">No Parent (Top-level Unit)</option>
+                      {departments
+                        .filter((d) => !editingDept || d.id !== editingDept.id)
+                        .map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.name}
+                          </option>
+                        ))}
+                    </select>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Nest this department under an existing parent unit to build an org hierarchy.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-2">
+                      Department Status
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setIsActive(true)}
+                        className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                          isActive
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300 ring-2 ring-emerald-500/20'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span>Active</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsActive(false)}
+                        className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                          !isActive
+                            ? 'bg-amber-50 text-amber-700 border-amber-300 ring-2 ring-amber-500/20'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                        <span>Inactive</span>
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                      Departments cannot be permanently deleted. Select Inactive to deactivate this department.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Drawer Footer */}
+                <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50/80 flex items-center justify-end gap-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-5 py-2 text-xs font-bold rounded-xl bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white shadow-sm shadow-indigo-600/25 disabled:opacity-50 transition-all cursor-pointer"
+                  >
+                    {isSubmitting ? 'Saving...' : editingDept ? 'Update Department' : 'Create Department'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-      {/* Department Members Modal */}
-      {viewingMembersDept && (() => {
+      {/* ===================== DEPARTMENT MEMBERS RIGHT SIDEBAR DRAWER ===================== */}
+      {viewingMembersDept && typeof document !== 'undefined' && createPortal((() => {
         const meta = getDepartmentMeta(viewingMembersDept.name);
         const Icon = meta.icon;
         const allMembers = viewingMembersDept.users || [];
@@ -649,150 +745,348 @@ export const DepartmentsPage: React.FC = () => {
 
         return (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+            className="fixed inset-0 z-[9999] overflow-hidden bg-slate-900/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
             onClick={() => setViewingMembersDept(null)}
           >
-            <div
-              className="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-150"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Header */}
-              <div className="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between gap-4 bg-gradient-to-r from-slate-50/80 via-indigo-50/20 to-white">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className={`w-11 h-11 rounded-2xl ${meta.iconBg} flex items-center justify-center shrink-0 shadow-2xs`}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-base font-bold text-slate-900 truncate">
-                        {viewingMembersDept.name} Members
-                      </h3>
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100/80 shrink-0">
-                        {totalCount} {totalCount === 1 ? 'member' : 'members'}
-                      </span>
+            <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
+              <div
+                className="w-screen max-w-lg bg-white shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-300 border-l border-slate-100"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Drawer Header */}
+                <div className="relative bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] p-6 text-white shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setViewingMembersDept(null)}
+                    className="absolute top-5 right-5 p-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-colors cursor-pointer"
+                    title="Close panel"
+                  >
+                    <IconX className="w-4 h-4" />
+                  </button>
+
+                  <div className="flex items-center gap-3.5 pr-8">
+                    <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/25 flex items-center justify-center text-white shrink-0 shadow-sm">
+                      <Icon className="w-6 h-6 stroke-[1.8]" />
                     </div>
-                    <p className="text-xs text-slate-500 truncate mt-0.5">
-                      {meta.description}
-                    </p>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-black tracking-tight leading-tight truncate">
+                          {viewingMembersDept.name} Members
+                        </h3>
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-white/20 text-white border border-white/30 shrink-0">
+                          {totalCount} {totalCount === 1 ? 'member' : 'members'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-white/80 font-medium mt-0.5 truncate">
+                        {meta.description}
+                      </p>
+                    </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => setViewingMembersDept(null)}
-                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
-                >
-                  <IconX className="w-5 h-5" />
-                </button>
-              </div>
 
-              {/* Sub-bar: Search & Directory Shortcut */}
-              <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-                <div className="relative flex-1">
-                  <IconSearch className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="Search members by name, role or email..."
-                    value={memberSearch}
-                    onChange={(e) => setMemberSearch(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-800 placeholder-slate-400"
-                  />
+                {/* Sub-bar: Search & Directory Shortcut */}
+                <div className="px-6 py-3.5 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between gap-3 shrink-0">
+                  <div className="relative flex-1">
+                    <IconSearch className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Search members by name, role or email..."
+                      value={memberSearch}
+                      onChange={(e) => setMemberSearch(e.target.value)}
+                      className="w-full pl-9 pr-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-800 placeholder-slate-400 transition-colors shadow-2xs"
+                    />
+                  </div>
+                  <Link
+                    to={`/company/employees?departmentId=${viewingMembersDept.id}`}
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition-colors shrink-0 whitespace-nowrap shadow-2xs"
+                  >
+                    <span>Open Directory</span>
+                    <IconExternalLink className="w-3.5 h-3.5" />
+                  </Link>
                 </div>
-                <Link
-                  to={`/company/employees?departmentId=${viewingMembersDept.id}`}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs transition-colors shrink-0 whitespace-nowrap"
-                >
-                  <span>Open Directory</span>
-                  <IconExternalLink className="w-3.5 h-3.5" />
-                </Link>
-              </div>
 
-              {/* Members List */}
-              <div className="p-5 sm:p-6 overflow-y-auto space-y-2 divide-y divide-slate-100/80 max-h-[50vh]">
-                {filteredMembers.length === 0 ? (
-                  <div className="py-10 text-center">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
-                      <IconUsers className="w-6 h-6" />
+                {/* Members List */}
+                <div className="p-6 overflow-y-auto space-y-2.5 divide-y divide-slate-100/80 flex-1">
+                  {filteredMembers.length === 0 ? (
+                    <div className="py-14 text-center">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                        <IconUsers className="w-6 h-6" />
+                      </div>
+                      {allMembers.length === 0 ? (
+                        <>
+                          <h4 className="text-sm font-bold text-slate-800">No members assigned yet</h4>
+                          <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+                            Employees can be assigned to {viewingMembersDept.name} from the Employee Directory.
+                          </p>
+                          <Link
+                            to={`/company/employees?departmentId=${viewingMembersDept.id}`}
+                            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white text-xs font-bold shadow-xs transition-colors"
+                          >
+                            Go to Employees Directory
+                            <IconArrowRight className="w-3.5 h-3.5" />
+                          </Link>
+                        </>
+                      ) : (
+                        <>
+                          <h4 className="text-sm font-bold text-slate-800">No matching members found</h4>
+                          <p className="text-xs text-slate-400 mt-1">Try clearing your search query.</p>
+                        </>
+                      )}
                     </div>
-                    {allMembers.length === 0 ? (
-                      <>
-                        <h4 className="text-sm font-bold text-slate-800">No members assigned yet</h4>
-                        <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
-                          Employees can be assigned to {viewingMembersDept.name} from the Employee Directory.
-                        </p>
-                        <Link
-                          to={`/company/employees?departmentId=${viewingMembersDept.id}`}
-                          className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs"
+                  ) : (
+                    filteredMembers.map((member, idx) => {
+                      const initials = `${(member.firstName?.[0] || 'U')}${(member.lastName?.[0] || '')}`.toUpperCase();
+                      const colorClass = avatarColorList[idx % avatarColorList.length];
+
+                      return (
+                        <div
+                          key={member.id}
+                          className="pt-2.5 first:pt-0 flex items-center justify-between gap-3 hover:bg-slate-50/80 p-3 -mx-2 rounded-2xl transition-colors"
                         >
-                          Go to Employees Directory
-                          <IconArrowRight className="w-3.5 h-3.5" />
-                        </Link>
+                          <div className="flex items-center gap-3.5 min-w-0">
+                            {member.profilePhoto ? (
+                              <img
+                                src={member.profilePhoto}
+                                alt={`${member.firstName} ${member.lastName}`}
+                                className="w-10 h-10 rounded-xl object-cover shrink-0 ring-1 ring-slate-200"
+                              />
+                            ) : (
+                              <div className={`w-10 h-10 rounded-xl ${colorClass} flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs`}>
+                                {initials}
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h4 className="text-xs font-bold text-slate-900 truncate">
+                                  {member.firstName} {member.lastName}
+                                </h4>
+                                {getRoleBadge(member.role)}
+                              </div>
+                              <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                                {member.jobTitle || 'Team Member'}
+                              </div>
+                              {member.email && (
+                                <div className="flex items-center gap-1 text-[10px] text-slate-400 truncate mt-0.5">
+                                  <IconMail className="w-3 h-3 shrink-0" />
+                                  <span>{member.email}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            {getWorkModeBadge(member.workMode)}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/80 flex items-center justify-between shrink-0">
+                  <span className="text-xs text-slate-500 font-medium">
+                    Showing {filteredMembers.length} of {totalCount} {totalCount === 1 ? 'member' : 'members'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setViewingMembersDept(null)}
+                    className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })(), document.body)}
+
+      {/* ===================== FLOATING CONFIRMATION TOASTER ===================== */}
+      {statusToggleTarget && (() => {
+        const isCurrentlyActive = statusToggleTarget.isActive !== false;
+        const memberCount = statusToggleTarget._count?.users ?? statusToggleTarget.users?.length ?? 0;
+        const hasAssignedMembers = isCurrentlyActive && memberCount > 0;
+
+        return (
+          <div className="fixed top-6 right-6 z-50 max-w-sm sm:max-w-md w-[calc(100%-3rem)] pointer-events-auto animate-in slide-in-from-top-4 fade-in duration-200">
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200 shadow-2xl p-4 sm:p-5 ring-1 ring-slate-900/10 transition-all">
+              <div className="flex items-start gap-3.5">
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
+                    hasAssignedMembers
+                      ? 'bg-amber-50 border-amber-200 text-amber-600'
+                      : isCurrentlyActive
+                      ? 'bg-rose-50 border-rose-100 text-rose-600'
+                      : 'bg-emerald-50 border-emerald-100 text-emerald-600'
+                  }`}
+                >
+                  {hasAssignedMembers ? (
+                    <IconAlertCircle className="w-5 h-5 stroke-[2]" />
+                  ) : isCurrentlyActive ? (
+                    <IconPower className="w-5 h-5 stroke-[2]" />
+                  ) : (
+                    <IconCheck className="w-5 h-5 stroke-[2.2]" />
+                  )}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <h4 className="text-sm font-bold text-slate-900">
+                      {hasAssignedMembers
+                        ? 'Cannot Deactivate Department'
+                        : isCurrentlyActive
+                        ? 'Deactivate Department?'
+                        : 'Activate Department?'}
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!isTogglingStatus) setStatusToggleTarget(null);
+                      }}
+                      className="p-1 -mr-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                      title="Dismiss"
+                    >
+                      <IconX className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {hasAssignedMembers ? (
+                    <div className="mt-1.5 space-y-2">
+                      <p className="text-xs text-slate-700 leading-relaxed">
+                        In this department there {memberCount === 1 ? 'is' : 'are'}{' '}
+                        <strong className="text-rose-600 font-bold">
+                          {memberCount} employee{memberCount > 1 ? 's' : ''}
+                        </strong>{' '}
+                        currently assigned.
+                      </p>
+                      <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 leading-relaxed flex items-start gap-2">
+                        <IconAlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <span>
+                          Please remove or reassign them to another department in Employee Directory, and then deactivate it.
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
+                      Are you sure you want to {isCurrentlyActive ? 'deactivate' : 'activate'}{' '}
+                      <strong className="text-slate-900">"{statusToggleTarget.name}"</strong>?
+                      {isCurrentlyActive
+                        ? ' This department currently has 0 members and will be marked as inactive.'
+                        : ' This department will be restored to active status.'}
+                    </p>
+                  )}
+
+                  {toggleError && (
+                    <div className="mt-2.5 p-2 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium flex items-center gap-1.5">
+                      <IconAlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-600" />
+                      <span>{toggleError}</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-end gap-2 mt-3.5 pt-2.5 border-t border-slate-100">
+                    {hasAssignedMembers ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setStatusToggleTarget(null)}
+                          className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const target = statusToggleTarget;
+                            setStatusToggleTarget(null);
+                            setViewingMembersDept(target);
+                          }}
+                          className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                        >
+                          <IconUsers className="w-3.5 h-3.5" />
+                          <span>View {memberCount} Member{memberCount > 1 ? 's' : ''}</span>
+                        </button>
                       </>
                     ) : (
                       <>
-                        <h4 className="text-sm font-bold text-slate-800">No matching members found</h4>
-                        <p className="text-xs text-slate-400 mt-1">Try clearing your search query.</p>
+                        <button
+                          type="button"
+                          onClick={() => setStatusToggleTarget(null)}
+                          disabled={isTogglingStatus}
+                          className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleConfirmToggleStatus}
+                          disabled={isTogglingStatus}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold text-white shadow-sm transition-all cursor-pointer disabled:opacity-50 ${
+                            isCurrentlyActive
+                              ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/25'
+                              : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/25'
+                          }`}
+                        >
+                          {isTogglingStatus
+                            ? isCurrentlyActive
+                              ? 'Deactivating...'
+                              : 'Activating...'
+                            : isCurrentlyActive
+                            ? 'Deactivate'
+                            : 'Activate'}
+                        </button>
                       </>
                     )}
                   </div>
-                ) : (
-                  filteredMembers.map((member, idx) => {
-                    const initials = `${(member.firstName?.[0] || 'U')}${(member.lastName?.[0] || '')}`.toUpperCase();
-                    const colorClass = avatarColorList[idx % avatarColorList.length];
-
-                    return (
-                      <div
-                        key={member.id}
-                        className="pt-2 first:pt-0 flex items-center justify-between gap-3 hover:bg-slate-50/70 p-2.5 -mx-2.5 rounded-2xl transition-colors"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          {member.profilePhoto ? (
-                            <img
-                              src={member.profilePhoto}
-                              alt={`${member.firstName} ${member.lastName}`}
-                              className="w-10 h-10 rounded-xl object-cover shrink-0 ring-1 ring-slate-200"
-                            />
-                          ) : (
-                            <div className={`w-10 h-10 rounded-xl ${colorClass} flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs`}>
-                              {initials}
-                            </div>
-                          )}
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h4 className="text-xs font-bold text-slate-900 truncate">
-                                {member.firstName} {member.lastName}
-                              </h4>
-                              {getRoleBadge(member.role)}
-                            </div>
-                            <div className="text-[11px] text-slate-500 truncate mt-0.5">
-                              {member.jobTitle || 'Team Member'}
-                            </div>
-                            {member.email && (
-                              <div className="flex items-center gap-1 text-[10px] text-slate-400 truncate mt-0.5">
-                                <IconMail className="w-3 h-3 shrink-0" />
-                                <span>{member.email}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                          {getWorkModeBadge(member.workMode)}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-
-              {/* Footer */}
-              <div className="px-5 py-3.5 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between">
-                <span className="text-xs text-slate-500 font-medium">
-                  Showing {filteredMembers.length} of {totalCount} {totalCount === 1 ? 'member' : 'members'}
-                </span>
+                </div>
               </div>
             </div>
           </div>
         );
       })()}
+
+      {/* ===================== FLOATING STATUS TOASTER NOTIFICATION ===================== */}
+      {toast && (
+        <div className="fixed top-6 right-6 z-50 max-w-sm sm:max-w-md w-[calc(100%-3rem)] pointer-events-auto animate-in slide-in-from-top-4 fade-in duration-200">
+          <div
+            className={`p-4 rounded-2xl border shadow-xl flex items-start gap-3 backdrop-blur-md transition-all ${
+              toast.type === 'error'
+                ? 'bg-rose-50/95 border-rose-200 text-rose-950 shadow-rose-900/10'
+                : toast.type === 'success'
+                ? 'bg-emerald-50/95 border-emerald-200 text-emerald-950 shadow-emerald-900/10'
+                : 'bg-indigo-50/95 border-indigo-200 text-indigo-950 shadow-indigo-900/10'
+            }`}
+          >
+            <div
+              className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                toast.type === 'error'
+                  ? 'bg-rose-100 text-rose-600'
+                  : 'bg-emerald-100 text-emerald-600'
+              }`}
+            >
+              {toast.type === 'error' ? (
+                <IconAlertCircle className="w-5 h-5 stroke-[2.2]" />
+              ) : (
+                <IconCheck className="w-5 h-5 stroke-[2.2]" />
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0 pt-0.5">
+              <p className="font-bold text-xs leading-snug">{toast.title}</p>
+              <p className="mt-0.5 text-[11px] font-medium leading-relaxed opacity-90">{toast.message}</p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              className="p-1 -mr-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-black/5 transition-colors cursor-pointer shrink-0"
+              title="Dismiss"
+            >
+              <IconX className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
