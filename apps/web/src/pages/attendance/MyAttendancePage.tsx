@@ -14,6 +14,11 @@ import {
   IconChevronDown,
   IconTrendingUp,
   IconCheck,
+  IconBuilding,
+  IconHome,
+  IconCalendarCheck,
+  IconCalendarOff,
+  IconBriefcase,
 } from '@tabler/icons-react';
 
 interface AttendanceRecord {
@@ -50,11 +55,22 @@ export const MyAttendancePage: React.FC = () => {
 
   // Regularization modal state
   const [isRegModalOpen, setIsRegModalOpen] = useState(false);
-  const [regForm, setRegForm] = useState({
+  const [userShift, setUserShift] = useState<any>(null);
+  const [regularizations, setRegularizations] = useState<any[]>([]);
+  const [regForm, setRegForm] = useState<{
+    date: string;
+    scope: 'CHECK_IN_ONLY' | 'CHECK_OUT_ONLY' | 'BOTH';
+    checkInTime: string;
+    checkOutTime: string;
+    reason: string;
+    isSessionActive?: boolean;
+  }>({
     date: new Date().toISOString().split('T')[0],
-    checkInTime: '09:30',
-    checkOutTime: '18:30',
+    scope: 'CHECK_IN_ONLY',
+    checkInTime: '09:00',
+    checkOutTime: '18:00',
     reason: '',
+    isSessionActive: false,
   });
 
   const fetchAttendance = async () => {
@@ -62,8 +78,12 @@ export const MyAttendancePage: React.FC = () => {
     try {
       const res = await api.get('/attendance/me');
       setActiveSession(res.data?.activeSession || null);
+      if (res.data?.activeSession?.workMode) {
+        setWorkMode(res.data.activeSession.workMode);
+      }
       setIsShiftCompletedToday(Boolean(res.data?.isShiftCompletedToday));
       setRecentRecords(res.data?.recentSessions || []);
+      setUserShift(res.data?.userShift || null);
     } catch (err) {
       console.error('Failed to load attendance:', err);
     } finally {
@@ -71,12 +91,28 @@ export const MyAttendancePage: React.FC = () => {
     }
   };
 
+  const fetchRegularizations = async () => {
+    try {
+      const res = await api.get('/requests', {
+        params: { type: 'REGULARIZATION', scope: 'mine', pageSize: 100 },
+      });
+      setRegularizations(res.data?.items || []);
+    } catch (err) {
+      console.error('Failed to load regularizations:', err);
+    }
+  };
+
   useEffect(() => {
     fetchAttendance();
-    const handleSync = () => fetchAttendance();
+    fetchRegularizations();
+    const handleSync = () => {
+      fetchAttendance();
+      fetchRegularizations();
+    };
     const onStorage = (e: StorageEvent) => {
       if (e.key === 'attendance_sync_ts') {
         fetchAttendance();
+        fetchRegularizations();
       }
     };
     window.addEventListener('attendance-updated', handleSync);
@@ -157,26 +193,61 @@ export const MyAttendancePage: React.FC = () => {
 
   const handleRegularizeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (regForm.scope === 'CHECK_IN_ONLY' && !regForm.checkInTime) {
+      alert('Please enter your actual check-in time.');
+      return;
+    }
+    if (regForm.scope === 'CHECK_OUT_ONLY' && !regForm.checkOutTime) {
+      alert('Please enter your actual check-out time.');
+      return;
+    }
+    if (regForm.scope === 'BOTH' && (!regForm.checkInTime || !regForm.checkOutTime)) {
+      alert('Please enter both actual check-in and check-out times.');
+      return;
+    }
+
     setActionLoading(true);
     try {
+      const meta: any = {
+        regularizeType: regForm.scope,
+      };
+
+      let title = `Regularization for ${regForm.date}`;
+
+      if (regForm.scope === 'CHECK_IN_ONLY') {
+        meta.requestedCheckIn = regForm.checkInTime;
+        meta.checkIn = `${regForm.date}T${regForm.checkInTime}:00Z`;
+        title = `Regularize Check-In (${regForm.checkInTime}) for ${regForm.date}`;
+      } else if (regForm.scope === 'CHECK_OUT_ONLY') {
+        meta.requestedCheckOut = regForm.checkOutTime;
+        meta.checkOut = `${regForm.date}T${regForm.checkOutTime}:00Z`;
+        title = `Regularize Check-Out (${regForm.checkOutTime}) for ${regForm.date}`;
+      } else {
+        meta.requestedCheckIn = regForm.checkInTime;
+        meta.requestedCheckOut = regForm.checkOutTime;
+        meta.checkIn = `${regForm.date}T${regForm.checkInTime}:00Z`;
+        meta.checkOut = `${regForm.date}T${regForm.checkOutTime}:00Z`;
+        title = `Regularize Full Day (${regForm.checkInTime} – ${regForm.checkOutTime}) for ${regForm.date}`;
+      }
+
       await api.post('/requests', {
         type: 'REGULARIZATION',
-        title: `Regularization request for ${regForm.date}`,
+        title,
         reason: regForm.reason,
         startDate: regForm.date,
         endDate: regForm.date,
-        meta: {
-          checkIn: `${regForm.date}T${regForm.checkInTime}:00Z`,
-          checkOut: `${regForm.date}T${regForm.checkOutTime}:00Z`,
-        },
+        meta,
       });
+
       setIsRegModalOpen(false);
       setRegForm({
         date: new Date().toISOString().split('T')[0],
-        checkInTime: '09:30',
-        checkOutTime: '18:30',
+        scope: 'CHECK_IN_ONLY',
+        checkInTime: '09:00',
+        checkOutTime: '',
         reason: '',
       });
+      fetchRegularizations();
       alert('Regularization request submitted to your reporting manager!');
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to submit regularization');
@@ -200,11 +271,49 @@ export const MyAttendancePage: React.FC = () => {
     return filteredRecords.slice(start, start + pageSize);
   }, [filteredRecords, currentPage, pageSize]);
 
-  // Calculate statistics
-  const totalWorkedMinutes = recentRecords.reduce((acc, r) => acc + (Number(r.durationHours) || 0) * 60, 0);
-  const totalHours = (totalWorkedMinutes / 60).toFixed(1);
-  const avgShiftHours =
-    recentRecords.length > 0 ? (totalWorkedMinutes / recentRecords.length / 60).toFixed(0) : '0';
+  // Current month & year metrics
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const currentMonthName = now.toLocaleString('default', { month: 'short' });
+
+  // 1. Monthly Present: distinct days in the current month where the user clocked in
+  const monthlyPresentCount = useMemo(() => {
+    const presentDays = new Set<string>();
+    recentRecords.forEach((r) => {
+      const d = new Date(r.checkIn);
+      if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+        presentDays.add(d.toISOString().split('T')[0]);
+      }
+    });
+    return presentDays.size;
+  }, [recentRecords, currentMonth, currentYear]);
+
+  // 2. Monthly Absent: working days so far this month (Mon-Fri) minus present days
+  const monthlyAbsentCount = useMemo(() => {
+    let workingDays = 0;
+    const todayDate = now.getDate();
+    for (let day = 1; day <= todayDate; day++) {
+      const d = new Date(currentYear, currentMonth, day);
+      const dayOfWeek = d.getDay();
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        workingDays++;
+      }
+    }
+    return Math.max(0, workingDays - monthlyPresentCount);
+  }, [monthlyPresentCount, currentMonth, currentYear, now]);
+
+  // 3. Regularizations in current month & pending count
+  const monthlyRegularizations = useMemo(() => {
+    return regularizations.filter((req) => {
+      const d = new Date(req.createdAt || req.startDate);
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    });
+  }, [regularizations, currentMonth, currentYear]);
+
+  const pendingRegularizationsCount = useMemo(() => {
+    return regularizations.filter((req) => req.status === 'PENDING').length;
+  }, [regularizations]);
 
   const filterPeriodLabel: Record<string, string> = {
     '7': 'Past 7 Days',
@@ -227,20 +336,65 @@ export const MyAttendancePage: React.FC = () => {
             </h1>
           </div>
           <p className="text-xs text-slate-500 font-medium mt-1">
-            Real-time geofenced check-in, duration calculation, and regularization desk.
+            Real-time workplace check-in, duration calculation, and regularization desk.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          {/* Work Mode Selector (WFH vs Office) */}
+          {!activeSession && !isShiftCompletedToday && (
+            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+              <button
+                type="button"
+                onClick={() => setWorkMode('WFO')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  workMode === 'WFO'
+                    ? 'bg-white text-[#5E4BE2] shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <IconBuilding className="w-3.5 h-3.5" />
+                <span>Office (WFO)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setWorkMode('WFH')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  workMode === 'WFH'
+                    ? 'bg-white text-emerald-700 shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <IconHome className="w-3.5 h-3.5" />
+                <span>Work From Home</span>
+              </button>
+            </div>
+          )}
+
           {activeSession ? (
-            <button
-              onClick={handleClockOut}
-              disabled={actionLoading}
-              className="flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
-            >
-              <IconPlayerStop className="w-4 h-4" />
-              <span>{actionLoading ? 'Checking Out...' : 'Check Out Now'}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700">
+                {activeSession.workMode === 'WFH' || activeSession.workMode === 'REMOTE' ? (
+                  <>
+                    <IconHome className="w-4 h-4 text-emerald-600" />
+                    <span>Active: Work From Home</span>
+                  </>
+                ) : (
+                  <>
+                    <IconBuilding className="w-4 h-4 text-[#5E4BE2]" />
+                    <span>Active: Office Shift</span>
+                  </>
+                )}
+              </div>
+              <button
+                onClick={handleClockOut}
+                disabled={actionLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
+              >
+                <IconPlayerStop className="w-4 h-4" />
+                <span>{actionLoading ? 'Checking Out...' : 'Check Out Now'}</span>
+              </button>
+            </div>
           ) : isShiftCompletedToday ? (
             <div className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl shadow-2xs">
               <IconCheck className="w-4 h-4 text-emerald-600 stroke-[2.5]" />
@@ -253,17 +407,15 @@ export const MyAttendancePage: React.FC = () => {
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
             >
               <IconPlayerPlay className="w-4 h-4 fill-white" />
-              <span>{actionLoading ? 'Checking In...' : 'Check In with Geolocation'}</span>
+              <span>
+                {actionLoading
+                  ? 'Checking In...'
+                  : workMode === 'WFH'
+                  ? 'Check In (Work From Home)'
+                  : 'Check In (Office)'}
+              </span>
             </button>
           )}
-
-          <button
-            onClick={() => setIsRegModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl shadow-2xs transition-all active:scale-[0.98] cursor-pointer"
-          >
-            <IconFileText className="w-4 h-4 text-slate-400" />
-            <span>Request Regularization</span>
-          </button>
         </div>
       </div>
 
@@ -274,70 +426,75 @@ export const MyAttendancePage: React.FC = () => {
         </div>
       )}
 
-      {/* Summary Stat KPI Cards (4 Columns) matching EmployeesPage */}
+      {/* 4 Attendance KPI Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Duty Status */}
+        {/* Card 1: Monthly Present */}
         <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
-            <span className="text-xs font-bold text-slate-500">Current Status</span>
-            <div className={`text-2xl font-black mt-1 leading-none tracking-tight ${activeSession || isShiftCompletedToday ? 'text-emerald-600' : 'text-slate-900'}`}>
-              {activeSession ? 'On Duty' : isShiftCompletedToday ? 'Completed' : 'Off Duty'}
-            </div>
-            <div className="text-[11px] font-bold text-slate-500 mt-2 flex items-center gap-1.5">
-              <span className={`w-2 h-2 rounded-full ${activeSession ? 'bg-emerald-500 animate-pulse' : isShiftCompletedToday ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-              <span>{activeSession ? `${activeSession.workMode === 'WFH' || activeSession.workMode === 'REMOTE' ? 'Work From Home' : 'Office'} Shift Active` : isShiftCompletedToday ? 'Single daily shift completed' : 'Not checked in'}</span>
-            </div>
-          </div>
-          <div className={`w-11 h-11 rounded-2xl border flex items-center justify-center ${activeSession || isShiftCompletedToday ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
-            {isShiftCompletedToday ? <IconCheck className="w-5 h-5 stroke-[2.5]" /> : <IconClock className="w-5 h-5" />}
-          </div>
-        </div>
-
-        {/* Card 2: Recent Sessions */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
-          <div>
-            <span className="text-xs font-bold text-slate-500">Recent Sessions</span>
+            <span className="text-xs font-bold text-slate-500">Monthly Present</span>
             <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-              {recentRecords.length}
+              {monthlyPresentCount} {monthlyPresentCount === 1 ? 'Day' : 'Days'}
             </div>
-            <div className="text-[11px] font-bold text-indigo-600 mt-2">
-              Logged this week
-            </div>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2]">
-            <IconCalendar className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Card 3: Total Duration */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
-          <div>
-            <span className="text-xs font-bold text-slate-500">Total Duration</span>
-            <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-              {totalHours} hrs
-            </div>
-            <div className="text-[11px] font-bold text-emerald-600 mt-2">
-              Productive logged hours
+            <div className="text-[11px] font-bold text-emerald-600 mt-2 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span>Recorded in {currentMonthName}</span>
             </div>
           </div>
           <div className="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-            <IconClock className="w-5 h-5" />
+            <IconCalendarCheck className="w-5 h-5" />
           </div>
         </div>
 
-        {/* Card 4: Average Shift */}
+        {/* Card 2: Monthly Absent */}
         <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
-            <span className="text-xs font-bold text-slate-500">Average Shift</span>
+            <span className="text-xs font-bold text-slate-500">Monthly Absent</span>
             <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-              {avgShiftHours} hrs
+              {monthlyAbsentCount} {monthlyAbsentCount === 1 ? 'Day' : 'Days'}
             </div>
-            <div className="text-[11px] font-bold text-amber-600 mt-2">
-              Per working day
+            <div className="text-[11px] font-bold text-rose-600 mt-2 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-rose-500" />
+              <span>Unlogged working days</span>
             </div>
           </div>
-          <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
-            <IconTrendingUp className="w-5 h-5" />
+          <div className="w-11 h-11 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600">
+            <IconCalendarOff className="w-5 h-5" />
+          </div>
+        </div>
+
+        {/* Card 3: Any Regularisations */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+          <div>
+            <span className="text-xs font-bold text-slate-500">Any Regularisations</span>
+            <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
+              {monthlyRegularizations.length} {monthlyRegularizations.length === 1 ? 'Request' : 'Requests'}
+            </div>
+            <div className="text-[11px] font-bold text-[#5E4BE2] mt-2">
+              {pendingRegularizationsCount > 0
+                ? `${pendingRegularizationsCount} pending manager review`
+                : 'No pending requests'}
+            </div>
+          </div>
+          <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2]">
+            <IconFileText className="w-5 h-5" />
+          </div>
+        </div>
+
+        {/* Card 4: Shift Assigned */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+          <div>
+            <span className="text-xs font-bold text-slate-500">Shift Assigned</span>
+            <div className="text-sm font-black text-slate-900 mt-1 leading-tight tracking-tight truncate max-w-[170px]" title={userShift?.shiftName || 'General Shift'}>
+              {userShift?.shiftName || 'General Shift'}
+            </div>
+            <div className="text-[11px] font-bold text-blue-600 mt-1.5">
+              {userShift?.startTime12 && userShift?.endTime12
+                ? `${userShift.startTime12} – ${userShift.endTime12}`
+                : '09:30 AM – 06:30 PM'}
+            </div>
+          </div>
+          <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+            <IconBriefcase className="w-5 h-5" />
           </div>
         </div>
       </div>
@@ -393,11 +550,11 @@ export const MyAttendancePage: React.FC = () => {
             <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
                 <th className="px-6 py-3.5">Date</th>
+                <th className="px-6 py-3.5">Shift Timings</th>
                 <th className="px-6 py-3.5">Check-In</th>
                 <th className="px-6 py-3.5">Check-Out</th>
                 <th className="px-6 py-3.5">Work Mode</th>
                 <th className="px-6 py-3.5">Duration</th>
-                <th className="px-6 py-3.5">Note</th>
                 <th className="px-6 py-3.5">Location</th>
                 <th className="px-6 py-3.5 text-right">Actions</th>
               </tr>
@@ -410,6 +567,9 @@ export const MyAttendancePage: React.FC = () => {
                       <div className="w-24 h-4 bg-slate-200 rounded-sm" />
                     </td>
                     <td className="px-6 py-4">
+                      <div className="w-28 h-4 bg-slate-200 rounded-sm" />
+                    </td>
+                    <td className="px-6 py-4">
                       <div className="w-20 h-4 bg-slate-200 rounded-sm" />
                     </td>
                     <td className="px-6 py-4">
@@ -422,10 +582,7 @@ export const MyAttendancePage: React.FC = () => {
                       <div className="w-16 h-4 bg-slate-200 rounded-sm" />
                     </td>
                     <td className="px-6 py-4">
-                      <div className="w-32 h-4 bg-slate-100 rounded-sm" />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="w-20 h-4 bg-slate-100 rounded-sm" />
+                      <div className="w-24 h-4 bg-slate-100 rounded-sm" />
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="w-12 h-4 bg-slate-100 rounded-sm ml-auto" />
@@ -450,22 +607,38 @@ export const MyAttendancePage: React.FC = () => {
                 paginatedRecords.map((r) => {
                   const checkInDate = new Date(r.checkIn);
                   const checkOutDate = r.checkOut ? new Date(r.checkOut) : null;
+                  const dateStr = checkInDate.toISOString().split('T')[0];
+
+                  // Match existing regularization request for this date
+                  const reqForDate = regularizations.find(
+                    (reg) =>
+                      (reg.startDate && reg.startDate.startsWith(dateStr)) ||
+                      (reg.meta?.checkIn && reg.meta.checkIn.startsWith(dateStr))
+                  );
+
+                  const isMissedPunch = !checkOutDate || (r.durationHours !== null && Number(r.durationHours) < 4);
+
                   return (
                     <tr key={r.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="px-6 py-4 font-semibold text-slate-900">
+                      <td className="px-6 py-4 font-semibold text-slate-900 whitespace-nowrap">
                         {checkInDate.toLocaleDateString(undefined, {
                           weekday: 'short',
                           month: 'short',
                           day: 'numeric',
                         })}
                       </td>
-                      <td className="px-6 py-4 font-mono text-xs text-slate-700">
+                      <td className="px-6 py-4 text-xs font-medium text-slate-600 whitespace-nowrap">
+                        {userShift?.startTime12 && userShift?.endTime12
+                          ? `${userShift.startTime12} – ${userShift.endTime12}`
+                          : '09:30 AM – 06:30 PM'}
+                      </td>
+                      <td className="px-6 py-4 font-mono text-xs text-slate-700 whitespace-nowrap">
                         {checkInDate.toLocaleTimeString([], {
                           hour: '2-digit',
                           minute: '2-digit',
                         })}
                       </td>
-                      <td className="px-6 py-4 font-mono text-xs text-slate-700">
+                      <td className="px-6 py-4 font-mono text-xs text-slate-700 whitespace-nowrap">
                         {checkOutDate ? (
                           checkOutDate.toLocaleTimeString([], {
                             hour: '2-digit',
@@ -478,7 +651,7 @@ export const MyAttendancePage: React.FC = () => {
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border ${
                           r.workMode === 'WFH' || r.workMode === 'REMOTE'
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200/70 shadow-2xs'
@@ -487,36 +660,73 @@ export const MyAttendancePage: React.FC = () => {
                           {r.workMode === 'WFH' || r.workMode === 'REMOTE' ? 'Work From Home' : 'Office'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 font-bold text-slate-900">
+                      <td className="px-6 py-4 font-bold text-slate-900 whitespace-nowrap">
                         {r.durationHours !== null && r.durationHours !== undefined
                           ? `${Number(r.durationHours).toFixed(1)} hrs`
                           : '—'}
                       </td>
-                      <td className="px-6 py-4 text-xs text-slate-500 max-w-[160px] truncate">
-                        {r.note || '—'}
+                      <td className="px-6 py-4 text-xs text-slate-600 whitespace-nowrap">
+                        {r.workMode === 'WFH' || r.workMode === 'REMOTE' ? (
+                          <span className="inline-flex items-center gap-1.5 text-emerald-700 font-semibold">
+                            <IconHome className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Remote (WFH)</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-slate-700 font-semibold">
+                            <IconBuilding className="w-3.5 h-3.5 text-[#5E4BE2]" />
+                            <span>Main Office (HQ)</span>
+                          </span>
+                        )}
                       </td>
-                      <td className="px-6 py-4 text-xs text-slate-500">
-                        <span className="inline-flex items-center gap-1 text-slate-600 font-medium">
-                          <IconMapPin className="w-3.5 h-3.5 text-[#5E4BE2]" />
-                          Office Geofence
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        {!checkOutDate ? (
+                      <td className="px-6 py-4 text-right whitespace-nowrap">
+                        {reqForDate ? (
+                          reqForDate.status === 'PENDING' ? (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                              Pending Review
+                            </span>
+                          ) : reqForDate.status === 'APPROVED' ? (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              Regularized
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                const isCurrentlyActive = !checkOutDate;
+                                setRegForm({
+                                  date: dateStr,
+                                  scope: isCurrentlyActive ? 'CHECK_IN_ONLY' : 'BOTH',
+                                  checkInTime: '09:00',
+                                  checkOutTime: isCurrentlyActive ? '' : '18:00',
+                                  reason: '',
+                                  isSessionActive: isCurrentlyActive,
+                                });
+                                setIsRegModalOpen(true);
+                              }}
+                              className="text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline cursor-pointer"
+                            >
+                              Re-regularize
+                            </button>
+                          )
+                        ) : isMissedPunch ? (
                           <button
                             onClick={() => {
+                              const isCurrentlyActive = !checkOutDate;
                               setRegForm({
-                                ...regForm,
-                                date: new Date(r.checkIn).toISOString().split('T')[0],
+                                date: dateStr,
+                                scope: isCurrentlyActive ? 'CHECK_IN_ONLY' : 'BOTH',
+                                checkInTime: '09:00',
+                                checkOutTime: isCurrentlyActive ? '' : '18:00',
+                                reason: '',
+                                isSessionActive: isCurrentlyActive,
                               });
                               setIsRegModalOpen(true);
                             }}
-                            className="text-xs font-semibold text-[#5E4BE2] hover:text-[#4B39C3] hover:underline cursor-pointer"
+                            className="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-[#5E4BE2] border border-indigo-200/80 transition-colors cursor-pointer"
                           >
                             Regularize
                           </button>
                         ) : (
-                          <span className="text-xs text-slate-400">Verified</span>
+                          <span className="text-slate-300 font-bold">—</span>
                         )}
                       </td>
                     </tr>
@@ -592,32 +802,131 @@ export const MyAttendancePage: React.FC = () => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        Actual Check-in *
-                      </label>
-                      <input
-                        type="time"
-                        required
-                        value={regForm.checkInTime}
-                        onChange={(e) => setRegForm({ ...regForm, checkInTime: e.target.value })}
-                        className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        Actual Check-out *
-                      </label>
-                      <input
-                        type="time"
-                        required
-                        value={regForm.checkOutTime}
-                        onChange={(e) => setRegForm({ ...regForm, checkOutTime: e.target.value })}
-                        className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800"
-                      />
+                  {/* Correction Scope Selector */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      What needs regularization? *
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200 text-center">
+                      <button
+                        type="button"
+                        onClick={() => setRegForm({ ...regForm, scope: 'CHECK_IN_ONLY' })}
+                        className={`py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          regForm.scope === 'CHECK_IN_ONLY'
+                            ? 'bg-white text-[#5E4BE2] shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Check-In Only
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRegForm({ ...regForm, scope: 'CHECK_OUT_ONLY' })}
+                        className={`py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          regForm.scope === 'CHECK_OUT_ONLY'
+                            ? 'bg-white text-[#5E4BE2] shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Check-Out Only
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRegForm({ ...regForm, scope: 'BOTH' })}
+                        className={`py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          regForm.scope === 'BOTH'
+                            ? 'bg-white text-[#5E4BE2] shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Full Day (Both)
+                      </button>
                     </div>
                   </div>
+
+                  {/* Timing Inputs based on selected scope */}
+                  {regForm.scope === 'CHECK_IN_ONLY' && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                          Actual Check-in Time *
+                        </label>
+                        <input
+                          type="time"
+                          required
+                          value={regForm.checkInTime}
+                          onChange={(e) => setRegForm({ ...regForm, checkInTime: e.target.value })}
+                          className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800"
+                        />
+                      </div>
+                      <div className="p-3 rounded-xl bg-blue-50/80 border border-blue-200/70 text-xs text-blue-800 flex items-start gap-2">
+                        <IconClock className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold block">Check-out is not required</span>
+                          <span className="text-[11px] text-blue-700 leading-relaxed">
+                            {regForm.isSessionActive
+                              ? 'Your shift is currently active. Check-out will be recorded automatically when you punch out at the end of your shift.'
+                              : 'Only your check-in time will be adjusted. Any existing check-out record will be preserved.'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {regForm.scope === 'CHECK_OUT_ONLY' && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                          Actual Check-out Time *
+                        </label>
+                        <input
+                          type="time"
+                          required
+                          value={regForm.checkOutTime}
+                          onChange={(e) => setRegForm({ ...regForm, checkOutTime: e.target.value })}
+                          className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800"
+                        />
+                      </div>
+                      <div className="p-3 rounded-xl bg-blue-50/80 border border-blue-200/70 text-xs text-blue-800 flex items-start gap-2">
+                        <IconClock className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold block">Check-in punch preserved</span>
+                          <span className="text-[11px] text-blue-700 leading-relaxed">
+                            Your original check-in punch will remain unchanged. Only your missing check-out time will be recorded upon manager approval.
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {regForm.scope === 'BOTH' && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                          Actual Check-in *
+                        </label>
+                        <input
+                          type="time"
+                          required
+                          value={regForm.checkInTime}
+                          onChange={(e) => setRegForm({ ...regForm, checkInTime: e.target.value })}
+                          className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                          Actual Check-out *
+                        </label>
+                        <input
+                          type="time"
+                          required
+                          value={regForm.checkOutTime}
+                          onChange={(e) => setRegForm({ ...regForm, checkOutTime: e.target.value })}
+                          className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1.5">

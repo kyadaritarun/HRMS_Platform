@@ -68,7 +68,10 @@ export const BankDetailsJsonSchema = z.object({
   accountNumber: z.string().default(''),
   ifscCode: z.string().default(''),
   panNumber: z.string().default(''),
-});
+  payeeName: z.string().optional().default(''),
+  chequeNumber: z.string().optional().default(''),
+  disbursalNotes: z.string().optional().default(''),
+}).passthrough();
 export type BankDetailsJson = z.infer<typeof BankDetailsJsonSchema>;
 
 // User.emergencyContact

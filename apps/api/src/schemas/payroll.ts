@@ -48,12 +48,19 @@ export const UpdateSalarySchema = z.object({
       accountNumber: z.string().default(''),
       ifscCode: z.string().default(''),
       panNumber: z.string().default(''),
+      payeeName: z.string().optional().default(''),
+      chequeNumber: z.string().optional().default(''),
+      disbursalNotes: z.string().optional().default(''),
     })
+    .passthrough()
     .default({
       paymentMode: 'BANK_TRANSFER',
       bankName: '',
       accountNumber: '',
       ifscCode: '',
       panNumber: '',
+      payeeName: '',
+      chequeNumber: '',
+      disbursalNotes: '',
     }),
 });

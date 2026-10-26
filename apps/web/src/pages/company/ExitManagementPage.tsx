@@ -23,6 +23,8 @@ import {
   IconTrash,
   IconFilter,
   IconChevronDown,
+  IconMail,
+  IconSend,
 } from '@tabler/icons-react';
 
 export interface ExitRecord {
@@ -56,6 +58,11 @@ export interface ExitRecord {
     noticeShortfallDeduction: number;
     otherDeductions: number;
     netPayout: number;
+  };
+  lastUpdateSent?: {
+    date: string;
+    type: string;
+    subject: string;
   };
 }
 
@@ -116,6 +123,18 @@ export const ExitManagementPage: React.FC = () => {
   const [showInitiateModal, setShowInitiateModal] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<ExitRecord | null>(null);
   const [activeTab, setActiveTab] = useState<'NOC' | 'FF_CALC' | 'STATEMENT'>('NOC');
+
+  // Send Update to Employee state
+  const [showSendUpdateModal, setShowSendUpdateModal] = useState(false);
+  const [updateTargetRecord, setUpdateTargetRecord] = useState<ExitRecord | null>(null);
+  const [updateTemplate, setUpdateTemplate] = useState<'NOC_REMINDER' | 'FF_STATEMENT' | 'EXIT_CONFIRM' | 'CUSTOM'>('NOC_REMINDER');
+  const [updateSubject, setUpdateSubject] = useState('');
+  const [updateMessage, setUpdateMessage] = useState('');
+  const [sendEmailChannel, setSendEmailChannel] = useState(true);
+  const [sendPortalChannel, setSendPortalChannel] = useState(true);
+  const [ccLead, setCcLead] = useState(true);
+  const [isSendingUpdate, setIsSendingUpdate] = useState(false);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
 
   // Form State for New Exit
   const [newExitForm, setNewExitForm] = useState({
@@ -278,6 +297,133 @@ export const ExitManagementPage: React.FC = () => {
     setExitRecords(exitRecords.map((r) => (r.id === updated.id ? updated : r)));
   };
 
+  const getTemplateContent = (record: ExitRecord, template: 'NOC_REMINDER' | 'FF_STATEMENT' | 'EXIT_CONFIRM' | 'CUSTOM') => {
+    if (template === 'NOC_REMINDER') {
+      const itStatus = record.nocClearance.it.cleared ? 'Cleared' : `PENDING — ${record.nocClearance.it.remarks || 'Hardware & asset handover'}`;
+      const adminStatus = record.nocClearance.admin.cleared ? 'Cleared' : `PENDING — ${record.nocClearance.admin.remarks || 'ID card & access tag handover'}`;
+      const finStatus = record.nocClearance.finance.cleared ? 'Cleared' : `PENDING — ${record.nocClearance.finance.remarks || 'Expense claims / advances verification'}`;
+      const hrStatus = record.nocClearance.hr.cleared ? 'Cleared' : `PENDING — ${record.nocClearance.hr.remarks || 'Exit interview questionnaire'}`;
+
+      return {
+        subject: `[Exit Action Required] Department Clearance & Handover Status — ${record.employeeName} (${record.id})`,
+        message: `Dear ${record.employeeName},
+
+This is an automated handover update regarding your scheduled exit on ${record.lastWorkingDay}.
+
+Below is the live status of your 4-department NOC Clearances:
+• IT & Systems: ${itStatus}
+• Admin & Facilities: ${adminStatus}
+• Finance & Accounts: ${finStatus}
+• Human Resources: ${hrStatus}
+
+Please liaise with the respective department leads to complete any outstanding handover requirements prior to your last working date so that your relieving formalities and Full & Final settlement can proceed smoothly.
+
+Best regards,
+People & Culture Operations
+${company?.name || 'HR Team'}`,
+      };
+    }
+
+    if (template === 'FF_STATEMENT') {
+      return {
+        subject: `Full & Final (F&F) Settlement Statement & Financial Breakdown — ${record.employeeName}`,
+        message: `Dear ${record.employeeName},
+
+Your Full & Final Settlement (F&F) terminal calculation has been prepared by the Finance & Payroll team:
+
+• Salary for Exit Month: ₹${record.ffSettlement.monthEarnings.toLocaleString('en-IN')}
+• Leave Encashment (${record.leaveBalanceDays} days): ₹${record.ffSettlement.leaveEncashmentAmount.toLocaleString('en-IN')}
+• Statutory Gratuity: ₹${record.ffSettlement.gratuityAmount.toLocaleString('en-IN')}
+• Deductions / Recoveries: ₹${(record.ffSettlement.noticeShortfallDeduction + record.ffSettlement.otherDeductions).toLocaleString('en-IN')}
+--------------------------------------------------
+• Net Payable Amount: ₹${record.ffSettlement.netPayout.toLocaleString('en-IN')}
+
+You can view and verify the full formal breakdown directly inside your employee portal. Disbursal will be processed as per standard payroll timelines once all final clearances are validated.
+
+Best regards,
+Finance & Payroll Team
+${company?.name || 'HR Team'}`,
+      };
+    }
+
+    if (template === 'EXIT_CONFIRM') {
+      return {
+        subject: `Formal Acknowledgement & Acceptance of Resignation — ${record.employeeName}`,
+        message: `Dear ${record.employeeName},
+
+This is to formally confirm that your resignation submitted on ${record.resignationDate} has been accepted.
+
+As agreed, your notice period of ${record.noticePeriodDays} days is active, and your official Last Working Day is confirmed as: ${record.lastWorkingDay}.
+
+Our HR operations team will coordinate with you regarding the exit interview and handover process. We thank you for your contributions to the team and wish you the very best in your next endeavors.
+
+Warm regards,
+Human Resources Leadership
+${company?.name || 'HR Team'}`,
+      };
+    }
+
+    return {
+      subject: `Important Update regarding your Exit Formalities — ${record.employeeName}`,
+      message: `Dear ${record.employeeName},
+
+We are writing to share an update regarding your ongoing exit formalities.
+
+Please feel free to reach out to the HR team if you have any questions or require further assistance.
+
+Warm regards,
+HR Operations Team`,
+    };
+  };
+
+  const handleOpenSendUpdateModal = (record: ExitRecord, template: 'NOC_REMINDER' | 'FF_STATEMENT' | 'EXIT_CONFIRM' | 'CUSTOM' = 'NOC_REMINDER') => {
+    setUpdateTargetRecord(record);
+    setUpdateTemplate(template);
+    const content = getTemplateContent(record, template);
+    setUpdateSubject(content.subject);
+    setUpdateMessage(content.message);
+    setShowSendUpdateModal(true);
+  };
+
+  const handleSelectTemplate = (template: 'NOC_REMINDER' | 'FF_STATEMENT' | 'EXIT_CONFIRM' | 'CUSTOM') => {
+    setUpdateTemplate(template);
+    if (updateTargetRecord) {
+      const content = getTemplateContent(updateTargetRecord, template);
+      setUpdateSubject(content.subject);
+      setUpdateMessage(content.message);
+    }
+  };
+
+  const handleSendExitUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!updateTargetRecord) return;
+    setIsSendingUpdate(true);
+
+    setTimeout(() => {
+      const updated: ExitRecord = {
+        ...updateTargetRecord,
+        lastUpdateSent: {
+          date: new Date().toISOString(),
+          type: updateTemplate,
+          subject: updateSubject,
+        },
+      };
+      setExitRecords((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      if (selectedRecord && selectedRecord.id === updated.id) {
+        setSelectedRecord(updated);
+      }
+      setIsSendingUpdate(false);
+      setShowSendUpdateModal(false);
+      const channelDesc = sendEmailChannel && sendPortalChannel
+        ? 'Email & Employee Portal'
+        : sendEmailChannel
+        ? 'Email'
+        : 'Employee Portal';
+      setSuccessToast(`Exit update successfully dispatched to ${updateTargetRecord.employeeName} (${updateTargetRecord.employeeEmail}) via ${channelDesc}!`);
+      setTimeout(() => setSuccessToast(null), 4500);
+    }, 500);
+  };
+
   const filteredRecords = exitRecords.filter((r) => {
     const matchesSearch =
       r.employeeName.toLowerCase().includes(search.toLowerCase()) ||
@@ -388,7 +534,7 @@ export const ExitManagementPage: React.FC = () => {
                 <th className="px-5 py-3.5 whitespace-nowrap">NOC Status</th>
                 <th className="px-5 py-3.5 whitespace-nowrap">Net F&amp;F Payable</th>
                 <th className="px-5 py-3.5 whitespace-nowrap">Status</th>
-                <th className="px-5 py-3.5 text-right whitespace-nowrap">Action</th>
+                <th className="px-5 py-3.5 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -466,16 +612,28 @@ export const ExitManagementPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3.5 text-right whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedRecord(r);
-                            setActiveTab('NOC');
-                          }}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-[11px] transition-colors cursor-pointer whitespace-nowrap"
-                        >
-                          <span>Manage Clearances</span>
-                        </button>
+                        <div className="inline-flex items-center gap-2 justify-end">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedRecord(r);
+                              setActiveTab('NOC');
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs shadow-xs hover:shadow-md transition-all cursor-pointer whitespace-nowrap active:scale-95"
+                          >
+                            <IconChecklist className="w-3.5 h-3.5" />
+                            <span>Manage Clearances</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenSendUpdateModal(r)}
+                            title="Send Exit Update to Employee"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-200 text-slate-700 hover:text-rose-700 font-semibold text-xs shadow-2xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
+                          >
+                            <IconMail className="w-3.5 h-3.5 text-rose-600" />
+                            <span>Send Update</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -527,10 +685,18 @@ export const ExitManagementPage: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleOpenSendUpdateModal(selectedRecord)}
+                  className="px-3 py-2 border border-slate-200 hover:border-rose-300 bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                >
+                  <IconMail className="w-4 h-4 text-rose-600" />
+                  <span>Send Update</span>
+                </button>
                 {selectedRecord.status === 'FF_READY' && (
                   <button
                     onClick={handleMarkSettled}
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
                   >
                     Mark as Settled
                   </button>
@@ -827,14 +993,28 @@ export const ExitManagementPage: React.FC = () => {
             {/* Tab 3: Formal F&F Statement Preview */}
             {activeTab === 'STATEMENT' && (
               <div className="p-6 space-y-4">
-                <div className="flex justify-end gap-2">
-                  <button
-                    onClick={() => window.print()}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold shadow-xs hover:bg-slate-800"
-                  >
-                    <IconPrinter className="w-4 h-4" />
-                    Print / Export Statement
-                  </button>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="text-xs text-slate-500">
+                    Official accounting statement generated for employee F&amp;F terminal settlement.
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenSendUpdateModal(selectedRecord, 'FF_STATEMENT')}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                    >
+                      <IconMail className="w-4 h-4" />
+                      <span>Email Statement to Employee</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => window.print()}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                    >
+                      <IconPrinter className="w-4 h-4" />
+                      <span>Print / Export Statement</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="p-8 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-6 text-slate-800 font-sans">
@@ -1088,8 +1268,211 @@ export const ExitManagementPage: React.FC = () => {
         </div>,
         document.body
       )}
+
+      {/* Slide-over Drawer: Send Exit Update to Employee */}
+      {showSendUpdateModal && updateTargetRecord && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[10000] overflow-hidden">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setShowSendUpdateModal(false)}
+          />
+
+          {/* Slide-Over Drawer Container */}
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+            <div
+              className="w-screen max-w-xl bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 pointer-events-auto animate-in slide-in-from-right duration-200"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drawer Header */}
+              <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-white shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 shrink-0">
+                    <IconMail className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900">Send Exit Update to Employee</h2>
+                    <p className="text-xs text-slate-500">
+                      To: <span className="font-semibold text-slate-800">{updateTargetRecord.employeeName}</span> ({updateTargetRecord.employeeEmail})
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSendUpdateModal(false)}
+                  className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors"
+                >
+                  <IconX className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Form Body */}
+              <form onSubmit={handleSendExitUpdate} className="flex-1 overflow-y-auto p-6 space-y-5">
+                {/* Communication Template Quick Selector */}
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-2">
+                    Select Update Template
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleSelectTemplate('NOC_REMINDER')}
+                      className={`p-2.5 rounded-xl border text-left transition-all text-xs font-medium cursor-pointer ${
+                        updateTemplate === 'NOC_REMINDER'
+                          ? 'border-rose-500 bg-rose-50/70 text-rose-900 ring-1 ring-rose-500 font-bold'
+                          : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <span className="block font-bold">1. Pending Clearances</span>
+                      <span className="text-[10px] text-slate-500">Handover checklist &amp; remarks</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectTemplate('FF_STATEMENT')}
+                      className={`p-2.5 rounded-xl border text-left transition-all text-xs font-medium cursor-pointer ${
+                        updateTemplate === 'FF_STATEMENT'
+                          ? 'border-rose-500 bg-rose-50/70 text-rose-900 ring-1 ring-rose-500 font-bold'
+                          : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <span className="block font-bold">2. F&amp;F Settlement</span>
+                      <span className="text-[10px] text-slate-500">Financial dues breakdown</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectTemplate('EXIT_CONFIRM')}
+                      className={`p-2.5 rounded-xl border text-left transition-all text-xs font-medium cursor-pointer ${
+                        updateTemplate === 'EXIT_CONFIRM'
+                          ? 'border-rose-500 bg-rose-50/70 text-rose-900 ring-1 ring-rose-500 font-bold'
+                          : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <span className="block font-bold">3. Exit Acceptance</span>
+                      <span className="text-[10px] text-slate-500">Acknowledge LWD &amp; notice</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectTemplate('CUSTOM')}
+                      className={`p-2.5 rounded-xl border text-left transition-all text-xs font-medium cursor-pointer ${
+                        updateTemplate === 'CUSTOM'
+                          ? 'border-rose-500 bg-rose-50/70 text-rose-900 ring-1 ring-rose-500 font-bold'
+                          : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <span className="block font-bold">4. Custom Notice</span>
+                      <span className="text-[10px] text-slate-500">Compose custom message</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Delivery Channels */}
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
+                  <span className="text-[11px] font-bold text-slate-700 block">Dispatch Channels</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-700 select-none">
+                      <input
+                        type="checkbox"
+                        checked={sendEmailChannel}
+                        onChange={(e) => setSendEmailChannel(e.target.checked)}
+                        className="rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+                      />
+                      <span>Direct Email ({updateTargetRecord.employeeEmail})</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-700 select-none">
+                      <input
+                        type="checkbox"
+                        checked={sendPortalChannel}
+                        onChange={(e) => setSendPortalChannel(e.target.checked)}
+                        className="rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+                      />
+                      <span>In-App Self-Service Portal</span>
+                    </label>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-600 select-none pt-1 border-t border-slate-200/60">
+                    <input
+                      type="checkbox"
+                      checked={ccLead}
+                      onChange={(e) => setCcLead(e.target.checked)}
+                      className="rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+                    />
+                    <span>CC Reporting Manager &amp; HR Operations</span>
+                  </label>
+                </div>
+
+                {/* Subject Line */}
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">
+                    Subject Line
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={updateSubject}
+                    onChange={(e) => setUpdateSubject(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-rose-500 font-medium text-slate-800"
+                  />
+                </div>
+
+                {/* Message Body */}
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">
+                    Message Body
+                  </label>
+                  <textarea
+                    rows={9}
+                    required
+                    value={updateMessage}
+                    onChange={(e) => setUpdateMessage(e.target.value)}
+                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-rose-500 font-mono text-slate-800 leading-relaxed resize-y"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-1 block">
+                    You can edit the content above before dispatching. Clearances, F&amp;F numbers, and dates are auto-filled.
+                  </span>
+                </div>
+
+                {/* Sticky Drawer Footer */}
+                <div className="sticky bottom-0 -mx-6 -mb-6 p-6 bg-white/95 backdrop-blur-xs border-t border-slate-100 flex items-center justify-end gap-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowSendUpdateModal(false)}
+                    className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSendingUpdate || (!sendEmailChannel && !sendPortalChannel)}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 disabled:bg-slate-300 text-white shadow-xs transition-colors cursor-pointer"
+                  >
+                    <IconSend className="w-4 h-4" />
+                    <span>{isSendingUpdate ? 'Dispatching...' : 'Dispatch Update Now'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Floating Success Toast */}
+      {successToast && (
+        <div className="fixed top-6 right-6 z-[10001] bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700 animate-in fade-in slide-in-from-top-2 duration-200 max-w-md">
+          <div className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+            <IconCheck className="w-4 h-4" />
+          </div>
+          <span className="text-xs font-medium leading-relaxed">{successToast}</span>
+          <button
+            onClick={() => setSuccessToast(null)}
+            className="text-slate-400 hover:text-white p-1 ml-auto cursor-pointer"
+          >
+            <IconX className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 };
 
 export default ExitManagementPage;
+

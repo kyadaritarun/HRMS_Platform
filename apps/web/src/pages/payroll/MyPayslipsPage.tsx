@@ -1,16 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { PayslipPdfDrawer, PayslipData } from '../../components/pdf';
+import TablePagination from '../../components/common/TablePagination';
 import {
   IconReceipt2,
   IconDownload,
   IconCalendar,
-  IconCash,
   IconCheck,
-  IconBuilding,
   IconEye,
   IconRefresh,
+  IconChevronDown,
+  IconX,
 } from '@tabler/icons-react';
 
 interface PayslipItem {
@@ -19,6 +20,7 @@ interface PayslipItem {
   year: number;
   status: string;
   publishedAt: string;
+  netSalary?: number;
   snapshot: any;
 }
 
@@ -33,6 +35,12 @@ export const MyPayslipsPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [selectedPayslipData, setSelectedPayslipData] = useState<PayslipData | null>(null);
+
+  // Filters
+  const [selectedYear, setSelectedYear] = useState<string>('ALL');
+  const [selectedMonth, setSelectedMonth] = useState<string>('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const fetchPayslips = async () => {
     setIsLoading(true);
@@ -50,8 +58,35 @@ export const MyPayslipsPage: React.FC = () => {
     fetchPayslips();
   }, []);
 
-  const handleDownloadPdf = async (id: number, month: number, year: number) => {
-    setDownloadingId(id);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedYear, selectedMonth]);
+
+  // Extract available years from payslips list + default recent years
+  const availableYears = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const set = new Set<number>([currentYear, currentYear - 1, currentYear - 2]);
+    payslips.forEach((p) => {
+      if (p.year) set.add(Number(p.year));
+    });
+    return Array.from(set).sort((a, b) => b - a);
+  }, [payslips]);
+
+  const filteredPayslips = useMemo(() => {
+    return payslips.filter((p) => {
+      const matchYear = selectedYear === 'ALL' || String(p.year) === selectedYear;
+      const matchMonth = selectedMonth === 'ALL' || String(p.month) === selectedMonth;
+      return matchYear && matchMonth;
+    });
+  }, [payslips, selectedYear, selectedMonth]);
+
+  const paginatedPayslips = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredPayslips.slice(start, start + pageSize);
+  }, [filteredPayslips, currentPage, pageSize]);
+
+  const handleDownloadPdf = async (id: number | string, month: number, year: number) => {
+    setDownloadingId(Number(id));
     try {
       const res = await api.get(`/payroll/payslips/${id}/pdf`, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
@@ -61,6 +96,7 @@ export const MyPayslipsPage: React.FC = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (err) {
       console.error('Failed to download payslip:', err);
       alert('Unable to generate payslip PDF.');
@@ -70,74 +106,101 @@ export const MyPayslipsPage: React.FC = () => {
   };
 
   const handleViewPayslip = (p: PayslipItem) => {
-    const snap = p.snapshot || {};
-    const empData = snap.employee || user || {};
+    try {
+      let snap = p.snapshot || {};
+      if (typeof snap === 'string') {
+        try {
+          snap = JSON.parse(snap);
+        } catch (e) {
+          snap = {};
+        }
+      }
 
-    const formatted: PayslipData = {
-      id: p.id,
-      month: p.month,
-      year: p.year,
-      status: p.status,
-      publishedAt: p.publishedAt,
-      employee: {
-        id: empData.id,
-        firstName: empData.firstName || user?.firstName || 'Employee',
-        lastName: empData.lastName || user?.lastName || '',
-        email: empData.email || user?.email,
-        jobTitle: empData.jobTitle || 'Employee',
-        department: empData.department?.name || empData.department || 'Operations',
-        panNumber: empData.panNumber,
-        bankName: snap.bankName || empData.bankName,
-        bankAccountMasked: snap.accountNumberMasked || empData.bankAccountMasked,
-      },
-      calculation: {
-        baseSalary: snap.baseSalary,
-        basicSalary: snap.basicSalary,
-        hra: snap.hra,
-        specialAllowance: snap.specialAllowance,
-        grossSalary: snap.grossSalary ?? snap.grossEarnings,
-        grossEarnings: snap.grossEarnings ?? snap.grossSalary,
-        bonus: snap.bonus,
-        overtimeHours: snap.overtimeHours,
-        overtimePay: snap.overtimePay,
-        customComponents: snap.customComponents,
-        pf: snap.pf,
-        pt: snap.pt,
-        tds: snap.tds,
-        lopDeduction: snap.lopDeduction ?? snap.leaveDeduction,
-        leaveDeduction: snap.leaveDeduction ?? snap.lopDeduction,
-        otherDeductions: snap.otherDeductions,
-        totalDeductions: snap.totalDeductions,
-        netSalary: snap.netSalary,
-        workingDaysCount: snap.workingDaysCount,
-        presentDays: snap.presentDays,
-        totalLopDays: snap.totalLopDays,
-        paymentMode: snap.paymentMode,
-      },
-    };
+      const empData = (snap && typeof snap === 'object' && snap.employee) || user || {};
 
-    setSelectedPayslipData(formatted);
+      const formatted: PayslipData = {
+        id: p.id,
+        month: p.month,
+        year: p.year,
+        status: p.status,
+        publishedAt: p.publishedAt,
+        employee: {
+          id: empData.id || user?.id,
+          employeeNumber: empData.employeeNumber || (empData.id ? `EMP-${String(empData.id).padStart(3, '0')}` : undefined),
+          firstName: String(empData.firstName || user?.firstName || 'Employee'),
+          lastName: String(empData.lastName || user?.lastName || ''),
+          email: String(empData.email || user?.email || ''),
+          jobTitle: String(empData.jobTitle || user?.jobTitle || 'Staff'),
+          department: typeof empData.department === 'string'
+            ? empData.department
+            : empData.department?.name || (user as any)?.department?.name || 'General',
+          panNumber: String(empData.panNumber || (user as any)?.panNumber || '—'),
+          bankName: String(snap?.bankName || empData.bankName || (user as any)?.bankName || 'HDFC Bank'),
+          bankAccountMasked: String(snap?.accountNumberMasked || empData.bankAccountMasked || (user as any)?.bankAccountMasked || '••••'),
+        },
+        calculation: {
+          baseSalary: Number(snap?.baseSalary ?? snap?.monthlySalary ?? p.netSalary ?? 0),
+          basicSalary: snap?.basicSalary !== undefined ? Number(snap.basicSalary) : undefined,
+          hra: snap?.hra !== undefined ? Number(snap.hra) : undefined,
+          specialAllowance: snap?.specialAllowance !== undefined ? Number(snap.specialAllowance) : undefined,
+          grossSalary: Number(snap?.grossSalary ?? snap?.grossEarnings ?? snap?.baseSalary ?? p.netSalary ?? 0),
+          grossEarnings: Number(snap?.grossEarnings ?? snap?.grossSalary ?? snap?.baseSalary ?? p.netSalary ?? 0),
+          bonus: Number(snap?.bonus ?? 0),
+          overtimeHours: Number(snap?.overtimeHours ?? 0),
+          overtimePay: Number(snap?.overtimePay ?? 0),
+          customComponents: Array.isArray(snap?.customComponents) ? snap.customComponents : [],
+          pf: Number(snap?.pf ?? 0),
+          pt: Number(snap?.pt ?? 0),
+          tds: Number(snap?.tds ?? 0),
+          lopDeduction: Number(snap?.lopDeduction ?? snap?.leaveDeduction ?? 0),
+          leaveDeduction: Number(snap?.leaveDeduction ?? snap?.lopDeduction ?? 0),
+          otherDeductions: Number(snap?.otherDeductions ?? 0),
+          totalDeductions: Number(snap?.totalDeductions ?? 0),
+          netSalary: Number(snap?.netSalary ?? p.netSalary ?? 0),
+          perDayRate: snap?.perDayRate !== undefined ? Number(snap.perDayRate) : undefined,
+          totalCalendarDays: Number(snap?.totalCalendarDays ?? 30),
+          workingDaysCount: Number(snap?.workingDaysCount ?? 22),
+          presentDays: Number(snap?.presentDays ?? 22),
+          paidLeaveDays: Number(snap?.paidLeaveDays ?? 0),
+          unpaidLeaveDays: Number(snap?.unpaidLeaveDays ?? 0),
+          totalLopDays: Number(snap?.totalLopDays ?? 0),
+          currency: String(snap?.currency || 'INR'),
+          paymentMode: String(snap?.paymentMode || 'Bank Transfer'),
+          bankName: String(snap?.bankName || empData.bankName || 'Direct Transfer'),
+          accountNumberMasked: String(snap?.accountNumberMasked || empData.bankAccountMasked || '••••'),
+          remarks: snap?.remarks || '',
+        },
+      };
+
+      setSelectedPayslipData(formatted);
+    } catch (err) {
+      console.error('Failed to view payslip:', err);
+      // Fallback: download PDF directly if drawer preparation encounters an error
+      handleDownloadPdf(p.id, p.month, p.year);
+    }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-6 pb-12">
+      {/* Header — renamed to just "Payslips" */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0">
             <IconReceipt2 className="w-4 h-4" />
           </div>
-          My Monthly Payslips
-        </h1>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            Payslips
+          </h1>
+        </div>
         <p className="text-xs text-slate-500 font-medium mt-1">
           Access and download verified monthly salary statements and statutory tax summaries.
         </p>
       </div>
 
-      {/* Table Form Container */}
+      {/* Main Table Container */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-        {/* Table Top Header / Controls */}
-        <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        {/* Table Top Header & Year / Month Filters */}
+        <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0">
               <IconReceipt2 className="w-4 h-4" />
@@ -147,19 +210,72 @@ export const MyPayslipsPage: React.FC = () => {
                 Published Salary Statements
               </h3>
               <p className="text-xs text-slate-400 font-medium">
-                {payslips.length} {payslips.length === 1 ? 'monthly statement' : 'monthly statements'} recorded
+                {filteredPayslips.length} {filteredPayslips.length === 1 ? 'monthly statement' : 'monthly statements'} found
               </p>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={fetchPayslips}
-            className="self-start sm:self-auto flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 shadow-2xs transition-all cursor-pointer"
-          >
-            <IconRefresh className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[#5E4BE2]' : ''}`} />
-            <span>Refresh</span>
-          </button>
+          {/* Filter Controls: Year, Month, Refresh */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Year Selector */}
+            <div className="relative">
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                className="pl-3 pr-8 py-1.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800 appearance-none cursor-pointer shadow-2xs"
+              >
+                <option value="ALL">All Years</option>
+                {availableYears.map((yr) => (
+                  <option key={yr} value={String(yr)}>
+                    {yr}
+                  </option>
+                ))}
+              </select>
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+
+            {/* Month Selector */}
+            <div className="relative">
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="pl-3 pr-8 py-1.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800 appearance-none cursor-pointer shadow-2xs"
+              >
+                <option value="ALL">All Months</option>
+                {MONTH_NAMES.map((mName, idx) => (
+                  <option key={idx + 1} value={String(idx + 1)}>
+                    {mName}
+                  </option>
+                ))}
+              </select>
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+
+            {/* Clear Filter Button */}
+            {(selectedYear !== 'ALL' || selectedMonth !== 'ALL') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedYear('ALL');
+                  setSelectedMonth('ALL');
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-xl transition-colors cursor-pointer"
+                title="Reset filters"
+              >
+                <IconX className="w-3.5 h-3.5" />
+                <span>Reset</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={fetchPayslips}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 shadow-2xs transition-all cursor-pointer"
+            >
+              <IconRefresh className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[#5E4BE2]' : ''}`} />
+              <span>Refresh</span>
+            </button>
+          </div>
         </div>
 
         {/* Table Content */}
@@ -189,24 +305,33 @@ export const MyPayslipsPage: React.FC = () => {
                     <td className="px-5 py-4 text-right"><div className="w-28 h-7 bg-slate-100 rounded-xl ml-auto" /></td>
                   </tr>
                 ))
-              ) : payslips.length === 0 ? (
+              ) : filteredPayslips.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-14 text-center">
                     <div className="w-12 h-12 rounded-full bg-indigo-50 text-[#5E4BE2] mx-auto flex items-center justify-center mb-3">
                       <IconReceipt2 className="w-6 h-6" />
                     </div>
-                    <p className="text-sm font-bold text-slate-800">No published payslips found</p>
+                    <p className="text-sm font-bold text-slate-800">No payslips found</p>
                     <p className="text-xs text-slate-400 mt-1">
-                      Your official monthly salary statements will appear here once published by payroll.
+                      {selectedYear !== 'ALL' || selectedMonth !== 'ALL'
+                        ? 'Try adjusting your Year or Month filter criteria.'
+                        : 'Your official monthly salary statements will appear here once published by payroll.'}
                     </p>
                   </td>
                 </tr>
               ) : (
-                payslips.map((p) => {
-                  const snap = p.snapshot || {};
-                  const netSalary = snap.netSalary || 0;
-                  const grossSalary = snap.grossSalary ?? snap.grossEarnings ?? snap.baseSalary ?? 0;
-                  const totalDeductions = snap.totalDeductions ?? snap.leaveDeduction ?? 0;
+                paginatedPayslips.map((p) => {
+                  let snap = p.snapshot || {};
+                  if (typeof snap === 'string') {
+                    try {
+                      snap = JSON.parse(snap);
+                    } catch (e) {
+                      snap = {};
+                    }
+                  }
+                  const netSalary = Number(snap.netSalary ?? p.netSalary ?? 0);
+                  const grossSalary = Number(snap.grossSalary ?? snap.grossEarnings ?? snap.baseSalary ?? netSalary);
+                  const totalDeductions = Number(snap.totalDeductions ?? snap.leaveDeduction ?? 0);
                   const paymentMode = snap.paymentMode ? String(snap.paymentMode).replace(/_/g, ' ') : 'Bank Transfer';
 
                   return (
@@ -229,16 +354,16 @@ export const MyPayslipsPage: React.FC = () => {
                         </div>
                       </td>
 
-                      <td className="px-5 py-4 whitespace-nowrap font-medium text-slate-700">
-                        ₹{grossSalary.toLocaleString()}
+                      <td className="px-5 py-4 whitespace-nowrap font-semibold text-slate-700">
+                        ₹{grossSalary.toLocaleString('en-IN')}
                       </td>
 
                       <td className="px-5 py-4 whitespace-nowrap font-semibold text-rose-600">
-                        -₹{totalDeductions.toLocaleString()}
+                        -₹{totalDeductions.toLocaleString('en-IN')}
                       </td>
 
                       <td className="px-5 py-4 whitespace-nowrap font-black text-slate-900 text-sm">
-                        ₹{netSalary.toLocaleString()}
+                        ₹{netSalary.toLocaleString('en-IN')}
                       </td>
 
                       <td className="px-5 py-4 whitespace-nowrap">
@@ -282,6 +407,19 @@ export const MyPayslipsPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        <TablePagination
+          currentPage={currentPage}
+          totalItems={filteredPayslips.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[5, 10, 20, 50]}
+          itemName="payslips"
+        />
       </div>
 
       {/* Right-Side Slide-Over PDF Drawer for Payslip */}
@@ -289,6 +427,7 @@ export const MyPayslipsPage: React.FC = () => {
         payslip={selectedPayslipData}
         company={company}
         onClose={() => setSelectedPayslipData(null)}
+        onDownloadPdf={handleDownloadPdf}
       />
     </div>
   );

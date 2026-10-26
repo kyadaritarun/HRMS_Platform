@@ -137,8 +137,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
     }
 
     // ==========================================
+    // ==========================================
     // 2. COMPANY ADMIN & HR SIDEBAR
-    // (Exact 1:1 match with uptrix_hrms sidebar)
     // ==========================================
     if (user.role === 'COMPANY_ADMIN' || user.role === 'HR') {
       return [
@@ -148,46 +148,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           icon: IconSmartHome,
           roles: ['COMPANY_ADMIN', 'HR'],
           path: '/company/dashboard',
-        },
-        {
-          id: 'account',
-          label: 'Account',
-          icon: IconIdBadge,
-          roles: ['COMPANY_ADMIN', 'HR'],
-          subItems: [
-            { label: 'Dashboard', path: '/employee/dashboard', icon: IconSmartHome },
-            { label: 'My Profile', path: '/profile', icon: IconUser },
-            { label: 'My Documents', path: '/my-documents', icon: IconFolderCheck, feature: 'employee_document_management' },
-          ],
-        },
-        {
-          id: 'self_service',
-          label: 'Self Service',
-          icon: IconUser,
-          roles: ['COMPANY_ADMIN', 'HR'],
-          subItems: [
-            { label: 'Attendance', path: '/attendance', icon: IconClock, feature: 'time_attendance_management' },
-            { label: 'Leaves', path: '/leaves', icon: IconCalendarEvent, feature: 'leave_management' },
-            { label: 'Comp Off', path: '/comp-off', icon: IconCalendarEvent, feature: 'comp_off_management' },
-            { label: 'My Payslips', path: '/payroll/my-payslips', icon: IconReceipt2, feature: 'payroll' },
-            { label: 'Performance Goals', path: '/performance/my-goals', icon: IconTarget, feature: 'performance_management' },
-            { label: 'Claims', path: '/claims', icon: IconCash, feature: 'claim_process_management' },
-            { label: 'Org Structure', path: '/org-structure', icon: IconNetwork, feature: 'employees_directory' },
-            { label: 'Policies', path: '/policies', icon: IconFileText, feature: 'policy_documents_management' },
-            { label: 'Appreciations', path: '/appreciations', icon: IconHeartHandshake, feature: 'employee_appreciation' },
-            { label: 'AI Assistant', path: '/assistant', icon: IconCpu, feature: 'ai_assistance' },
-          ],
-        },
-        {
-          id: 'assigned_to_me',
-          label: 'Assigned To Me',
-          icon: IconChecklist,
-          roles: ['COMPANY_ADMIN', 'HR'],
-          subItems: [
-            { label: 'Tickets', path: '/tickets/assigned', icon: IconHelpCircle, feature: 'support_ticket_management' },
-            { label: 'Approval Requests', path: '/company/approvals', icon: IconChecklist },
-            { label: 'Document Review', path: '/company/documents/review', icon: IconFolderCheck, feature: 'employee_document_management' },
-          ],
         },
         {
           id: 'company',
@@ -200,9 +160,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
             { label: 'Employee Attendance', path: '/company/attendance', icon: IconClock, permission: 'attendance', feature: 'time_attendance_management' },
             { label: 'Departments', path: '/company/departments', icon: IconBriefcase },
             { label: 'Roles & Hierarchy', path: '/company/roles-hierarchy', icon: IconNetwork },
-            { label: 'Leave Types', path: '/company/leaves/types', icon: IconFileCertificate, feature: 'leave_management' },
-            { label: 'Manage Policies', path: '/company/policies/manage', icon: IconFileText, feature: 'policy_documents_management' },
-            { label: 'Holiday Calendar', path: '/company/holidays', icon: IconCalendarEvent, feature: 'holiday_calendar' },
             { label: 'Billing', path: '/company/billing', icon: IconCreditCard, roles: ['COMPANY_ADMIN'] },
             { label: 'Activity Logs', path: '/company/activity-logs', icon: IconHistory, roles: ['COMPANY_ADMIN'] },
           ],
@@ -213,6 +170,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           icon: IconBriefcase,
           roles: ['COMPANY_ADMIN', 'HR'],
           subItems: [
+            { label: 'Holiday Calendar', path: '/company/holidays', icon: IconCalendarEvent, feature: 'holiday_calendar' },
+            { label: 'Leave Types', path: '/company/leaves/types', icon: IconFileCertificate, feature: 'leave_management' },
+            { label: 'Manage Policies', path: '/company/policies/manage', icon: IconFileText, feature: 'policy_documents_management' },
             { label: 'Offer Letters', path: '/company/offer-letters', icon: IconFileCertificate },
             { label: 'HR Letters Hub', path: '/company/hr-letters', icon: IconFileCertificate },
             { label: 'Assets & Onboarding', path: '/company/assets-onboarding', icon: IconDevices },
@@ -232,6 +192,37 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           ],
         },
         {
+          id: 'assigned_to_me',
+          label: 'Assigned To Me',
+          icon: IconChecklist,
+          roles: ['COMPANY_ADMIN', 'HR'],
+          subItems: [
+            { label: 'Approval Requests', path: '/company/approvals', icon: IconChecklist },
+            { label: 'Claims Review', path: '/company/claims/manage', icon: IconCash, feature: 'claim_process_management' },
+            { label: 'Tickets', path: '/tickets/assigned', icon: IconHelpCircle, feature: 'support_ticket_management' },
+            { label: 'Document Review', path: '/company/documents/review', icon: IconFolderCheck, feature: 'employee_document_management' },
+          ],
+        },
+        {
+          id: 'self_service',
+          label: 'Self Service',
+          icon: IconUser,
+          roles: ['COMPANY_ADMIN', 'HR'],
+          subItems: [
+            { label: 'Attendance', path: '/attendance', icon: IconClock, feature: 'time_attendance_management' },
+            { label: 'Leaves', path: '/leaves', icon: IconCalendarEvent, feature: 'leave_management' },
+            { label: 'Comp Off', path: '/comp-off', icon: IconCalendarEvent, feature: 'comp_off_management' },
+            { label: 'Payslips', path: '/payroll/my-payslips', icon: IconReceipt2, feature: 'payroll' },
+            { label: 'Performance Goals', path: '/performance/my-goals', icon: IconTarget, feature: 'performance_management' },
+            { label: 'Claims', path: '/claims', icon: IconCash, feature: 'claim_process_management' },
+            { label: 'Tickets', path: '/tickets', icon: IconHelpCircle, feature: 'support_ticket_management' },
+            { label: 'Org Structure', path: '/org-structure', icon: IconNetwork, feature: 'employees_directory' },
+            { label: 'Policies', path: '/policies', icon: IconFileText, feature: 'policy_documents_management' },
+            { label: 'Appreciations', path: '/appreciations', icon: IconHeartHandshake, feature: 'employee_appreciation' },
+            { label: 'AI Assistant', path: '/assistant', icon: IconCpu, feature: 'ai_assistance' },
+          ],
+        },
+        {
           id: 'miscellaneous',
           label: 'Miscellaneous',
           icon: IconSettings,
@@ -241,13 +232,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
             { label: 'Claim Categories', path: '/company/claims/categories', icon: IconReceipt2, feature: 'claim_process_management' },
           ],
         },
+        {
+          id: 'account',
+          label: 'Account',
+          icon: IconIdBadge,
+          roles: ['COMPANY_ADMIN', 'HR'],
+          subItems: [
+            { label: 'Dashboard', path: '/employee/dashboard', icon: IconSmartHome },
+            { label: 'My Profile', path: '/profile', icon: IconUser },
+            { label: 'My Documents', path: '/my-documents', icon: IconFolderCheck, feature: 'employee_document_management' },
+          ],
+        },
       ];
     }
 
     // ==========================================
-    // 3. EMPLOYEE SIDEBAR
-    // (Exact 1:1 match with uptrix_hrms sidebar)
+    // 3. EMPLOYEE & MANAGER SIDEBAR
     // ==========================================
+    const isManagerUser = Boolean(user.isManager || (user as any)?._count?.reports > 0);
+
     return [
       {
         id: 'dashboard',
@@ -256,6 +259,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
         roles: ['EMPLOYEE'],
         path: '/employee/dashboard',
       },
+      ...(isManagerUser
+        ? [
+          {
+            id: 'team_management',
+            label: 'Team Management',
+            icon: IconChecklist,
+            roles: ['EMPLOYEE'] as UserRole[],
+            subItems: [
+              { label: 'Approvals Desk', path: '/company/approvals', icon: IconChecklist, requiresManager: true },
+              { label: 'Expense Claims Review', path: '/company/claims/manage', icon: IconCash, requiresManager: true, feature: 'claim_process_management' },
+              { label: 'Assigned Tickets', path: '/tickets/assigned', icon: IconHelpCircle, requiresManager: true, feature: 'support_ticket_management' },
+              { label: 'Document Verification', path: '/company/documents/review', icon: IconFolderCheck, requiresManager: true, feature: 'employee_document_management' },
+            ],
+          },
+        ]
+        : []),
       {
         id: 'self_service',
         label: 'Self Service',
@@ -265,7 +284,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           { label: 'Attendance', path: '/attendance', icon: IconClock, feature: 'time_attendance_management' },
           { label: 'Leaves', path: '/leaves', icon: IconCalendarEvent, feature: 'leave_management' },
           { label: 'Comp Off', path: '/comp-off', icon: IconCalendarEvent, feature: 'comp_off_management' },
-          { label: 'My Payslips', path: '/payroll/my-payslips', icon: IconReceipt2, feature: 'payroll' },
+          { label: 'Payslips', path: '/payroll/my-payslips', icon: IconReceipt2, feature: 'payroll' },
           { label: 'Performance Goals', path: '/performance/my-goals', icon: IconTarget, feature: 'performance_management' },
           { label: 'Claims', path: '/claims', icon: IconCash, feature: 'claim_process_management' },
           { label: 'Tickets', path: '/tickets', icon: IconHelpCircle, feature: 'support_ticket_management' },
@@ -273,18 +292,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           { label: 'Policies', path: '/policies', icon: IconFileText, feature: 'policy_documents_management' },
           { label: 'Appreciations', path: '/appreciations', icon: IconHeartHandshake, feature: 'employee_appreciation' },
           { label: 'AI Assistant', path: '/assistant', icon: IconCpu, feature: 'ai_assistance' },
-        ],
-      },
-      {
-        id: 'assigned_to_me',
-        label: 'Assigned To Me',
-        icon: IconChecklist,
-        roles: ['EMPLOYEE'],
-        subItems: [
-          { label: 'Tickets', path: '/tickets/assigned', icon: IconHelpCircle, requiresManager: true, feature: 'support_ticket_management' },
-          { label: 'Approval Requests', path: '/company/approvals', icon: IconChecklist, requiresManager: true },
-          { label: 'Claims', path: '/company/claims/manage', icon: IconCash, requiresManager: true, feature: 'claim_process_management' },
-          { label: 'Document Review', path: '/company/documents/review', icon: IconFolderCheck, requiresManager: true, feature: 'employee_document_management' },
         ],
       },
       {
@@ -313,7 +320,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
         if (sub.roles && !sub.roles.includes(user.role)) return false;
 
         if (sub.requiresManager) {
-          const isManagerOrAdmin = user.isManager || user.role === 'COMPANY_ADMIN' || user.role === 'HR';
+          const isManagerOrAdmin = user.isManager || (user as any)?._count?.reports > 0 || user.role === 'COMPANY_ADMIN' || user.role === 'HR';
           if (!isManagerOrAdmin) return false;
         }
 
@@ -331,6 +338,31 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
     })
     .filter((cat) => (cat.path ? true : (cat.subItems && cat.subItems.length > 0)));
 
+  // Helper to determine if a sub-item is active
+  const isSubItemActive = (subPath: string) => {
+    if (location.pathname === subPath) return true;
+    if (subPath !== '/' && location.pathname.startsWith(subPath + '/')) return true;
+    if (
+      subPath === '/company/approvals' &&
+      [
+        '/company/approvals',
+        '/company/leaves/manage',
+        '/attendance/regularizations/manage',
+        '/company/comp-off/manage',
+        '/performance/goals/manage',
+      ].includes(location.pathname)
+    ) {
+      return true;
+    }
+    if (
+      subPath === '/payroll/attendance-salary' &&
+      ['/payroll/attendance-salary', '/payroll/dashboard'].includes(location.pathname)
+    ) {
+      return true;
+    }
+    return false;
+  };
+
   // Identify active category from current path
   const activeCategoryId = useMemo(() => {
     for (const cat of filteredCategories) {
@@ -338,29 +370,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
         return cat.id;
       }
       if (cat.subItems) {
-        const hasMatch = cat.subItems.some((sub) => {
-          if (location.pathname === sub.path) return true;
-          if (sub.path !== '/' && location.pathname.startsWith(sub.path + '/')) return true;
-          if (
-            sub.path === '/company/approvals' &&
-            [
-              '/company/approvals',
-              '/company/leaves/manage',
-              '/attendance/regularizations/manage',
-              '/company/comp-off/manage',
-              '/performance/goals/manage',
-            ].includes(location.pathname)
-          ) {
-            return true;
-          }
-          if (
-            sub.path === '/payroll/attendance-salary' &&
-            ['/payroll/attendance-salary', '/payroll/dashboard'].includes(location.pathname)
-          ) {
-            return true;
-          }
-          return false;
-        });
+        const hasMatch = cat.subItems.some((sub) => isSubItemActive(sub.path));
         if (hasMatch) return cat.id;
       }
     }
@@ -456,7 +466,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           </div>
         </div>
 
-        {/* Clean, Non-Scrolling Navigation List with Downward Accordion */}
+        {/* Clean, Non-Scrolling Navigation List with Downward Accordion & Collapsed Flyouts */}
         <div className="flex-1 overflow-y-auto px-2.5 py-3 space-y-0.5 scrollbar-thin scrollbar-thumb-slate-200">
           {filteredCategories.map((cat) => {
             const Icon = cat.icon;
@@ -466,7 +476,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
             const hasChildren = Boolean(cat.subItems && cat.subItems.length > 0);
 
             return (
-              <div key={cat.id} className="relative">
+              <div key={cat.id} className="relative group">
                 {/* Category Header Button */}
                 <button
                   onClick={() => handleCategoryClick(cat)}
@@ -515,6 +525,49 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
                   )}
                 </button>
 
+                {/* Collapsed Mode Floating Flyout Menu */}
+                {collapsed && hasChildren && cat.subItems && (
+                  <div className="hidden group-hover:block absolute left-full top-0 ml-2 z-50 bg-white border border-slate-200/90 rounded-2xl shadow-xl min-w-[210px] py-2 px-2 animate-in fade-in slide-in-from-left-2 duration-150">
+                    <div className="px-3 py-1.5 border-b border-slate-100 mb-1 flex items-center gap-2 text-xs font-bold text-slate-800">
+                      <Icon className="w-4 h-4 text-[#5E4BE2]" />
+                      <span>{cat.label}</span>
+                    </div>
+                    <div className="space-y-0.5">
+                      {cat.subItems.map((subItem) => {
+                        const isLocked = subItem.feature && !checkFeature(subItem.feature);
+                        const SubIcon = subItem.icon;
+                        if (isLocked) {
+                          return (
+                            <button
+                              key={subItem.path}
+                              onClick={() => setLockedModal({ open: true, featureName: subItem.label })}
+                              className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50/50 text-xs font-semibold cursor-pointer text-left"
+                            >
+                              <div className="flex items-center gap-2 truncate">
+                                <SubIcon className="w-3.5 h-3.5 text-slate-400" />
+                                <span className="truncate">{subItem.label}</span>
+                              </div>
+                              <IconCrown className="w-3 h-3 text-amber-500 shrink-0 ml-1" />
+                            </button>
+                          );
+                        }
+                        const active = isSubItemActive(subItem.path);
+                        return (
+                          <NavLink
+                            key={subItem.path}
+                            to={subItem.path}
+                            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${active ? 'bg-[#5E4BE2] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                              }`}
+                          >
+                            <SubIcon className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">{subItem.label}</span>
+                          </NavLink>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Downward Accordion Sub-Items */}
                 {isSubMenuOpen && !collapsed && hasChildren && cat.subItems && (
                   <div className="mt-1 ml-4 pl-3.5 border-l-2 border-indigo-100/90 space-y-0.5 py-1 animate-in fade-in slide-in-from-top-1 duration-150">
@@ -540,50 +593,28 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
                         );
                       }
 
-                      const isApprovalsActive =
-                        subItem.path === '/company/approvals' &&
-                        [
-                          '/company/approvals',
-                          '/company/leaves/manage',
-                          '/attendance/regularizations/manage',
-                          '/company/comp-off/manage',
-                          '/performance/goals/manage',
-                        ].includes(location.pathname);
-
-                      const isPayrollActive =
-                        subItem.path === '/payroll/attendance-salary' &&
-                        ['/payroll/attendance-salary', '/payroll/dashboard'].includes(location.pathname);
+                      const active = isSubItemActive(subItem.path);
 
                       return (
                         <NavLink
                           key={subItem.path}
                           to={subItem.path}
                           end
-                          className={({ isActive }) => {
-                            const active = isActive || isApprovalsActive || isPayrollActive;
-                            return `flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all group ${active
-                              ? 'bg-[#5E4BE2] text-white shadow-xs shadow-indigo-600/20'
-                              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                              }`;
-                          }}
+                          className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all group ${active
+                            ? 'bg-[#5E4BE2] text-white shadow-xs shadow-indigo-600/20'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                            }`}
                         >
-                          {({ isActive }) => {
-                            const active = isActive || isApprovalsActive || isPayrollActive;
-                            return (
-                              <>
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <SubIcon
-                                    className={`w-3.5 h-3.5 shrink-0 transition-colors ${active ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'
-                                      }`}
-                                  />
-                                  <span className="truncate">{subItem.label}</span>
-                                </div>
-                                {active && (
-                                  <span className="w-1.5 h-1.5 rounded-full bg-white/90 shrink-0" />
-                                )}
-                              </>
-                            );
-                          }}
+                          <div className="flex items-center gap-2 min-w-0">
+                            <SubIcon
+                              className={`w-3.5 h-3.5 shrink-0 transition-colors ${active ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'
+                                }`}
+                            />
+                            <span className="truncate">{subItem.label}</span>
+                          </div>
+                          {active && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-white/90 shrink-0" />
+                          )}
                         </NavLink>
                       );
                     })}

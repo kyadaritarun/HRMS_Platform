@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { IconArrowLeft, IconPrinter, IconX, IconReceipt2 } from '@tabler/icons-react';
+import { IconArrowLeft, IconPrinter, IconX, IconReceipt2, IconDownload } from '@tabler/icons-react';
 
 export interface PayslipData {
   id?: number | string;
@@ -10,6 +10,7 @@ export interface PayslipData {
   publishedAt?: string | null;
   employee: {
     id?: number | string;
+    employeeNumber?: string;
     firstName: string;
     lastName: string;
     email?: string;
@@ -41,11 +42,13 @@ export interface PayslipData {
     otherDeductions?: number;
     totalDeductions?: number;
     netSalary?: number;
+    perDayRate?: number;
     workingDaysCount?: number;
     presentDays?: number;
     totalLopDays?: number;
     paidLeaveDays?: number;
     unpaidLeaveDays?: number;
+    totalCalendarDays?: number;
     currency?: string;
     paymentMode?: string;
     bankName?: string;
@@ -59,9 +62,10 @@ export interface PayslipPdfDrawerProps {
   company?: {
     name?: string;
     subdomain?: string;
-    address?: string;
+    address?: any;
   } | null;
   onClose: () => void;
+  onDownloadPdf?: (id: number | string, month: number, year: number) => void;
 }
 
 const MONTH_NAMES = [
@@ -69,10 +73,73 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
+function formatMoney(amount: number | undefined | null, currency: string = ''): string {
+  const num = Number(amount || 0);
+  const formatted = num.toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return currency ? `${currency} ${formatted}` : formatted;
+}
+
+function toTitleCase(str: string | undefined | null): string {
+  if (!str) return '—';
+  return str
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .split(' ')
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+function numberToWordsINR(amount: number): string {
+  if (!amount || isNaN(amount) || amount <= 0) return 'Zero Rupees Only';
+
+  const a = [
+    '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+    'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'
+  ];
+  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+  function inWords(n: number): string {
+    if (n === 0) return '';
+    if (n < 20) return a[n] + ' ';
+    if (n < 100) return b[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + a[n % 10] : '') + ' ';
+    return a[Math.floor(n / 100)] + ' Hundred ' + (n % 100 !== 0 ? inWords(n % 100) : '');
+  }
+
+  const integerPart = Math.floor(amount);
+  const decimalPart = Math.round((amount - integerPart) * 100);
+
+  let str = '';
+  const crore = Math.floor(integerPart / 10000000);
+  let rem = integerPart % 10000000;
+  const lakh = Math.floor(rem / 100000);
+  rem = rem % 100000;
+  const thousand = Math.floor(rem / 1000);
+  rem = rem % 1000;
+  const hundred = rem;
+
+  if (crore > 0) str += inWords(crore).trim() + ' Crore ';
+  if (lakh > 0) str += inWords(lakh).trim() + ' Lakh ';
+  if (thousand > 0) str += inWords(thousand).trim() + ' Thousand ';
+  if (hundred > 0) str += inWords(hundred).trim() + ' ';
+
+  str = str.trim() + ' Rupees';
+
+  if (decimalPart > 0) {
+    str += ' and ' + inWords(decimalPart).trim() + ' Paise';
+  }
+
+  return str + ' Only';
+}
+
 export const PayslipPdfDrawer: React.FC<PayslipPdfDrawerProps> = ({
   payslip,
   company,
   onClose,
+  onDownloadPdf,
 }) => {
   if (!payslip || typeof document === 'undefined') return null;
 
@@ -80,36 +147,102 @@ export const PayslipPdfDrawer: React.FC<PayslipPdfDrawerProps> = ({
     window.print();
   };
 
+  const getSafeString = (val: any, fallback: string = '—'): string => {
+    if (val === null || val === undefined) return fallback;
+    if (typeof val === 'string') return val.trim() || fallback;
+    if (typeof val === 'number') return String(val);
+    if (typeof val === 'object' && val.name && typeof val.name === 'string') return val.name.trim() || fallback;
+    return fallback;
+  };
+
+  const companyNameStr = getSafeString(company?.name, 'UPTRIX TECHNOLOGIES');
+
+
   const c = payslip.calculation || {};
-  const emp = payslip.employee || {};
-  const monthName = MONTH_NAMES[(payslip.month || 1) - 1] || 'Current Month';
+  const emp = payslip.employee || ({} as any);
+  const monthName = MONTH_NAMES[(Number(payslip.month) || 1) - 1] || 'Current Month';
+  const currency = String(c.currency || 'INR');
 
-  // Calculate earnings
-  const base = c.baseSalary || 0;
-  const basic = c.basicSalary !== undefined ? c.basicSalary : Math.round(base * 0.5);
-  const hra = c.hra !== undefined ? c.hra : Math.round(base * 0.2);
-  const customEarn = (c.customComponents || []).filter((x) => x.type === 'EARNING');
-  const customEarnSum = customEarn.reduce((sum, x) => sum + (Number(x.amount) || 0), 0);
-  const special = c.specialAllowance !== undefined ? c.specialAllowance : Math.max(0, base - basic - hra - customEarnSum);
-  const bonus = c.bonus || 0;
-  const otPay = c.overtimePay || 0;
-  const grossEarnings = c.grossEarnings !== undefined ? c.grossEarnings : (basic + hra + special + bonus + otPay + customEarnSum);
+  // Employee details matching generatePdf.ts
+  const empName = `${getSafeString(emp.firstName, 'Employee')} ${getSafeString(emp.lastName, '')}`.trim();
+  const empCode = emp.employeeNumber || (emp.id ? `EMP-${String(emp.id).padStart(3, '0')}` : 'EMP-001');
+  const empDesignation = getSafeString(emp.jobTitle, 'Staff');
+  const empDept = getSafeString(emp.department, 'General');
+  const bankName = getSafeString(c.bankName || emp.bankName, 'HDFC Bank');
+  const bankAccount = getSafeString(c.accountNumberMasked || emp.bankAccountMasked, '•••• ••••');
+  const paymentMode = toTitleCase(c.paymentMode || 'Bank Transfer');
+  const totalCalendarDays = c.totalCalendarDays || 30;
+  const workingDays = c.workingDaysCount || 22;
+  const presentDays = c.presentDays !== undefined ? c.presentDays : 22;
+  const paidLeaves = c.paidLeaveDays || 0;
+  const lopDays = c.totalLopDays || 0;
+  const otHours = c.overtimeHours || 0;
+  const baseSalary = Number(c.baseSalary || 0);
+  const dailyRate = c.perDayRate !== undefined ? Number(c.perDayRate) : (baseSalary && workingDays ? Math.round((baseSalary / workingDays) * 100) / 100 : 0);
 
-  // Calculate deductions
-  const pf = c.pf || 0;
-  const pt = c.pt !== undefined ? c.pt : 200;
-  const tds = c.tds || 0;
-  const lop = c.leaveDeduction || c.lopDeduction || 0;
-  const other = c.otherDeductions || 0;
-  const customDed = (c.customComponents || []).filter((x) => x.type === 'DEDUCTION');
-  const customDedSum = customDed.reduce((sum, x) => sum + (Number(x.amount) || 0), 0);
-  const totalDeductions = c.totalDeductions !== undefined ? c.totalDeductions : (pf + pt + tds + lop + other + customDedSum);
+  // Structured Employee & Working Days Table matching generatePdf.ts
+  const empRows = [
+    [
+      { label: 'Employee Name:', val: toTitleCase(empName) },
+      { label: 'Employee Code:', val: empCode }
+    ],
+    [
+      { label: 'Designation:', val: empDesignation },
+      { label: 'Department:', val: empDept }
+    ],
+    [
+      { label: 'Bank Name:', val: bankName },
+      { label: 'Bank Account No:', val: bankAccount }
+    ],
+    [
+      { label: 'Payment Mode:', val: paymentMode },
+      { label: 'Pay Period:', val: `${monthName} ${payslip.year}` }
+    ]
+  ];
 
-  const netSalary = c.netSalary !== undefined ? c.netSalary : (grossEarnings - totalDeductions);
+  // Custom Components
+  const customList = Array.isArray(c.customComponents) ? c.customComponents : [];
+
+  // Earnings Data matching generatePdf.ts
+  const basicSalary = c.basicSalary !== undefined ? Number(c.basicSalary) : baseSalary;
+  const hra = Number(c.hra || 0);
+  const specialAllowance = Number(c.specialAllowance || 0);
+  const bonus = Number(c.bonus || 0);
+  const otPay = Number(c.overtimePay || 0);
+
+  const earningsData: { name: string; val: number }[] = [
+    { name: 'Basic Salary', val: basicSalary },
+    { name: 'House Rent Allowance (HRA)', val: hra },
+    { name: 'Special Allowance', val: specialAllowance },
+    ...customList.filter((x) => x && x.type === 'EARNING').map((x) => ({ name: String(x.name), val: Number(x.amount) || 0 })),
+    { name: 'Bonus / Performance Incentives', val: bonus },
+    { name: `Overtime Pay (${otHours} hrs)`, val: otPay },
+  ];
+
+  // Deductions Data matching generatePdf.ts
+  const lopDeduction = Number(c.leaveDeduction || c.lopDeduction || 0);
+  const pf = Number(c.pf || 0);
+  const pt = Number(c.pt || 0);
+  const tds = Number(c.tds || 0);
+  const otherDeductions = Number(c.otherDeductions || 0);
+
+  const deductionsData: { name: string; val: number }[] = [
+    { name: `Loss of Pay (LOP) [${lopDays} days]`, val: lopDeduction },
+    { name: 'Provident Fund (PF)', val: pf },
+    { name: 'Professional Tax (PT)', val: pt },
+    { name: 'Income Tax (TDS)', val: tds },
+    ...customList.filter((x) => x && x.type === 'DEDUCTION').map((x) => ({ name: String(x.name), val: Number(x.amount) || 0 })),
+    { name: 'Other Statutory Deductions', val: otherDeductions },
+  ];
+
+  const rowCount = Math.max(earningsData.length, deductionsData.length);
+  const grossEarnings = c.grossEarnings !== undefined ? Number(c.grossEarnings) : earningsData.reduce((s, e) => s + e.val, 0);
+  const totalDeductions = c.totalDeductions !== undefined ? Number(c.totalDeductions) : deductionsData.reduce((s, d) => s + d.val, 0);
+  const netSalary = c.netSalary !== undefined ? Number(c.netSalary) : (grossEarnings - totalDeductions);
 
   return createPortal(
     <>
-      {/* Scoped Print Styles: Prevents blank leading pages and isolates payslip */}
+      {/* Scoped Print Styles: Isolates payslip sheet and avoids blank pages */}
       <style>{`
         @media print {
           #root {
@@ -121,18 +254,39 @@ export const PayslipPdfDrawer: React.FC<PayslipPdfDrawerProps> = ({
             margin: 0 !important;
             padding: 0 !important;
             height: auto !important;
-            min-height: 0 !important;
+            min-height: auto !important;
             overflow: visible !important;
           }
           #printable-payslip-wrapper {
             position: static !important;
             inset: auto !important;
+            display: block !important;
             width: 100% !important;
             height: auto !important;
+            min-height: auto !important;
+            overflow: visible !important;
             margin: 0 !important;
             padding: 0 !important;
             background: #ffffff !important;
-            z-index: 99999 !important;
+            z-index: auto !important;
+          }
+          #printable-payslip-wrapper > div.relative {
+            position: static !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            height: auto !important;
+            min-height: auto !important;
+            overflow: visible !important;
+            background: #ffffff !important;
+            border: none !important;
+            box-shadow: none !important;
+            display: block !important;
+          }
+          #printable-payslip-wrapper .flex-1 {
+            overflow: visible !important;
+            height: auto !important;
+            padding: 0 !important;
+            display: block !important;
           }
           .drawer-backdrop,
           .drawer-header-actions,
@@ -141,17 +295,18 @@ export const PayslipPdfDrawer: React.FC<PayslipPdfDrawerProps> = ({
           }
           #printable-payslip-sheet {
             box-shadow: none !important;
-            border: 1px solid #cbd5e1 !important;
+            border: 1px solid #1e293b !important;
             margin: 0 auto !important;
             width: 100% !important;
-            max-width: 800px !important;
-            padding: 24px !important;
+            max-width: 100% !important;
+            padding: 16px !important;
             page-break-after: avoid !important;
             page-break-inside: avoid !important;
+            display: block !important;
           }
           @page {
             size: A4 portrait;
-            margin: 12mm;
+            margin: 10mm;
           }
         }
       `}</style>
@@ -190,12 +345,23 @@ export const PayslipPdfDrawer: React.FC<PayslipPdfDrawerProps> = ({
                   Payslip — {monthName} {payslip.year}
                 </span>
                 <span className="text-[11px] text-slate-400 block font-normal">
-                  {emp.firstName} {emp.lastName} ({emp.jobTitle || 'Employee'})
+                  {empName} ({empDesignation})
                 </span>
               </div>
             </div>
 
             <div className="flex items-center gap-2.5">
+              {onDownloadPdf && payslip.id && (
+                <button
+                  type="button"
+                  onClick={() => onDownloadPdf(payslip.id!, payslip.month, payslip.year)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-xs transition-all cursor-pointer"
+                >
+                  <IconDownload className="w-4 h-4 text-slate-500" />
+                  <span>Download PDF</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={handlePrint}
@@ -218,220 +384,139 @@ export const PayslipPdfDrawer: React.FC<PayslipPdfDrawerProps> = ({
 
           {/* Drawer Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex justify-center">
-            {/* The Printable Payslip Document */}
+            {/* The Printable Payslip Document matching generatePdf.ts */}
             <div
               id="printable-payslip-sheet"
-              className="bg-white rounded-xl shadow-lg border border-slate-200 p-8 sm:p-10 w-full max-w-3xl text-slate-800 font-sans text-xs flex flex-col justify-between"
+              className="bg-white rounded-lg shadow-xl border border-slate-800 p-6 sm:p-8 w-full max-w-3xl text-slate-900 font-sans text-xs flex flex-col justify-between"
+              style={{ minHeight: '820px' }}
             >
               <div>
-                {/* Company Header / Letterhead */}
-                <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pb-6 border-b-2 border-slate-800">
-                  <div>
-                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-                      {company?.name || 'UPTRIX TECHNOLOGIES'}
-                    </h2>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      {company?.address || 'Cyber City, Financial District, Hyderabad, Telangana, India'}
-                    </p>
-                    <p className="text-[11px] text-slate-400">
-                      Domain: {company?.subdomain ? `${company.subdomain}.uptrix.com` : 'uptrix.com'}
-                    </p>
+                {/* 1. Company Header */}
+                <div className="text-center pb-3">
+                  <h1 className="text-lg sm:text-xl font-bold uppercase tracking-wider text-slate-900">
+                    {companyNameStr}
+                  </h1>
+                </div>
+
+                {/* 2. Sub-Banner */}
+                <div className="bg-slate-100 py-1.5 px-4 border-y border-slate-800 text-center font-bold text-[11px] uppercase tracking-wider text-slate-900">
+                  PAYSLIP FOR THE MONTH OF {monthName.toUpperCase()} {payslip.year}
+                </div>
+
+                {/* 3. Employee & Working Days Structured Matrix */}
+                <div className="border-b border-slate-800 divide-y divide-slate-300 text-xs">
+                  {empRows.map((row, idx) => (
+                    <div key={idx} className="grid grid-cols-2 divide-x divide-slate-800">
+                      <div className="grid grid-cols-12 divide-x divide-slate-300 py-1 px-2">
+                        <span className="col-span-5 font-bold text-slate-700 text-[11px] pl-1">
+                          {row[0].label}
+                        </span>
+                        <span className="col-span-7 font-normal text-slate-900 text-[11px] pl-2 truncate" title={row[0].val}>
+                          {row[0].val}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-12 divide-x divide-slate-300 py-1 px-2">
+                        <span className="col-span-5 font-bold text-slate-700 text-[11px] pl-1">
+                          {row[1].label}
+                        </span>
+                        <span className="col-span-7 font-normal text-slate-900 text-[11px] pl-2 truncate" title={row[1].val}>
+                          {row[1].val}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 4. Salary Table Header (Earnings vs Deductions) */}
+                <div className="grid grid-cols-2 bg-slate-100 border-b border-slate-800 divide-x divide-slate-800 font-bold text-[11px] text-slate-900">
+                  <div className="flex justify-between py-1.5 px-3">
+                    <span>EARNINGS HEAD</span>
+                    <span>AMOUNT ({currency})</span>
                   </div>
-                  <div className="sm:text-right">
-                    <span className="inline-block px-3 py-1 bg-slate-900 text-white text-xs font-bold uppercase tracking-wider rounded-md">
-                      SALARY SLIP
-                    </span>
-                    <p className="text-xs font-bold text-slate-700 mt-2">
-                      Pay Period: {monthName} {payslip.year}
-                    </p>
-                    <p className="text-[11px] text-slate-400">
-                      Generated: {payslip.publishedAt ? new Date(payslip.publishedAt).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN')}
-                    </p>
+                  <div className="flex justify-between py-1.5 px-3">
+                    <span>DEDUCTIONS HEAD</span>
+                    <span>AMOUNT ({currency})</span>
                   </div>
                 </div>
 
-                {/* Employee Information Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-5 border-b border-slate-200 bg-slate-50/60 p-4 rounded-xl mt-5">
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Employee Name</span>
-                    <span className="text-xs font-bold text-slate-900">{emp.firstName} {emp.lastName}</span>
+                {/* 5. Earnings & Deductions Dual Table Body */}
+                <div className="divide-y divide-slate-200 border-b border-slate-800 text-[11px]">
+                  {Array.from({ length: rowCount }).map((_, i) => {
+                    const e = earningsData[i];
+                    const d = deductionsData[i];
+                    return (
+                      <div key={i} className="grid grid-cols-2 divide-x divide-slate-800 hover:bg-slate-50/50">
+                        {/* Earnings Column */}
+                        <div className="flex justify-between py-1.5 px-3">
+                          <span className="text-slate-800">{e ? e.name : '—'}</span>
+                          <span className="font-medium text-slate-900">
+                            {e ? formatMoney(e.val, '') : '—'}
+                          </span>
+                        </div>
+                        {/* Deductions Column */}
+                        <div className="flex justify-between py-1.5 px-3">
+                          <span className="text-slate-800">{d ? d.name : '—'}</span>
+                          <span className={`font-medium ${d && d.val > 0 ? 'text-slate-900' : 'text-slate-500'}`}>
+                            {d ? formatMoney(d.val, '') : '—'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* 6. Totals Row */}
+                <div className="grid grid-cols-2 bg-slate-50 border-b border-slate-800 divide-x divide-slate-800 font-bold text-[11px] text-slate-900">
+                  <div className="flex justify-between py-2 px-3">
+                    <span>Total Earnings (Gross):</span>
+                    <span>{formatMoney(grossEarnings, '')}</span>
                   </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Employee ID</span>
-                    <span className="text-xs font-semibold text-slate-800">EMP-#{emp.id || '101'}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Designation</span>
-                    <span className="text-xs font-semibold text-slate-800">{emp.jobTitle || 'Senior Software Engineer'}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Department</span>
-                    <span className="text-xs font-semibold text-slate-800">{emp.department || 'Engineering'}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Bank Name</span>
-                    <span className="text-xs font-medium text-slate-700">{c.bankName || emp.bankName || 'HDFC Bank'}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Bank Account</span>
-                    <span className="text-xs font-medium text-slate-700">{c.accountNumberMasked || emp.bankAccountMasked || '•••• •••• 4821'}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">PAN Number</span>
-                    <span className="text-xs font-medium text-slate-700">{emp.panNumber || 'ABCDE1234F'}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Payment Mode</span>
-                    <span className="text-xs font-medium text-slate-700">{c.paymentMode || 'Direct Deposit'}</span>
+                  <div className="flex justify-between py-2 px-3">
+                    <span>Total Deductions:</span>
+                    <span>{formatMoney(totalDeductions, '')}</span>
                   </div>
                 </div>
 
-                {/* Attendance Summary Strip */}
-                <div className="grid grid-cols-3 gap-3 my-5">
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Working Days</span>
-                    <span className="text-base font-black text-slate-900">{c.workingDaysCount || 22}</span>
+                {/* 7. Net Take-Home Pay Box */}
+                <div className="bg-slate-100 py-2.5 px-3 border-b border-slate-800 flex justify-between items-center font-bold text-slate-900">
+                  <span className="text-xs uppercase tracking-wider">NET PAYABLE SALARY:</span>
+                  <span className="text-sm sm:text-base font-black">
+                    {formatMoney(netSalary, currency)}
+                  </span>
+                </div>
+
+                {/* 8. Amount in Words */}
+                <div className="py-2 px-3 border-b border-slate-800 text-xs">
+                  <span className="font-bold text-slate-700 mr-2">Amount in Words:</span>
+                  <span className="font-medium text-slate-900">{numberToWordsINR(netSalary)}</span>
+                </div>
+
+                {/* 9. Payment Advice & Policy Notes */}
+                <div className="p-3 border-b border-slate-800 text-[11px] space-y-1 bg-white">
+                  <div className="font-bold text-slate-900 mb-1">Payment Advice &amp; Policy Notes:</div>
+                  <div className="text-slate-700 pl-2">
+                    • Mode of Transfer: {paymentMode} to {bankName} (A/C: {bankAccount}).
                   </div>
-                  <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100 text-center">
-                    <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Present Days</span>
-                    <span className="text-base font-black text-emerald-800">{c.presentDays || 22}</span>
+                  <div className="text-slate-700 pl-2">
+                    • Daily Calculation Rate: {formatMoney(dailyRate, currency)} per workable day (Base Salary ÷ {workingDays} workable days).
                   </div>
-                  <div className="p-3 bg-rose-50/60 rounded-xl border border-rose-100 text-center">
-                    <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Loss of Pay (LOP)</span>
-                    <span className="text-base font-black text-rose-800">{c.totalLopDays || 0}</span>
+                  <div className="text-slate-700 pl-2">
+                    • Attendance &amp; LOP: Computed strictly on system check-ins. {lopDays} days LOP deduction applied.
+                  </div>
+                  <div className="text-slate-700 pl-2">
+                    • Remarks: {c.remarks || 'Monthly verified computerized payroll statement.'}
                   </div>
                 </div>
 
-                {/* Earnings & Deductions Dual Table */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                  {/* Earnings Table */}
-                  <div className="border border-slate-200 rounded-xl overflow-hidden">
-                    <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex justify-between font-bold text-[10px] text-slate-500 uppercase tracking-wider">
-                      <span>Earnings</span>
-                      <span>Amount</span>
-                    </div>
-                    <div className="divide-y divide-slate-100">
-                      <div className="px-4 py-2.5 flex justify-between">
-                        <span className="text-slate-600">Basic Salary</span>
-                        <span className="font-semibold text-slate-900">₹{basic.toLocaleString('en-IN')}</span>
-                      </div>
-                      <div className="px-4 py-2.5 flex justify-between">
-                        <span className="text-slate-600">House Rent Allowance (HRA)</span>
-                        <span className="font-semibold text-slate-900">₹{hra.toLocaleString('en-IN')}</span>
-                      </div>
-                      <div className="px-4 py-2.5 flex justify-between">
-                        <span className="text-slate-600">Special Allowance</span>
-                        <span className="font-semibold text-slate-900">₹{special.toLocaleString('en-IN')}</span>
-                      </div>
-                      {bonus > 0 && (
-                        <div className="px-4 py-2.5 flex justify-between bg-emerald-50/30">
-                          <span className="text-emerald-700 font-medium">Bonus / Incentives</span>
-                          <span className="font-semibold text-emerald-800">+₹{bonus.toLocaleString('en-IN')}</span>
-                        </div>
-                      )}
-                      {otPay > 0 && (
-                        <div className="px-4 py-2.5 flex justify-between bg-amber-50/30">
-                          <span className="text-amber-700 font-medium">Overtime Pay ({c.overtimeHours || 0}h)</span>
-                          <span className="font-semibold text-amber-800">+₹{otPay.toLocaleString('en-IN')}</span>
-                        </div>
-                      )}
-                      {customEarn.map((item, idx) => (
-                        <div key={idx} className="px-4 py-2.5 flex justify-between bg-indigo-50/30">
-                          <span className="text-indigo-700 font-medium">{item.name}</span>
-                          <span className="font-semibold text-indigo-800">+₹{(Number(item.amount) || 0).toLocaleString('en-IN')}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="bg-slate-50/80 px-4 py-2.5 border-t border-slate-200 flex justify-between font-bold text-slate-900">
-                      <span>Total Earnings (Gross)</span>
-                      <span>₹{grossEarnings.toLocaleString('en-IN')}</span>
-                    </div>
-                  </div>
-
-                  {/* Deductions Table */}
-                  <div className="border border-slate-200 rounded-xl overflow-hidden">
-                    <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex justify-between font-bold text-[10px] text-slate-500 uppercase tracking-wider">
-                      <span>Deductions</span>
-                      <span>Amount</span>
-                    </div>
-                    <div className="divide-y divide-slate-100">
-                      <div className="px-4 py-2.5 flex justify-between">
-                        <span className="text-slate-600">Provident Fund (PF)</span>
-                        <span className="font-semibold text-slate-900">₹{pf.toLocaleString('en-IN')}</span>
-                      </div>
-                      <div className="px-4 py-2.5 flex justify-between">
-                        <span className="text-slate-600">Professional Tax (PT)</span>
-                        <span className="font-semibold text-slate-900">₹{pt.toLocaleString('en-IN')}</span>
-                      </div>
-                      <div className="px-4 py-2.5 flex justify-between">
-                        <span className="text-slate-600">Income Tax (TDS)</span>
-                        <span className="font-semibold text-slate-900">₹{tds.toLocaleString('en-IN')}</span>
-                      </div>
-                      {lop > 0 && (
-                        <div className="px-4 py-2.5 flex justify-between bg-rose-50/30">
-                          <span className="text-rose-700 font-medium">Leave / LOP Deduction</span>
-                          <span className="font-semibold text-rose-800">-₹{lop.toLocaleString('en-IN')}</span>
-                        </div>
-                      )}
-                      {other > 0 && (
-                        <div className="px-4 py-2.5 flex justify-between">
-                          <span className="text-slate-600">Other Deductions</span>
-                          <span className="font-semibold text-slate-900">-₹{other.toLocaleString('en-IN')}</span>
-                        </div>
-                      )}
-                      {customDed.map((item, idx) => (
-                        <div key={idx} className="px-4 py-2.5 flex justify-between bg-rose-50/30">
-                          <span className="text-rose-700 font-medium">{item.name}</span>
-                          <span className="font-semibold text-rose-800">-₹{(Number(item.amount) || 0).toLocaleString('en-IN')}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="bg-slate-50/80 px-4 py-2.5 border-t border-slate-200 flex justify-between font-bold text-rose-700">
-                      <span>Total Deductions</span>
-                      <span>-₹{totalDeductions.toLocaleString('en-IN')}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Net Salary Highlight Box */}
-                <div className="mt-5 p-5 bg-indigo-50/70 border border-indigo-100 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider block">
-                      Net Take-Home Salary
-                    </span>
-                    <span className="text-xs text-slate-500">
-                      (Total Gross Earnings minus Total Statutory Deductions)
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-black text-slate-900">
-                      ₹{netSalary.toLocaleString('en-IN')}
-                    </div>
-                    <div className="text-[11px] font-semibold text-emerald-600">
-                      Disbursed via Direct Bank Transfer
-                    </div>
-                  </div>
+                {/* 10. System Generated Salary Statement Notice */}
+                <div className="text-center py-3 text-xs font-semibold text-slate-700">
+                  System Generated Salary Statement
                 </div>
               </div>
 
-              {/* Signatures & Footer */}
-              <div className="mt-12 pt-8 border-t border-slate-200">
-                <div className="grid grid-cols-2 gap-8 text-center text-xs">
-                  <div>
-                    <div className="h-10 border-b border-dashed border-slate-300 mx-auto w-40" />
-                    <p className="font-bold text-slate-800 mt-2">Employee Signature</p>
-                    <p className="text-[10px] text-slate-400">Date: _______________</p>
-                  </div>
-                  <div>
-                    <div className="h-10 border-b border-dashed border-slate-300 mx-auto w-40" />
-                    <p className="font-bold text-slate-800 mt-2">Authorized Signatory</p>
-                    <p className="text-[10px] text-slate-400">{company?.name || 'HR & Payroll Dept'}</p>
-                  </div>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-slate-100 text-center text-[10px] text-slate-400">
-                  This is a computer-generated salary slip and does not require a physical seal if authenticated electronically.
-                </div>
+              {/* 11. Official Footer */}
+              <div className="text-center text-[10px] text-slate-400 pt-3 border-t border-slate-200">
+                Confidential • Corporate Payroll Record • System Generated by Uptrix HRMS Platform
               </div>
             </div>
           </div>
@@ -441,3 +526,5 @@ export const PayslipPdfDrawer: React.FC<PayslipPdfDrawerProps> = ({
     document.body
   );
 };
+
+export default PayslipPdfDrawer;

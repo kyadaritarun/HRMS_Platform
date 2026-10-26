@@ -60,6 +60,9 @@ export const SalaryMasterPage: React.FC = () => {
     ifscCode: string;
     panNumber: string;
     paymentMode: string;
+    payeeName: string;
+    chequeNumber: string;
+    disbursalNotes: string;
   }>({
     monthlySalary: '',
     currency: 'INR',
@@ -75,6 +78,9 @@ export const SalaryMasterPage: React.FC = () => {
     ifscCode: '',
     panNumber: '',
     paymentMode: 'BANK_TRANSFER',
+    payeeName: '',
+    chequeNumber: '',
+    disbursalNotes: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -137,6 +143,9 @@ export const SalaryMasterPage: React.FC = () => {
       ifscCode: bank.ifscCode || '',
       panNumber: bank.panNumber || '',
       paymentMode: bank.paymentMode || 'BANK_TRANSFER',
+      payeeName: bank.payeeName || `${emp.firstName} ${emp.lastName}`.trim(),
+      chequeNumber: bank.chequeNumber || '',
+      disbursalNotes: bank.disbursalNotes || '',
     });
   };
 
@@ -220,6 +229,9 @@ export const SalaryMasterPage: React.FC = () => {
           ifscCode: editForm.ifscCode,
           panNumber: editForm.panNumber,
           paymentMode: editForm.paymentMode,
+          payeeName: editForm.payeeName,
+          chequeNumber: editForm.chequeNumber,
+          disbursalNotes: editForm.disbursalNotes,
         },
       });
       setSelectedEmp(null);
@@ -282,7 +294,7 @@ export const SalaryMasterPage: React.FC = () => {
                 <th className="px-6 py-3.5">Monthly Base CTC</th>
                 <th className="px-6 py-3.5">Structure Components</th>
                 <th className="px-6 py-3.5">Payment Mode</th>
-                <th className="px-6 py-3.5">Bank Account</th>
+                <th className="px-6 py-3.5">Disbursement Details</th>
                 <th className="px-6 py-3.5 text-right">Action</th>
               </tr>
             </thead>
@@ -354,12 +366,48 @@ export const SalaryMasterPage: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-slate-100 text-slate-700">
-                          {emp.bankDetails?.paymentMode || 'BANK_TRANSFER'}
+                        <span className={`px-2 py-0.5 rounded-md text-xs font-semibold ${
+                          emp.bankDetails?.paymentMode === 'CASH'
+                            ? 'bg-amber-50 text-amber-700 border border-amber-200/60'
+                            : emp.bankDetails?.paymentMode === 'CHEQUE'
+                            ? 'bg-purple-50 text-purple-700 border border-purple-200/60'
+                            : 'bg-slate-100 text-slate-700'
+                        }`}>
+                          {emp.bankDetails?.paymentMode === 'CASH'
+                            ? 'Cash'
+                            : emp.bankDetails?.paymentMode === 'CHEQUE'
+                            ? 'Cheque'
+                            : 'Bank Transfer'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 font-mono text-xs text-slate-600">
-                        {emp.bankDetails?.accountNumber || '—'}
+                      <td className="px-6 py-4 text-xs text-slate-600">
+                        {emp.bankDetails?.paymentMode === 'CASH' ? (
+                          <div className="flex items-center gap-1.5 text-slate-600">
+                            <IconCash className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                            <span className="italic">{emp.bankDetails?.disbursalNotes || 'Cash Voucher'}</span>
+                          </div>
+                        ) : emp.bankDetails?.paymentMode === 'CHEQUE' ? (
+                          <div>
+                            <div className="font-medium text-slate-800 flex items-center gap-1.5">
+                              <IconReceipt2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                              <span>{emp.bankDetails?.payeeName || `${emp.firstName} ${emp.lastName}`}</span>
+                            </div>
+                            {emp.bankDetails?.chequeNumber && (
+                              <span className="block font-mono text-[11px] text-slate-400">
+                                Cheque #{emp.bankDetails.chequeNumber} {emp.bankDetails?.bankName ? `(${emp.bankDetails.bankName})` : ''}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="font-mono text-slate-700">{emp.bankDetails?.accountNumber || '—'}</span>
+                            {emp.bankDetails?.bankName && (
+                              <span className="block font-sans text-[11px] text-slate-400">
+                                {emp.bankDetails.bankName} {emp.bankDetails?.ifscCode ? `• ${emp.bankDetails.ifscCode}` : ''}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <button
@@ -815,15 +863,33 @@ export const SalaryMasterPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Banking Coordinates */}
+              {/* Disbursement Coordinates */}
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <IconBuilding className="w-4 h-4 text-slate-500" />
-                    Banking & Disbursement Coordinates
+                    {editForm.paymentMode === 'CASH' ? (
+                      <IconCash className="w-4 h-4 text-amber-600" />
+                    ) : editForm.paymentMode === 'CHEQUE' ? (
+                      <IconReceipt2 className="w-4 h-4 text-purple-600" />
+                    ) : (
+                      <IconBuilding className="w-4 h-4 text-indigo-600" />
+                    )}
+                    {editForm.paymentMode === 'CASH'
+                      ? 'Cash Disbursement Coordinates'
+                      : editForm.paymentMode === 'CHEQUE'
+                      ? 'Cheque Disbursement Coordinates'
+                      : 'Banking & Direct Deposit Coordinates'}
                   </span>
-                  <span className="text-[10px] text-slate-400 font-medium">Used for direct monthly payroll transfers</span>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    {editForm.paymentMode === 'CASH'
+                      ? 'Disbursed via cash counter or voucher'
+                      : editForm.paymentMode === 'CHEQUE'
+                      ? 'Issued via physical/corporate crossed cheque'
+                      : 'Used for direct monthly bank wire transfers'}
+                  </span>
                 </div>
+
+                {/* Mode Selector and Primary Field */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-600 mb-1">Payment Mode</label>
@@ -837,51 +903,142 @@ export const SalaryMasterPage: React.FC = () => {
                       <option value="CASH">Cash</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Bank Name</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. HDFC Bank"
-                      value={editForm.bankName}
-                      onChange={(e) => setEditForm({ ...editForm, bankName: e.target.value })}
-                      className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-800 font-medium"
-                    />
-                  </div>
+
+                  {editForm.paymentMode === 'BANK_TRANSFER' && (
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">Bank Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. HDFC Bank"
+                        value={editForm.bankName}
+                        onChange={(e) => setEditForm({ ...editForm, bankName: e.target.value })}
+                        className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-800 font-medium"
+                      />
+                    </div>
+                  )}
+
+                  {editForm.paymentMode === 'CHEQUE' && (
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">Payee Name (as on Cheque)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. John Doe"
+                        value={editForm.payeeName}
+                        onChange={(e) => setEditForm({ ...editForm, payeeName: e.target.value })}
+                        className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-800 font-medium"
+                      />
+                    </div>
+                  )}
+
+                  {editForm.paymentMode === 'CASH' && (
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">PAN Number</label>
+                      <input
+                        type="text"
+                        placeholder="ABCDE1234F"
+                        value={editForm.panNumber}
+                        onChange={(e) => setEditForm({ ...editForm, panNumber: e.target.value.toUpperCase() })}
+                        className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 font-mono text-slate-800 font-medium uppercase"
+                      />
+                    </div>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Account Number</label>
-                    <input
-                      type="text"
-                      placeholder="1234567890"
-                      value={editForm.accountNumber}
-                      onChange={(e) => setEditForm({ ...editForm, accountNumber: e.target.value })}
-                      className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 font-mono text-slate-800 font-medium"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">IFSC / Routing Code</label>
-                    <input
-                      type="text"
-                      placeholder="HDFC0001234"
-                      value={editForm.ifscCode}
-                      onChange={(e) => setEditForm({ ...editForm, ifscCode: e.target.value.toUpperCase() })}
-                      className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 font-mono text-slate-800 font-medium uppercase"
-                    />
-                  </div>
-                </div>
+                {/* BANK_TRANSFER secondary fields */}
+                {editForm.paymentMode === 'BANK_TRANSFER' && (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">Account Number</label>
+                        <input
+                          type="text"
+                          placeholder="1234567890"
+                          value={editForm.accountNumber}
+                          onChange={(e) => setEditForm({ ...editForm, accountNumber: e.target.value })}
+                          className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 font-mono text-slate-800 font-medium"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">IFSC / Routing Code</label>
+                        <input
+                          type="text"
+                          placeholder="HDFC0001234"
+                          value={editForm.ifscCode}
+                          onChange={(e) => setEditForm({ ...editForm, ifscCode: e.target.value.toUpperCase() })}
+                          className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 font-mono text-slate-800 font-medium uppercase"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">PAN Number</label>
+                      <input
+                        type="text"
+                        placeholder="ABCDE1234F"
+                        value={editForm.panNumber}
+                        onChange={(e) => setEditForm({ ...editForm, panNumber: e.target.value.toUpperCase() })}
+                        className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 font-mono text-slate-800 font-medium uppercase"
+                      />
+                    </div>
+                  </>
+                )}
 
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">PAN Number</label>
-                  <input
-                    type="text"
-                    placeholder="ABCDE1234F"
-                    value={editForm.panNumber}
-                    onChange={(e) => setEditForm({ ...editForm, panNumber: e.target.value.toUpperCase() })}
-                    className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 font-mono text-slate-800 font-medium uppercase"
-                  />
-                </div>
+                {/* CHEQUE secondary fields */}
+                {editForm.paymentMode === 'CHEQUE' && (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">Bank Name (Issuing / Drawee Bank)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. HDFC Bank"
+                          value={editForm.bankName}
+                          onChange={(e) => setEditForm({ ...editForm, bankName: e.target.value })}
+                          className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-800 font-medium"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">Cheque Number / Reference</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. CHQ-004120"
+                          value={editForm.chequeNumber}
+                          onChange={(e) => setEditForm({ ...editForm, chequeNumber: e.target.value })}
+                          className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 font-mono text-slate-800 font-medium uppercase"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">PAN Number</label>
+                      <input
+                        type="text"
+                        placeholder="ABCDE1234F"
+                        value={editForm.panNumber}
+                        onChange={(e) => setEditForm({ ...editForm, panNumber: e.target.value.toUpperCase() })}
+                        className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 font-mono text-slate-800 font-medium uppercase"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* CASH secondary fields */}
+                {editForm.paymentMode === 'CASH' && (
+                  <>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">Disbursal Notes / Voucher No</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Cash Counter Disbursal / Voucher #CSH-0081"
+                        value={editForm.disbursalNotes}
+                        onChange={(e) => setEditForm({ ...editForm, disbursalNotes: e.target.value })}
+                        className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-800 font-medium"
+                      />
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/60 text-[11px] text-amber-800 flex items-center gap-2">
+                      <IconCash className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>Cash payment mode active. Bank account number and IFSC routing are not required for cash payouts.</span>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">

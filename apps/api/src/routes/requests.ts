@@ -200,6 +200,56 @@ router.patch('/:id/cancel', async (req, res, next) => {
   }
 });
 
+// PUT /requests/:id (Edit pending request)
+router.put('/:id', async (req, res, next) => {
+  try {
+    const userId = req.user!.id;
+    const companyId = req.user!.companyId!;
+    const requestId = Number(req.params.id);
+    const { leaveTypeId, startDate, endDate, reason, title, meta } = req.body;
+
+    const request = await prisma.request.findFirst({
+      where: { id: requestId, companyId },
+    });
+
+    if (!request) {
+      return next(new AppError(404, 'NOT_FOUND', 'Request not found'));
+    }
+
+    if (request.userId !== userId) {
+      return next(new AppError(403, 'FORBIDDEN', 'You can only edit your own requests'));
+    }
+
+    if (request.status !== 'PENDING') {
+      return next(new AppError(400, 'CANNOT_EDIT', 'Only pending requests can be edited'));
+    }
+
+    const data: any = {};
+    if (reason !== undefined) data.reason = reason;
+    if (title !== undefined) data.title = title;
+    if (startDate !== undefined) data.startDate = new Date(startDate);
+    if (endDate !== undefined) data.endDate = new Date(endDate);
+    if (leaveTypeId !== undefined) data.leaveTypeId = Number(leaveTypeId);
+    if (meta !== undefined) data.meta = meta;
+
+    if (startDate && endDate) {
+      const s = new Date(startDate);
+      const e = new Date(endDate);
+      const diffDays = Math.max(1, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+      data.days = diffDays;
+    }
+
+    const updated = await prisma.request.update({
+      where: { id: requestId },
+      data,
+    });
+
+    return res.json({ success: true, request: updated });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // PATCH /requests/:id/pay (Claims payment)
 router.patch('/:id/pay', roleGuard('COMPANY_ADMIN', 'HR'), async (req, res, next) => {
   try {

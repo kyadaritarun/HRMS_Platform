@@ -93,30 +93,27 @@ export function generatePayslipPdf(data: {
       const rightX = 555;
       const contentW = 515;
 
-      // 1. Formal Master Border
+      // 1. Master Border Top
       const topY = 35;
-      const bottomY = 745;
-      const totalH = bottomY - topY;
-      doc.rect(leftX, topY, contentW, totalH).lineWidth(1).strokeColor('#1E293B').stroke();
 
       // 2. Company Header
       doc.font('Helvetica-Bold').fontSize(16).fillColor('#0F172A').text(data.companyName.toUpperCase(), leftX, 48, { width: contentW, align: 'center' });
-      doc.font('Helvetica').fontSize(8).fillColor('#475569').text('Registered Office • Corporate Human Resources & Payroll Division', leftX, 68, { width: contentW, align: 'center' });
 
       // Title Sub-Banner
-      doc.rect(leftX, 80, contentW, 20).fill('#F1F5F9');
-      doc.moveTo(leftX, 80).lineTo(rightX, 80).lineWidth(1).strokeColor('#1E293B').stroke();
-      doc.moveTo(leftX, 100).lineTo(rightX, 100).lineWidth(1).strokeColor('#1E293B').stroke();
+      const bannerY = 74;
+      doc.rect(leftX, bannerY, contentW, 20).fill('#F1F5F9');
+      doc.moveTo(leftX, bannerY).lineTo(rightX, bannerY).lineWidth(1).strokeColor('#1E293B').stroke();
+      doc.moveTo(leftX, bannerY + 20).lineTo(rightX, bannerY + 20).lineWidth(1).strokeColor('#1E293B').stroke();
 
       doc.font('Helvetica-Bold').fontSize(9).fillColor('#0F172A').text(
         `PAYSLIP FOR THE MONTH OF ${monthStr.toUpperCase()} ${data.year}`,
         leftX,
-        86,
+        bannerY + 6,
         { width: contentW, align: 'center' }
       );
 
-      // 3. Employee & Working Days Structured Matrix (Formal Corporate Grid)
-      const empGridStartY = 100;
+      // 3. Employee Structured Matrix (Formal Corporate Grid)
+      const empGridStartY = bannerY + 20;
       const rowHeight = 18;
       const col1LabelW = 95;
       const col1ValW = 160;
@@ -143,18 +140,6 @@ export function generatePayslipPdf(data: {
         [
           { label: 'Payment Mode:', val: toTitleCase(data.snapshot.paymentMode || 'Bank Transfer') },
           { label: 'Pay Period:', val: `${monthStr} ${data.year}` }
-        ],
-        [
-          { label: 'Calendar Days:', val: String(data.snapshot.totalCalendarDays || 30) },
-          { label: 'Workable Days:', val: String(data.snapshot.workingDaysCount || 22) }
-        ],
-        [
-          { label: 'Present Days:', val: String(data.snapshot.presentDays || 0) },
-          { label: 'Paid Leaves:', val: String(data.snapshot.paidLeaveDays || 0) }
-        ],
-        [
-          { label: 'LOP (Absent) Days:', val: String(data.snapshot.totalLopDays || 0) },
-          { label: 'Overtime Hours:', val: `${(data.snapshot as any).overtimeHours || 0} hrs` }
         ]
       ];
 
@@ -293,33 +278,26 @@ export function generatePayslipPdf(data: {
         .text(`• Attendance & LOP: Computed strictly on system check-ins. ${data.snapshot.totalLopDays || 0} days LOP deduction applied.`, leftX + 8, remarksY + 46, { width: 495 })
         .text(`• Remarks: ${data.snapshot.remarks || 'Monthly verified computerized payroll statement.'}`, leftX + 8, remarksY + 58, { width: 495 });
 
-      // 9. Signatures Block
-      const sigY = remarksY + remarksH; // 484
-      const sigH = 100;
-      doc.moveTo(leftX, sigY + sigH).lineTo(rightX, sigY + sigH).lineWidth(1).strokeColor('#1E293B').stroke();
-
-      // Left: Employer
-      doc.font('Helvetica-Bold').fontSize(8).fillColor('#0F172A').text(`For ${data.companyName.toUpperCase()}`, leftX + 25, sigY + 16);
-      doc.font('Helvetica-Oblique').fontSize(7).fillColor('#64748B').text('Authenticated by Uptrix HRMS Platform', leftX + 25, sigY + 55);
-      doc.moveTo(leftX + 25, sigY + 72).lineTo(leftX + 195, sigY + 72).lineWidth(0.5).strokeColor('#64748B').stroke();
-      doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#334155').text('Authorised Signatory', leftX + 25, sigY + 77);
-
-      // Right: Employee
-      doc.moveTo(rightX - 195, sigY + 72).lineTo(rightX - 25, sigY + 72).lineWidth(0.5).strokeColor('#64748B').stroke();
-      doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#334155').text('Employee Signature', rightX - 195, sigY + 77, { width: 170, align: 'center' });
-
-      // 10. Official Footer Note
-      const footerY = sigY + sigH; // 584
-      doc.font('Helvetica-Oblique').fontSize(7).fillColor('#64748B').text(
-        '* This is a computer-generated salary slip and does not require a physical signature.',
+      // 9. System Generated Authorization Notice (One line, no box)
+      const noticeY = remarksY + remarksH;
+      const noticeH = 26;
+      doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#334155').text(
+        'System Generated Salary Statement',
         leftX,
-        footerY + 10,
+        noticeY + 8,
         { width: contentW, align: 'center' }
       );
+
+      // Master Outer Border
+      const masterBottomY = noticeY + noticeH;
+      doc.rect(leftX, topY, contentW, masterBottomY - topY).lineWidth(1).strokeColor('#1E293B').stroke();
+
+      // 10. Official Footer Note
+      const footerY = masterBottomY;
       doc.font('Helvetica').fontSize(6.5).fillColor('#94A3B8').text(
         'Confidential • Corporate Payroll Record • System Generated by Uptrix HRMS Platform',
         leftX,
-        footerY + 22,
+        footerY + 12,
         { width: contentW, align: 'center' }
       );
 

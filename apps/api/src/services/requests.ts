@@ -399,38 +399,109 @@ export async function decideRequest(opts: {
       // Side effect for REGULARIZATION: create or update attendance
       if (request.type === 'REGULARIZATION' && request.startDate) {
         const meta = (request.meta as any) || {};
-        const checkInTimeStr = meta.requestedCheckIn || '09:00';
-        const checkOutTimeStr = meta.requestedCheckOut || '18:00';
+        const regularizeType =
+          meta.regularizeType ||
+          (meta.requestedCheckOut && meta.requestedCheckIn
+            ? 'BOTH'
+            : meta.requestedCheckIn
+            ? 'CHECK_IN_ONLY'
+            : meta.requestedCheckOut
+            ? 'CHECK_OUT_ONLY'
+            : 'BOTH');
 
-        const [cinH, cinM] = checkInTimeStr.split(':').map(Number);
-        const [coutH, coutM] = checkOutTimeStr.split(':').map(Number);
+        const startDate = new Date(request.startDate);
+        const startOfDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0, 0);
+        const endOfDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 23, 59, 59, 999);
 
-        const checkIn = new Date(request.startDate);
-        checkIn.setUTCHours(cinH, cinM, 0, 0);
-
-        const checkOut = new Date(request.startDate);
-        checkOut.setUTCHours(coutH, coutM, 0, 0);
-
-        const durationHours = Math.round(((checkOut.getTime() - checkIn.getTime()) / 3600000) * 100) / 100;
-
-        const att = await tx.attendance.create({
-          data: {
-            companyId: opts.companyId,
+        // Check if an attendance record already exists for this date
+        const existingAtt = await tx.attendance.findFirst({
+          where: {
             userId: request.userId,
-            checkIn,
-            checkOut,
-            durationHours: durationHours > 0 ? durationHours : 8,
-            note: `Regularized per request #${request.id}: ${request.reason}`,
+            companyId: opts.companyId,
+            checkIn: { gte: startOfDay, lte: endOfDay },
           },
+          orderBy: { checkIn: 'desc' },
         });
 
-        // Store applied attendance id in meta
-        await tx.request.update({
-          where: { id: request.id },
-          data: {
-            meta: { ...meta, appliedAttendanceId: att.id },
-          },
-        });
+        if (existingAtt) {
+          let newCheckIn = existingAtt.checkIn;
+          let newCheckOut = existingAtt.checkOut;
+
+          if (meta.requestedCheckIn && regularizeType !== 'CHECK_OUT_ONLY') {
+            const [cinH, cinM] = String(meta.requestedCheckIn).split(':').map(Number);
+            newCheckIn = new Date(request.startDate);
+            newCheckIn.setUTCHours(cinH, cinM, 0, 0);
+          }
+
+          if (meta.requestedCheckOut && regularizeType !== 'CHECK_IN_ONLY') {
+            const [coutH, coutM] = String(meta.requestedCheckOut).split(':').map(Number);
+            newCheckOut = new Date(request.startDate);
+            newCheckOut.setUTCHours(coutH, coutM, 0, 0);
+          }
+
+          let newDuration = Number(existingAtt.durationHours);
+          if (newCheckIn && newCheckOut) {
+            newDuration = Math.round(((newCheckOut.getTime() - newCheckIn.getTime()) / 3600000) * 100) / 100;
+          }
+
+          const updatedAtt = await tx.attendance.update({
+            where: { id: existingAtt.id },
+            data: {
+              checkIn: newCheckIn,
+              checkOut: newCheckOut,
+              durationHours: newDuration > 0 ? newDuration : existingAtt.durationHours,
+              note: existingAtt.note
+                ? `${existingAtt.note} | Regularized per request #${request.id}: ${request.reason}`
+                : `Regularized per request #${request.id}: ${request.reason}`,
+            },
+          });
+
+          await tx.request.update({
+            where: { id: request.id },
+            data: {
+              meta: { ...meta, appliedAttendanceId: updatedAtt.id },
+            },
+          });
+        } else {
+          // No record exists: create a new attendance record
+          const checkInTimeStr = meta.requestedCheckIn || '09:00';
+          const [cinH, cinM] = checkInTimeStr.split(':').map(Number);
+          const checkIn = new Date(request.startDate);
+          checkIn.setUTCHours(cinH, cinM, 0, 0);
+
+          let checkOut: Date | null = null;
+          let durationHours = 0;
+
+          if (meta.requestedCheckOut && regularizeType !== 'CHECK_IN_ONLY') {
+            const [coutH, coutM] = String(meta.requestedCheckOut).split(':').map(Number);
+            checkOut = new Date(request.startDate);
+            checkOut.setUTCHours(coutH, coutM, 0, 0);
+            durationHours = Math.round(((checkOut.getTime() - checkIn.getTime()) / 3600000) * 100) / 100;
+          } else if (regularizeType === 'BOTH') {
+            const [coutH, coutM] = '18:00'.split(':').map(Number);
+            checkOut = new Date(request.startDate);
+            checkOut.setUTCHours(coutH, coutM, 0, 0);
+            durationHours = Math.round(((checkOut.getTime() - checkIn.getTime()) / 3600000) * 100) / 100;
+          }
+
+          const att = await tx.attendance.create({
+            data: {
+              companyId: opts.companyId,
+              userId: request.userId,
+              checkIn,
+              checkOut,
+              durationHours: durationHours > 0 ? durationHours : 8,
+              note: `Regularized per request #${request.id}: ${request.reason}`,
+            },
+          });
+
+          await tx.request.update({
+            where: { id: request.id },
+            data: {
+              meta: { ...meta, appliedAttendanceId: att.id },
+            },
+          });
+        }
       }
     }
 

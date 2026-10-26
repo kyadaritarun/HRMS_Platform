@@ -14,6 +14,10 @@ import {
   IconBriefcase,
   IconFileText,
   IconChevronDown,
+  IconEye,
+  IconEdit,
+  IconPaperclip,
+  IconExternalLink,
 } from '@tabler/icons-react';
 
 interface RequestItem {
@@ -29,6 +33,8 @@ interface RequestItem {
   createdAt: string;
   leaveType?: { id?: number; name: string; code: string };
   approver?: { firstName: string; lastName: string };
+  decisionNote?: string;
+  meta?: any;
 }
 
 interface LeaveQuota {
@@ -58,23 +64,34 @@ export const MyLeavesPage: React.FC = () => {
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [editingReqId, setEditingReqId] = useState<number | null>(null);
+  const [viewReq, setViewReq] = useState<RequestItem | null>(null);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedTypeFilter]);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    leaveTypeId: string;
+    startDate: string;
+    endDate: string;
+    reason: string;
+    attachmentUrl?: string;
+    attachmentName?: string;
+  }>({
     leaveTypeId: '',
     startDate: new Date().toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0],
     reason: '',
+    attachmentUrl: '',
+    attachmentName: '',
   });
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
       const [reqRes, typesRes] = await Promise.all([
-        api.get('/requests?type=LEAVE&scope=mine'),
+        api.get('/requests?type=LEAVE&scope=mine&pageSize=100'),
         api.get('/company/leave-types'),
       ]);
       setRequests(reqRes.data?.items || []);
@@ -90,26 +107,84 @@ export const MyLeavesPage: React.FC = () => {
     fetchData();
   }, []);
 
+  const handleOpenNew = () => {
+    setEditingReqId(null);
+    setForm({
+      leaveTypeId: '',
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: new Date().toISOString().split('T')[0],
+      reason: '',
+      attachmentUrl: '',
+      attachmentName: '',
+    });
+    setError(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (req: RequestItem) => {
+    setEditingReqId(req.id);
+    const meta = (req as any).meta || {};
+    setForm({
+      leaveTypeId: String((req as any).leaveTypeId || req.leaveType?.id || ''),
+      startDate: req.startDate ? req.startDate.split('T')[0] : new Date().toISOString().split('T')[0],
+      endDate: req.endDate ? req.endDate.split('T')[0] : new Date().toISOString().split('T')[0],
+      reason: req.reason || '',
+      attachmentUrl: meta.attachmentUrl || '',
+      attachmentName: meta.attachmentName || '',
+    });
+    setError(null);
+    setIsModalOpen(true);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setForm((prev) => ({
+        ...prev,
+        attachmentUrl: reader.result as string,
+        attachmentName: file.name,
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.leaveTypeId || !form.reason.trim()) return;
     setError(null);
     setIsSubmitting(true);
     try {
-      await api.post('/requests', {
+      const payload: any = {
         type: 'LEAVE',
         leaveTypeId: Number(form.leaveTypeId),
         startDate: form.startDate,
         endDate: form.endDate,
         reason: form.reason.trim(),
         title: `Leave application (${form.startDate} to ${form.endDate})`,
-      });
+        meta: {
+          attachmentUrl: form.attachmentUrl || undefined,
+          attachmentName: form.attachmentName || undefined,
+        },
+      };
+
+      if (editingReqId) {
+        await api.put(`/requests/${editingReqId}`, payload);
+      } else {
+        await api.post('/requests', payload);
+      }
+
       setIsModalOpen(false);
+      setEditingReqId(null);
       setForm({
         leaveTypeId: '',
         startDate: new Date().toISOString().split('T')[0],
         endDate: new Date().toISOString().split('T')[0],
         reason: '',
+        attachmentUrl: '',
+        attachmentName: '',
       });
       fetchData();
     } catch (err: any) {
@@ -127,6 +202,21 @@ export const MyLeavesPage: React.FC = () => {
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to cancel request');
     }
+  };
+
+  const formatDateRange = (start?: string, end?: string) => {
+    if (!start) return '—';
+    const s = new Date(start);
+    const e = end ? new Date(end) : s;
+    const sMonth = s.toLocaleString('en-US', { month: 'short' });
+    const sDay = s.getDate();
+    const eMonth = e.toLocaleString('en-US', { month: 'short' });
+    const eDay = e.getDate();
+
+    if (start.split('T')[0] === (end ? end.split('T')[0] : start.split('T')[0])) {
+      return `${sMonth} ${sDay}`;
+    }
+    return `${sMonth} ${sDay} - ${eMonth} ${eDay}`;
   };
 
   const getStatusBadge = (status: string) => {
@@ -152,7 +242,7 @@ export const MyLeavesPage: React.FC = () => {
       default:
         return (
           <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-            Pending Review
+            Pending
           </span>
         );
     }
@@ -271,12 +361,8 @@ export const MyLeavesPage: React.FC = () => {
         used = Number(apiType.used);
       }
 
-      // Remaining balance: must reflect allowed - used (updating whenever company leave policy changes)
-      let remaining = Math.max(0, allowed - used);
-      if (apiType?.balance !== undefined) {
-        const b = Number(apiType.balance);
-        remaining = b <= allowed ? b : Math.max(0, allowed - used);
-      }
+      // Remaining balance: directly reflects allowed minus approved used
+      const remaining = Math.max(0, allowed - used);
 
       return {
         ...base,
@@ -353,7 +439,7 @@ export const MyLeavesPage: React.FC = () => {
         </div>
 
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={handleOpenNew}
           className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 transition-all active:scale-[0.98] cursor-pointer"
         >
           <IconPlus className="w-4 h-4" />
@@ -516,11 +602,9 @@ export const MyLeavesPage: React.FC = () => {
             <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
                 <th className="px-6 py-3.5">Leave Type</th>
-                <th className="px-6 py-3.5">Dates Duration</th>
-                <th className="px-6 py-3.5">Days</th>
-                <th className="px-6 py-3.5">Reason</th>
+                <th className="px-6 py-3.5">Date</th>
                 <th className="px-6 py-3.5">Status</th>
-                <th className="px-6 py-3.5">Approver</th>
+                <th className="px-6 py-3.5">Approver Name</th>
                 <th className="px-6 py-3.5 text-right">Action</th>
               </tr>
             </thead>
@@ -529,31 +613,25 @@ export const MyLeavesPage: React.FC = () => {
                 Array.from({ length: 3 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
                     <td className="px-6 py-4">
+                      <div className="w-28 h-4 bg-slate-200 rounded-sm" />
+                    </td>
+                    <td className="px-6 py-4">
                       <div className="w-24 h-4 bg-slate-200 rounded-sm" />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="w-32 h-4 bg-slate-200 rounded-sm" />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="w-12 h-4 bg-slate-200 rounded-sm" />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="w-40 h-4 bg-slate-100 rounded-sm" />
                     </td>
                     <td className="px-6 py-4">
                       <div className="w-20 h-4 bg-slate-200 rounded-full" />
                     </td>
                     <td className="px-6 py-4">
-                      <div className="w-20 h-4 bg-slate-200 rounded-sm" />
+                      <div className="w-28 h-4 bg-slate-200 rounded-sm" />
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="w-12 h-4 bg-slate-200 rounded-sm ml-auto" />
+                      <div className="w-16 h-4 bg-slate-200 rounded-sm ml-auto" />
                     </td>
                   </tr>
                 ))
               ) : filteredRequests.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-14 text-center">
+                  <td colSpan={5} className="px-6 py-14 text-center">
                     <div className="w-12 h-12 rounded-full bg-indigo-50 text-[#5E4BE2] mx-auto flex items-center justify-center mb-3">
                       <IconFileText className="w-6 h-6" />
                     </div>
@@ -566,37 +644,54 @@ export const MyLeavesPage: React.FC = () => {
               ) : (
                 paginatedRequests.map((req) => (
                   <tr key={req.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-6 py-4 font-semibold text-slate-900">
-                      <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700 mr-2">
-                        {req.leaveType?.code || 'LV'}
-                      </span>
-                      {req.leaveType?.name || 'General Leave'}
+                    <td className="px-6 py-4 font-bold text-slate-900 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <span>{req.leaveType?.name || 'Casual Leave'}</span>
+                        {req.meta?.attachmentUrl && (
+                          <span
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-indigo-50 border border-indigo-200/80 text-[#5E4BE2] text-[10px] font-bold shrink-0"
+                            title={`Attached: ${req.meta.attachmentName || 'Document'}`}
+                          >
+                            <IconPaperclip className="w-3 h-3" />
+                            <span>Doc</span>
+                          </span>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-xs font-medium text-slate-700">
-                      {req.startDate ? new Date(req.startDate).toLocaleDateString() : 'N/A'} —{' '}
-                      {req.endDate ? new Date(req.endDate).toLocaleDateString() : 'N/A'}
+                    <td className="px-6 py-4 text-xs font-semibold text-slate-700 whitespace-nowrap">
+                      {formatDateRange(req.startDate, req.endDate)}
                     </td>
-                    <td className="px-6 py-4 font-bold text-slate-900">
-                      {req.days ? `${req.days} d` : '1 d'}
-                    </td>
-                    <td className="px-6 py-4 text-xs text-slate-600 max-w-xs truncate">
-                      {req.reason}
-                    </td>
-                    <td className="px-6 py-4">{getStatusBadge(req.status)}</td>
-                    <td className="px-6 py-4 text-xs text-slate-600">
+                    <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(req.status)}</td>
+                    <td className="px-6 py-4 text-xs text-slate-600 font-medium whitespace-nowrap">
                       {req.approver
                         ? `${req.approver.firstName} ${req.approver.lastName}`
                         : 'Reporting Manager'}
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      {req.status === 'PENDING' && (
+                    <td className="px-6 py-4 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {req.status === 'PENDING' && (
+                          <>
+                            <button
+                              onClick={() => handleOpenEdit(req)}
+                              className="px-2.5 py-1 text-xs font-bold text-[#5E4BE2] hover:bg-indigo-50 border border-indigo-200/80 rounded-lg transition-colors cursor-pointer"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleCancel(req.id)}
+                              className="px-2.5 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200/80 rounded-lg transition-colors cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
                         <button
-                          onClick={() => handleCancel(req.id)}
-                          className="px-2.5 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                          onClick={() => setViewReq(req)}
+                          className="px-2.5 py-1 text-xs font-bold text-slate-600 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors cursor-pointer"
                         >
-                          Cancel
+                          View
                         </button>
-                      )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -619,7 +714,7 @@ export const MyLeavesPage: React.FC = () => {
         />
       </div>
 
-      {/* Apply for Leave Right-Side Slide-Over Drawer */}
+      {/* Apply / Edit Leave Right-Side Slide-Over Drawer */}
       {isModalOpen && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[9999] overflow-hidden">
           <div
@@ -638,8 +733,12 @@ export const MyLeavesPage: React.FC = () => {
                     <IconCalendarEvent className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="text-base font-bold text-slate-900">Apply for Leave</h2>
-                    <p className="text-xs text-slate-400 font-medium">Submit leave application to your manager</p>
+                    <h2 className="text-base font-bold text-slate-900">
+                      {editingReqId ? 'Edit Leave Application' : 'Apply for Leave'}
+                    </h2>
+                    <p className="text-xs text-slate-400 font-medium">
+                      {editingReqId ? 'Update your pending request details' : 'Submit leave application to your manager'}
+                    </p>
                   </div>
                 </div>
                 <button
@@ -660,30 +759,78 @@ export const MyLeavesPage: React.FC = () => {
                     </div>
                   )}
 
+                  {/* Live Balance Summary Chips */}
+                  <div className="space-y-1.5">
+                    <span className="text-[11px] font-bold text-slate-500 block uppercase tracking-wider">
+                      Available Leave Balances
+                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {mappedQuotas.map((q) => {
+                        const matchedLt = leaveTypes.find(
+                          (lt) =>
+                            lt.code?.toUpperCase() === q.code ||
+                            lt.name?.toLowerCase().includes(q.name.toLowerCase().split(' ')[0])
+                        );
+                        const isSelected = String(matchedLt?.id) === form.leaveTypeId;
+                        return (
+                          <div
+                            key={q.code}
+                            onClick={() => {
+                              if (matchedLt) setForm((prev) => ({ ...prev, leaveTypeId: String(matchedLt.id) }));
+                            }}
+                            className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-indigo-50/70 border-[#5E4BE2] ring-1 ring-[#5E4BE2]/30 shadow-2xs'
+                                : 'bg-slate-50 border-slate-200/80 hover:bg-white hover:border-slate-300'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-slate-800">{q.name}</span>
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white border border-slate-200 text-slate-600">
+                                {q.code}
+                              </span>
+                            </div>
+                            <div className="text-sm font-black text-[#5E4BE2] mt-1">
+                              {q.remaining}{' '}
+                              <span className="text-[11px] font-semibold text-slate-400 font-sans">left</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Leave Policy Category *
+                      Leave Category *
                     </label>
                     <select
                       required
                       value={form.leaveTypeId}
                       onChange={(e) => setForm({ ...form, leaveTypeId: e.target.value })}
-                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800"
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800 cursor-pointer"
                     >
-                      <option value="">Select leave type</option>
-                      {leaveTypes.map((lt) => (
-                        <option key={lt.id} value={lt.id}>
-                          {lt.name} ({lt.code}) — {lt.daysAllowed} days/yr
-                        </option>
-                      ))}
+                      <option value="">Select leave category</option>
+                      {leaveTypes.map((lt) => {
+                        const q = mappedQuotas.find(
+                          (mq) =>
+                            mq.code === lt.code?.toUpperCase() ||
+                            lt.name?.toLowerCase().includes(mq.name.toLowerCase().split(' ')[0])
+                        );
+                        return (
+                          <option key={lt.id} value={lt.id}>
+                            {lt.name} {q ? `(${q.remaining} remaining)` : ''}
+                          </option>
+                        );
+                      })}
                       {/* Fallbacks if leaveTypes empty */}
                       {leaveTypes.length === 0 && (
                         <>
-                          <option value="1">Casual Leave (CL) — 15 days/yr</option>
-                          <option value="2">Sick Leave (SL) — 15 days/yr</option>
-                          <option value="3">Earned Leave (EL) — 20 days/yr</option>
-                          <option value="4">Floater Holiday (FH) — 5 days/yr</option>
-                          <option value="5">Comp Off (CO) — 5 days/yr</option>
+                          <option value="1">Casual Leave (15 remaining)</option>
+                          <option value="2">Sick Leave (15 remaining)</option>
+                          <option value="3">Earned Leave (20 remaining)</option>
+                          <option value="4">Floater Holiday (5 remaining)</option>
+                          <option value="5">Comp Off (5 remaining)</option>
                         </>
                       )}
                     </select>
@@ -722,12 +869,30 @@ export const MyLeavesPage: React.FC = () => {
                     </label>
                     <textarea
                       required
-                      rows={4}
+                      rows={3}
                       placeholder="Provide context for your manager..."
                       value={form.reason}
                       onChange={(e) => setForm({ ...form, reason: e.target.value })}
                       className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800 resize-none"
                     />
+                  </div>
+
+                  {/* Attachment Field */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Attachment (Medical note, travel receipt, etc.)
+                    </label>
+                    <input
+                      type="file"
+                      onChange={handleFileChange}
+                      className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-[#5E4BE2] hover:file:bg-indigo-100 cursor-pointer"
+                    />
+                    {form.attachmentName && (
+                      <p className="text-[11px] text-slate-600 mt-1 flex items-center gap-1 font-medium">
+                        <IconPaperclip className="w-3.5 h-3.5 text-[#5E4BE2]" />
+                        <span>Attached: {form.attachmentName}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -745,10 +910,127 @@ export const MyLeavesPage: React.FC = () => {
                     disabled={isSubmitting}
                     className="px-5 py-2.5 text-xs font-bold rounded-xl bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white shadow-xs disabled:opacity-50 cursor-pointer"
                   >
-                    {isSubmitting ? 'Submitting...' : 'Submit Application'}
+                    {isSubmitting ? 'Submitting...' : 'Submit'}
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* View Leave Request Drawer */}
+      {viewReq && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] overflow-hidden">
+          <div
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setViewReq(null)}
+          />
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+            <div
+              className="w-screen max-w-md bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 pointer-events-auto animate-in slide-in-from-right duration-200 overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0">
+                    <IconEye className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900">Leave Details</h2>
+                    <p className="text-xs text-slate-400 font-medium">Application review &amp; history</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setViewReq(null)}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <IconX className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-6 space-y-4 flex-1">
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <span className="text-xs font-bold text-slate-700">Application Status</span>
+                  {getStatusBadge(viewReq.status)}
+                </div>
+
+                <div className="space-y-3 p-4 rounded-2xl border border-slate-200 text-xs">
+                  <div>
+                    <span className="text-slate-400 block font-medium">Leave Category</span>
+                    <span className="font-bold text-slate-900 text-sm mt-0.5 block">
+                      {viewReq.leaveType?.name || 'Casual Leave'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-slate-400 block font-medium">Leave Dates</span>
+                    <span className="font-semibold text-slate-800 mt-0.5 block">
+                      {formatDateRange(viewReq.startDate, viewReq.endDate)}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-slate-400 block font-medium">Duration</span>
+                    <span className="font-semibold text-slate-800 mt-0.5 block">
+                      {viewReq.days ? `${viewReq.days} day(s)` : '1 day'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-slate-400 block font-medium">Approver Name</span>
+                    <span className="font-semibold text-slate-800 mt-0.5 block">
+                      {viewReq.approver
+                        ? `${viewReq.approver.firstName} ${viewReq.approver.lastName}`
+                        : 'Reporting Manager'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-slate-400 block font-medium">Reason</span>
+                    <p className="mt-1 p-2.5 rounded-xl bg-slate-50 border border-slate-200/60 text-slate-700 leading-relaxed font-medium">
+                      {viewReq.reason}
+                    </p>
+                  </div>
+
+                  {viewReq.meta?.attachmentUrl && (
+                    <div className="pt-2 border-t border-slate-100">
+                      <span className="text-slate-400 block font-medium mb-1">Attached Document</span>
+                      <a
+                        href={viewReq.meta.attachmentUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200/70 text-[#5E4BE2] font-bold text-xs hover:bg-indigo-100 transition-colors"
+                      >
+                        <IconExternalLink className="w-3.5 h-3.5" />
+                        <span>{viewReq.meta.attachmentName || 'View Attachment'}</span>
+                      </a>
+                    </div>
+                  )}
+
+                  {viewReq.decisionNote && (
+                    <div className="pt-2 border-t border-slate-100">
+                      <span className="text-slate-400 block font-medium mb-1">Manager Note</span>
+                      <p className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200 text-amber-900 leading-relaxed font-medium">
+                        {viewReq.decisionNote}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-5 border-t border-slate-100 flex items-center justify-end">
+                <button
+                  onClick={() => setViewReq(null)}
+                  className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>,

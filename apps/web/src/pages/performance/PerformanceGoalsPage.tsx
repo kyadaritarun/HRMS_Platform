@@ -261,19 +261,18 @@ export const PerformanceGoalsPage: React.FC = () => {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer ${
-                activeTab === tab
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer ${activeTab === tab
                   ? 'bg-white text-[#5E4BE2] shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900'
-              }`}
+                }`}
             >
               {tab === 'ALL'
                 ? 'All Goals'
                 : tab === 'IN_PROGRESS'
-                ? 'In Progress'
-                : tab === 'DONE'
-                ? 'Achieved'
-                : 'Pending Approval'}
+                  ? 'In Progress'
+                  : tab === 'DONE'
+                    ? 'Achieved'
+                    : 'Pending Approval'}
             </button>
           ))}
         </div>
@@ -343,13 +342,12 @@ export const PerformanceGoalsPage: React.FC = () => {
                       {/* Execution Progress */}
                       {goal.status === 'APPROVED' && (
                         <span
-                          className={`text-xs font-semibold px-2 py-0.5 rounded-md ${
-                            progress === 'DONE'
+                          className={`text-xs font-semibold px-2 py-0.5 rounded-md ${progress === 'DONE'
                               ? 'bg-emerald-100 text-emerald-800'
                               : progress === 'IN_PROGRESS'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-slate-100 text-slate-700'
-                          }`}
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
                         >
                           Status: {progress.replace('_', ' ')}
                         </span>

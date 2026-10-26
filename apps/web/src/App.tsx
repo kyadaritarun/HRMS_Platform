@@ -403,8 +403,13 @@ export const App: React.FC = () => {
             <Route path="/comp-off" element={<MyCompOffPage />} />
             <Route path="/claims" element={<ClaimsPage />} />
             <Route path="/tickets" element={<TicketsPage />} />
-            <Route path="/performance/my-goals" element={<PerformanceGoalsPage />} />
             <Route path="/payroll/my-payslips" element={<MyPayslipsPage />} />
+            <Route path="/payroll/payslips" element={<MyPayslipsPage />} />
+            <Route path="/payslips" element={<MyPayslipsPage />} />
+            <Route path="/performance/my-goals" element={<PerformanceGoalsPage />} />
+            <Route path="/performance/goals" element={<PerformanceGoalsPage />} />
+            <Route path="/performance" element={<PerformanceGoalsPage />} />
+            <Route path="/my-goals" element={<PerformanceGoalsPage />} />
             <Route path="/org-structure" element={<OrgStructurePage />} />
             <Route path="/policies" element={<PoliciesPage />} />
             <Route path="/appreciations" element={<AppreciationsPage />} />

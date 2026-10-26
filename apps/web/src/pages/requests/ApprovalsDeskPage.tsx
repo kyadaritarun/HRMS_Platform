@@ -17,6 +17,11 @@ import {
   IconTarget,
   IconFilter,
   IconChevronDown,
+  IconEye,
+  IconFileSearch,
+  IconExternalLink,
+  IconPaperclip,
+  IconDownload,
 } from '@tabler/icons-react';
 
 interface ApprovalRequest {
@@ -59,13 +64,12 @@ export const ApprovalsDeskPage: React.FC = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedType, selectedStatus, search]);
-  const [actionModal, setActionModal] = useState<{
+  const [reviewModal, setReviewModal] = useState<{
     open: boolean;
     req?: ApprovalRequest;
-    reqId?: number;
-    decision?: 'APPROVED' | 'REJECTED';
+    decision: 'APPROVED' | 'REJECTED' | '';
     note: string;
-  }>({ open: false, note: '' });
+  }>({ open: false, decision: '', note: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const getRequestTypeHeading = (type?: string, decision?: 'APPROVED' | 'REJECTED') => {
@@ -129,16 +133,59 @@ export const ApprovalsDeskPage: React.FC = () => {
     fetchMetricsOverview();
   }, [selectedType, selectedStatus, scope]);
 
+  const openAttachmentSafe = (url?: string, name?: string) => {
+    if (!url) return;
+    if (url.startsWith('data:')) {
+      try {
+        const arr = url.split(',');
+        const mime = arr[0].match(/:(.*?);/)?.[1] || 'application/octet-stream';
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        const blob = new Blob([u8arr], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+        const win = window.open(blobUrl, '_blank');
+        if (!win) {
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = name || 'supporting-document';
+          a.click();
+        }
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+        return;
+      } catch (e) {
+        console.error('Failed to open data url blob:', e);
+      }
+    }
+    window.open(url, '_blank');
+  };
+
+  const handleOpenReview = (req: ApprovalRequest) => {
+    setReviewModal({
+      open: true,
+      req,
+      decision: req.status === 'PENDING' ? '' : (req.status as any),
+      note: '',
+    });
+  };
+
   const handleDecisionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!actionModal.reqId || !actionModal.decision) return;
+    if (!reviewModal.req?.id || !reviewModal.decision) return;
+    if (reviewModal.decision === 'REJECTED' && !reviewModal.note.trim()) {
+      alert('Please provide a comment or reason for rejection.');
+      return;
+    }
     setIsSubmitting(true);
     try {
-      await api.patch(`/requests/${actionModal.reqId}/decision`, {
-        status: actionModal.decision,
-        note: actionModal.note.trim() || undefined,
+      await api.patch(`/requests/${reviewModal.req.id}/decision`, {
+        status: reviewModal.decision,
+        note: reviewModal.note.trim() || undefined,
       });
-      setActionModal({ open: false, note: '' });
+      setReviewModal({ open: false, decision: '', note: '' });
       fetchRequests();
       fetchMetricsOverview();
     } catch (err: any) {
@@ -414,8 +461,19 @@ export const ApprovalsDeskPage: React.FC = () => {
 
                     {/* Title / Subject */}
                     <td className="px-4 py-3.5">
-                      <div className="font-semibold text-slate-800 text-xs max-w-xs truncate">
-                        {req.title || (req.type === 'CLAIM' ? `Expense Claim #${req.id}` : `${req.type.replace('_', ' ')} Request`)}
+                      <div className="flex items-center gap-1.5 max-w-xs">
+                        <span className="font-semibold text-slate-800 text-xs truncate">
+                          {req.title || (req.type === 'CLAIM' ? `Expense Claim #${req.id}` : `${req.type.replace('_', ' ')} Request`)}
+                        </span>
+                        {req.meta?.attachmentUrl && (
+                          <span
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-indigo-50 border border-indigo-200/80 text-[#5E4BE2] text-[10px] font-bold shrink-0"
+                            title={`Attached: ${req.meta.attachmentName || 'Document'}`}
+                          >
+                            <IconPaperclip className="w-3 h-3" />
+                            <span>Doc</span>
+                          </span>
+                        )}
                       </div>
                       {req.startDate && (
                         <div className="text-[11px] text-slate-400 font-normal mt-0.5">
@@ -461,33 +519,26 @@ export const ApprovalsDeskPage: React.FC = () => {
                       </span>
                     </td>
 
-                    {/* Action buttons */}
+                    {/* Action button */}
                     <td className="px-4 py-3.5 text-right whitespace-nowrap">
                       {req.status === 'PENDING' ? (
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setActionModal({ open: true, req, reqId: req.id, decision: 'REJECTED', note: '' })
-                            }
-                            className="px-2.5 py-1.5 rounded-lg border border-rose-200 text-rose-700 bg-rose-50/60 hover:bg-rose-100 font-bold text-[11px] transition-colors flex items-center gap-1 cursor-pointer"
-                          >
-                            <IconX className="w-3.5 h-3.5" />
-                            <span>Reject</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setActionModal({ open: true, req, reqId: req.id, decision: 'APPROVED', note: '' })
-                            }
-                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-xs transition-colors flex items-center gap-1 cursor-pointer"
-                          >
-                            <IconCheck className="w-3.5 h-3.5" />
-                            <span>Approve</span>
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenReview(req)}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white font-semibold text-xs shadow-xs hover:shadow-md transition-all cursor-pointer whitespace-nowrap active:scale-95"
+                        >
+                          <IconFileSearch className="w-3.5 h-3.5" />
+                          <span>Review Request</span>
+                        </button>
                       ) : (
-                        <span className="text-[11px] font-medium text-slate-400">Decided</span>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenReview(req)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs shadow-2xs transition-all cursor-pointer whitespace-nowrap"
+                        >
+                          <IconEye className="w-3.5 h-3.5 text-slate-400" />
+                          <span>View Details</span>
+                        </button>
                       )}
                     </td>
                   </tr>
@@ -511,106 +562,349 @@ export const ApprovalsDeskPage: React.FC = () => {
         />
       </div>
 
-      {/* Decision Note Modal with Portal */}
-      {actionModal.open && typeof document !== 'undefined' ? (
+      {/* Comprehensive Request Review & Decision Drawer / Modal */}
+      {reviewModal.open && reviewModal.req && typeof document !== 'undefined' ? (
         createPortal(
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-            <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl p-6 border border-slate-100 animate-in zoom-in-95">
-              {(() => {
-                const targetReq = actionModal.req || requests.find((r) => r.id === actionModal.reqId);
-                return (
-                  <>
-                    <div className="flex items-start justify-between mb-4 gap-3">
-                      <div className="flex items-start gap-3">
-                        <div
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
-                            actionModal.decision === 'APPROVED'
-                              ? 'bg-emerald-50 text-emerald-600 border-emerald-200/80'
-                              : 'bg-rose-50 text-rose-600 border-rose-200/80'
+          <div className="fixed inset-0 z-[9999] overflow-hidden">
+            <div
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+              onClick={() => setReviewModal({ open: false, decision: '', note: '' })}
+            />
+            <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+              <div
+                className="w-screen max-w-xl bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 pointer-events-auto animate-in slide-in-from-right duration-200"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-white shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0">
+                      {getTypeIcon(reviewModal.req.type)}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-bold text-[#5E4BE2] bg-indigo-50 px-2 py-0.5 rounded-md">
+                          #{reviewModal.req.id} • {reviewModal.req.type.replace('_', ' ')}
+                        </span>
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border ${
+                            reviewModal.req.status === 'APPROVED'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : reviewModal.req.status === 'REJECTED'
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : 'bg-amber-50 text-amber-700 border-amber-200'
                           }`}
                         >
-                          {actionModal.decision === 'APPROVED' ? (
-                            <IconCheck className="w-5 h-5" />
-                          ) : (
-                            <IconX className="w-5 h-5" />
-                          )}
-                        </div>
-                        <div>
-                          <h3 className="text-base font-bold text-slate-900 leading-tight">
-                            {getRequestTypeHeading(targetReq?.type, actionModal.decision)}
-                          </h3>
-                          {targetReq?.user && (
-                            <p className="text-xs text-slate-500 mt-1">
-                              Requested by <span className="font-semibold text-slate-800">{targetReq.user.firstName} {targetReq.user.lastName}</span>
-                              {targetReq.days ? <span className="text-slate-600 font-medium"> ({targetReq.days} days)</span> : null}
-                            </p>
-                          )}
-                        </div>
+                          {reviewModal.req.status}
+                        </span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setActionModal({ open: false, note: '' })}
-                        className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 cursor-pointer shrink-0"
-                      >
-                        <IconX className="w-4 h-4" />
-                      </button>
+                      <h2 className="text-base font-bold text-slate-900 mt-0.5 leading-snug">
+                        {reviewModal.req.title || `${reviewModal.req.type.replace('_', ' ')} Request`}
+                      </h2>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setReviewModal({ open: false, decision: '', note: '' })}
+                    className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors"
+                  >
+                    <IconX className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Form / Scroll Content */}
+                <form onSubmit={handleDecisionSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
+                  {/* Requester Profile Banner */}
+                  <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200/80 flex items-center gap-3.5">
+                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#5E4BE2] to-indigo-500 text-white flex items-center justify-center font-bold text-sm shadow-xs shrink-0">
+                      {reviewModal.req.user?.firstName?.[0] || 'U'}{reviewModal.req.user?.lastName?.[0] || ''}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-sm font-bold text-slate-900 truncate">
+                        {reviewModal.req.user?.firstName} {reviewModal.req.user?.lastName}
+                      </h4>
+                      <p className="text-xs text-slate-500 truncate mt-0.5">
+                        {reviewModal.req.user?.email} {reviewModal.req.user?.jobTitle ? `• ${reviewModal.req.user.jobTitle}` : ''}
+                      </p>
+                      <span className="text-[10px] text-slate-400 block mt-1">
+                        Submitted on {new Date(reviewModal.req.createdAt).toLocaleString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Request Key Metrics & Details Card */}
+                  <div className="p-4 bg-white rounded-2xl border border-slate-200 space-y-3 shadow-2xs">
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                      <IconCalendar className="w-4 h-4 text-slate-500" />
+                      Request Specifications
+                    </span>
+
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      {reviewModal.req.startDate && (
+                        <div>
+                          <span className="text-slate-400 block text-[11px]">Start Date</span>
+                          <span className="font-bold text-slate-800">
+                            {new Date(reviewModal.req.startDate).toLocaleDateString('en-IN', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        </div>
+                      )}
+                      {reviewModal.req.endDate && (
+                        <div>
+                          <span className="text-slate-400 block text-[11px]">End Date</span>
+                          <span className="font-bold text-slate-800">
+                            {new Date(reviewModal.req.endDate).toLocaleDateString('en-IN', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        </div>
+                      )}
+                      {reviewModal.req.days !== undefined && reviewModal.req.days !== null && (
+                        <div>
+                          <span className="text-slate-400 block text-[11px]">Duration</span>
+                          <span className="font-bold text-slate-800">{reviewModal.req.days} Day(s)</span>
+                        </div>
+                      )}
+                      {reviewModal.req.amount !== undefined && reviewModal.req.amount !== null && (
+                        <div>
+                          <span className="text-slate-400 block text-[11px]">Total Claim Amount</span>
+                          <span className="font-mono font-bold text-emerald-700 text-sm">
+                            ₹{Number(reviewModal.req.amount).toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                      )}
+                      {reviewModal.req.leaveType?.name && (
+                        <div>
+                          <span className="text-slate-400 block text-[11px]">Leave Category</span>
+                          <span className="font-bold text-slate-800">{reviewModal.req.leaveType.name}</span>
+                        </div>
+                      )}
+                      {reviewModal.req.type === 'REGULARIZATION' && (
+                        <>
+                          <div>
+                            <span className="text-slate-400 block text-[11px]">Correction Scope</span>
+                            <span className="font-bold text-[#5E4BE2]">
+                              {reviewModal.req.meta?.regularizeType === 'CHECK_IN_ONLY'
+                                ? 'Check-in Time Only'
+                                : reviewModal.req.meta?.regularizeType === 'CHECK_OUT_ONLY'
+                                ? 'Check-out Time Only'
+                                : 'Full Day (Check-in & Check-out)'}
+                            </span>
+                          </div>
+                          {reviewModal.req.meta?.requestedCheckIn && (
+                            <div>
+                              <span className="text-slate-400 block text-[11px]">Requested Check-in</span>
+                              <span className="font-mono font-bold text-slate-800">
+                                {reviewModal.req.meta.requestedCheckIn}
+                              </span>
+                            </div>
+                          )}
+                          <div>
+                            <span className="text-slate-400 block text-[11px]">Requested Check-out</span>
+                            <span className="font-mono font-bold text-slate-800">
+                              {reviewModal.req.meta?.requestedCheckOut
+                                ? reviewModal.req.meta.requestedCheckOut
+                                : 'Not Required (Ongoing Shift / Check-in only)'}
+                            </span>
+                          </div>
+                        </>
+                      )}
+                      {reviewModal.req.type === 'COMP_OFF' && (
+                        <>
+                          <div>
+                            <span className="text-slate-400 block text-[11px]">Work Occasion</span>
+                            <span className="font-bold text-slate-800">
+                              {reviewModal.req.meta?.workType === 'WEEKEND' ? 'Weekend Work' : 'Holiday Work'}
+                              {reviewModal.req.meta?.dayOfWeek ? ` (${reviewModal.req.meta.dayOfWeek})` : ''}
+                            </span>
+                          </div>
+                          {reviewModal.req.meta?.holidayName && (
+                            <div>
+                              <span className="text-slate-400 block text-[11px]">Holiday Name</span>
+                              <span className="font-bold text-slate-800">
+                                {reviewModal.req.meta.holidayName}
+                              </span>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
 
-                    <form onSubmit={handleDecisionSubmit} className="space-y-4">
+                    {/* Attachment preview if submitted */}
+                    {reviewModal.req.meta?.attachmentUrl && (
+                      <div className="pt-2 border-t border-slate-100 space-y-2">
+                        <span className="text-slate-400 block text-[11px] font-semibold">Supporting Attachment</span>
+                        
+                        {/* Inline Image Thumbnail if image (logs screenshot, email approval, receipt) */}
+                        {reviewModal.req.meta.attachmentUrl.startsWith('data:image') && (
+                          <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 p-1.5 max-w-sm">
+                            <img
+                              src={reviewModal.req.meta.attachmentUrl}
+                              alt="Attachment preview"
+                              className="w-full max-h-52 object-contain rounded-lg bg-white"
+                            />
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openAttachmentSafe(reviewModal.req?.meta?.attachmentUrl, reviewModal.req?.meta?.attachmentName)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200/80 text-[#5E4BE2] font-bold text-xs hover:bg-indigo-100 transition-colors cursor-pointer"
+                          >
+                            <IconEye className="w-3.5 h-3.5" />
+                            <span>{reviewModal.req.meta.attachmentName || 'View Document'}</span>
+                          </button>
+                          <a
+                            href={reviewModal.req.meta.attachmentUrl}
+                            download={reviewModal.req.meta.attachmentName || 'supporting-attachment'}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs transition-colors cursor-pointer"
+                            title="Download attachment file"
+                          >
+                            <IconDownload className="w-3.5 h-3.5 text-slate-500" />
+                            <span>Download</span>
+                          </a>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Reason / Statement Box */}
+                    <div className="pt-2 border-t border-slate-100">
+                      <span className="text-slate-400 block text-[11px] mb-1 font-semibold">Employee Stated Reason / Note</span>
+                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-700 leading-relaxed font-medium italic">
+                        "{reviewModal.req.reason || 'No specific reason entered by employee.'}"
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Review & Decision Section */}
+                  {reviewModal.req.status === 'PENDING' ? (
+                    <div className="p-4 bg-indigo-50/40 rounded-2xl border border-indigo-100 space-y-4">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                          {actionModal.decision === 'APPROVED'
-                            ? 'Approver Remarks / Note (Optional)'
-                            : 'Reason for Rejection (Optional)'}
-                        </label>
-                        <textarea
-                          rows={3}
-                          placeholder={
-                            actionModal.decision === 'APPROVED'
-                              ? 'e.g. Approved. Please coordinate handover before taking leave...'
-                              : 'e.g. Please provide additional documentation or reschedule...'
-                          }
-                          value={actionModal.note}
-                          onChange={(e) => setActionModal({ ...actionModal, note: e.target.value })}
-                          className="w-full px-3.5 py-2.5 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] focus:ring-2 focus:ring-[#5E4BE2]/10 resize-none transition-all placeholder:text-slate-400"
-                        />
+                        <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                          <IconChecklist className="w-4 h-4 text-[#5E4BE2]" />
+                          Reviewer Decision &amp; Feedback
+                        </h4>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Review the details above, then select your decision action and add your comments below.
+                        </p>
                       </div>
 
-                      <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
-                        <button
-                          type="button"
-                          onClick={() => setActionModal({ open: false, note: '' })}
-                          className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                      {/* Dropdown for Decision */}
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                          Select Decision Action <span className="text-rose-500">*</span>
+                        </label>
+                        <select
+                          value={reviewModal.decision}
+                          onChange={(e) =>
+                            setReviewModal({
+                              ...reviewModal,
+                              decision: e.target.value as any,
+                            })
+                          }
+                          className="w-full px-3.5 py-2.5 text-xs font-semibold bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:border-[#5E4BE2] focus:ring-2 focus:ring-[#5E4BE2]/20 text-slate-800 cursor-pointer shadow-2xs"
                         >
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          disabled={isSubmitting}
-                          className={`inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold rounded-xl text-white shadow-xs disabled:opacity-50 cursor-pointer transition-colors ${
-                            actionModal.decision === 'APPROVED'
-                              ? 'bg-emerald-600 hover:bg-emerald-700'
-                              : 'bg-rose-600 hover:bg-rose-700'
-                          }`}
-                        >
-                          {isSubmitting ? (
-                            <span>Recording...</span>
-                          ) : (
-                            <>
-                              {actionModal.decision === 'APPROVED' ? (
-                                <IconCheck className="w-3.5 h-3.5" />
-                              ) : (
-                                <IconX className="w-3.5 h-3.5" />
-                              )}
-                              <span>{actionModal.decision === 'APPROVED' ? 'Approve Request' : 'Reject Request'}</span>
-                            </>
-                          )}
-                        </button>
+                          <option value="">-- Choose Decision Action --</option>
+                          <option value="APPROVED">Approve Request</option>
+                          <option value="REJECTED">Reject Request</option>
+                        </select>
                       </div>
-                    </form>
-                  </>
-                );
-              })()}
+
+                      {/* Comment Box */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="text-xs font-bold text-slate-700">
+                            Decision Comment / Remarks
+                          </label>
+                          {reviewModal.decision === 'REJECTED' && (
+                            <span className="text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">
+                              Required for rejection
+                            </span>
+                          )}
+                        </div>
+                        <textarea
+                          rows={3}
+                          value={reviewModal.note}
+                          onChange={(e) => setReviewModal({ ...reviewModal, note: e.target.value })}
+                          placeholder={
+                            reviewModal.decision === 'REJECTED'
+                              ? 'Enter justification or feedback for the employee...'
+                              : 'Add approval note or instructions for the employee (optional)...'
+                          }
+                          className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:border-[#5E4BE2] focus:ring-2 focus:ring-[#5E4BE2]/20 transition-all placeholder:text-slate-400 font-medium text-slate-800"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50 space-y-1.5 text-xs">
+                      <span className="font-bold text-slate-800 block">Decision Record</span>
+                      <p className="text-slate-600">
+                        This request is already finalized as <strong className="uppercase">{reviewModal.req.status}</strong>.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Sticky Footer Actions */}
+                  <div className="sticky bottom-0 -mx-6 -mb-6 p-6 bg-white/95 backdrop-blur-xs border-t border-slate-100 flex items-center justify-end gap-3 mt-6">
+                    <button
+                      type="button"
+                      onClick={() => setReviewModal({ open: false, decision: '', note: '' })}
+                      className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                    >
+                      Close
+                    </button>
+
+                    {reviewModal.req.status === 'PENDING' && (
+                      <button
+                        type="submit"
+                        disabled={
+                          isSubmitting ||
+                          !reviewModal.decision ||
+                          (reviewModal.decision === 'REJECTED' && !reviewModal.note.trim())
+                        }
+                        className={`inline-flex items-center gap-1.5 px-5 py-2.5 text-xs font-bold rounded-xl text-white shadow-xs transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                          reviewModal.decision === 'APPROVED'
+                            ? 'bg-emerald-600 hover:bg-emerald-700'
+                            : reviewModal.decision === 'REJECTED'
+                            ? 'bg-rose-600 hover:bg-rose-700'
+                            : 'bg-slate-700 hover:bg-slate-800'
+                        }`}
+                      >
+                        {isSubmitting ? (
+                          <span>Submitting...</span>
+                        ) : (
+                          <>
+                            {reviewModal.decision === 'APPROVED' ? (
+                              <IconCheck className="w-4 h-4" />
+                            ) : reviewModal.decision === 'REJECTED' ? (
+                              <IconX className="w-4 h-4" />
+                            ) : null}
+                            <span>
+                              {reviewModal.decision === 'APPROVED'
+                                ? 'Confirm Approval'
+                                : reviewModal.decision === 'REJECTED'
+                                ? 'Confirm Rejection'
+                                : 'Select Decision Action'}
+                            </span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
             </div>
           </div>,
           document.body
