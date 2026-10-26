@@ -68,6 +68,8 @@ interface Department {
 
 export const EmployeesPage: React.FC = () => {
   const { user, hasHrPermission } = useAuth();
+  const isCompanyAdmin = user?.role === 'COMPANY_ADMIN' || user?.role === 'PRODUCT_SUPER_ADMIN';
+  const isHr = user?.role === 'HR';
   const [searchParams, setSearchParams] = useSearchParams();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -226,7 +228,7 @@ export const EmployeesPage: React.FC = () => {
         firstName: editForm.firstName.trim(),
         lastName: editForm.lastName.trim(),
         phone: editForm.phone.trim(),
-        role: editForm.role,
+        role: isCompanyAdmin ? (editForm.role === 'HR' ? 'HR' : 'EMPLOYEE') : 'EMPLOYEE',
         workMode: editForm.workMode,
         employmentType: editForm.employmentType,
         shiftTiming: editForm.shiftTiming.trim(),
@@ -1358,13 +1360,13 @@ export const EmployeesPage: React.FC = () => {
                     <div>
                       <label className="block text-[11px] font-bold text-slate-700 mb-1">System Role</label>
                       <select
-                        value={editForm.role}
+                        value={isHr ? 'EMPLOYEE' : (editForm.role === 'COMPANY_ADMIN' ? 'EMPLOYEE' : editForm.role)}
                         onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
+                        disabled={isHr}
+                        className={`w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] ${isHr ? 'cursor-not-allowed opacity-80' : ''}`}
                       >
-                        <option value="EMPLOYEE">Employee</option>
-                        <option value="HR">HR Manager</option>
-                        <option value="COMPANY_ADMIN">Company Admin</option>
+                        <option value="EMPLOYEE">Staff Employee</option>
+                        {isCompanyAdmin && <option value="HR">HR</option>}
                       </select>
                     </div>
 

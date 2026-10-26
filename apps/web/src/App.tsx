@@ -319,7 +319,15 @@ export const App: React.FC = () => {
             <Route
               path="/company/roles-hierarchy"
               element={
-                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR', 'EMPLOYEE']}>
+                  <RolesHierarchyPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/roles-hierarchy"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR', 'EMPLOYEE']}>
                   <RolesHierarchyPage />
                 </ProtectedRoute>
               }

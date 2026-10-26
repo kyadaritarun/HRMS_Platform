@@ -118,6 +118,14 @@ router.post(
       const companyId = req.user!.companyId!;
       const data = req.body;
 
+      // 0. Role authorization checks
+      if (req.user!.role === 'HR' && data.role !== 'EMPLOYEE') {
+        return next(new AppError(403, 'FORBIDDEN', 'HR can only create Staff Employee accounts.'));
+      }
+      if (req.user!.role === 'COMPANY_ADMIN' && data.role === 'COMPANY_ADMIN') {
+        return next(new AppError(403, 'FORBIDDEN', 'Company Admin can only create Staff Employee or HR accounts.'));
+      }
+
       // 1. Fetch company and package seat limit
       const company = await prisma.company.findUnique({
         where: { id: companyId },
@@ -578,6 +586,15 @@ router.post(
         seenBatchEmails.add(email);
         seenBatchUsernames.add(username);
 
+        let assignedRole: 'EMPLOYEE' | 'HR' | 'COMPANY_ADMIN' = 'EMPLOYEE';
+        if (req.user!.role === 'HR') {
+          assignedRole = 'EMPLOYEE';
+        } else if (req.user!.role === 'COMPANY_ADMIN') {
+          assignedRole = item.role === 'HR' ? 'HR' : 'EMPLOYEE';
+        } else if (['HR', 'COMPANY_ADMIN'].includes(item.role)) {
+          assignedRole = item.role;
+        }
+
         try {
           const user = await prisma.user.create({
             data: {
@@ -588,7 +605,7 @@ router.post(
               firstName,
               lastName: String(item.lastName || '').trim(),
               phone: String(item.phone || '').trim(),
-              role: ['HR', 'COMPANY_ADMIN'].includes(item.role) ? item.role : 'EMPLOYEE',
+              role: assignedRole,
               jobTitle: String(item.jobTitle || '').trim(),
               workMode: item.workMode === 'WFH' ? 'WFH' : 'WFO',
               employmentType: String(item.workType || item.employmentType || '').toUpperCase() === 'CONTRACT' ? 'CONTRACT' : 'PERMANENT',
@@ -745,6 +762,15 @@ router.patch(
       });
       if (!employee) {
         return next(new AppError(404, 'NOT_FOUND', 'Employee not found'));
+      }
+
+      if (data.role) {
+        if (req.user!.role === 'HR' && data.role !== 'EMPLOYEE') {
+          return next(new AppError(403, 'FORBIDDEN', 'HR can only assign Staff Employee role.'));
+        }
+        if (req.user!.role === 'COMPANY_ADMIN' && data.role === 'COMPANY_ADMIN') {
+          return next(new AppError(403, 'FORBIDDEN', 'Company Admin cannot assign Company Admin role.'));
+        }
       }
 
       const updateData: any = { ...data };

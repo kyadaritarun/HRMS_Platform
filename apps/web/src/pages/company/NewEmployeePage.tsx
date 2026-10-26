@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
 import {
   IconUserPlus,
   IconCheck,
@@ -50,7 +51,10 @@ interface UploadedDoc {
 
 
 export const NewEmployeePage: React.FC = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const isCompanyAdmin = user?.role === 'COMPANY_ADMIN' || user?.role === 'PRODUCT_SUPER_ADMIN';
+  const isHr = user?.role === 'HR';
   const [departments, setDepartments] = useState<Department[]>([]);
   const [managers, setManagers] = useState<Manager[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -446,6 +450,13 @@ export const NewEmployeePage: React.FC = () => {
       return;
     }
 
+    if (name === 'role') {
+      const allowedRole = isCompanyAdmin ? (value === 'HR' ? 'HR' : 'EMPLOYEE') : 'EMPLOYEE';
+      setForm((prev) => ({ ...prev, role: allowedRole }));
+      if (touched.role) validateField('role', allowedRole);
+      return;
+    }
+
     setForm((prev) => ({ ...prev, [name]: value }));
     if (touched[name]) {
       validateField(name, value);
@@ -517,7 +528,7 @@ export const NewEmployeePage: React.FC = () => {
         dateOfBirth: form.dateOfBirth ? form.dateOfBirth : undefined,
         username: form.username.trim(),
         phone: form.phone.trim(),
-        role: form.role,
+        role: isCompanyAdmin ? (form.role === 'HR' ? 'HR' : 'EMPLOYEE') : 'EMPLOYEE',
         jobTitle: form.jobTitle.trim(),
         workMode: form.workMode,
         employmentType: form.workType, // 'PERMANENT' or 'CONTRACT'
@@ -1012,13 +1023,12 @@ export const NewEmployeePage: React.FC = () => {
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">Role *</label>
                     <select
                       name="role"
-                      value={form.role}
+                      value={isHr ? 'EMPLOYEE' : (form.role === 'COMPANY_ADMIN' ? 'EMPLOYEE' : form.role)}
                       onChange={handleChange}
                       className="w-full px-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer"
                     >
                       <option value="EMPLOYEE">Staff Employee</option>
-                      <option value="HR">HR Manager</option>
-                      <option value="COMPANY_ADMIN">Company Admin</option>
+                      {isCompanyAdmin && <option value="HR">HR</option>}
                     </select>
                   </div>
 

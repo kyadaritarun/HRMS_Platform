@@ -1369,7 +1369,7 @@ router.post('/claims/categories', roleGuard('COMPANY_ADMIN', 'HR'), async (req, 
 });
 
 // GET /company/roles-hierarchy
-router.get('/roles-hierarchy', roleGuard('COMPANY_ADMIN', 'HR'), async (req, res, next) => {
+router.get('/roles-hierarchy', roleGuard('COMPANY_ADMIN', 'HR', 'EMPLOYEE'), async (req, res, next) => {
   try {
     const companyId = req.user!.companyId!;
     const rawUsers = await prisma.user.findMany({

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
 import * as XLSX from 'xlsx';
 import {
   IconFileSpreadsheet,
@@ -160,6 +161,9 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
   onDownloadTemplate,
   isDownloadingTemplate,
 }) => {
+  const { user } = useAuth();
+  const isCompanyAdmin = user?.role === 'COMPANY_ADMIN' || user?.role === 'PRODUCT_SUPER_ADMIN';
+  const isHr = user?.role === 'HR';
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [rows, setRows] = useState<BulkEmployeeRow[]>([createEmptyRow()]);
@@ -212,7 +216,7 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
       dateOfBirth: parseExcelDate(getRaw(['dateofbirth', 'date of birth', 'dob'])),
       workType: rawWorkType === 'CONTRACT' ? 'CONTRACT' : 'PERMANENT',
       jobTitle: getString(['jobtitle', 'job title', 'designation', 'role title']),
-      role: ['HR', 'COMPANY_ADMIN'].includes(rawRole) ? (rawRole as any) : 'EMPLOYEE',
+      role: isCompanyAdmin && rawRole === 'HR' ? 'HR' : 'EMPLOYEE',
       phone: getString(['phone', 'phonenumber', 'phone number', 'contact']),
       workMode: rawWorkMode === 'WFH' ? 'WFH' : 'WFO',
       shiftTiming: rawShiftTiming || 'General Shift (09:30 AM - 06:30 PM)',
@@ -266,8 +270,12 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
   };
 
   const handleCellChange = (id: string, field: keyof BulkEmployeeRow, value: string) => {
+    let processedValue = value;
+    if (field === 'role') {
+      processedValue = isCompanyAdmin ? (value === 'HR' ? 'HR' : 'EMPLOYEE') : 'EMPLOYEE';
+    }
     setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, [field]: value } : r))
+      prev.map((r) => (r.id === id ? { ...r, [field]: processedValue } : r))
     );
   };
 
@@ -377,8 +385,12 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
 
     setIsSubmitting(true);
     try {
+      const sanitizedRows = nonBlankRows.map((r) => ({
+        ...r,
+        role: isCompanyAdmin ? (r.role === 'HR' ? 'HR' : 'EMPLOYEE') : 'EMPLOYEE',
+      }));
       const res = await api.post('/employees/bulk-create', {
-        employees: nonBlankRows,
+        employees: sanitizedRows,
       });
 
       setSuccessInfo(res.data);
@@ -763,13 +775,12 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
                     {/* Role */}
                     <td className="px-2 py-1.5">
                       <select
-                        value={r.role}
+                        value={isHr ? 'EMPLOYEE' : (r.role === 'COMPANY_ADMIN' ? 'EMPLOYEE' : r.role)}
                         onChange={(e) => handleCellChange(r.id, 'role', e.target.value as any)}
                         className="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-hidden"
                       >
-                        <option value="EMPLOYEE">EMPLOYEE</option>
-                        <option value="HR">HR</option>
-                        <option value="COMPANY_ADMIN">ADMIN</option>
+                        <option value="EMPLOYEE">Staff Employee</option>
+                        {isCompanyAdmin && <option value="HR">HR</option>}
                       </select>
                     </td>
                     {/* Phone */}

@@ -155,11 +155,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           icon: IconBuildingSkyscraper,
           roles: ['COMPANY_ADMIN', 'HR'],
           subItems: [
-            { label: 'Employees', path: '/company/employees', icon: IconUsers, permission: 'employees' },
-            { label: 'Create Employee', path: '/company/employees/new', icon: IconUserPlus, permission: 'employees' },
-            { label: 'Employee Attendance', path: '/company/attendance', icon: IconClock, permission: 'attendance', feature: 'time_attendance_management' },
-            { label: 'Departments', path: '/company/departments', icon: IconBriefcase },
-            { label: 'Roles & Hierarchy', path: '/company/roles-hierarchy', icon: IconNetwork },
+            { label: 'Create Employee', path: '/company/employees/new', icon: IconUserPlus, permission: 'employees', roles: ['COMPANY_ADMIN'] },
             { label: 'Billing', path: '/company/billing', icon: IconCreditCard, roles: ['COMPANY_ADMIN'] },
             { label: 'Activity Logs', path: '/company/activity-logs', icon: IconHistory, roles: ['COMPANY_ADMIN'] },
           ],
@@ -170,6 +166,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           icon: IconBriefcase,
           roles: ['COMPANY_ADMIN', 'HR'],
           subItems: [
+            { label: 'Employees', path: '/company/employees', icon: IconUsers, permission: 'employees' },
+            { label: 'Create Employee', path: '/company/employees/new', icon: IconUserPlus, permission: 'employees', roles: ['HR'] },
+            { label: 'Employee Attendance', path: '/company/attendance', icon: IconClock, permission: 'attendance', feature: 'time_attendance_management' },
+            { label: 'Departments', path: '/company/departments', icon: IconBriefcase },
             { label: 'Holiday Calendar', path: '/company/holidays', icon: IconCalendarEvent, feature: 'holiday_calendar' },
             { label: 'Leave Types', path: '/company/leaves/types', icon: IconFileCertificate, feature: 'leave_management' },
             { label: 'Manage Policies', path: '/company/policies/manage', icon: IconFileText, feature: 'policy_documents_management' },
@@ -216,7 +216,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
             { label: 'Performance Goals', path: '/performance/my-goals', icon: IconTarget, feature: 'performance_management' },
             { label: 'Claims', path: '/claims', icon: IconCash, feature: 'claim_process_management' },
             { label: 'Tickets', path: '/tickets', icon: IconHelpCircle, feature: 'support_ticket_management' },
-            { label: 'Org Structure', path: '/org-structure', icon: IconNetwork, feature: 'employees_directory' },
+            { label: 'Roles & Hierarchy', path: '/company/roles-hierarchy', icon: IconNetwork },
             { label: 'Policies', path: '/policies', icon: IconFileText, feature: 'policy_documents_management' },
             { label: 'Appreciations', path: '/appreciations', icon: IconHeartHandshake, feature: 'employee_appreciation' },
             { label: 'AI Assistant', path: '/assistant', icon: IconCpu, feature: 'ai_assistance' },
@@ -288,7 +288,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           { label: 'Performance Goals', path: '/performance/my-goals', icon: IconTarget, feature: 'performance_management' },
           { label: 'Claims', path: '/claims', icon: IconCash, feature: 'claim_process_management' },
           { label: 'Tickets', path: '/tickets', icon: IconHelpCircle, feature: 'support_ticket_management' },
-          { label: 'Org Structure', path: '/org-structure', icon: IconNetwork, feature: 'employees_directory' },
+          { label: 'Roles & Hierarchy', path: '/company/roles-hierarchy', icon: IconNetwork },
           { label: 'Policies', path: '/policies', icon: IconFileText, feature: 'policy_documents_management' },
           { label: 'Appreciations', path: '/appreciations', icon: IconHeartHandshake, feature: 'employee_appreciation' },
           { label: 'AI Assistant', path: '/assistant', icon: IconCpu, feature: 'ai_assistance' },
@@ -338,10 +338,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
     })
     .filter((cat) => (cat.path ? true : (cat.subItems && cat.subItems.length > 0)));
 
+  // Set of all registered sub-item paths
+  const allSubPaths = useMemo(() => {
+    const paths = new Set<string>();
+    filteredCategories.forEach((cat) => {
+      cat.subItems?.forEach((sub) => {
+        if (sub.path) paths.add(sub.path);
+      });
+    });
+    return paths;
+  }, [filteredCategories]);
+
   // Helper to determine if a sub-item is active
   const isSubItemActive = (subPath: string) => {
     if (location.pathname === subPath) return true;
-    if (subPath !== '/' && location.pathname.startsWith(subPath + '/')) return true;
+
+    // If another registered menu item exactly matches the current path (e.g. /company/employees/new),
+    // do not greedily mark the parent prefix (/company/employees) as active.
+    if (!allSubPaths.has(location.pathname) && subPath !== '/' && location.pathname.startsWith(subPath + '/')) {
+      return true;
+    }
     if (
       subPath === '/company/approvals' &&
       [
