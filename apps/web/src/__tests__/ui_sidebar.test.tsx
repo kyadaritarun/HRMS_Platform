@@ -216,5 +216,10 @@ describe('Frontend UI Tests: Sidebar and LockedFeatureModal', () => {
     // Verify HR sees Dashboard (only once) and does NOT see Company Dashboard
     expect(screen.getAllByText('Dashboard')).toHaveLength(1);
     expect(screen.queryByText('Company Dashboard')).not.toBeInTheDocument();
+
+    // Verify HR can expand HR Operations and see Activity Logs
+    const hrCategory = screen.getByText('HR Operations');
+    fireEvent.click(hrCategory);
+    expect(screen.getByText('Activity Logs')).toBeInTheDocument();
   });
 });

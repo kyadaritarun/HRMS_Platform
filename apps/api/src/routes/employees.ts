@@ -152,15 +152,21 @@ router.post(
       }
 
       // 2. Validate allowed email domains
-      if (company.allowedEmailDomains) {
-        const allowed = company.allowedEmailDomains.toLowerCase().split(',').map((s) => s.trim());
-        const emailDomain = data.email.split('@')[1]?.toLowerCase();
-        if (emailDomain && !allowed.includes(emailDomain)) {
+      const rawAllowedDomains = company.allowedEmailDomains?.trim() || (company.subdomain ? `${company.subdomain}.com` : '');
+      if (rawAllowedDomains) {
+        const allowed = rawAllowedDomains
+          .toLowerCase()
+          .split(',')
+          .map((s) => s.trim().replace(/^@/, ''))
+          .filter(Boolean);
+        const emailParts = data.email.toLowerCase().trim().split('@');
+        const emailDomain = emailParts[1];
+        if (allowed.length > 0 && emailDomain && !allowed.includes(emailDomain)) {
           return next(
             new AppError(
               400,
               'INVALID_EMAIL_DOMAIN',
-              `Email domain '@${emailDomain}' is not in the company's allowed email domains (${company.allowedEmailDomains}).`
+              `Email domain '@${emailDomain}' is not valid. Company admin only authorized corporate domain(s): @${allowed.join(', @')}.`
             )
           );
         }
@@ -490,9 +496,14 @@ router.post(
         );
       }
 
-      const allowedDomains = company.allowedEmailDomains
-        ? company.allowedEmailDomains.toLowerCase().split(',').map((s) => s.trim())
-        : null;
+      const rawAllowedBulk = company.allowedEmailDomains?.trim() || (company.subdomain ? `${company.subdomain}.com` : '');
+      const allowedDomains = rawAllowedBulk
+        ? rawAllowedBulk
+            .toLowerCase()
+            .split(',')
+            .map((s) => s.trim().replace(/^@/, ''))
+            .filter(Boolean)
+        : [];
 
       const activeLeaveTypes = await prisma.leaveType.findMany({
         where: { companyId, isActive: true },
@@ -561,10 +572,15 @@ router.post(
         }
 
         // Domain check
-        if (allowedDomains) {
-          const domain = email.split('@')[1]?.toLowerCase();
+        if (allowedDomains && allowedDomains.length > 0) {
+          const domain = email.split('@')[1]?.toLowerCase().trim();
           if (domain && !allowedDomains.includes(domain)) {
-            results.push({ row: rowNum, email, success: false, error: `Email domain @${domain} is not permitted.` });
+            results.push({
+              row: rowNum,
+              email,
+              success: false,
+              error: `Email domain '@${domain}' is not valid. Company admin only authorized: @${allowedDomains.join(', @')}`,
+            });
             continue;
           }
         }
@@ -770,6 +786,32 @@ router.patch(
         }
         if (req.user!.role === 'COMPANY_ADMIN' && data.role === 'COMPANY_ADMIN') {
           return next(new AppError(403, 'FORBIDDEN', 'Company Admin cannot assign Company Admin role.'));
+        }
+      }
+
+      if (data.email) {
+        const company = await prisma.company.findUnique({
+          where: { id: companyId },
+          select: { allowedEmailDomains: true, subdomain: true },
+        });
+        const rawAllowedDomains = company?.allowedEmailDomains?.trim() || (company?.subdomain ? `${company.subdomain}.com` : '');
+        if (rawAllowedDomains) {
+          const allowed = rawAllowedDomains
+            .toLowerCase()
+            .split(',')
+            .map((s) => s.trim().replace(/^@/, ''))
+            .filter(Boolean);
+          const emailParts = data.email.toLowerCase().trim().split('@');
+          const emailDomain = emailParts[1];
+          if (allowed.length > 0 && emailDomain && !allowed.includes(emailDomain)) {
+            return next(
+              new AppError(
+                400,
+                'INVALID_EMAIL_DOMAIN',
+                `Email domain '@${emailDomain}' is not valid. Company admin only authorized corporate domain(s): @${allowed.join(', @')}.`
+              )
+            );
+          }
         }
       }
 

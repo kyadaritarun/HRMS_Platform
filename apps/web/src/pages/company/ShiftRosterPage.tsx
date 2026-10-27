@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -15,6 +16,11 @@ import {
   IconSun,
   IconSunrise,
   IconBuilding,
+  IconArrowLeft,
+  IconX,
+  IconPencil,
+  IconTrash,
+  IconLoader2,
 } from '@tabler/icons-react';
 
 export interface ShiftTiming {
@@ -25,70 +31,17 @@ export interface ShiftTiming {
   endTime: string;
   breakDurationMinutes: number;
   gracePeriodMinutes: number;
-  color: string;
+  color?: string;
   isNightShift?: boolean;
 }
-
-const DEFAULT_SHIFTS: ShiftTiming[] = [
-  {
-    id: 's-general',
-    name: 'General Shift',
-    code: 'GS',
-    startTime: '09:30',
-    endTime: '18:30',
-    breakDurationMinutes: 60,
-    gracePeriodMinutes: 15,
-    color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-  },
-  {
-    id: 's-morning',
-    name: 'Morning Shift',
-    code: 'MS',
-    startTime: '06:00',
-    endTime: '14:30',
-    breakDurationMinutes: 30,
-    gracePeriodMinutes: 10,
-    color: 'bg-amber-100 text-amber-800 border-amber-200',
-  },
-  {
-    id: 's-evening',
-    name: 'Evening Shift',
-    code: 'ES',
-    startTime: '14:00',
-    endTime: '22:30',
-    breakDurationMinutes: 30,
-    gracePeriodMinutes: 10,
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
-  },
-  {
-    id: 's-night',
-    name: 'Night Shift',
-    code: 'NS',
-    startTime: '22:00',
-    endTime: '06:30',
-    breakDurationMinutes: 45,
-    gracePeriodMinutes: 15,
-    isNightShift: true,
-    color: 'bg-purple-100 text-purple-800 border-purple-200',
-  },
-  {
-    id: 's-off',
-    name: 'Weekly Off',
-    code: 'WO',
-    startTime: '-',
-    endTime: '-',
-    breakDurationMinutes: 0,
-    gracePeriodMinutes: 0,
-    color: 'bg-slate-100 text-slate-500 border-slate-200',
-  },
-];
 
 const STORAGE_KEY = 'uptrix_shift_roster_data';
 
 export const ShiftRosterPage: React.FC = () => {
   const { company } = useAuth();
   const [employees, setEmployees] = useState<any[]>([]);
-  const [shifts, setShifts] = useState<ShiftTiming[]>(DEFAULT_SHIFTS);
+  const [shifts, setShifts] = useState<ShiftTiming[]>([]);
+  const [loadingShifts, setLoadingShifts] = useState(true);
   const [activeTab, setActiveTab] = useState<'ROSTER' | 'SHIFTS_MASTER'>('ROSTER');
 
   // Week navigation
@@ -103,22 +56,30 @@ export const ShiftRosterPage: React.FC = () => {
     return {};
   });
 
-  // Modal: Add Custom Shift
-  const [showAddShiftModal, setShowAddShiftModal] = useState(false);
-  const [newShift, setNewShift] = useState({
+  // Modal / Drawer: Shift Edit & Create
+  const [showShiftDrawer, setShowShiftDrawer] = useState(false);
+  const [editingShift, setEditingShift] = useState<ShiftTiming | null>(null);
+  const [isSavingShift, setIsSavingShift] = useState(false);
+  const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null);
+
+  const [shiftFormData, setShiftFormData] = useState({
     name: '',
     code: '',
-    startTime: '08:00',
-    endTime: '17:00',
+    startTime: '09:00',
+    endTime: '18:00',
     breakDurationMinutes: 45,
     gracePeriodMinutes: 15,
+    color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    isNightShift: false,
+    isWeeklyOff: false,
   });
 
   // Modal: Bulk Assign
   const [showBulkModal, setShowBulkModal] = useState(false);
-  const [bulkShiftCode, setBulkShiftCode] = useState('GS');
+  const [bulkShiftCode, setBulkShiftCode] = useState('');
   const [bulkDepartment, setBulkDepartment] = useState('ALL');
 
+  // Fetch employees
   useEffect(() => {
     const fetchStaff = async () => {
       try {
@@ -129,6 +90,30 @@ export const ShiftRosterPage: React.FC = () => {
       }
     };
     fetchStaff();
+  }, []);
+
+  // Fetch shifts strictly from database without any dummy fallbacks
+  useEffect(() => {
+    const fetchShifts = async () => {
+      try {
+        setLoadingShifts(true);
+        const res = await api.get('/company/shifts');
+        if (res.data?.shifts && Array.isArray(res.data.shifts)) {
+          setShifts(res.data.shifts);
+          if (res.data.shifts.length > 0) {
+            setBulkShiftCode(res.data.shifts[0].code);
+          }
+        } else {
+          setShifts([]);
+        }
+      } catch (err) {
+        console.error('Failed to load shifts from database:', err);
+        setShifts([]);
+      } finally {
+        setLoadingShifts(false);
+      }
+    };
+    fetchShifts();
   }, []);
 
   useEffect(() => {
@@ -163,41 +148,138 @@ export const ShiftRosterPage: React.FC = () => {
 
   const handleBulkAssign = () => {
     const updated = { ...rosterMap };
+    const offShift = shifts.find((s) => s.startTime === '-' && s.endTime === '-');
+    const offCode = offShift ? offShift.code : '';
+
     employees.forEach((emp) => {
       if (bulkDepartment !== 'ALL' && emp.department?.name !== bulkDepartment) return;
       currentWeekDates.forEach((d) => {
         const dateStr = d.toISOString().split('T')[0];
-        // Don't override weekend unless intended
         const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-        updated[`${emp.id}_${dateStr}`] = isWeekend ? 'WO' : bulkShiftCode;
+        updated[`${emp.id}_${dateStr}`] = isWeekend && offCode ? offCode : bulkShiftCode;
       });
     });
     setRosterMap(updated);
     setShowBulkModal(false);
   };
 
-  const handleCreateShift = (e: React.FormEvent) => {
-    e.preventDefault();
-    const created: ShiftTiming = {
-      id: `s-${Date.now()}`,
-      name: newShift.name,
-      code: newShift.code.toUpperCase().slice(0, 3),
-      startTime: newShift.startTime,
-      endTime: newShift.endTime,
-      breakDurationMinutes: Number(newShift.breakDurationMinutes),
-      gracePeriodMinutes: Number(newShift.gracePeriodMinutes),
-      color: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-    };
-    setShifts([...shifts, created]);
-    setShowAddShiftModal(false);
-    setNewShift({
+  const handleOpenCreateShift = () => {
+    setEditingShift(null);
+    setShiftFormData({
       name: '',
       code: '',
-      startTime: '08:00',
-      endTime: '17:00',
+      startTime: '09:00',
+      endTime: '18:00',
       breakDurationMinutes: 45,
       gracePeriodMinutes: 15,
+      color: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      isNightShift: false,
+      isWeeklyOff: false,
     });
+    setShowShiftDrawer(true);
+  };
+
+  const handleOpenEditShift = (shift: ShiftTiming) => {
+    const isOff = shift.code === 'WO' || (shift.startTime === '-' && shift.endTime === '-');
+    setEditingShift(shift);
+    setShiftFormData({
+      name: shift.name,
+      code: shift.code,
+      startTime: isOff ? '00:00' : shift.startTime,
+      endTime: isOff ? '00:00' : shift.endTime,
+      breakDurationMinutes: shift.breakDurationMinutes,
+      gracePeriodMinutes: shift.gracePeriodMinutes,
+      color: shift.color || 'bg-indigo-100 text-indigo-800 border-indigo-200',
+      isNightShift: Boolean(shift.isNightShift),
+      isWeeklyOff: isOff,
+    });
+    setShowShiftDrawer(true);
+  };
+
+  const handleSaveShift = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingShift(true);
+
+    try {
+      const codeClean = shiftFormData.code.trim().toUpperCase().slice(0, 4);
+      const isOff = shiftFormData.isWeeklyOff;
+
+      let updatedShifts: ShiftTiming[] = [];
+
+      if (editingShift) {
+        updatedShifts = shifts.map((s) => {
+          if (s.id === editingShift.id) {
+            return {
+              ...s,
+              name: shiftFormData.name.trim(),
+              code: codeClean,
+              startTime: isOff ? '-' : shiftFormData.startTime,
+              endTime: isOff ? '-' : shiftFormData.endTime,
+              breakDurationMinutes: isOff ? 0 : Number(shiftFormData.breakDurationMinutes),
+              gracePeriodMinutes: isOff ? 0 : Number(shiftFormData.gracePeriodMinutes),
+              color: isOff ? 'bg-slate-100 text-slate-500 border-slate-200' : shiftFormData.color,
+              isNightShift: isOff ? false : Boolean(shiftFormData.isNightShift),
+            };
+          }
+          return s;
+        });
+
+        // If shift code changed, update table roster mapping as well
+        if (editingShift.code !== codeClean) {
+          const oldCode = editingShift.code;
+          setRosterMap((prev) => {
+            const next = { ...prev };
+            Object.keys(next).forEach((key) => {
+              if (next[key] === oldCode) next[key] = codeClean;
+            });
+            return next;
+          });
+        }
+      } else {
+        const created: ShiftTiming = {
+          id: `s-${Date.now()}`,
+          name: shiftFormData.name.trim(),
+          code: codeClean,
+          startTime: isOff ? '-' : shiftFormData.startTime,
+          endTime: isOff ? '-' : shiftFormData.endTime,
+          breakDurationMinutes: isOff ? 0 : Number(shiftFormData.breakDurationMinutes),
+          gracePeriodMinutes: isOff ? 0 : Number(shiftFormData.gracePeriodMinutes),
+          color: isOff ? 'bg-slate-100 text-slate-500 border-slate-200' : shiftFormData.color,
+          isNightShift: isOff ? false : Boolean(shiftFormData.isNightShift),
+        };
+        updatedShifts = [...shifts, created];
+      }
+
+      // Persist directly to database via API
+      await api.put('/company/shifts', { shifts: updatedShifts });
+      setShifts(updatedShifts);
+      setShowShiftDrawer(false);
+      setSaveSuccessMessage(
+        editingShift
+          ? `Shift "${shiftFormData.name}" updated in database!`
+          : `New shift "${shiftFormData.name}" created and saved to database!`
+      );
+      setTimeout(() => setSaveSuccessMessage(null), 3500);
+    } catch (err: any) {
+      console.error('Failed to save shift to database:', err);
+      alert(err.response?.data?.message || 'Failed to save shift to database.');
+    } finally {
+      setIsSavingShift(false);
+    }
+  };
+
+  const handleDeleteShift = async (shiftId: string, shiftName: string) => {
+    if (!window.confirm(`Are you sure you want to delete shift "${shiftName}"?`)) return;
+    try {
+      const updatedShifts = shifts.filter((s) => s.id !== shiftId);
+      await api.put('/company/shifts', { shifts: updatedShifts });
+      setShifts(updatedShifts);
+      setSaveSuccessMessage(`Shift "${shiftName}" deleted from database.`);
+      setTimeout(() => setSaveSuccessMessage(null), 3000);
+    } catch (err: any) {
+      console.error('Failed to delete shift:', err);
+      alert(err.response?.data?.message || 'Failed to delete shift.');
+    }
   };
 
   // Distinct departments
@@ -207,39 +289,77 @@ export const ShiftRosterPage: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
-            <IconClock className="w-5 h-5 text-indigo-600 shrink-0" />
-            <span>Shift & Roster Management</span>
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Configure rotational shifts, morning/night hours, grace periods, and weekly employee roster planning.
-          </p>
-        </div>
+        {activeTab === 'ROSTER' ? (
+          <>
+            <div>
+              <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                <IconClock className="w-5 h-5 text-indigo-600 shrink-0" />
+                <span>Shift & Roster Management</span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Configure rotational shifts, morning/night hours, grace periods, and weekly employee roster planning.
+              </p>
+            </div>
 
-        <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setActiveTab('SHIFTS_MASTER')}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs transition-all cursor-pointer"
+              >
+                <IconSettings className="w-4 h-4 text-indigo-600" />
+                <span>Shift Rules</span>
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setActiveTab('ROSTER')}
+                className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition-all cursor-pointer shadow-2xs shrink-0"
+                title="Back to Weekly Roster View"
+              >
+                <IconArrowLeft className="w-4 h-4" />
+              </button>
+              <div>
+                <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <IconSettings className="w-5 h-5 text-indigo-600 shrink-0" />
+                  <span>Shift Master & Rules</span>
+                </h1>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Configure standardized work timings, automated grace periods for check-in delays, and overtime multipliers.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleOpenCreateShift}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
+              >
+                <IconPlus className="w-4 h-4" />
+                <span>Create Custom Shift</span>
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
+      {saveSuccessMessage && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-semibold flex items-center justify-between animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <IconCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{saveSuccessMessage}</span>
+          </div>
           <button
-            onClick={() => setActiveTab('ROSTER')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeTab === 'ROSTER'
-                ? 'bg-indigo-600 text-white shadow-xs'
-                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-            }`}
+            type="button"
+            onClick={() => setSaveSuccessMessage(null)}
+            className="text-emerald-600 hover:text-emerald-900 cursor-pointer"
           >
-            Weekly Roster View
-          </button>
-          <button
-            onClick={() => setActiveTab('SHIFTS_MASTER')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeTab === 'SHIFTS_MASTER'
-                ? 'bg-indigo-600 text-white shadow-xs'
-                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-            }`}
-          >
-            Shift Master & Rules
+            <IconX className="w-3.5 h-3.5" />
           </button>
         </div>
-      </div>
+      )}
 
       {activeTab === 'ROSTER' ? (
         <div className="space-y-4">
@@ -289,7 +409,7 @@ export const ShiftRosterPage: React.FC = () => {
                 onClick={() => setShowBulkModal(true)}
                 className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
               >
-                Bulk Assign Roster
+                Bulk Assign
               </button>
             </div>
           </div>
@@ -338,20 +458,21 @@ export const ShiftRosterPage: React.FC = () => {
                         {currentWeekDates.map((d) => {
                           const dateStr = d.toISOString().split('T')[0];
                           const key = `${emp.id}_${dateStr}`;
-                          const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-                          const currentCode = rosterMap[key] || (isWeekend ? 'WO' : 'GS');
-                          const activeShift = shifts.find((s) => s.code === currentCode) || shifts[0];
+                          const currentCode = rosterMap[key] || '';
+                          const activeShift = shifts.find((s) => s.code === currentCode);
 
                           return (
                             <td key={dateStr} className="px-2 py-3 text-center">
                               <select
                                 value={currentCode}
+                                title={activeShift ? `${activeShift.code}: ${activeShift.name} (${activeShift.startTime} - ${activeShift.endTime})` : 'Select shift'}
                                 onChange={(e) => handleSetShift(emp.id, dateStr, e.target.value)}
-                                className={`px-2 py-1 rounded-lg text-xs font-bold border transition-colors cursor-pointer w-full text-center ${activeShift.color}`}
+                                className={`px-2 py-1 rounded-lg text-xs font-bold border transition-colors cursor-pointer w-full text-center ${activeShift?.color || 'bg-slate-50 text-slate-700 border-slate-200'}`}
                               >
+                                <option value="">-</option>
                                 {shifts.map((s) => (
-                                  <option key={s.id} value={s.code}>
-                                    {s.code} ({s.name})
+                                  <option key={s.id} value={s.code} title={`${s.name} (${s.startTime} - ${s.endTime})`}>
+                                    {s.code}
                                   </option>
                                 ))}
                               </select>
@@ -369,233 +490,371 @@ export const ShiftRosterPage: React.FC = () => {
       ) : (
         /* Shifts Master View */
         <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <p className="text-xs text-slate-500 font-medium">
-              Configure standardized work timings, automated grace periods for check-in delays, and overtime multipliers.
-            </p>
-            <button
-              onClick={() => setShowAddShiftModal(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
+          {loadingShifts ? (
+            <div className="p-16 text-center text-slate-400 flex flex-col items-center justify-center gap-2 bg-white rounded-3xl border border-slate-200">
+              <IconLoader2 className="w-6 h-6 animate-spin text-indigo-600" />
+              <span className="text-xs font-semibold text-slate-600">Loading shift rules from database...</span>
+            </div>
+          ) : shifts.length === 0 ? (
+            <div className="p-16 text-center text-slate-400 flex flex-col items-center justify-center gap-3 bg-white rounded-3xl border border-slate-200">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                <IconClock className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-900">No shifts configured in database</h4>
+                <p className="text-xs text-slate-500 mt-0.5">Create your company's standard shifts to get started</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleOpenCreateShift}
+                className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer"
+              >
+                <IconPlus className="w-4 h-4" />
+                <span>Create Shift</span>
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {shifts.map((s) => (
+                <div
+                  key={s.id}
+                  className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-4 hover:border-slate-300 transition-all"
+                >
+                  <div>
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded-lg border text-xs font-black ${s.color || 'bg-slate-100 text-slate-700 border-slate-200'}`}>
+                          {s.code}
+                        </span>
+                        <h3 className="font-bold text-slate-900 text-sm">{s.name}</h3>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {s.isNightShift && (
+                          <span className="p-1.5 bg-purple-50 text-purple-600 rounded-lg" title="Night Shift">
+                            <IconMoon className="w-4 h-4" />
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditShift(s)}
+                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                          title={`Edit ${s.name}`}
+                        >
+                          <IconPencil className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="pt-3 space-y-2 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Working Hours:</span>
+                        <span className="font-bold text-slate-900">
+                          {s.startTime === '-' && s.endTime === '-' ? '---' : `${s.startTime} - ${s.endTime}`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Break Duration:</span>
+                        <span className="font-semibold text-slate-700">{s.breakDurationMinutes} mins</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Late Check-in Grace:</span>
+                        <span className="font-semibold text-emerald-600">{s.gracePeriodMinutes} mins</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-slate-400 text-[11px]">
+                    <span>Applied automatically to geo-fenced attendance checks</span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteShift(s.id, s.name)}
+                      className="text-slate-400 hover:text-rose-600 p-1 hover:bg-rose-50 rounded transition-colors cursor-pointer"
+                      title={`Delete ${s.name}`}
+                    >
+                      <IconTrash className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ===================== BULK ASSIGN RIGHT-SIDE DRAWER ===================== */}
+      {showBulkModal && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] overflow-hidden bg-slate-900/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+          onClick={() => setShowBulkModal(false)}
+        >
+          <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
+            <div
+              className="w-screen max-w-md bg-white shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-300 border-l border-slate-100"
+              onClick={(e) => e.stopPropagation()}
             >
-              <IconPlus className="w-4 h-4" />
-              Create Custom Shift
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {shifts.map((s) => (
-              <div
-                key={s.id}
-                className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-4"
-              >
-                <div>
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2 py-0.5 rounded-lg border text-xs font-black ${s.color}`}>
-                        {s.code}
-                      </span>
-                      <h3 className="font-bold text-slate-900 text-sm">{s.name}</h3>
-                    </div>
-                    {s.isNightShift && (
-                      <span className="p-1.5 bg-purple-50 text-purple-600 rounded-lg">
-                        <IconMoon className="w-4 h-4" />
-                      </span>
-                    )}
+              {/* Header */}
+              <div className="p-5 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                    <IconUsers className="w-5 h-5" />
                   </div>
-
-                  <div className="pt-3 space-y-2 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Working Hours:</span>
-                      <span className="font-bold text-slate-900">
-                        {s.startTime} - {s.endTime}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Break Duration:</span>
-                      <span className="font-semibold text-slate-700">{s.breakDurationMinutes} mins</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Late Check-in Grace:</span>
-                      <span className="font-semibold text-emerald-600">{s.gracePeriodMinutes} mins</span>
-                    </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Bulk Assign Shift</h3>
+                    <p className="text-xs text-slate-500">Apply a shift timing to all employees in the current week</p>
                   </div>
                 </div>
-
-                <div className="pt-3 border-t border-slate-100 text-slate-400 text-[11px]">
-                  Applied automatically to geo-fenced attendance checks
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Bulk Assign */}
-      {showBulkModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <IconUsers className="w-5 h-5 text-indigo-600" />
-              Bulk Assign Shift to Roster
-            </h2>
-            <p className="text-xs text-slate-500">
-              Apply a specific shift timing to all employees in the current week (weekends remain Weekly Off).
-            </p>
-
-            <div className="space-y-3 pt-2">
-              <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Target Department</label>
-                <select
-                  value={bulkDepartment}
-                  onChange={(e) => setBulkDepartment(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl"
-                >
-                  <option value="ALL">All Departments ({employees.length} employees)</option>
-                  {departments.map((dept: any) => (
-                    <option key={dept} value={dept}>
-                      {dept}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Select Shift</label>
-                <select
-                  value={bulkShiftCode}
-                  onChange={(e) => setBulkShiftCode(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl font-bold"
-                >
-                  {shifts
-                    .filter((s) => s.code !== 'WO')
-                    .map((s) => (
-                      <option key={s.id} value={s.code}>
-                        {s.code} - {s.name} ({s.startTime} to {s.endTime})
-                      </option>
-                    ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="pt-3 flex justify-end gap-2 border-t border-slate-100">
-              <button
-                onClick={() => setShowBulkModal(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleBulkAssign}
-                className="px-5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-xs"
-              >
-                Apply to This Week
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Create Shift */}
-      {showAddShiftModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <IconClock className="w-5 h-5 text-indigo-600" />
-              Create Custom Shift
-            </h2>
-
-            <form onSubmit={handleCreateShift} className="space-y-3 pt-2">
-              <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Shift Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Afternoon Support Shift"
-                  value={newShift.name}
-                  onChange={(e) => setNewShift({ ...newShift, name: e.target.value })}
-                  className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Shift Code (2-3 chars)</label>
-                <input
-                  type="text"
-                  required
-                  maxLength={3}
-                  placeholder="e.g. AS"
-                  value={newShift.code}
-                  onChange={(e) => setNewShift({ ...newShift, code: e.target.value })}
-                  className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl uppercase font-bold"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">Start Time</label>
-                  <input
-                    type="time"
-                    required
-                    value={newShift.startTime}
-                    onChange={(e) => setNewShift({ ...newShift, startTime: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">End Time</label>
-                  <input
-                    type="time"
-                    required
-                    value={newShift.endTime}
-                    onChange={(e) => setNewShift({ ...newShift, endTime: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">Break (Mins)</label>
-                  <input
-                    type="number"
-                    value={newShift.breakDurationMinutes}
-                    onChange={(e) =>
-                      setNewShift({ ...newShift, breakDurationMinutes: Number(e.target.value) })
-                    }
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">Grace Period (Mins)</label>
-                  <input
-                    type="number"
-                    value={newShift.gracePeriodMinutes}
-                    onChange={(e) =>
-                      setNewShift({ ...newShift, gracePeriodMinutes: Number(e.target.value) })
-                    }
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-3 flex justify-end gap-2 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setShowAddShiftModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                  onClick={() => setShowBulkModal(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-xs"
-                >
-                  Save Shift
+                  <IconX className="w-5 h-5" />
                 </button>
               </div>
-            </form>
+
+              {/* Form Body */}
+              <div className="flex-1 flex flex-col justify-between overflow-y-auto">
+                <div className="p-5 space-y-4 text-xs">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">Target Department</label>
+                    <select
+                      value={bulkDepartment}
+                      onChange={(e) => setBulkDepartment(e.target.value)}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden font-medium text-slate-800"
+                    >
+                      <option value="ALL">All Departments ({employees.length} employees)</option>
+                      {departments.map((dept: any) => (
+                        <option key={dept} value={dept}>
+                          {dept}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">Select Shift</label>
+                    <select
+                      value={bulkShiftCode}
+                      onChange={(e) => setBulkShiftCode(e.target.value)}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden font-bold text-slate-800"
+                    >
+                      {shifts
+                        .filter((s) => s.code !== 'WO')
+                        .map((s) => (
+                          <option key={s.id} value={s.code}>
+                            {s.code} - {s.name} ({s.startTime} to {s.endTime})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  <div className="p-3 bg-amber-50 border border-amber-200/60 rounded-xl text-[11px] text-amber-800 font-medium">
+                    Note: Weekends (Saturday &amp; Sunday) will automatically remain Weekly Off (WO).
+                  </div>
+                </div>
+
+                {/* Sticky Footer */}
+                <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowBulkModal(false)}
+                    className="px-4 py-2 font-bold text-slate-600 hover:bg-slate-200/60 rounded-xl cursor-pointer transition-colors text-xs"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleBulkAssign}
+                    className="px-5 py-2 font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs cursor-pointer transition-all active:scale-95 text-xs"
+                  >
+                    Apply to This Week
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ===================== SHIFT EDIT & CREATE RIGHT-SIDE DRAWER ===================== */}
+      {showShiftDrawer && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] overflow-hidden bg-slate-900/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+          onClick={() => !isSavingShift && setShowShiftDrawer(false)}
+        >
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+            <div
+              className="w-screen max-w-md bg-white shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-300 border-l border-slate-100"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="p-5 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                    <IconClock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">
+                      {editingShift ? `Edit Shift: ${editingShift.name}` : 'Create Custom Shift'}
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      {editingShift
+                        ? 'Update timing rules and check-in grace. Saved directly to database.'
+                        : 'Configure new work timings and check-in grace rules in database.'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={isSavingShift}
+                  onClick={() => setShowShiftDrawer(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <IconX className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveShift} className="flex-1 flex flex-col justify-between overflow-y-auto">
+                <div className="p-5 space-y-4 text-xs">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">Shift Name</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Morning Shift"
+                      value={shiftFormData.name}
+                      onChange={(e) => setShiftFormData({ ...shiftFormData, name: e.target.value })}
+                      className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">Shift Code (2-4 chars)</label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={4}
+                      placeholder="e.g. MS"
+                      value={shiftFormData.code}
+                      onChange={(e) => setShiftFormData({ ...shiftFormData, code: e.target.value })}
+                      className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl uppercase font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900"
+                    />
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={shiftFormData.isWeeklyOff}
+                        onChange={(e) =>
+                          setShiftFormData({ ...shiftFormData, isWeeklyOff: e.target.checked })
+                        }
+                        className="rounded text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="font-semibold text-slate-800 text-xs">Weekly Off / Non-working Day</span>
+                    </label>
+                    <p className="text-[11px] text-slate-500">
+                      When enabled, this shift marks the day as an off-day with no mandatory working hours.
+                    </p>
+                  </div>
+
+                  {!shiftFormData.isWeeklyOff && (
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs font-semibold text-slate-700 block mb-1">Start Time</label>
+                          <input
+                            type="time"
+                            required
+                            value={shiftFormData.startTime}
+                            onChange={(e) => setShiftFormData({ ...shiftFormData, startTime: e.target.value })}
+                            className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-slate-700 block mb-1">End Time</label>
+                          <input
+                            type="time"
+                            required
+                            value={shiftFormData.endTime}
+                            onChange={(e) => setShiftFormData({ ...shiftFormData, endTime: e.target.value })}
+                            className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs font-semibold text-slate-700 block mb-1">Break Duration (Mins)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            max={240}
+                            value={shiftFormData.breakDurationMinutes}
+                            onChange={(e) =>
+                              setShiftFormData({ ...shiftFormData, breakDurationMinutes: Number(e.target.value) })
+                            }
+                            className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-slate-700 block mb-1">Late Grace Period (Mins)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            max={120}
+                            value={shiftFormData.gracePeriodMinutes}
+                            onChange={(e) =>
+                              setShiftFormData({ ...shiftFormData, gracePeriodMinutes: Number(e.target.value) })
+                            }
+                            className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <input
+                          id="isNightShift"
+                          type="checkbox"
+                          checked={shiftFormData.isNightShift}
+                          onChange={(e) =>
+                            setShiftFormData({ ...shiftFormData, isNightShift: e.target.checked })
+                          }
+                          className="rounded text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <label htmlFor="isNightShift" className="text-xs font-semibold text-slate-700 cursor-pointer">
+                          Night Shift (crosses midnight)
+                        </label>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Sticky Footer */}
+                <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
+                  <button
+                    type="button"
+                    disabled={isSavingShift}
+                    onClick={() => setShowShiftDrawer(false)}
+                    className="px-4 py-2 font-bold text-slate-600 hover:bg-slate-200/60 rounded-xl cursor-pointer transition-colors text-xs"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingShift}
+                    className="px-5 py-2 font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs cursor-pointer transition-all active:scale-95 text-xs flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {isSavingShift && <IconLoader2 className="w-3.5 h-3.5 animate-spin" />}
+                    <span>{isSavingShift ? 'Saving to Database...' : editingShift ? 'Save Changes' : 'Create Shift'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

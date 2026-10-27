@@ -26,6 +26,7 @@ import {
   IconHeartHandshake,
   IconClock,
   IconTrash,
+  IconHistory,
 } from '@tabler/icons-react';
 
 interface Employee {
@@ -437,15 +438,24 @@ export const EmployeesPage: React.FC = () => {
             </p>
           </div>
 
-        {/* Add Employee CTA */}
+        {/* Actions CTA */}
         {canAdd && (
-          <Link
-            to="/company/employees/new"
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 transition-all active:scale-[0.98] cursor-pointer"
-          >
-            <IconPlus className="w-4 h-4" />
-            <span>Create Employee</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/company/activity-logs"
+              className="flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 shadow-2xs transition-all active:scale-[0.98] cursor-pointer"
+            >
+              <IconHistory className="w-4 h-4 text-[#5E4BE2]" />
+              <span>Activity Logs</span>
+            </Link>
+            <Link
+              to="/company/employees/new"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 transition-all active:scale-[0.98] cursor-pointer"
+            >
+              <IconPlus className="w-4 h-4" />
+              <span>Create Employee</span>
+            </Link>
+          </div>
         )}
       </div>
 

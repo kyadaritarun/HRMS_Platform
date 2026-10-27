@@ -33,21 +33,12 @@ export const LeaveTypeSchema = z.object({
     .default({ frequency: 'NONE', amount: 0 }),
 });
 
+import { ShiftJsonSchema } from './json.js';
+
 export const CompanySettingsUpdateSchema = z.object({
   workingDays: z.string().optional(),
   timezone: z.string().optional(),
   allowedEmailDomains: z.string().optional(),
-  shifts: z
-    .array(
-      z.object({
-        id: z.string(),
-        name: z.string(),
-        startTime: z.string(),
-        endTime: z.string(),
-        workingDays: z.string(),
-        isDefault: z.boolean().default(false),
-      })
-    )
-    .optional(),
+  shifts: z.array(ShiftJsonSchema).optional(),
   settings: z.record(z.unknown()).optional(),
 });

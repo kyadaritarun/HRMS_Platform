@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
@@ -20,6 +20,7 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconSearch,
+  IconHistory,
 } from '@tabler/icons-react';
 
 export interface BulkEmployeeRow {
@@ -170,6 +171,7 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
   const [fileName, setFileName] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [allowedDomains, setAllowedDomains] = useState<string[]>([]);
   const [successInfo, setSuccessInfo] = useState<{
     createdCount: number;
     failedCount: number;
@@ -177,6 +179,21 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
     results: Array<{ row: number; email: string; success: boolean; error?: string }>;
   } | null>(null);
   const [copiedBulkPassword, setCopiedBulkPassword] = useState(false);
+
+  useEffect(() => {
+    const fetchCompanySettings = async () => {
+      try {
+        const res = await api.get('/company/settings');
+        const comp = res.data?.company;
+        const rawDomains = comp?.allowedEmailDomains?.trim() || (comp?.subdomain ? `${comp.subdomain}.com` : '');
+        const parsed = (comp?.domainsAllowed as string[]) || (rawDomains ? rawDomains.split(',').map((d: string) => d.trim().replace(/^@/, '').toLowerCase()).filter(Boolean) : []);
+        setAllowedDomains(parsed);
+      } catch (err) {
+        console.error('Failed to load company settings in bulk import:', err);
+      }
+    };
+    fetchCompanySettings();
+  }, []);
 
   // Pagination & Search state
   const [currentPage, setCurrentPage] = useState(1);
@@ -310,7 +327,14 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
   const validateRow = (r: BulkEmployeeRow) => {
     const missing: string[] = [];
     if (!r.firstName.trim()) missing.push('First Name');
-    if (!r.email.trim() || !r.email.includes('@')) missing.push('Work Email');
+    if (!r.email.trim() || !r.email.includes('@')) {
+      missing.push('Work Email');
+    } else if (allowedDomains.length > 0) {
+      const dom = r.email.trim().split('@')[1]?.toLowerCase().trim();
+      if (!dom || !allowedDomains.includes(dom)) {
+        missing.push(`Email domain @${dom || 'invalid'} (Authorized: ${allowedDomains.map(d => '@' + d).join(', ')})`);
+      }
+    }
     if (!r.personalEmail.trim() || !r.personalEmail.includes('@')) missing.push('Personal Email');
     if (!r.employeeNumber.trim()) missing.push('Employee ID');
     if (!r.dateOfBirth.trim()) missing.push('Date of Birth');
@@ -429,6 +453,13 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
 
             <div className="flex items-center gap-2">
               <Link
+                to="/company/activity-logs"
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-xl shadow-2xs hover:bg-slate-50 transition-all cursor-pointer"
+              >
+                <IconHistory className="w-4 h-4 text-[#5E4BE2]" />
+                <span>View Account Emails</span>
+              </Link>
+              <Link
                 to="/company/employees"
                 className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] text-white text-xs font-bold rounded-xl shadow-xs hover:from-[#5340D4] hover:to-[#4130B4] transition-all cursor-pointer"
               >
@@ -503,10 +534,18 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
           <div>
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <IconFileSpreadsheet className="w-5 h-5 text-[#5E4BE2]" />
-              <span>Bulk Employee Excel Import & Grid Entry</span>
-            </h2>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <IconFileSpreadsheet className="w-5 h-5 text-[#5E4BE2]" />
+                <span>Bulk Employee Excel Import & Grid Entry</span>
+              </h2>
+              {allowedDomains.length > 0 && (
+                <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/70 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                  <span>Allowed Domain: {allowedDomains.map(d => `@${d}`).join(', ')}</span>
+                </span>
+              )}
+            </div>
             <p className="text-xs text-slate-500 mt-0.5">
               Upload your employee spreadsheet or edit data rows directly in the table below.
             </p>

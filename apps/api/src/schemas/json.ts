@@ -13,13 +13,18 @@ export type AddressJson = z.infer<typeof AddressJsonSchema>;
 
 // Company.shifts (array)
 export const ShiftJsonSchema = z.object({
-  id: z.string(), // uuid
+  id: z.string(),
   name: z.string(),
-  startTime: z.string().regex(/^\d{2}:\d{2}$/, 'Must be HH:mm'),
-  endTime: z.string().regex(/^\d{2}:\d{2}$/, 'Must be HH:mm'),
-  workingDays: z.string().default('mon,tue,wed,thu,fri'),
-  isDefault: z.boolean().default(false),
-});
+  code: z.string().optional(),
+  startTime: z.string(),
+  endTime: z.string(),
+  breakDurationMinutes: z.number().default(0).optional(),
+  gracePeriodMinutes: z.number().default(0).optional(),
+  workingDays: z.string().default('mon,tue,wed,thu,fri').optional(),
+  isDefault: z.boolean().default(false).optional(),
+  color: z.string().optional(),
+  isNightShift: z.boolean().optional(),
+}).passthrough();
 export const ShiftsListJsonSchema = z.array(ShiftJsonSchema);
 export type ShiftJson = z.infer<typeof ShiftJsonSchema>;
 

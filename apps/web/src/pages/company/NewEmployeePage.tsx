@@ -57,6 +57,7 @@ export const NewEmployeePage: React.FC = () => {
   const isHr = user?.role === 'HR';
   const [departments, setDepartments] = useState<Department[]>([]);
   const [managers, setManagers] = useState<Manager[]>([]);
+  const [allowedDomains, setAllowedDomains] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState<{
     title: string;
@@ -183,10 +184,19 @@ export const NewEmployeePage: React.FC = () => {
           }
         }
         break;
-      case 'email':
-        if (!trimmed) errorMsg = 'Work email is required.';
-        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(trimmed)) errorMsg = 'Please enter a valid work email address.';
+      case 'email': {
+        if (!trimmed) {
+          errorMsg = 'Work email is required.';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(trimmed)) {
+          errorMsg = 'Please enter a valid work email address.';
+        } else if (allowedDomains.length > 0) {
+          const domain = trimmed.split('@')[1]?.toLowerCase().trim();
+          if (domain && !allowedDomains.includes(domain)) {
+            errorMsg = `Email domain '@${domain}' is not valid. Company admin only authorized corporate domain(s): @${allowedDomains.join(', @')}`;
+          }
+        }
         break;
+      }
       case 'personalEmail':
         if (!trimmed) errorMsg = 'Personal email address is required.';
         else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(trimmed)) errorMsg = 'Please enter a valid personal email address.';
@@ -286,8 +296,16 @@ export const NewEmployeePage: React.FC = () => {
     }
 
     // Work Email
-    if (!data.email?.trim()) newErrors.email = 'Work email is required.';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email.trim())) newErrors.email = 'Please enter a valid work email address.';
+    if (!data.email?.trim()) {
+      newErrors.email = 'Work email is required.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email.trim())) {
+      newErrors.email = 'Please enter a valid work email address.';
+    } else if (allowedDomains.length > 0) {
+      const domain = data.email.trim().split('@')[1]?.toLowerCase().trim();
+      if (domain && !allowedDomains.includes(domain)) {
+        newErrors.email = `Email domain '@${domain}' is not valid. Company admin only authorized corporate domain(s): @${allowedDomains.join(', @')}`;
+      }
+    }
 
     // Personal Email
     if (!data.personalEmail?.trim()) newErrors.personalEmail = 'Personal email address is required.';
@@ -413,12 +431,17 @@ export const NewEmployeePage: React.FC = () => {
   useEffect(() => {
     const loadPrerequisites = async () => {
       try {
-        const [deptsRes, empsRes] = await Promise.all([
+        const [deptsRes, empsRes, settingsRes] = await Promise.all([
           api.get('/company/departments'),
           api.get('/employees?pageSize=100'),
+          api.get('/company/settings'),
         ]);
         setDepartments(deptsRes.data?.departments || []);
         setManagers(empsRes.data?.items || []);
+        const comp = settingsRes.data?.company;
+        const rawDomains = comp?.allowedEmailDomains?.trim() || (comp?.subdomain ? `${comp.subdomain}.com` : '');
+        const parsed = (comp?.domainsAllowed as string[]) || (rawDomains ? rawDomains.split(',').map((d: string) => d.trim().replace(/^@/, '').toLowerCase()).filter(Boolean) : []);
+        setAllowedDomains(parsed);
       } catch (err) {
         console.error('Failed to load prerequisites:', err);
       }
@@ -584,6 +607,10 @@ export const NewEmployeePage: React.FC = () => {
         title: 'Employee Created Successfully',
         message: `Employee account for ${employeeName} has been created and login credentials have been sent to their email (${employeeEmail}).`,
         type: 'success',
+        action: {
+          label: 'View in Activity Logs',
+          onClick: () => navigate('/company/activity-logs'),
+        },
       });
     } catch (err: any) {
       console.error('Failed to onboard employee:', err);
@@ -820,7 +847,15 @@ export const NewEmployeePage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Work Email *</label>
+                    <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+                      <label className="block text-xs font-bold text-slate-700">Work Email *</label>
+                      {allowedDomains.length > 0 && (
+                        <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/70 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 inline-block animate-pulse" />
+                          <span>Authorized Domain: {allowedDomains.map(d => `@${d}`).join(', ')}</span>
+                        </span>
+                      )}
+                    </div>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-blue-600">
                         <IconMail className="w-4 h-4" />
@@ -832,11 +867,17 @@ export const NewEmployeePage: React.FC = () => {
                         value={form.email}
                         onChange={handleChange}
                         onBlur={handleBlur}
-                        placeholder="jane.doe@acme.com"
+                        placeholder={allowedDomains.length > 0 ? `jane.doe@${allowedDomains[0]}` : "jane.doe@kyadari.com"}
                         className={getInputClass('email')}
                       />
                     </div>
                     {renderFieldError('email')}
+                    {!errors.email && form.email && allowedDomains.length > 0 && allowedDomains.includes(form.email.split('@')[1]?.toLowerCase().trim() || '') && (
+                      <p className="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center gap-1 animate-in fade-in duration-150">
+                        <IconCheck className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
+                        <span>Corporate domain verified (@{form.email.split('@')[1]?.toLowerCase().trim()})</span>
+                      </p>
+                    )}
                   </div>
 
                   <div>
