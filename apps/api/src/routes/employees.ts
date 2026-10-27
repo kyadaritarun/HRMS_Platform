@@ -19,7 +19,7 @@ const router = Router();
 router.use(authMiddleware, tenantMatchMiddleware, policyComplianceMiddleware);
 
 // GET /employees
-router.get('/', roleGuard('COMPANY_ADMIN', 'HR', 'EMPLOYEE'), async (req, res, next) => {
+router.get('/', roleGuard('COMPANY_ADMIN', 'HR', 'FINANCE', 'IT', 'EMPLOYEE'), async (req, res, next) => {
   try {
     const companyId = req.user!.companyId!;
     const page = Math.max(1, Number(req.query.page) || 1);
@@ -586,12 +586,12 @@ router.post(
         seenBatchEmails.add(email);
         seenBatchUsernames.add(username);
 
-        let assignedRole: 'EMPLOYEE' | 'HR' | 'COMPANY_ADMIN' = 'EMPLOYEE';
+        let assignedRole: any = 'EMPLOYEE';
         if (req.user!.role === 'HR') {
           assignedRole = 'EMPLOYEE';
         } else if (req.user!.role === 'COMPANY_ADMIN') {
-          assignedRole = item.role === 'HR' ? 'HR' : 'EMPLOYEE';
-        } else if (['HR', 'COMPANY_ADMIN'].includes(item.role)) {
+          assignedRole = ['HR', 'FINANCE', 'IT'].includes(item.role) ? item.role : 'EMPLOYEE';
+        } else if (['HR', 'FINANCE', 'IT', 'COMPANY_ADMIN'].includes(item.role)) {
           assignedRole = item.role;
         }
 

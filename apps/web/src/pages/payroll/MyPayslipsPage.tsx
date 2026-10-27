@@ -184,15 +184,11 @@ export const MyPayslipsPage: React.FC = () => {
     <div className="space-y-6 pb-12">
       {/* Header — renamed to just "Payslips" */}
       <div>
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0">
-            <IconReceipt2 className="w-4 h-4" />
-          </div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            Payslips
-          </h1>
-        </div>
-        <p className="text-xs text-slate-500 font-medium mt-1">
+        <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+          <IconReceipt2 className="w-5 h-5 text-indigo-600 shrink-0" />
+          <span>Payslips</span>
+        </h1>
+        <p className="text-xs text-slate-500 mt-0.5">
           Access and download verified monthly salary statements and statutory tax summaries.
         </p>
       </div>

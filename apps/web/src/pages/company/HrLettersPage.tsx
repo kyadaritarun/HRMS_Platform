@@ -419,11 +419,11 @@ export const HrLettersPage: React.FC = () => {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print:hidden">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <IconFileCertificate className="w-7 h-7 text-indigo-600" />
-            HR Letters & Certificates Hub
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <IconFileCertificate className="w-5 h-5 text-indigo-600 shrink-0" />
+            <span>HR Letters & Certificates Hub</span>
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 mt-0.5">
             Generate, customize, and issue verified corporate letters on company letterhead with direct in-place editing.
           </p>
         </div>

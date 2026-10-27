@@ -11,6 +11,11 @@ import {
   IconFileSpreadsheet,
   IconSearch,
   IconFilter,
+  IconCheck,
+  IconX,
+  IconCreditCard,
+  IconAlertCircle,
+  IconClock,
 } from '@tabler/icons-react';
 
 interface ComplianceEmployee {
@@ -118,6 +123,41 @@ export const ComplianceReportsPage: React.FC = () => {
     fetchComplianceData();
   }, [month, year]);
 
+  const [selectedBankFormat, setSelectedBankFormat] = useState<'HDFC' | 'ICICI' | 'SBI' | 'AXIS' | 'STANDARD'>('HDFC');
+  const [utrModalOpen, setUtrModalOpen] = useState(false);
+  const [utrData, setUtrData] = useState<{
+    utrNumber: string;
+    bankName: string;
+    debitAccount: string;
+    paymentDate: string;
+    disbursedAmount: number;
+    remarks: string;
+  }>({
+    utrNumber: '',
+    bankName: 'HDFC Bank Corporate CMS',
+    debitAccount: '50200081928371',
+    paymentDate: new Date().toISOString().split('T')[0],
+    disbursedAmount: 0,
+    remarks: '',
+  });
+
+  const [recordedUtr, setRecordedUtr] = useState<any | null>(null);
+
+  // Load recorded UTR for selected period
+  useEffect(() => {
+    const key = `kyadari_payout_utr_${month}_${year}`;
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      try {
+        setRecordedUtr(JSON.parse(stored));
+      } catch (e) {
+        setRecordedUtr(null);
+      }
+    } else {
+      setRecordedUtr(null);
+    }
+  }, [month, year]);
+
   // Totals
   const totals = useMemo(() => {
     return employees.reduce(
@@ -134,6 +174,13 @@ export const ComplianceReportsPage: React.FC = () => {
     );
   }, [employees]);
 
+  // Synchronize disbursement amount default
+  useEffect(() => {
+    if (totals.net > 0 && utrData.disbursedAmount === 0) {
+      setUtrData((prev) => ({ ...prev, disbursedAmount: totals.net }));
+    }
+  }, [totals.net]);
+
   // CSV Export Generators
   const downloadCsv = (filename: string, content: string) => {
     const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
@@ -146,19 +193,140 @@ export const ComplianceReportsPage: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  const handleExportBankTransfer = () => {
-    const headers = ['Beneficiary Name', 'Account Number', 'IFSC Code', 'Bank Name', 'Net Amount (INR)', 'Payment Mode', 'Narration'];
-    const rows = employees.map((e) => [
-      `"${e.firstName} ${e.lastName}"`,
-      `"${e.bankDetails?.accountNumber || ''}"`,
-      `"${e.bankDetails?.ifscCode || ''}"`,
-      `"${e.bankDetails?.bankName || 'HDFC Bank'}"`,
-      e.calculation?.netSalary || 0,
-      `"NEFT"`,
-      `"Salary for ${month}/${year}"`,
-    ]);
+  const handleExportBankTransfer = (format = selectedBankFormat) => {
+    let headers: string[] = [];
+    let rows: (string | number)[][] = [];
+    const dateFormatted = `${year}${String(month).padStart(2, '0')}01`;
+
+    if (format === 'HDFC') {
+      // HDFC Bank Corporate CMS format
+      headers = [
+        'Customer Reference Number',
+        'Beneficiary Account Number',
+        'Beneficiary Name',
+        'Payment Amount',
+        'Payment Mode',
+        'IFSC Code',
+        'Corporate Debit Account',
+        'Beneficiary Email',
+        'Narration',
+      ];
+      rows = employees.map((e, idx) => [
+        `"HDFC-PAY-${year}${month}-${String(idx + 1).padStart(4, '0')}"`,
+        `"${e.bankDetails?.accountNumber || '501000000000'}"`,
+        `"${e.firstName} ${e.lastName}"`,
+        e.calculation?.netSalary || 0,
+        (e.calculation?.netSalary || 0) >= 200000 ? '"RTGS"' : '"NEFT"',
+        `"${e.bankDetails?.ifscCode || 'HDFC0001824'}"`,
+        `"50200081928371"`,
+        `"${e.email}"`,
+        `"SALARY-${month}-${year}"`,
+      ]);
+    } else if (format === 'ICICI') {
+      // ICICI Bank Corporate Net Banking format
+      headers = [
+        'Client Reference',
+        'Debit Account No',
+        'Beneficiary Account No',
+        'Beneficiary Name',
+        'Amount',
+        'Currency',
+        'Payment Type',
+        'IFSC',
+        'Remarks',
+      ];
+      rows = employees.map((e, idx) => [
+        `"ICICI-SAL-${year}${month}-${String(idx + 1).padStart(3, '0')}"`,
+        `"000405018274"`,
+        `"${e.bankDetails?.accountNumber || '000401000000'}"`,
+        `"${e.firstName} ${e.lastName}"`,
+        e.calculation?.netSalary || 0,
+        '"INR"',
+        (e.calculation?.netSalary || 0) >= 200000 ? '"RTGS"' : '"NEFT"',
+        `"${e.bankDetails?.ifscCode || 'ICIC0000004'}"`,
+        `"Payroll ${month}/${year}"`,
+      ]);
+    } else if (format === 'SBI') {
+      // SBI Saral / CINB Bulk Upload format
+      headers = [
+        'Beneficiary Nickname',
+        'Beneficiary Account No',
+        'Beneficiary IFSC',
+        'Amount',
+        'Pay Mode',
+        'Sender to Receiver Info',
+      ];
+      rows = employees.map((e) => [
+        `"${e.firstName}"`,
+        `"${e.bankDetails?.accountNumber || '20100000000'}"`,
+        `"${e.bankDetails?.ifscCode || 'SBIN0001824'}"`,
+        e.calculation?.netSalary || 0,
+        '"NEFT"',
+        `"SALARY ${month}/${year}"`,
+      ]);
+    } else if (format === 'AXIS') {
+      // Axis Bank Corporate CMS format
+      headers = [
+        'Txn Ref Number',
+        'Debit Account No',
+        'Beneficiary Account No',
+        'Beneficiary Name',
+        'Amount',
+        'IFSC Code',
+        'Txn Description',
+      ];
+      rows = employees.map((e, idx) => [
+        `"AXIS-PAY-${year}${month}-${idx + 1}"`,
+        `"9180200871928"`,
+        `"${e.bankDetails?.accountNumber || '912010000000'}"`,
+        `"${e.firstName} ${e.lastName}"`,
+        e.calculation?.netSalary || 0,
+        `"${e.bankDetails?.ifscCode || 'UTIB0000001'}"`,
+        `"Salary ${month} ${year}"`,
+      ]);
+    } else {
+      // Standard RBI NEFT format
+      headers = ['Beneficiary Name', 'Account Number', 'IFSC Code', 'Bank Name', 'Net Amount (INR)', 'Payment Mode', 'Narration'];
+      rows = employees.map((e) => [
+        `"${e.firstName} ${e.lastName}"`,
+        `"${e.bankDetails?.accountNumber || ''}"`,
+        `"${e.bankDetails?.ifscCode || ''}"`,
+        `"${e.bankDetails?.bankName || 'HDFC Bank'}"`,
+        e.calculation?.netSalary || 0,
+        `"NEFT"`,
+        `"Salary for ${month}/${year}"`,
+      ]);
+    }
+
     const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    downloadCsv(`Bank_Transfer_Disbursement_${month}_${year}.csv`, csv);
+    downloadCsv(`Payroll_Disbursement_${format}_${month}_${year}.csv`, csv);
+  };
+
+  const handleSaveUtr = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!utrData.utrNumber.trim()) {
+      alert('Please enter a valid Bank UTR / Reference Number');
+      return;
+    }
+    const record = {
+      ...utrData,
+      status: 'DISBURSED',
+      recordedAt: new Date().toISOString(),
+      month,
+      year,
+    };
+    const key = `kyadari_payout_utr_${month}_${year}`;
+    localStorage.setItem(key, JSON.stringify(record));
+    setRecordedUtr(record);
+    setUtrModalOpen(false);
+  };
+
+  const handleClearUtr = () => {
+    if (window.confirm('Are you sure you want to revert this disbursement record to PENDING?')) {
+      const key = `kyadari_payout_utr_${month}_${year}`;
+      localStorage.removeItem(key);
+      setRecordedUtr(null);
+    }
   };
 
   const handleExportPfEcr = () => {
@@ -230,11 +398,11 @@ export const ComplianceReportsPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <IconBuildingBank className="w-7 h-7 text-indigo-600" />
-            Statutory Compliance & Bank Payout Reports
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <IconBuildingBank className="w-5 h-5 text-indigo-600 shrink-0" />
+            <span>Statutory Compliance & Bank Payout Reports</span>
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 mt-0.5">
             Automated generation of bank disbursement NEFT sheets, EPFO ECR, ESIC return registers, and PT/TDS deduction summaries.
           </p>
         </div>
@@ -266,29 +434,112 @@ export const ComplianceReportsPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Payout & UTR Status Banner */}
+      {recordedUtr ? (
+        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-emerald-900">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <IconCheck className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-sm text-emerald-950">Bank Payout Disbursed & Reconciled</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-200 text-emerald-800">
+                  {recordedUtr.status}
+                </span>
+              </div>
+              <p className="text-xs text-emerald-800 mt-0.5">
+                Bank: <span className="font-semibold">{recordedUtr.bankName}</span> • UTR / Ref: <span className="font-mono font-bold">{recordedUtr.utrNumber}</span> • Disbursed: <span className="font-bold">₹{Number(recordedUtr.disbursedAmount).toLocaleString()}</span> on {recordedUtr.paymentDate}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setUtrModalOpen(true)}
+              className="px-3 py-1.5 bg-white border border-emerald-200 rounded-xl text-xs font-bold text-emerald-800 hover:bg-emerald-50 shadow-xs transition-colors cursor-pointer"
+            >
+              Update UTR
+            </button>
+            <button
+              type="button"
+              onClick={handleClearUtr}
+              className="px-3 py-1.5 bg-white border border-rose-200 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 shadow-xs transition-colors cursor-pointer"
+            >
+              Revert
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-amber-950">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <IconClock className="w-6 h-6" />
+            </div>
+            <div>
+              <span className="font-bold text-sm">Disbursement Pending for {month}/{year}</span>
+              <p className="text-xs text-amber-800 mt-0.5">
+                Export bank file below for your corporate banking portal, then record the transaction UTR number to lock this pay run.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setUtrModalOpen(true)}
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-xs shrink-0 transition-colors cursor-pointer"
+          >
+            Record Payout UTR
+          </button>
+        </div>
+      )}
+
       {/* 4 Report Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Bank Transfer */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-4">
           <div>
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3">
-              <IconBuildingBank className="w-5 h-5" />
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                <IconBuildingBank className="w-5 h-5" />
+              </div>
+              <select
+                value={selectedBankFormat}
+                onChange={(e) => setSelectedBankFormat(e.target.value as any)}
+                className="text-[11px] font-bold text-indigo-700 bg-indigo-50/80 border border-indigo-200/60 rounded-lg px-2 py-1 outline-none cursor-pointer"
+              >
+                <option value="HDFC">HDFC Bank CMS</option>
+                <option value="ICICI">ICICI Corporate</option>
+                <option value="SBI">SBI Saral / CINB</option>
+                <option value="AXIS">Axis Bank CMS</option>
+                <option value="STANDARD">RBI NEFT Standard</option>
+              </select>
             </div>
             <h3 className="font-bold text-slate-900 text-sm">Bank Disbursement File</h3>
             <p className="text-xs text-slate-500 mt-1">
-              NEFT / RTGS bulk payment file for HDFC, ICICI, SBI corporate banking upload.
+              Bulk payment file formatted for {selectedBankFormat} corporate banking portal upload.
             </p>
             <p className="text-lg font-black text-slate-900 mt-2">
               ₹{totals.net.toLocaleString()}
             </p>
           </div>
-          <button
-            onClick={handleExportBankTransfer}
-            className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors"
-          >
-            <IconDownload className="w-4 h-4" />
-            Export Bank CSV
-          </button>
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => handleExportBankTransfer(selectedBankFormat)}
+              className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+            >
+              <IconDownload className="w-4 h-4" />
+              Export {selectedBankFormat} CSV
+            </button>
+            <button
+              type="button"
+              onClick={() => setUtrModalOpen(true)}
+              className="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+            >
+              <IconCreditCard className="w-3.5 h-3.5" />
+              {recordedUtr ? 'Edit UTR Record' : 'Record Bank UTR'}
+            </button>
+          </div>
         </div>
 
         {/* Card 2: EPFO ECR */}
@@ -526,6 +777,125 @@ export const ComplianceReportsPage: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Record UTR Modal */}
+      {utrModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <IconBuildingBank className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Record Bank Payout & UTR</h3>
+                  <p className="text-xs text-slate-500">Lock pay run for {month}/{year} with banking reference</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setUtrModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+              >
+                <IconX className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveUtr} className="space-y-4 mt-5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Disbursing Bank / Portal</label>
+                <select
+                  value={utrData.bankName}
+                  onChange={(e) => setUtrData({ ...utrData, bankName: e.target.value })}
+                  className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800"
+                >
+                  <option value="HDFC Bank Corporate CMS">HDFC Bank Corporate CMS</option>
+                  <option value="ICICI Bank Corporate Net Banking">ICICI Bank Corporate Net Banking</option>
+                  <option value="State Bank of India (CINB/Saral)">State Bank of India (CINB/Saral)</option>
+                  <option value="Axis Bank Corporate CMS">Axis Bank Corporate CMS</option>
+                  <option value="Kotak Mahindra Corporate Banking">Kotak Mahindra Corporate Banking</option>
+                  <option value="Direct RBI NEFT / RTGS">Direct RBI NEFT / RTGS</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Corporate Debit Account</label>
+                  <input
+                    type="text"
+                    value={utrData.debitAccount}
+                    onChange={(e) => setUtrData({ ...utrData, debitAccount: e.target.value })}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-mono text-slate-800"
+                    placeholder="e.g. 50200081928371"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Disbursement Date</label>
+                  <input
+                    type="date"
+                    value={utrData.paymentDate}
+                    onChange={(e) => setUtrData({ ...utrData, paymentDate: e.target.value })}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-800"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Bank UTR / Ref Number *</label>
+                  <input
+                    type="text"
+                    value={utrData.utrNumber}
+                    onChange={(e) => setUtrData({ ...utrData, utrNumber: e.target.value })}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-900"
+                    placeholder="e.g. HDFC0092817462"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Total Disbursed (INR)</label>
+                  <input
+                    type="number"
+                    value={utrData.disbursedAmount}
+                    onChange={(e) => setUtrData({ ...utrData, disbursedAmount: Number(e.target.value) })}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Disbursement Notes / Confirmation</label>
+                <textarea
+                  rows={2}
+                  value={utrData.remarks}
+                  onChange={(e) => setUtrData({ ...utrData, remarks: e.target.value })}
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-800 resize-none"
+                  placeholder="e.g. Salary credited to all 6 active employees via HDFC corporate batch upload."
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setUtrModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <IconCheck className="w-4 h-4" />
+                  Save & Lock Pay Run
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

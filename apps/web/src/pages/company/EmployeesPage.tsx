@@ -228,7 +228,7 @@ export const EmployeesPage: React.FC = () => {
         firstName: editForm.firstName.trim(),
         lastName: editForm.lastName.trim(),
         phone: editForm.phone.trim(),
-        role: isCompanyAdmin ? (editForm.role === 'HR' ? 'HR' : 'EMPLOYEE') : 'EMPLOYEE',
+        role: isCompanyAdmin ? (['HR', 'FINANCE', 'IT'].includes(editForm.role) ? editForm.role : 'EMPLOYEE') : 'EMPLOYEE',
         workMode: editForm.workMode,
         employmentType: editForm.employmentType,
         shiftTiming: editForm.shiftTiming.trim(),
@@ -427,16 +427,15 @@ export const EmployeesPage: React.FC = () => {
     <div className="space-y-6">
       {/* ===================== TOP HEADER BAR ===================== */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Employees
+          <div>
+            <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+              <IconUsers className="w-5 h-5 text-indigo-600 shrink-0" />
+              <span>Employees</span>
             </h1>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Browse and manage all team members, reporting structures, and departments.
+            </p>
           </div>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">
-            Browse and manage all team members, reporting structures, and departments.
-          </p>
-        </div>
 
         {/* Add Employee CTA */}
         {canAdd && (
@@ -1366,7 +1365,13 @@ export const EmployeesPage: React.FC = () => {
                         className={`w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] ${isHr ? 'cursor-not-allowed opacity-80' : ''}`}
                       >
                         <option value="EMPLOYEE">Staff Employee</option>
-                        {isCompanyAdmin && <option value="HR">HR</option>}
+                        {isCompanyAdmin && (
+                          <>
+                            <option value="HR">HR</option>
+                            <option value="FINANCE">Finance</option>
+                            <option value="IT">IT</option>
+                          </>
+                        )}
                       </select>
                     </div>
 

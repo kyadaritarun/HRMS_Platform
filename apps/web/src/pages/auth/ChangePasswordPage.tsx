@@ -69,7 +69,7 @@ export const ChangePasswordPage: React.FC = () => {
       setTimeout(() => {
         if (user?.role === 'PRODUCT_SUPER_ADMIN') {
           navigate('/super-admin/dashboard');
-        } else if (user?.role === 'COMPANY_ADMIN' || user?.role === 'HR') {
+        } else if (user?.role === 'COMPANY_ADMIN') {
           navigate('/company/dashboard');
         } else {
           navigate('/employee/dashboard');

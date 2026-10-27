@@ -11,6 +11,8 @@ enum Role {
   PRODUCT_SUPER_ADMIN
   COMPANY_ADMIN
   HR
+  FINANCE
+  IT
   EMPLOYEE
 }
 

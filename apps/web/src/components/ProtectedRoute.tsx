@@ -34,7 +34,7 @@ export const ProtectedRoute: React.FC<Props> = ({ children, allowedRoles, featur
 
   // Role check
   if (allowedRoles && !allowedRoles.includes(user.role) && user.role !== 'PRODUCT_SUPER_ADMIN') {
-    if (user.role === 'COMPANY_ADMIN' || user.role === 'HR') {
+    if (user.role === 'COMPANY_ADMIN') {
       return <Navigate to="/company/dashboard" replace />;
     }
     return <Navigate to="/employee/dashboard" replace />;
@@ -43,7 +43,7 @@ export const ProtectedRoute: React.FC<Props> = ({ children, allowedRoles, featur
   // Feature check
   if (feature && !hasFeature(feature)) {
     // If feature is locked, redirect to dashboard
-    if (user.role === 'COMPANY_ADMIN' || user.role === 'HR') {
+    if (user.role === 'COMPANY_ADMIN') {
       return <Navigate to="/company/dashboard" replace />;
     }
     return <Navigate to="/employee/dashboard" replace />;

@@ -251,7 +251,7 @@ router.put('/:id', async (req, res, next) => {
 });
 
 // PATCH /requests/:id/pay (Claims payment)
-router.patch('/:id/pay', roleGuard('COMPANY_ADMIN', 'HR'), async (req, res, next) => {
+router.patch('/:id/pay', roleGuard('COMPANY_ADMIN', 'HR', 'FINANCE'), async (req, res, next) => {
   try {
     const actorId = req.user!.id;
     const companyId = req.user!.companyId!;

@@ -58,6 +58,9 @@ import { OfferLettersPage } from './pages/company/OfferLettersPage';
 import { ExitManagementPage } from './pages/company/ExitManagementPage';
 import { HrLettersPage } from './pages/company/HrLettersPage';
 import { ComplianceReportsPage } from './pages/payroll/ComplianceReportsPage';
+import { LoansAdvancesPage } from './pages/payroll/LoansAdvancesPage';
+import { TaxDeclarationsPage } from './pages/payroll/TaxDeclarationsPage';
+import { FinanceAnalyticsPage } from './pages/payroll/FinanceAnalyticsPage';
 import { ShiftRosterPage } from './pages/company/ShiftRosterPage';
 import { AssetsOnboardingPage } from './pages/company/AssetsOnboardingPage';
 
@@ -80,7 +83,7 @@ const RootRedirect: React.FC = () => {
   if (!user) return <Navigate to="/login" replace />;
   if (user.mustChangePassword) return <Navigate to="/change-password" replace />;
   if (user.role === 'PRODUCT_SUPER_ADMIN') return <Navigate to="/super-admin/dashboard" replace />;
-  if (user.role === 'COMPANY_ADMIN' || user.role === 'HR') return <Navigate to="/company/dashboard" replace />;
+  if (user.role === 'COMPANY_ADMIN') return <Navigate to="/company/dashboard" replace />;
   return <Navigate to="/employee/dashboard" replace />;
 };
 
@@ -191,7 +194,7 @@ export const App: React.FC = () => {
             <Route
               path="/company/dashboard"
               element={
-                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN']}>
                   <CompanyDashboard />
                 </ProtectedRoute>
               }
@@ -223,7 +226,7 @@ export const App: React.FC = () => {
             <Route
               path="/company/exits"
               element={
-                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR', 'FINANCE']}>
                   <ExitManagementPage />
                 </ProtectedRoute>
               }
@@ -247,7 +250,7 @@ export const App: React.FC = () => {
             <Route
               path="/company/assets-onboarding"
               element={
-                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'IT']}>
                   <AssetsOnboardingPage />
                 </ProtectedRoute>
               }
@@ -360,7 +363,7 @@ export const App: React.FC = () => {
             <Route
               path="/company/documents/review"
               element={
-                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR', 'FINANCE', 'IT']}>
                   <DocumentReviewPage />
                 </ProtectedRoute>
               }
@@ -370,7 +373,7 @@ export const App: React.FC = () => {
             <Route
               path="/payroll/attendance-salary"
               element={
-                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'FINANCE']}>
                   <AttendanceSalaryPage />
                 </ProtectedRoute>
               }
@@ -382,7 +385,7 @@ export const App: React.FC = () => {
             <Route
               path="/payroll/salaries"
               element={
-                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'FINANCE']}>
                   <SalaryMasterPage />
                 </ProtectedRoute>
               }
@@ -390,7 +393,7 @@ export const App: React.FC = () => {
             <Route
               path="/payroll/salary-master"
               element={
-                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'FINANCE']}>
                   <SalaryMasterPage />
                 </ProtectedRoute>
               }
@@ -398,8 +401,32 @@ export const App: React.FC = () => {
             <Route
               path="/payroll/compliance-reports"
               element={
-                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'FINANCE']}>
                   <ComplianceReportsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payroll/analytics"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'FINANCE']}>
+                  <FinanceAnalyticsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payroll/loans-advances"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'FINANCE']}>
+                  <LoansAdvancesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payroll/tax-declarations"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'FINANCE']}>
+                  <TaxDeclarationsPage />
                 </ProtectedRoute>
               }
             />
@@ -410,6 +437,8 @@ export const App: React.FC = () => {
             <Route path="/leaves" element={<MyLeavesPage />} />
             <Route path="/comp-off" element={<MyCompOffPage />} />
             <Route path="/claims" element={<ClaimsPage />} />
+            <Route path="/loans-advances" element={<LoansAdvancesPage />} />
+            <Route path="/tax-declarations" element={<TaxDeclarationsPage />} />
             <Route path="/tickets" element={<TicketsPage />} />
             <Route path="/payroll/my-payslips" element={<MyPayslipsPage />} />
             <Route path="/payroll/payslips" element={<MyPayslipsPage />} />

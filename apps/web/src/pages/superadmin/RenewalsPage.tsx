@@ -155,7 +155,7 @@ export const RenewalsPage: React.FC = () => {
       {/* Page Header with Breadcrumbs & Filters */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
             Renewals &amp; Billing
           </h1>
           <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-1 font-medium">

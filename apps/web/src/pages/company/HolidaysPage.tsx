@@ -340,18 +340,16 @@ export const HolidaysPage: React.FC = () => {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-[#5E4BE2] flex items-center justify-center font-bold shadow-2xs border border-indigo-100/60 shrink-0">
-              <IconCalendarEvent className="w-5 h-5" />
-            </div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Holiday Calendar
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+              <IconCalendarEvent className="w-5 h-5 text-indigo-600 shrink-0" />
+              <span>Holiday Calendar</span>
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-[#5E4BE2] border border-indigo-100 shrink-0">
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-[#5E4BE2] border border-indigo-100 shrink-0">
               Calendar 2026
             </span>
           </div>
-          <p className="text-xs text-slate-500 font-medium mt-1">
+          <p className="text-xs text-slate-500 mt-0.5">
             Configure public, statutory, and optional floating holidays used across attendance tracking and payroll engines.
           </p>
         </div>

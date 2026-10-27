@@ -239,18 +239,14 @@ export const OrgStructurePage: React.FC = () => {
   return (
     <div className="space-y-5 max-w-7xl mx-auto pb-10">
       {/* Top Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-2xl bg-[#eeeffd] text-[#5452f6] flex items-center justify-center shrink-0 shadow-2xs">
-          <IconNetwork className="w-6 h-6" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Org Structure
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Interactive reporting structure from executive leadership down to functional squad teams.
-          </p>
-        </div>
+      <div>
+        <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+          <IconNetwork className="w-5 h-5 text-indigo-600 shrink-0" />
+          <span>Org Structure</span>
+        </h1>
+        <p className="text-xs text-slate-500 mt-0.5">
+          Interactive reporting structure from executive leadership down to functional squad teams.
+        </p>
       </div>
 
       {/* Toolbar: Search & Zoom Controls */}

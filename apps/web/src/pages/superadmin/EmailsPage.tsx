@@ -218,11 +218,9 @@ export const EmailsPage: React.FC = () => {
       {/* Header & Breadcrumb */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <div className="p-2 bg-brand-50 text-brand-600 rounded-xl border border-brand-100">
-              <IconMail className="w-6 h-6 stroke-[2]" />
-            </div>
-            Email Notifications
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <IconMail className="w-5 h-5 text-indigo-600 shrink-0" />
+            <span>Email Notifications</span>
           </h1>
           <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-1 font-medium">
             <Link to="/super-admin/dashboard" className="hover:text-brand-600 flex items-center gap-1">

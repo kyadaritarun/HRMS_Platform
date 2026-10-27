@@ -45,6 +45,22 @@ const DEMO_PERSONAS: DemoPersona[] = [
     icon: '📋',
   },
   {
+    id: 'kyadari_finance',
+    name: 'Kyadari Finance',
+    roleTag: 'Rohan Sharma (Finance & Payroll)',
+    login: 'finance@kyadari.com',
+    pass: 'Admin@123!',
+    icon: '💰',
+  },
+  {
+    id: 'kyadari_it',
+    name: 'Kyadari IT',
+    roleTag: 'Arjun Verma (IT & Infrastructure)',
+    login: 'it@kyadari.com',
+    pass: 'Admin@123!',
+    icon: '💻',
+  },
+  {
     id: 'kyadari_manager',
     name: 'Kyadari Manager',
     roleTag: 'Vikram Malhotra (VP of Engineering)',
@@ -97,8 +113,14 @@ export const LoginPage: React.FC = () => {
         navigate('/change-password');
       } else if (data.user.role === 'PRODUCT_SUPER_ADMIN') {
         navigate('/super-admin/dashboard');
-      } else if (data.user.role === 'COMPANY_ADMIN' || data.user.role === 'HR') {
+      } else if (data.user.role === 'COMPANY_ADMIN') {
         navigate('/company/dashboard');
+      } else if (data.user.role === 'HR') {
+        navigate('/employee/dashboard');
+      } else if (data.user.role === 'FINANCE') {
+        navigate('/payroll/attendance-salary');
+      } else if (data.user.role === 'IT') {
+        navigate('/company/assets-onboarding');
       } else {
         navigate('/employee/dashboard');
       }

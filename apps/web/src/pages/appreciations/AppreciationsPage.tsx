@@ -225,11 +225,11 @@ export const AppreciationsPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <IconHeartHandshake className="w-7 h-7 text-[#5E4BE2]" />
-            Appreciations
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <IconHeartHandshake className="w-5 h-5 text-indigo-600 shrink-0" />
+            <span>Appreciations</span>
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 mt-0.5">
             Celebrate colleagues, foster positive company culture, and recognize outstanding contributions.
           </p>
         </div>

@@ -33,16 +33,19 @@ interface Ticket {
   status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
   createdAt: string;
   user?: {
+    id?: number;
     firstName?: string;
     lastName?: string;
     email?: string;
   } | null;
   requester?: {
+    id?: number;
     firstName?: string;
     lastName?: string;
     email?: string;
   } | null;
   assignee?: {
+    id?: number;
     firstName?: string;
     lastName?: string;
   } | null;
@@ -54,10 +57,12 @@ export const TicketsPage: React.FC = () => {
   const location = useLocation();
   const isManager = Boolean(user?.isManager || (user as any)?._count?.reports > 0);
   const isAdminOrHr = user?.role === 'COMPANY_ADMIN' || user?.role === 'HR';
+  const isItOrFinance = user?.role === 'IT' || user?.role === 'FINANCE';
 
   const getInitialScope = () => {
     if (location.pathname.includes('/assigned')) return 'assigned';
     if (location.pathname.includes('/manage')) return 'company';
+    if (isItOrFinance) return 'assigned';
     return 'mine';
   };
 
@@ -83,7 +88,7 @@ export const TicketsPage: React.FC = () => {
   const [createForm, setCreateForm] = useState({
     title: '',
     description: '',
-    department: 'HARDWARE',
+    department: 'IT',
     priority: 'MEDIUM',
   });
   const [isCreating, setIsCreating] = useState(false);
@@ -161,6 +166,30 @@ export const TicketsPage: React.FC = () => {
       alert(err.response?.data?.error || 'Failed to post comment');
     } finally {
       setIsSubmittingComment(false);
+    }
+  };
+
+  const [employees, setEmployees] = useState<{ id: number; firstName: string; lastName: string; role: string; jobTitle?: string; email: string }[]>([]);
+
+  useEffect(() => {
+    if (isAdminOrHr || isItOrFinance || isManager) {
+      api.get('/employees', { params: { pageSize: 100, status: 'ACTIVE' } })
+        .then((res) => {
+          setEmployees(res.data?.items || []);
+        })
+        .catch((e) => console.error('Failed to load employees for assignment:', e));
+    }
+  }, [isAdminOrHr, isItOrFinance, isManager]);
+
+  const handleAssigneeChange = async (newAssigneeId: number | null) => {
+    if (!selectedTicket) return;
+    try {
+      await api.patch(`/tickets/${selectedTicket.id}`, { assigneeId: newAssigneeId });
+      const res = await api.get(`/tickets/${selectedTicket.id}`);
+      setSelectedTicket(res.data?.ticket);
+      fetchTickets();
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to reassign ticket');
     }
   };
 
@@ -281,15 +310,11 @@ export const TicketsPage: React.FC = () => {
       {/* ===================== TOP HEADER BAR ===================== */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0">
-              <IconHeadset className="w-4 h-4" />
-            </div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Tickets
-            </h1>
-          </div>
-          <p className="text-xs text-slate-500 font-medium mt-1">
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <IconHeadset className="w-5 h-5 text-indigo-600 shrink-0" />
+            <span>Tickets</span>
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
             {scope === 'assigned'
               ? 'View, reply to, and resolve support tickets submitted by your team members or assigned to you.'
               : scope === 'company'
@@ -310,8 +335,8 @@ export const TicketsPage: React.FC = () => {
 
       {/* ===================== ROW 2: SEARCH & STATUS FILTER TOOLBAR ===================== */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200/70 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-        {/* Scope Tabs (My Tickets / Team Tickets / Company) */}
-        {(isManager || isAdminOrHr) && (
+        {/* Scope Tabs (My Tickets / Team Tickets / Department Queue / Company) */}
+        {(isManager || isAdminOrHr || isItOrFinance) && (
           <div className="flex items-center bg-slate-50/80 border border-slate-200/70 p-1 rounded-xl shrink-0">
             <button
               type="button"
@@ -339,7 +364,13 @@ export const TicketsPage: React.FC = () => {
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              {isManager ? 'Team Tickets' : 'Assigned to Me'}
+              {isItOrFinance
+                ? user?.role === 'IT'
+                  ? '💻 IT Queue'
+                  : '💰 Finance Queue'
+                : isManager
+                ? 'Team Tickets'
+                : 'Assigned to Me'}
             </button>
             {isAdminOrHr && (
               <button
@@ -575,16 +606,68 @@ export const TicketsPage: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <select
-                      value={selectedTicket.status}
-                      onChange={(e) => handleStatusChange(e.target.value)}
-                      className="px-3 py-1.5 text-xs font-bold bg-white border border-slate-200 rounded-xl text-slate-700 shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] cursor-pointer uppercase"
-                    >
-                      <option value="OPEN">OPEN</option>
-                      <option value="IN_PROGRESS">IN PROGRESS</option>
-                      <option value="RESOLVED">RESOLVED</option>
-                      <option value="CLOSED">CLOSED</option>
-                    </select>
+                    {/* Agents (Admin, HR, IT, Finance, Assignee, Manager) have full status change */}
+                    {isAdminOrHr ||
+                    (user?.role === 'IT' && ['IT', 'HARDWARE'].includes((selectedTicket.category || '').toUpperCase())) ||
+                    (user?.role === 'FINANCE' && (selectedTicket.category || '').toUpperCase() === 'FINANCE') ||
+                    selectedTicket.assignee?.id === user?.id ||
+                    isManager ? (
+                      <select
+                        value={selectedTicket.status}
+                        onChange={(e) => handleStatusChange(e.target.value)}
+                        className="px-3 py-1.5 text-xs font-bold bg-white border border-slate-200 rounded-xl text-slate-700 shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] cursor-pointer uppercase"
+                      >
+                        <option value="OPEN">OPEN</option>
+                        <option value="IN_PROGRESS">IN PROGRESS</option>
+                        <option value="RESOLVED">RESOLVED</option>
+                        <option value="CLOSED">CLOSED</option>
+                      </select>
+                    ) : (
+                      /* Regular Employee Requester: Shows current status badge + action buttons */
+                      <div className="flex items-center gap-1.5">
+                        {getStatusBadge(selectedTicket.status)}
+                        {selectedTicket.status === 'RESOLVED' && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleStatusChange('CLOSED')}
+                              className="px-2.5 py-1 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-2xs transition-colors cursor-pointer"
+                              title="Confirm resolution and close ticket"
+                            >
+                              Confirm & Close
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleStatusChange('OPEN')}
+                              className="px-2 py-1 text-[11px] font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg shadow-2xs transition-colors cursor-pointer"
+                              title="Reopen if not resolved"
+                            >
+                              Reopen
+                            </button>
+                          </>
+                        )}
+                        {selectedTicket.status === 'CLOSED' && (
+                          <button
+                            type="button"
+                            onClick={() => handleStatusChange('OPEN')}
+                            className="px-2 py-1 text-[11px] font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg shadow-2xs transition-colors cursor-pointer"
+                            title="Reopen ticket"
+                          >
+                            Reopen
+                          </button>
+                        )}
+                        {selectedTicket.status === 'OPEN' && (
+                          <button
+                            type="button"
+                            onClick={() => handleStatusChange('CLOSED')}
+                            className="px-2 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors cursor-pointer"
+                            title="Cancel this request"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
+                    )}
                     <button
                       onClick={() => setSelectedTicket(null)}
                       className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
@@ -598,6 +681,53 @@ export const TicketsPage: React.FC = () => {
                 <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
                   {selectedTicket.title || selectedTicket.subject || `Ticket #${selectedTicket.id}`}
                 </h2>
+
+                {/* Meta Bar: Requester & Assignee (with re-assignment for managers/agents) */}
+                <div className="flex flex-wrap items-center justify-between gap-2.5 mt-3 pt-3 border-t border-slate-100 text-xs">
+                  <div className="flex items-center gap-1.5 text-slate-600 flex-wrap">
+                    <span className="text-slate-400 font-medium">Raised by:</span>
+                    <span className="font-bold text-slate-800">
+                      {selectedTicket.requester?.firstName || selectedTicket.user?.firstName || 'Employee'}{' '}
+                      {selectedTicket.requester?.lastName || selectedTicket.user?.lastName || ''}
+                    </span>
+                    {(selectedTicket.requester?.email || selectedTicket.user?.email) && (
+                      <span className="text-slate-400 text-[11px]">
+                        ({selectedTicket.requester?.email || selectedTicket.user?.email})
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-400 font-medium">Assigned to:</span>
+                    {/* If manager/agent: Interactive Assignee Selector to reassign */}
+                    {isAdminOrHr ||
+                    (user?.role === 'IT' && ['IT', 'HARDWARE'].includes((selectedTicket.category || '').toUpperCase())) ||
+                    (user?.role === 'FINANCE' && (selectedTicket.category || '').toUpperCase() === 'FINANCE') ||
+                    selectedTicket.assignee?.id === user?.id ||
+                    isManager ? (
+                      <select
+                        value={selectedTicket.assignee?.id || ''}
+                        onChange={(e) => handleAssigneeChange(e.target.value ? Number(e.target.value) : null)}
+                        className="px-2.5 py-1 text-xs font-bold bg-white border border-slate-200 rounded-lg text-slate-800 shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] cursor-pointer"
+                        title="Reassign ticket to a team member"
+                      >
+                        <option value="">Unassigned</option>
+                        {employees.map((emp) => (
+                          <option key={emp.id} value={emp.id}>
+                            {emp.firstName} {emp.lastName} ({emp.role || emp.jobTitle || 'Staff'})
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      /* If regular employee: Display assignee name */
+                      <span className="font-bold text-[#5E4BE2] bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md">
+                        {selectedTicket.assignee
+                          ? `${selectedTicket.assignee.firstName} ${selectedTicket.assignee.lastName}`.trim()
+                          : 'Pending Triage'}
+                      </span>
+                    )}
+                  </div>
+                </div>
 
                 {/* Primary Description Bubble */}
                 <div className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-3.5 text-xs sm:text-sm text-slate-700 mt-3 leading-relaxed">
@@ -711,18 +841,28 @@ export const TicketsPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Department
+                    Department / Category *
                   </label>
                   <select
                     value={createForm.department}
                     onChange={(e) => setCreateForm({ ...createForm, department: e.target.value })}
                     className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all text-slate-700 cursor-pointer"
                   >
-                    <option value="HARDWARE">Hardware</option>
-                    <option value="IT">IT Support</option>
-                    <option value="HR">Human Resources</option>
-                    <option value="FINANCE">Finance</option>
-                    <option value="FACILITIES">Facilities</option>
+                    <optgroup label="💻 IT & Infrastructure">
+                      <option value="IT">💻 IT Support (Software, Accounts, Email)</option>
+                      <option value="HARDWARE">🖥️ Hardware (Laptop, Monitor, Devices)</option>
+                    </optgroup>
+                    <optgroup label="💰 Finance & Payroll">
+                      <option value="FINANCE_SALARY">💵 Salary & Payslip Discrepancy</option>
+                      <option value="FINANCE_CLAIM">💳 Expense Claims & Reimbursements</option>
+                      <option value="FINANCE_TAX">📑 Tax Declarations & Form 16</option>
+                      <option value="FINANCE_BANK">🏦 Bank Details & Payout Update</option>
+                      <option value="FINANCE_PF">🛡️ Provident Fund (PF) & Gratuity</option>
+                    </optgroup>
+                    <optgroup label="📋 HR & Facilities">
+                      <option value="HR">📋 Human Resources (Leaves, Policies, Letters)</option>
+                      <option value="FACILITIES">🏢 Facilities & Office Management</option>
+                    </optgroup>
                   </select>
                 </div>
                 <div>

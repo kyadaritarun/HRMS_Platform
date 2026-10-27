@@ -827,15 +827,11 @@ export const EmployeeDashboard: React.FC = () => {
       {/* ===================== TOP HEADER BAR ===================== */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0">
-              <IconSmartHome className="w-4 h-4" />
-            </div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Dashboard
-            </h1>
-          </div>
-          <p className="text-xs text-slate-500 font-medium mt-1">
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <IconSmartHome className="w-5 h-5 text-indigo-600 shrink-0" />
+            <span>Dashboard</span>
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
             Welcome back{user?.firstName ? `, ${user.firstName}` : ''}! Here is your personal activity, shift status, and shortcuts.
           </p>
         </div>
@@ -863,13 +859,12 @@ export const EmployeeDashboard: React.FC = () => {
               </div>
 
               <span
-                className={`text-[11px] px-3 py-1 rounded-full font-bold flex items-center gap-1.5 transition-all ${
-                  activeSession
+                className={`text-[11px] px-3 py-1 rounded-full font-bold flex items-center gap-1.5 transition-all ${activeSession
                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                     : isShiftCompletedToday
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                    : 'bg-slate-100 text-slate-600 border border-slate-200/60'
-                }`}
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : 'bg-slate-100 text-slate-600 border border-slate-200/60'
+                  }`}
               >
                 {activeSession ? (
                   <>
@@ -896,8 +891,8 @@ export const EmployeeDashboard: React.FC = () => {
                 {activeSession
                   ? formatTimer(seconds)
                   : isShiftCompletedToday
-                  ? formatTimer(shiftCalculator.loggedSeconds)
-                  : '00:00:00'}
+                    ? formatTimer(shiftCalculator.loggedSeconds)
+                    : '00:00:00'}
               </div>
               <div className="flex items-center justify-center gap-1.5 text-xs text-slate-400 mt-2.5 font-medium">
                 {activeSession ? (
@@ -929,11 +924,10 @@ export const EmployeeDashboard: React.FC = () => {
                 type="button"
                 disabled={isShiftCompletedToday && !activeSession}
                 onClick={() => setWorkMode('WFO')}
-                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:cursor-not-allowed ${
-                  workMode === 'WFO'
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:cursor-not-allowed ${workMode === 'WFO'
                     ? 'bg-white text-indigo-700 shadow-2xs font-extrabold'
                     : 'text-slate-500 hover:text-slate-700'
-                }`}
+                  }`}
               >
                 <IconBuilding className="w-3.5 h-3.5" />
                 <span>Office</span>
@@ -942,11 +936,10 @@ export const EmployeeDashboard: React.FC = () => {
                 type="button"
                 disabled={isShiftCompletedToday && !activeSession}
                 onClick={() => setWorkMode('WFH')}
-                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:cursor-not-allowed ${
-                  workMode === 'WFH'
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:cursor-not-allowed ${workMode === 'WFH'
                     ? 'bg-white text-indigo-700 shadow-2xs font-extrabold'
                     : 'text-slate-500 hover:text-slate-700'
-                }`}
+                  }`}
               >
                 <IconHome className="w-3.5 h-3.5" />
                 <span>Work From Home</span>
@@ -1007,11 +1000,10 @@ export const EmployeeDashboard: React.FC = () => {
               </div>
               <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                 <div
-                  className={`h-full transition-all duration-500 rounded-full ${
-                    shiftCalculator.diffHours >= 0
+                  className={`h-full transition-all duration-500 rounded-full ${shiftCalculator.diffHours >= 0
                       ? 'bg-gradient-to-r from-indigo-500 to-emerald-500'
                       : 'bg-[#4338ca]'
-                  }`}
+                    }`}
                   style={{ width: `${Math.max(4, Math.min(100, shiftCalculator.progressPercent))}%` }}
                 />
               </div>
@@ -1019,11 +1011,10 @@ export const EmployeeDashboard: React.FC = () => {
 
             {attendanceMessage && (
               <div
-                className={`text-xs p-2.5 rounded-xl border font-medium flex items-center gap-2 ${
-                  attendanceMessage.isError
+                className={`text-xs p-2.5 rounded-xl border font-medium flex items-center gap-2 ${attendanceMessage.isError
                     ? 'bg-rose-50 border-rose-200 text-rose-700'
                     : 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                }`}
+                  }`}
               >
                 {attendanceMessage.isError ? (
                   <IconAlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
@@ -1158,9 +1149,8 @@ export const EmployeeDashboard: React.FC = () => {
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((dw, idx) => (
                 <div
                   key={dw}
-                  className={`text-[10px] sm:text-[11px] font-bold uppercase tracking-wider py-0.5 ${
-                    idx === 0 || idx === 6 ? 'text-slate-300' : 'text-slate-400'
-                  }`}
+                  className={`text-[10px] sm:text-[11px] font-bold uppercase tracking-wider py-0.5 ${idx === 0 || idx === 6 ? 'text-slate-300' : 'text-slate-400'
+                    }`}
                 >
                   {dw}
                 </div>
@@ -1208,24 +1198,22 @@ export const EmployeeDashboard: React.FC = () => {
                     type="button"
                     onClick={() => setSelectedDateStr(cell.dateStr)}
                     title={`${cell.dateStr}: ${cell.label}${cell.details ? ` (${cell.details})` : ''}`}
-                    className={`h-8 sm:h-9 rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer relative select-none ${
-                      isSelected
+                    className={`h-8 sm:h-9 rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer relative select-none ${isSelected
                         ? 'bg-[#4338ca] text-white font-black shadow-sm shadow-indigo-600/30'
                         : cell.isToday
-                        ? 'ring-1.5 ring-indigo-500 bg-indigo-50/70 text-indigo-700 font-extrabold'
-                        : isWeekend
-                        ? 'text-slate-300 font-normal hover:bg-slate-50'
-                        : 'text-slate-700 font-semibold hover:bg-slate-50'
-                    }`}
+                          ? 'ring-1.5 ring-indigo-500 bg-indigo-50/70 text-indigo-700 font-extrabold'
+                          : isWeekend
+                            ? 'text-slate-300 font-normal hover:bg-slate-50'
+                            : 'text-slate-700 font-semibold hover:bg-slate-50'
+                      }`}
                   >
                     <span className="text-[11px] sm:text-xs leading-none">
                       {cell.dayNum}
                     </span>
                     {dotColorClass ? (
                       <span
-                        className={`w-1.5 h-1.5 rounded-full mt-1 shrink-0 ${
-                          isSelected ? 'bg-white' : dotColorClass
-                        }`}
+                        className={`w-1.5 h-1.5 rounded-full mt-1 shrink-0 ${isSelected ? 'bg-white' : dotColorClass
+                          }`}
                       />
                     ) : (
                       <span className="w-1.5 h-1.5 mt-1 shrink-0 opacity-0" />
@@ -1240,17 +1228,16 @@ export const EmployeeDashboard: React.FC = () => {
           <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <div className="flex items-center gap-2.5 min-w-0">
               <div
-                className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs font-mono shrink-0 shadow-2xs ${
-                  selectedDayInfo?.status === 'PRESENT'
+                className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs font-mono shrink-0 shadow-2xs ${selectedDayInfo?.status === 'PRESENT'
                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                     : selectedDayInfo?.status === 'ABSENT'
-                    ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                    : selectedDayInfo?.status === 'HOLIDAY'
-                    ? 'bg-sky-50 text-sky-700 border border-sky-200'
-                    : selectedDayInfo?.status === 'LEAVE_APPROVED'
-                    ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                    : 'bg-white text-slate-700 border border-slate-200'
-                }`}
+                      ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                      : selectedDayInfo?.status === 'HOLIDAY'
+                        ? 'bg-sky-50 text-sky-700 border border-sky-200'
+                        : selectedDayInfo?.status === 'LEAVE_APPROVED'
+                          ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                          : 'bg-white text-slate-700 border border-slate-200'
+                  }`}
               >
                 {selectedDayInfo?.dayNum}
               </div>
@@ -1278,19 +1265,18 @@ export const EmployeeDashboard: React.FC = () => {
 
             <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
               <span
-                className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
-                  selectedDayInfo?.status === 'PRESENT'
+                className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${selectedDayInfo?.status === 'PRESENT'
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                     : selectedDayInfo?.status === 'ABSENT'
-                    ? 'bg-rose-50 text-rose-700 border-rose-200'
-                    : selectedDayInfo?.status === 'HOLIDAY'
-                    ? 'bg-sky-50 text-sky-700 border-sky-200'
-                    : selectedDayInfo?.status === 'LEAVE_APPROVED'
-                    ? 'bg-purple-50 text-purple-700 border-purple-200'
-                    : selectedDayInfo?.status === 'LEAVE_PENDING'
-                    ? 'bg-amber-50 text-amber-700 border-amber-200'
-                    : 'bg-white text-slate-600 border-slate-200'
-                }`}
+                      ? 'bg-rose-50 text-rose-700 border-rose-200'
+                      : selectedDayInfo?.status === 'HOLIDAY'
+                        ? 'bg-sky-50 text-sky-700 border-sky-200'
+                        : selectedDayInfo?.status === 'LEAVE_APPROVED'
+                          ? 'bg-purple-50 text-purple-700 border-purple-200'
+                          : selectedDayInfo?.status === 'LEAVE_PENDING'
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : 'bg-white text-slate-600 border-slate-200'
+                  }`}
               >
                 {selectedDayInfo?.status === 'PRESENT' && '✓ Present'}
                 {selectedDayInfo?.status === 'ABSENT' && '✕ Absent'}

@@ -25,6 +25,7 @@ import {
   IconLoader2,
   IconCheck,
   IconSparkles,
+  IconSmartHome,
 } from '@tabler/icons-react';
 import { getHolidayIcon } from '../../utils/holidayIcons';
 import { EventEmailsModal } from '../../components/company/EventEmailsModal';
@@ -526,11 +527,10 @@ export const CompanyDashboard: React.FC = () => {
       {/* Floating Status Notification for Dispatched Emails */}
       {emailToast && (
         <div
-          className={`p-3.5 rounded-2xl text-xs font-semibold flex items-center justify-between gap-3 shadow-sm animate-in fade-in duration-200 ${
-            emailToast.type === 'success'
+          className={`p-3.5 rounded-2xl text-xs font-semibold flex items-center justify-between gap-3 shadow-sm animate-in fade-in duration-200 ${emailToast.type === 'success'
               ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
               : 'bg-rose-50 border border-rose-200 text-rose-800'
-          }`}
+            }`}
         >
           <div className="flex items-center gap-2">
             {emailToast.type === 'success' ? (
@@ -730,19 +730,17 @@ export const CompanyDashboard: React.FC = () => {
                 upcomingBirthdays.slice(0, 5).map((b) => (
                   <div
                     key={b.id}
-                    className={`flex items-center justify-between p-2.5 rounded-xl transition-colors ${
-                      b.diffDays === 0
+                    className={`flex items-center justify-between p-2.5 rounded-xl transition-colors ${b.diffDays === 0
                         ? 'bg-pink-50/70 border border-pink-200/80 hover:bg-pink-100/70'
                         : 'bg-slate-50/70 hover:bg-slate-100/70'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                          b.diffDays === 0
+                        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${b.diffDays === 0
                             ? 'bg-pink-100 text-pink-700'
                             : 'bg-pink-50 text-pink-600 border border-pink-100'
-                        }`}
+                          }`}
                       >
                         <IconCake className="w-4 h-4" />
                       </div>

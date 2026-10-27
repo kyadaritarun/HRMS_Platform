@@ -99,11 +99,11 @@ export const PayrollDashboardPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <IconCash className="w-7 h-7 text-brand-600" />
-            Payroll Calculation Engine
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <IconCash className="w-5 h-5 text-indigo-600 shrink-0" />
+            <span>Payroll Calculation Engine</span>
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 mt-0.5">
             Automated salary calculations with Loss of Pay (LOP), statutory deductions (PF/ESI/TDS), and payslip generation.
           </p>
         </div>

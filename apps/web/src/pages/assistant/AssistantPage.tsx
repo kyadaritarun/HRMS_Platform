@@ -187,11 +187,11 @@ export const AssistantPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 shrink-0">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <IconCpu className="w-7 h-7 text-[#5E4BE2]" />
-            AI Assistant
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <IconCpu className="w-5 h-5 text-indigo-600 shrink-0" />
+            <span>AI Assistant</span>
           </h1>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5">
             Context-aware answers grounded directly in official signed policies & guidelines.
           </p>
         </div>

@@ -238,8 +238,11 @@ export const ProfilePage: React.FC = () => {
     <div className="max-w-10xl mx-auto space-y-5 pb-12">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">My Profile</h1>
-        <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+        <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+          <IconUser className="w-5 h-5 text-indigo-600 shrink-0" />
+          <span>My Profile</span>
+        </h1>
+        <p className="text-xs text-slate-500 mt-0.5">
           Manage your personal information and work details
         </p>
       </div>

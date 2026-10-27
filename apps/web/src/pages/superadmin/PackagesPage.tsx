@@ -389,7 +389,7 @@ export const PackagesPage: React.FC = () => {
       {/* Header & Breadcrumb */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Packages &amp; Pricing</h1>
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">Packages &amp; Pricing</h1>
           <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5 font-medium">
             <Link to="/super-admin/dashboard" className="hover:text-blue-600 flex items-center gap-1">
               <IconHome className="w-3.5 h-3.5 text-slate-400" />

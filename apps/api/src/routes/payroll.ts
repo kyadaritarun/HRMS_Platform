@@ -23,7 +23,7 @@ router.use(authMiddleware, tenantMatchMiddleware, policyComplianceMiddleware);
 // GET /payroll/dashboard?month&year
 router.get(
   '/dashboard',
-  roleGuard('COMPANY_ADMIN', 'HR'),
+  roleGuard('COMPANY_ADMIN', 'FINANCE'),
   featureGuard('payroll'),
   async (req, res, next) => {
     try {
@@ -200,7 +200,7 @@ router.get(
 // PUT /payroll/adjustments
 router.put(
   '/adjustments',
-  roleGuard('COMPANY_ADMIN', 'HR'),
+  roleGuard('COMPANY_ADMIN', 'FINANCE'),
   featureGuard('payroll'),
   validateBody(AdjustmentsSchema),
   async (req, res, next) => {
@@ -293,7 +293,7 @@ router.put(
 // POST /payroll/publish
 router.post(
   '/publish',
-  roleGuard('COMPANY_ADMIN', 'HR'),
+  roleGuard('COMPANY_ADMIN', 'FINANCE'),
   featureGuard('payroll'),
   validateBody(PublishPayrollSchema),
   async (req, res, next) => {
@@ -468,7 +468,7 @@ router.post(
 );
 
 // GET /payroll/salaries/:userId
-router.get('/salaries/:userId', roleGuard('COMPANY_ADMIN', 'HR', 'EMPLOYEE'), async (req, res, next) => {
+router.get('/salaries/:userId', roleGuard('COMPANY_ADMIN', 'FINANCE', 'EMPLOYEE'), async (req, res, next) => {
   try {
     const targetUserId = Number(req.params.userId);
     const callerId = req.user!.id;
@@ -503,7 +503,7 @@ router.get('/salaries/:userId', roleGuard('COMPANY_ADMIN', 'HR', 'EMPLOYEE'), as
 // PUT /payroll/salaries/:userId
 router.put(
   '/salaries/:userId',
-  roleGuard('COMPANY_ADMIN', 'HR'),
+  roleGuard('COMPANY_ADMIN', 'FINANCE'),
   validateBody(UpdateSalarySchema),
   async (req, res, next) => {
     try {

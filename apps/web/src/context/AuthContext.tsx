@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../api/client';
 
-export type UserRole = 'PRODUCT_SUPER_ADMIN' | 'COMPANY_ADMIN' | 'HR' | 'EMPLOYEE';
+export type UserRole = 'PRODUCT_SUPER_ADMIN' | 'COMPANY_ADMIN' | 'HR' | 'FINANCE' | 'IT' | 'EMPLOYEE';
 
 export interface User {
   id: number;

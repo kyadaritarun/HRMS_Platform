@@ -164,19 +164,57 @@ describe('Frontend UI Tests: Sidebar and LockedFeatureModal', () => {
     expect(screen.getByText('Company')).toBeInTheDocument();
     expect(screen.getByText('Assigned To Me')).toBeInTheDocument();
     expect(screen.getByText('Self Service')).toBeInTheDocument();
-    expect(screen.getByText('Miscellaneous')).toBeInTheDocument();
+    expect(screen.getByText('HR Operations')).toBeInTheDocument();
     expect(screen.getByText('Account')).toBeInTheDocument();
 
     // Clicking Company expands downward
     const compCategory = screen.getByText('Company');
     fireEvent.click(compCategory);
 
-    // Verify exact uptrix_hrms sub-items appear
-    expect(screen.getByText('Employees')).toBeInTheDocument();
+    // Verify Company sub-items appear
     expect(screen.getByText('Create Employee')).toBeInTheDocument();
-    expect(screen.getByText('Departments')).toBeInTheDocument();
-    expect(screen.getByText('Roles & Hierarchy')).toBeInTheDocument();
     expect(screen.getByText('Billing')).toBeInTheDocument();
     expect(screen.getByText('Activity Logs')).toBeInTheDocument();
+
+    // Clicking HR Operations expands downward
+    const hrCategory = screen.getByText('HR Operations');
+    fireEvent.click(hrCategory);
+    expect(screen.getByText('Employees')).toBeInTheDocument();
+    expect(screen.getByText('Departments')).toBeInTheDocument();
+  });
+
+  it('5. HR role sees Self Dashboard and does NOT see Company Dashboard', () => {
+    vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
+      user: {
+        id: 2,
+        email: 'hr@acme.com',
+        username: 'hruser',
+        role: 'HR',
+        firstName: 'Jane',
+        lastName: 'HR',
+        companyId: 1,
+        mustChangePassword: false,
+        isManager: false,
+      },
+      company: { id: 1, name: 'Acme Corp' } as any,
+      features: [],
+      token: 'mock-token',
+      isLoading: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+      hasFeature: () => true,
+      hasHrPermission: () => true,
+    });
+
+    render(
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Sidebar />
+      </BrowserRouter>
+    );
+
+    // Verify HR sees Dashboard (only once) and does NOT see Company Dashboard
+    expect(screen.getAllByText('Dashboard')).toHaveLength(1);
+    expect(screen.queryByText('Company Dashboard')).not.toBeInTheDocument();
   });
 });

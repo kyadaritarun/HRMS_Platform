@@ -265,11 +265,11 @@ export const AssetsOnboardingPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <IconDevices className="w-7 h-7 text-indigo-600" />
-            Company Assets & Onboarding Workflows
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <IconDevices className="w-5 h-5 text-indigo-600 shrink-0" />
+            <span>Company Assets & Onboarding Workflows</span>
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 mt-0.5">
             Track enterprise hardware inventory (laptops, monitors, SIMs) and monitor newly joined employee onboarding milestones.
           </p>
         </div>

@@ -32,7 +32,7 @@ export interface BulkEmployeeRow {
   dateOfBirth: string;
   workType: 'PERMANENT' | 'CONTRACT';
   jobTitle: string;
-  role: 'EMPLOYEE' | 'HR' | 'COMPANY_ADMIN';
+  role: 'EMPLOYEE' | 'HR' | 'COMPANY_ADMIN' | 'FINANCE' | 'IT';
   phone: string;
   workMode: 'WFO' | 'WFH';
   shiftTiming: string;
@@ -216,7 +216,7 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
       dateOfBirth: parseExcelDate(getRaw(['dateofbirth', 'date of birth', 'dob'])),
       workType: rawWorkType === 'CONTRACT' ? 'CONTRACT' : 'PERMANENT',
       jobTitle: getString(['jobtitle', 'job title', 'designation', 'role title']),
-      role: isCompanyAdmin && rawRole === 'HR' ? 'HR' : 'EMPLOYEE',
+      role: isCompanyAdmin && ['HR', 'FINANCE', 'IT'].includes(rawRole) ? (rawRole as any) : 'EMPLOYEE',
       phone: getString(['phone', 'phonenumber', 'phone number', 'contact']),
       workMode: rawWorkMode === 'WFH' ? 'WFH' : 'WFO',
       shiftTiming: rawShiftTiming || 'General Shift (09:30 AM - 06:30 PM)',
@@ -272,7 +272,7 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
   const handleCellChange = (id: string, field: keyof BulkEmployeeRow, value: string) => {
     let processedValue = value;
     if (field === 'role') {
-      processedValue = isCompanyAdmin ? (value === 'HR' ? 'HR' : 'EMPLOYEE') : 'EMPLOYEE';
+      processedValue = isCompanyAdmin ? (['HR', 'FINANCE', 'IT'].includes(value) ? value : 'EMPLOYEE') : 'EMPLOYEE';
     }
     setRows((prev) =>
       prev.map((r) => (r.id === id ? { ...r, [field]: processedValue } : r))
@@ -387,7 +387,7 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
     try {
       const sanitizedRows = nonBlankRows.map((r) => ({
         ...r,
-        role: isCompanyAdmin ? (r.role === 'HR' ? 'HR' : 'EMPLOYEE') : 'EMPLOYEE',
+        role: isCompanyAdmin ? (['HR', 'FINANCE', 'IT'].includes(r.role) ? r.role : 'EMPLOYEE') : 'EMPLOYEE',
       }));
       const res = await api.post('/employees/bulk-create', {
         employees: sanitizedRows,
@@ -780,7 +780,13 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
                         className="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-hidden"
                       >
                         <option value="EMPLOYEE">Staff Employee</option>
-                        {isCompanyAdmin && <option value="HR">HR</option>}
+                        {isCompanyAdmin && (
+                          <>
+                            <option value="HR">HR</option>
+                            <option value="FINANCE">Finance</option>
+                            <option value="IT">IT</option>
+                          </>
+                        )}
                       </select>
                     </td>
                     {/* Phone */}

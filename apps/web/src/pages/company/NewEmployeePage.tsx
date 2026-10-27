@@ -451,7 +451,9 @@ export const NewEmployeePage: React.FC = () => {
     }
 
     if (name === 'role') {
-      const allowedRole = isCompanyAdmin ? (value === 'HR' ? 'HR' : 'EMPLOYEE') : 'EMPLOYEE';
+      const allowedRole = isCompanyAdmin
+        ? (['HR', 'FINANCE', 'IT'].includes(value) ? value : 'EMPLOYEE')
+        : 'EMPLOYEE';
       setForm((prev) => ({ ...prev, role: allowedRole }));
       if (touched.role) validateField('role', allowedRole);
       return;
@@ -528,7 +530,7 @@ export const NewEmployeePage: React.FC = () => {
         dateOfBirth: form.dateOfBirth ? form.dateOfBirth : undefined,
         username: form.username.trim(),
         phone: form.phone.trim(),
-        role: isCompanyAdmin ? (form.role === 'HR' ? 'HR' : 'EMPLOYEE') : 'EMPLOYEE',
+        role: isCompanyAdmin ? (['HR', 'FINANCE', 'IT'].includes(form.role) ? form.role : 'EMPLOYEE') : 'EMPLOYEE',
         jobTitle: form.jobTitle.trim(),
         workMode: form.workMode,
         employmentType: form.workType, // 'PERMANENT' or 'CONTRACT'
@@ -1028,7 +1030,13 @@ export const NewEmployeePage: React.FC = () => {
                       className="w-full px-3.5 py-2.5 text-xs font-semibold text-slate-900 bg-[#f1f5f9] border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] shadow-2xs hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer"
                     >
                       <option value="EMPLOYEE">Staff Employee</option>
-                      {isCompanyAdmin && <option value="HR">HR</option>}
+                      {isCompanyAdmin && (
+                        <>
+                          <option value="HR">HR</option>
+                          <option value="FINANCE">Finance</option>
+                          <option value="IT">IT</option>
+                        </>
+                      )}
                     </select>
                   </div>
 

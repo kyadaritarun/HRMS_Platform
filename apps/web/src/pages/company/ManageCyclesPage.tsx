@@ -144,11 +144,11 @@ export const ManageCyclesPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <IconCalendarEvent className="w-7 h-7 text-[#5E4BE2]" />
-            Manage Cycles
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <IconCalendarEvent className="w-5 h-5 text-indigo-600 shrink-0" />
+            <span>Manage Cycles</span>
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 mt-0.5">
             Configure appraisal evaluation periods, OKR submission windows, and monthly payroll cutoff schedules.
           </p>
         </div>

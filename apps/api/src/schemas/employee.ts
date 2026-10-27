@@ -6,7 +6,7 @@ export const CreateEmployeeSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().default(''),
   phone: z.string().default(''),
-  role: z.enum(['COMPANY_ADMIN', 'HR', 'EMPLOYEE']).default('EMPLOYEE'),
+  role: z.enum(['COMPANY_ADMIN', 'HR', 'FINANCE', 'IT', 'EMPLOYEE']).default('EMPLOYEE'),
   departmentId: z.number().nullable().optional(),
   managerId: z.number().nullable().optional(),
   jobTitle: z.string().default(''),
