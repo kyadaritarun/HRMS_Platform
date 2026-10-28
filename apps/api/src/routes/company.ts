@@ -134,9 +134,9 @@ router.get('/settings', roleGuard('COMPANY_ADMIN', 'HR'), async (req, res, next)
     const rawDomains = company.allowedEmailDomains?.trim() || (company.subdomain ? `${company.subdomain}.com` : '');
     const domainsAllowed = rawDomains
       ? rawDomains
-          .split(',')
-          .map((s) => s.trim().replace(/^@/, '').toLowerCase())
-          .filter(Boolean)
+        .split(',')
+        .map((s) => s.trim().replace(/^@/, '').toLowerCase())
+        .filter(Boolean)
       : [];
 
     return res.json({
@@ -1592,11 +1592,11 @@ router.post('/billing/cancel-account', roleGuard('COMPANY_ADMIN'), async (req, r
 
     settings.cancellation = isCancel
       ? {
-          status: 'CANCELLATION_REQUESTED',
-          requestedAt: new Date().toISOString(),
-          requestedBy: req.user!.email,
-          reason: reason || 'Requested by company admin',
-        }
+        status: 'CANCELLATION_REQUESTED',
+        requestedAt: new Date().toISOString(),
+        requestedBy: req.user!.email,
+        reason: reason || 'Requested by company admin',
+      }
       : null;
 
     const updated = await prisma.company.update({

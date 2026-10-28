@@ -262,12 +262,14 @@ export const CompanyBillingPage: React.FC = () => {
   }, []);
 
   // Handlers
-  const handleSaveDomains = async (newDomains: string[]) => {
+  const handleSaveDomains = async (newDomains: string[], shouldCloseModal = false) => {
     setIsActionLoading(true);
     try {
       const res = await api.put('/company/billing/domains', { domains: newDomains });
       setDomainList(res.data.domainsAllowed || newDomains);
-      setIsDomainModalOpen(false);
+      if (shouldCloseModal) {
+        setIsDomainModalOpen(false);
+      }
       fetchBilling();
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to update company domains');
@@ -286,13 +288,13 @@ export const CompanyBillingPage: React.FC = () => {
     const updated = [...domainList, clean];
     setDomainList(updated);
     setNewDomainInput('');
-    handleSaveDomains(updated);
+    handleSaveDomains(updated, false);
   };
 
   const handleRemoveDomain = (toRemove: string) => {
     const updated = domainList.filter((d) => d !== toRemove);
     setDomainList(updated);
-    handleSaveDomains(updated);
+    handleSaveDomains(updated, false);
   };
 
   const handleSwitchAccountType = async (type: 'Standard' | 'Enterprise') => {
@@ -1368,87 +1370,138 @@ export const CompanyBillingPage: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL: MANAGE DOMAINS                                                    */}
+      {/* DRAWER: MANAGE DOMAINS (RIGHT SIDE)                                      */}
       {/* ========================================================================= */}
       {isDomainModalOpen && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl p-6 border border-slate-200 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-[#5E4BE2] flex items-center justify-center">
-                  <IconWorld className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">Allowed Corporate Domains</h3>
-                  <p className="text-xs text-slate-500">Route new employee sign-ups directly into this company.</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsDomainModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
-              >
-                <IconX className="w-4 h-4" />
-              </button>
-            </div>
+        <div className="fixed inset-0 z-[9999] overflow-hidden">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+            onClick={() => setIsDomainModalOpen(false)}
+          />
 
-            <div className="py-4 space-y-4">
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-xs">@</span>
-                  <input
-                    type="text"
-                    placeholder="kyadari.com"
-                    value={newDomainInput}
-                    onChange={(e) => setNewDomainInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAddDomain()}
-                    className="w-full pl-8 pr-3 py-2 text-xs font-medium border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20"
-                  />
+          {/* Right-side Drawer Panel */}
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+            <div
+              className="w-screen max-w-md sm:max-w-lg bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 pointer-events-auto animate-in slide-in-from-right duration-300 overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drawer Header */}
+              <div className="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between gap-4 bg-gradient-to-r from-slate-50 via-indigo-50/20 to-white shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 text-[#5E4BE2] flex items-center justify-center shrink-0">
+                    <IconWorld className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Allowed Corporate Domains</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">Route new employee sign-ups directly into this company.</p>
+                  </div>
                 </div>
                 <button
-                  type="button"
-                  onClick={handleAddDomain}
-                  disabled={isActionLoading || !newDomainInput.trim()}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-[#5E4BE2] text-white hover:bg-[#4d3cc9] cursor-pointer disabled:opacity-50"
+                  onClick={() => setIsDomainModalOpen(false)}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  title="Close"
                 >
-                  Add Domain
+                  <IconX className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="space-y-2 pt-2">
-                <span className="text-xs font-bold text-slate-700">Currently Allowed:</span>
-                {domainList.length === 0 ? (
-                  <p className="text-xs text-slate-400 italic">No custom domains added yet.</p>
-                ) : (
-                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                    {domainList.map((d) => (
-                      <div
-                        key={d}
-                        className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs"
-                      >
-                        <span className="font-semibold text-slate-800">@{d}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveDomain(d)}
-                          className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
-                          title="Remove domain"
-                        >
-                          <IconTrash className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
+              {/* Drawer Content */}
+              <div className="p-6 overflow-y-auto flex-1 space-y-6">
+                {/* Add domain input field */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Add Corporate Domain
+                  </label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-xs">@</span>
+                      <input
+                        type="text"
+                        placeholder="kyadari.com"
+                        value={newDomainInput}
+                        onChange={(e) => setNewDomainInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddDomain()}
+                        className="w-full pl-8 pr-3 py-2.5 text-xs font-medium border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 transition-all shadow-xs"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddDomain}
+                      disabled={isActionLoading || !newDomainInput.trim()}
+                      className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#5E4BE2] text-white hover:bg-[#4d3cc9] cursor-pointer disabled:opacity-50 shadow-xs transition-colors shrink-0"
+                    >
+                      Add Domain
+                    </button>
                   </div>
-                )}
-              </div>
-            </div>
+                  <p className="text-[11px] text-slate-400">
+                    Enter the domain name without '@' (e.g. kyadari.com). Personal email domains are blocked.
+                  </p>
+                </div>
 
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-end">
-              <button
-                type="button"
-                onClick={() => setIsDomainModalOpen(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
-              >
-                Close
-              </button>
+                {/* Currently Allowed List */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-700">
+                      Currently Allowed ({domainList.length}):
+                    </span>
+                  </div>
+
+                  {domainList.length === 0 ? (
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-1">
+                      <p className="text-xs text-slate-500 font-medium">No custom domains added yet.</p>
+                      <p className="text-[11px] text-slate-400">
+                        Defaults to @{compInfo?.subdomain || 'company'}.com
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-80 overflow-y-auto pr-0.5">
+                      {domainList.map((d) => (
+                        <div
+                          key={d}
+                          className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs hover:border-slate-300 transition-colors"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                            <span className="font-semibold text-slate-800 truncate">@{d}</span>
+                            <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md font-bold border border-emerald-200/50 shrink-0">
+                              Verified
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveDomain(d)}
+                            disabled={isActionLoading}
+                            className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer disabled:opacity-50 shrink-0"
+                            title="Remove domain"
+                          >
+                            <IconTrash className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Security Note */}
+                <div className="rounded-xl p-3.5 bg-indigo-50/70 border border-indigo-100 flex items-start gap-2.5 text-xs text-indigo-900">
+                  <IconInfoCircle className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                  <span className="leading-relaxed">
+                    <strong>Corporate Domain Security:</strong> When HR or administrators onboard employees, only work emails matching these verified corporate domains (e.g., @kyadari.com) are accepted. Unauthorized personal email domains are automatically blocked.
+                  </span>
+                </div>
+              </div>
+
+              {/* Drawer Footer */}
+              <div className="p-4 sm:p-5 border-t border-slate-100 flex items-center justify-end bg-slate-50/80 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsDomainModalOpen(false)}
+                  className="px-5 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl cursor-pointer shadow-xs transition-colors"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>,
