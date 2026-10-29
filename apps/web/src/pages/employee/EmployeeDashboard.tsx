@@ -853,7 +853,16 @@ export const EmployeeDashboard: React.FC = () => {
                     Time & Attendance
                   </h3>
                   <p className="text-xs text-slate-400 font-medium mt-0.5">
-                    {userShift?.shiftName?.replace(/\(IST\)/i, '').trim() || 'General Shift'} • {userShift?.startTime12 || '09:30 AM'} – {userShift?.endTime12 || '06:30 PM'}
+                    {userShift?.shiftName ? (
+                      <>
+                        {userShift.shiftName.replace(/\(IST\)/i, '').trim()}
+                        {userShift.startTime12 && userShift.endTime12
+                          ? ` • ${userShift.startTime12} – ${userShift.endTime12}`
+                          : ''}
+                      </>
+                    ) : (
+                      'No Shift Assigned'
+                    )}
                   </p>
                 </div>
               </div>

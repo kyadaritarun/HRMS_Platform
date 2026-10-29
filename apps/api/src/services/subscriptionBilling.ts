@@ -3,6 +3,7 @@ import { AppError } from '../middlewares/errorHandler.js';
 import { createRazorpayPaymentLink, createRazorpayOrder, verifyPaymentSignature, getRazorpayKeyId } from '../lib/razorpay.js';
 import { sendEmail } from '../lib/mailer.js';
 import { logActivity } from './activityLog.js';
+import { generateInvoiceNumber } from './billing.js';
 import bcrypt from 'bcryptjs';
 
 export interface SendPlanProposalParams {
@@ -248,8 +249,6 @@ export async function processSuccessfulPayment(opts: {
     const newSubEndDate = new Date(currentEnd);
     newSubEndDate.setMonth(newSubEndDate.getMonth() + extensionMonths);
 
-    const invoiceNumber = `INV-${now.getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
-
     const currentSettings = (existingCompany.settings as Record<string, any>) || {};
     const updatedSettings = {
       ...currentSettings,
@@ -275,6 +274,7 @@ export async function processSuccessfulPayment(opts: {
       });
 
       // 2. Generate Paid GST Tax Invoice
+      const invoiceNumber = await generateInvoiceNumber(tx);
       const invoice = await tx.invoice.create({
         data: {
           companyId: existingCompany.id,
@@ -398,7 +398,6 @@ export async function processSuccessfulPayment(opts: {
   const subEndDate = new Date(now);
   subEndDate.setMonth(subEndDate.getMonth() + durationMonths);
 
-  const invoiceNumber = `INV-${now.getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
   const tempPassword = `Admin@${Math.floor(1000 + Math.random() * 9000)}`;
   const passwordHash = await bcrypt.hash(tempPassword, 10);
 
@@ -464,6 +463,7 @@ export async function processSuccessfulPayment(opts: {
     }
 
     // 3. Generate Paid Tax Invoice
+    const invoiceNumber = await generateInvoiceNumber(tx);
     const invoice = await tx.invoice.create({
       data: {
         companyId: company.id,
@@ -532,7 +532,7 @@ export async function processSuccessfulPayment(opts: {
             <tr><td style="padding: 4px 0;">Admin Email / Username:</td><td style="text-align: right; font-weight: 700; color: #0f172a;">${paymentOrder.contactEmail}</td></tr>
             <tr><td style="padding: 4px 0;">Temporary Password:</td><td style="text-align: right; font-family: monospace; font-size: 14px; font-weight: 700; color: #e11d48; background: #ffe4e6; padding: 2px 8px; border-radius: 4px; display: inline-block;">${tempPassword}</td></tr>
             <tr><td style="padding: 4px 0;">Active Plan:</td><td style="text-align: right; font-weight: 600; color: #0f172a;">${pkg?.name || 'HRMS'} (${paymentOrder.planType})</td></tr>
-            <tr><td style="padding: 4px 0;">Tax Invoice Number:</td><td style="text-align: right; font-mono font-bold color: #0f172a;">${invoiceNumber}</td></tr>
+            <tr><td style="padding: 4px 0;">Tax Invoice Number:</td><td style="text-align: right; font-mono font-bold color: #0f172a;">${newCompanyResult.invoice.invoiceNumber}</td></tr>
           </table>
         </div>
 

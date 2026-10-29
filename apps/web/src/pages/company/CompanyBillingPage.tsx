@@ -184,7 +184,7 @@ const FAQS = [
 ];
 
 export const CompanyBillingPage: React.FC = () => {
-  const { company } = useAuth();
+  const { company, user } = useAuth();
   const [data, setData] = useState<BillingData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
@@ -1109,7 +1109,7 @@ export const CompanyBillingPage: React.FC = () => {
                         </span>
                       </div>
                       <div className="text-[11px] text-slate-500 mt-0.5">
-                        Mandate Reference: <span className="font-mono text-slate-700 font-semibold">{paymentMethod.paymentId || 'pay_rzp_mock_1792170772496_682'}</span>
+                        Mandate Reference: <span className="font-mono text-slate-700 font-semibold">{paymentMethod.paymentId || '—'}</span>
                       </div>
                     </div>
                   </div>
@@ -1147,8 +1147,8 @@ export const CompanyBillingPage: React.FC = () => {
                         <IconCircleCheckFilled className="w-3.5 h-3.5 shrink-0" />
                         <span className="text-[10px] font-bold uppercase tracking-wide">1. Order Created</span>
                       </div>
-                      <div className="text-xs font-bold text-slate-900 truncate font-mono" title={paymentMethod.orderId || 'comp_prop_2_1792170719572'}>
-                        {paymentMethod.orderId || 'comp_prop_2_1792170719572'}
+                      <div className="text-xs font-bold text-slate-900 truncate font-mono" title={paymentMethod.orderId || '—'}>
+                        {paymentMethod.orderId || '—'}
                       </div>
                       <div className="text-[10px] text-slate-400 mt-0.5">Enterprise Plan Proposal</div>
                     </div>
@@ -1158,8 +1158,8 @@ export const CompanyBillingPage: React.FC = () => {
                         <IconCircleCheckFilled className="w-3.5 h-3.5 shrink-0" />
                         <span className="text-[10px] font-bold uppercase tracking-wide">2. Authorized</span>
                       </div>
-                      <div className="text-xs font-bold text-slate-900 truncate" title={paymentMethod.payerEmail || 'kyadarit@gmail.com'}>
-                        {paymentMethod.payerEmail || 'kyadarit@gmail.com'}
+                      <div className="text-xs font-bold text-slate-900 truncate" title={paymentMethod.payerEmail || user?.email || '—'}>
+                        {paymentMethod.payerEmail || user?.email || '—'}
                       </div>
                       <div className="text-[10px] text-slate-400 mt-0.5">3D Secure / OTP Verified</div>
                     </div>
@@ -1169,8 +1169,8 @@ export const CompanyBillingPage: React.FC = () => {
                         <IconCircleCheckFilled className="w-3.5 h-3.5 shrink-0" />
                         <span className="text-[10px] font-bold uppercase tracking-wide">3. Captured</span>
                       </div>
-                      <div className="text-xs font-bold text-slate-900 truncate font-mono" title={paymentMethod.paymentId || 'pay_rzp_mock_1792170772496_682'}>
-                        {paymentMethod.paymentId || 'pay_rzp_mock_1792170772496_682'}
+                      <div className="text-xs font-bold text-slate-900 truncate font-mono" title={paymentMethod.paymentId || '—'}>
+                        {paymentMethod.paymentId || '—'}
                       </div>
                       <div className="text-[10px] text-slate-400 mt-0.5">Instant Settlement</div>
                     </div>
@@ -1217,7 +1217,7 @@ export const CompanyBillingPage: React.FC = () => {
                           <span className="text-[11px] text-slate-400 font-medium">Transaction / Payment ID</span>
                           <button
                             type="button"
-                            onClick={() => handleCopyText(paymentMethod.paymentId || 'pay_rzp_mock_1792170772496_682', 'paymentId')}
+                            onClick={() => handleCopyText(paymentMethod.paymentId || '', 'paymentId')}
                             className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer"
                           >
                             {copiedField === 'paymentId' ? (
@@ -1234,7 +1234,7 @@ export const CompanyBillingPage: React.FC = () => {
                           </button>
                         </div>
                         <div className="font-mono font-bold text-slate-900 text-xs bg-slate-50 px-2 py-1 rounded-md border border-slate-200 select-all truncate">
-                          {paymentMethod.paymentId || 'pay_rzp_mock_1792170772496_682'}
+                          {paymentMethod.paymentId || '—'}
                         </div>
                       </div>
 
@@ -1243,7 +1243,7 @@ export const CompanyBillingPage: React.FC = () => {
                           <span className="text-[11px] text-slate-400 font-medium">Gateway Order Reference</span>
                           <button
                             type="button"
-                            onClick={() => handleCopyText(paymentMethod.orderId || 'comp_prop_2_1792170719572', 'orderId')}
+                            onClick={() => handleCopyText(paymentMethod.orderId || '', 'orderId')}
                             className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer"
                           >
                             {copiedField === 'orderId' ? (

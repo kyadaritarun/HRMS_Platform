@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { OfferLetterPdfDrawer } from '../../components/pdf';
 import TablePagination from '../../components/common/TablePagination';
@@ -65,96 +66,25 @@ export interface OfferLetterItem {
 export const OfferLettersPage: React.FC = () => {
   const { company } = useAuth();
 
-  // Local state for generated offer letters repository
-  const [offerLetters, setOfferLetters] = useState<OfferLetterItem[]>(() => {
+  // Generated offer letters repository loaded from backend API
+  const [offerLetters, setOfferLetters] = useState<OfferLetterItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchOfferLetters = async () => {
+    setIsLoading(true);
     try {
-      const saved = localStorage.getItem('uptrix_offer_letters');
-      if (saved) return JSON.parse(saved);
-    } catch (_) {}
-    return [
-      {
-        id: 'OL-2026-101',
-        candidateName: 'Aarav Sharma',
-        candidateEmail: 'aarav.sharma@example.com',
-        candidatePhone: '+91 98765 43210',
-        jobTitle: 'Senior Full Stack Engineer',
-        department: 'Engineering',
-        annualCtc: 1200000,
-        monthlySalary: 100000,
-        joiningDate: '2026-11-01',
-        status: 'SENT',
-        createdAt: '2026-10-15',
-        terms: {
-          probationMonths: 3,
-          noticeDays: 30,
-          workMode: 'On-site (WFO)',
-          workingHours: '09:30 AM - 06:30 PM (Mon-Fri)',
-        },
-        breakdown: {
-          basicMonthly: 50000,
-          hraMonthly: 20000,
-          specialAllowanceMonthly: 26200,
-          pfMonthly: 3600,
-          ptMonthly: 200,
-          netMonthly: 96200,
-        },
-      },
-      {
-        id: 'OL-2026-102',
-        candidateName: 'Priya Patel',
-        candidateEmail: 'priya.patel@example.com',
-        candidatePhone: '+91 98111 22334',
-        jobTitle: 'Product Marketing Manager',
-        department: 'Marketing',
-        annualCtc: 900000,
-        monthlySalary: 75000,
-        joiningDate: '2026-11-15',
-        status: 'DRAFT',
-        createdAt: '2026-10-17',
-        terms: {
-          probationMonths: 3,
-          noticeDays: 30,
-          workMode: 'On-site (WFO)',
-          workingHours: '09:00 AM - 06:00 PM (Mon-Fri)',
-        },
-        breakdown: {
-          basicMonthly: 37500,
-          hraMonthly: 15000,
-          specialAllowanceMonthly: 19800,
-          pfMonthly: 2500,
-          ptMonthly: 200,
-          netMonthly: 72300,
-        },
-      },
-      {
-        id: 'OL-2026-103',
-        candidateName: 'Rohan Mehra',
-        candidateEmail: 'rohan.mehra@example.com',
-        candidatePhone: '+91 98222 33445',
-        jobTitle: 'Backend Developer',
-        department: 'Engineering',
-        annualCtc: 1000000,
-        monthlySalary: 83333,
-        joiningDate: '2026-10-20',
-        status: 'JOINED',
-        createdAt: '2026-10-05',
-        terms: {
-          probationMonths: 3,
-          noticeDays: 30,
-          workMode: 'On-site (WFO)',
-          workingHours: '09:30 AM - 06:30 PM (Mon-Fri)',
-        },
-        breakdown: {
-          basicMonthly: 41667,
-          hraMonthly: 16667,
-          specialAllowanceMonthly: 21200,
-          pfMonthly: 3600,
-          ptMonthly: 200,
-          netMonthly: 79533,
-        },
-      },
-    ];
-  });
+      const res = await api.get('/company/offer-letters');
+      setOfferLetters(res.data?.offerLetters || []);
+    } catch (err) {
+      console.error('Failed to load offer letters:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOfferLetters();
+  }, []);
 
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('ALL');
@@ -293,14 +223,15 @@ export const OfferLettersPage: React.FC = () => {
   const ptMonthly = ctcMonthly > 0 ? 200 : 0;
   const netMonthly = Math.max(0, ctcMonthly - pfMonthly - ptMonthly);
 
-  const handleUpdateStatus = (id: string, newStatus: OfferLetterItem['status']) => {
-    const updated = offerLetters.map((item) => (item.id === id ? { ...item, status: newStatus } : item));
-    setOfferLetters(updated);
+  const handleUpdateStatus = async (id: string, newStatus: OfferLetterItem['status']) => {
     try {
-      localStorage.setItem('uptrix_offer_letters', JSON.stringify(updated));
-    } catch (_) {}
-    if (previewLetter && previewLetter.id === id) {
-      setPreviewLetter({ ...previewLetter, status: newStatus });
+      await api.patch(`/company/offer-letters/${id}/status`, { status: newStatus });
+      setOfferLetters((prev) => prev.map((item) => (item.id === id ? { ...item, status: newStatus } : item)));
+      if (previewLetter && previewLetter.id === id) {
+        setPreviewLetter({ ...previewLetter, status: newStatus });
+      }
+    } catch (err) {
+      console.error('Failed to update status:', err);
     }
   };
 
@@ -308,69 +239,65 @@ export const OfferLettersPage: React.FC = () => {
     id: string,
     options: { includeSalaryBreakdown?: boolean; includeTermsAndConditions?: boolean }
   ) => {
-    const updated = offerLetters.map((item) => (item.id === id ? { ...item, ...options } : item));
-    setOfferLetters(updated);
-    try {
-      localStorage.setItem('uptrix_offer_letters', JSON.stringify(updated));
-    } catch (_) {}
+    setOfferLetters((prev) => prev.map((item) => (item.id === id ? { ...item, ...options } : item)));
     if (previewLetter && previewLetter.id === id) {
       setPreviewLetter({ ...previewLetter, ...options });
     }
   };
 
-  const handleSaveOffer = (e: React.FormEvent) => {
+  const handleSaveOffer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.candidateName || !form.jobTitle || (!form.annualCtc && ctcAnnual <= 0)) {
       alert('Please fill in candidate name, job title, and CTC.');
       return;
     }
 
-    const newOffer: OfferLetterItem = {
-      id: `OL-2026-${Math.floor(100 + Math.random() * 900)}`,
-      candidateName: form.candidateName.trim(),
-      candidateEmail: form.candidateEmail.trim(),
-      candidatePhone: form.candidatePhone.trim(),
-      jobTitle: form.jobTitle.trim(),
-      department: form.department,
-      annualCtc: ctcAnnual,
-      monthlySalary: ctcMonthly,
-      joiningDate: form.joiningDate,
-      status: form.status || 'DRAFT',
-      createdAt: new Date().toISOString().split('T')[0],
-      includeSalaryBreakdown: form.includeSalaryBreakdown,
-      includeTermsAndConditions: form.includeTermsAndConditions,
-      terms: {
-        probationMonths: Number(form.probationMonths) || 3,
-        noticeDays: Number(form.noticeDays) || 30,
-        workMode: form.workMode,
-        workingHours: form.workingHours,
-      },
-      breakdown: {
-        basicMonthly: basicVal,
-        hraMonthly: hraVal,
-        specialAllowanceMonthly: specialVal,
-        pfMonthly,
-        ptMonthly,
-        netMonthly,
-        customComponents: form.customComponents.map((c) => ({
-          name: c.name,
-          monthly: Number(c.monthly) || 0,
-        })),
-      },
-      attachedFiles: form.attachedFiles.map((f) => ({
-        name: f.name,
-        size: f.size,
-      })),
-    };
-
-    const updated = [newOffer, ...offerLetters];
-    setOfferLetters(updated);
     try {
-      localStorage.setItem('uptrix_offer_letters', JSON.stringify(updated));
-    } catch (_) {}
+      const payload = {
+        candidateName: form.candidateName.trim(),
+        candidateEmail: form.candidateEmail.trim(),
+        candidatePhone: form.candidatePhone.trim(),
+        jobTitle: form.jobTitle.trim(),
+        department: form.department,
+        annualCtc: ctcAnnual,
+        monthlySalary: ctcMonthly,
+        joiningDate: form.joiningDate,
+        status: form.status || 'DRAFT',
+        terms: {
+          probationMonths: Number(form.probationMonths) || 3,
+          noticeDays: Number(form.noticeDays) || 30,
+          workMode: form.workMode,
+          workingHours: form.workingHours,
+        },
+        breakdown: {
+          basicMonthly: basicVal,
+          hraMonthly: hraVal,
+          specialAllowanceMonthly: specialVal,
+          pfMonthly,
+          ptMonthly,
+          netMonthly,
+          customComponents: form.customComponents.map((c) => ({
+            name: c.name,
+            monthly: Number(c.monthly) || 0,
+          })),
+        },
+        customComponents: form.customComponents,
+        attachedFiles: form.attachedFiles,
+      };
 
-    setIsModalOpen(false);
-    setPreviewLetter(newOffer);
+      const res = await api.post('/company/offer-letters', payload);
+      const created = res.data?.offerLetter;
+      if (created) {
+        setOfferLetters((prev) => [created, ...prev]);
+        setPreviewLetter(created);
+      } else {
+        await fetchOfferLetters();
+      }
+      setIsModalOpen(false);
+    } catch (err: any) {
+      console.error('Failed to create offer letter:', err);
+      alert(err.response?.data?.error?.message || 'Failed to create offer letter');
+    }
   };
 
   const filtered = offerLetters.filter((o) => {

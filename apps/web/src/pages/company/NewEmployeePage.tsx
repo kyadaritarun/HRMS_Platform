@@ -27,8 +27,10 @@ import {
   IconArrowRight,
   IconClock,
   IconMapPin,
+  IconExternalLink,
 } from '@tabler/icons-react';
 import BulkEmployeeImport from './BulkEmployeeImport';
+import { ShiftTiming, formatShiftOption } from '../../utils/shifts';
 
 interface Department {
   id: number;
@@ -58,6 +60,8 @@ export const NewEmployeePage: React.FC = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [managers, setManagers] = useState<Manager[]>([]);
   const [allowedDomains, setAllowedDomains] = useState<string[]>([]);
+  const [companyShifts, setCompanyShifts] = useState<ShiftTiming[]>([]);
+  const [loadingShifts, setLoadingShifts] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState<{
     title: string;
@@ -114,7 +118,7 @@ export const NewEmployeePage: React.FC = () => {
     managerId: '',
     workMode: 'WFO',
     workType: 'PERMANENT',
-    shiftTiming: 'General Shift (09:30 AM - 06:30 PM)',
+    shiftTiming: '',
     address: '',
     workingAddress: '',
     joiningDate: new Date().toISOString().split('T')[0],
@@ -233,7 +237,11 @@ export const NewEmployeePage: React.FC = () => {
         else if (!/^\d{10}$/.test(trimmed)) errorMsg = 'Contact number must be exactly 10 numeric digits.';
         break;
       case 'shiftTiming':
-        if (!trimmed) errorMsg = 'Shift timing is required.';
+        if (!trimmed) {
+          errorMsg = companyShifts.length === 0
+            ? 'No shifts found. Please configure shifts in Shift & Roster first.'
+            : 'Please select a shift timing.';
+        }
         break;
       case 'address':
         if (trimmed && trimmed.length < 3) errorMsg = 'Address should be at least 3 characters.';
@@ -350,7 +358,11 @@ export const NewEmployeePage: React.FC = () => {
     }
 
     // Shift Timing
-    if (!data.shiftTiming?.trim()) newErrors.shiftTiming = 'Shift timing is required.';
+    if (!data.shiftTiming?.trim()) {
+      newErrors.shiftTiming = companyShifts.length === 0
+        ? 'No shifts found. Please configure shifts in Shift & Roster first.'
+        : 'Please select a shift timing.';
+    }
 
     // Address
     if (data.address?.trim() && data.address.trim().length < 3) {
@@ -405,7 +417,7 @@ export const NewEmployeePage: React.FC = () => {
       managerId: '',
       workMode: 'WFO',
       workType: 'PERMANENT',
-      shiftTiming: 'General Shift (09:30 AM - 06:30 PM)',
+      shiftTiming: '',
       address: '',
       workingAddress: '',
       joiningDate: new Date().toISOString().split('T')[0],
@@ -431,10 +443,15 @@ export const NewEmployeePage: React.FC = () => {
   useEffect(() => {
     const loadPrerequisites = async () => {
       try {
-        const [deptsRes, empsRes, settingsRes] = await Promise.all([
+        setLoadingShifts(true);
+        const [deptsRes, empsRes, settingsRes, shiftsRes] = await Promise.all([
           api.get('/company/departments'),
           api.get('/employees?pageSize=100'),
           api.get('/company/settings'),
+          api.get('/company/shifts').catch((err) => {
+            console.error('Failed to load company shifts:', err);
+            return { data: { shifts: [] } };
+          }),
         ]);
         setDepartments(deptsRes.data?.departments || []);
         setManagers(empsRes.data?.items || []);
@@ -442,8 +459,22 @@ export const NewEmployeePage: React.FC = () => {
         const rawDomains = comp?.allowedEmailDomains?.trim() || (comp?.subdomain ? `${comp.subdomain}.com` : '');
         const parsed = (comp?.domainsAllowed as string[]) || (rawDomains ? rawDomains.split(',').map((d: string) => d.trim().replace(/^@/, '').toLowerCase()).filter(Boolean) : []);
         setAllowedDomains(parsed);
+
+        const loadedShifts: ShiftTiming[] = Array.isArray(shiftsRes.data?.shifts) ? shiftsRes.data.shifts : [];
+        setCompanyShifts(loadedShifts);
+        if (loadedShifts.length > 0) {
+          setForm((prev) => ({
+            ...prev,
+            shiftTiming: prev.shiftTiming || formatShiftOption(loadedShifts[0]),
+          }));
+        } else {
+          setForm((prev) => ({ ...prev, shiftTiming: '' }));
+        }
       } catch (err) {
         console.error('Failed to load prerequisites:', err);
+        setCompanyShifts([]);
+      } finally {
+        setLoadingShifts(false);
       }
     };
     loadPrerequisites();
@@ -544,6 +575,14 @@ export const NewEmployeePage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
+      const selectedShiftTiming = form.shiftTiming.trim();
+      const matchedShift = companyShifts.find(
+        (s) =>
+          formatShiftOption(s) === selectedShiftTiming ||
+          s.name.trim().toLowerCase() === selectedShiftTiming.split('(')[0].trim().toLowerCase() ||
+          selectedShiftTiming.toLowerCase().includes((s.name || '').trim().toLowerCase())
+      );
+
       const payload: any = {
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
@@ -557,7 +596,8 @@ export const NewEmployeePage: React.FC = () => {
         jobTitle: form.jobTitle.trim(),
         workMode: form.workMode,
         employmentType: form.workType, // 'PERMANENT' or 'CONTRACT'
-        shiftTiming: form.shiftTiming.trim(),
+        shiftTiming: selectedShiftTiming,
+        shiftId: matchedShift?.id || null,
         address: form.address.trim(),
         workingAddress: form.workingAddress.trim(),
         joiningDate: form.joiningDate,
@@ -1023,7 +1063,18 @@ export const NewEmployeePage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Shift Timing *</label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-slate-700">Shift Timing *</label>
+                      <Link
+                        to="/company/shift-roster"
+                        target="_blank"
+                        className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1"
+                        title="Add or configure shifts in Shift & Roster"
+                      >
+                        <span>Manage in Shift & Roster</span>
+                        <IconExternalLink className="w-3 h-3" />
+                      </Link>
+                    </div>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-indigo-600">
                         <IconClock className="w-4 h-4" />
@@ -1033,16 +1084,46 @@ export const NewEmployeePage: React.FC = () => {
                         value={form.shiftTiming}
                         onChange={handleChange}
                         onBlur={handleBlur}
-                        className={getInputClass('shiftTiming')}
+                        disabled={companyShifts.length === 0}
+                        className={`${getInputClass('shiftTiming')} ${companyShifts.length === 0 ? 'bg-slate-100 cursor-not-allowed text-slate-400' : ''}`}
                       >
-                        <option value="General Shift (09:30 AM - 06:30 PM)">General Shift (09:30 AM - 06:30 PM)</option>
-                        <option value="Morning Shift (06:00 AM - 02:30 PM)">Morning Shift (06:00 AM - 02:30 PM)</option>
-                        <option value="Evening Shift (02:00 PM - 10:30 PM)">Evening Shift (02:00 PM - 10:30 PM)</option>
-                        <option value="Night Shift (10:00 PM - 06:30 AM)">Night Shift (10:00 PM - 06:30 AM)</option>
-                        <option value="Flexible Hours (09:00 AM - 06:00 PM)">Flexible Hours (09:00 AM - 06:00 PM)</option>
+                        <option value="">
+                          {loadingShifts
+                            ? '-- Loading shifts from database... --'
+                            : companyShifts.length === 0
+                              ? '-- No Shifts Configured in Shift & Roster --'
+                              : '-- Select Shift Timing --'}
+                        </option>
+                        {companyShifts.map((s) => {
+                          const opt = formatShiftOption(s);
+                          return (
+                            <option key={s.id} value={opt}>
+                              {opt} {s.code ? `[${s.code}]` : ''}
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
                     {renderFieldError('shiftTiming')}
+                    {companyShifts.length === 0 && !loadingShifts ? (
+                      <div className="mt-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2">
+                        <IconAlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold">No shifts configured yet</p>
+                          <p className="text-[11px] text-amber-700 mt-0.5">
+                            Please configure your shifts (e.g. General Shift, Morning, Evening, Night, Weekly Off) under{' '}
+                            <Link to="/company/shift-roster" className="underline font-bold text-amber-900">
+                              Company &gt; Shift &amp; Roster
+                            </Link>{' '}
+                            before onboarding employees.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        Loaded {companyShifts.length} shift(s) directly from database.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

@@ -23,6 +23,7 @@ import appreciationsRoutes from './routes/appreciations.js';
 import orgStructureRoutes from './routes/orgStructure.js';
 import assistantRoutes from './routes/assistant.js';
 import subscriptionRoutes from './routes/subscription.js';
+import { businessCompanyRouter, businessPayrollRouter } from './routes/businessRecords.js';
 
 import fs from 'fs';
 import { isS3Configured, getS3FileStream } from './lib/storage.js';
@@ -140,6 +141,7 @@ app.get('/health', (_req, res) => {
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/superadmin', superadminRoutes);
 app.use('/api/v1/company', companyRoutes);
+app.use('/api/v1/company', businessCompanyRouter);
 app.use('/api/v1/company/documents', documentsRoutes);
 app.use('/api/v1/employees', employeesRoutes);
 app.use('/api/v1/documents', documentsRoutes);
@@ -147,6 +149,7 @@ app.use(['/api/v1/attendance', '/api/v1/company/attendance'], attendanceRoutes);
 app.use('/api/v1/requests', requestsRoutes);
 app.use('/api/v1/notifications', notificationsRoutes);
 app.use('/api/v1/payroll', payrollRoutes);
+app.use('/api/v1/payroll', businessPayrollRouter);
 app.use('/api/v1/tickets', ticketsRoutes);
 app.use('/api/v1/policies', policiesRoutes);
 app.use('/api/v1/company/policies', policiesRoutes);

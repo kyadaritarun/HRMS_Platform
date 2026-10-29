@@ -28,6 +28,7 @@ import {
   IconTrash,
   IconHistory,
 } from '@tabler/icons-react';
+import { ShiftTiming, formatShiftOption } from '../../utils/shifts';
 
 interface Employee {
   id: number;
@@ -101,7 +102,7 @@ export const EmployeesPage: React.FC = () => {
     role: 'EMPLOYEE',
     workMode: 'WFO',
     employmentType: 'PERMANENT',
-    shiftTiming: 'General Shift (09:30 AM - 06:30 PM)',
+    shiftTiming: '',
     address: '',
     workingAddress: '',
     employeeNumber: '',
@@ -115,6 +116,7 @@ export const EmployeesPage: React.FC = () => {
   });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editError, setEditError] = useState('');
+  const [companyShifts, setCompanyShifts] = useState<ShiftTiming[]>([]);
 
   // Offboard confirmation modal state
   const [offboardTarget, setOffboardTarget] = useState<Employee | null>(null);
@@ -173,10 +175,15 @@ export const EmployeesPage: React.FC = () => {
 
   const fetchDepartments = async () => {
     try {
-      const res = await api.get('/company/departments');
-      setDepartments(res.data?.departments || []);
+      const [deptRes, shiftRes] = await Promise.all([
+        api.get('/company/departments'),
+        api.get('/company/shifts').catch(() => ({ data: { shifts: [] } })),
+      ]);
+      setDepartments(deptRes.data?.departments || []);
+      const loadedShifts = Array.isArray(shiftRes.data?.shifts) ? shiftRes.data.shifts : [];
+      setCompanyShifts(loadedShifts);
     } catch (err) {
-      console.error('Failed to load departments:', err);
+      console.error('Failed to load departments or shifts:', err);
     }
   };
 
@@ -209,7 +216,7 @@ export const EmployeesPage: React.FC = () => {
       personalEmail: emp.personalEmail || '',
       address: emp.address || '',
       workingAddress: emp.workingAddress || '',
-      shiftTiming: emp.shiftTiming || 'General Shift (09:30 AM - 06:30 PM)',
+      shiftTiming: emp.shiftTiming || '',
       monthlySalary: emp.monthlySalary ? Number(emp.monthlySalary) : 0,
       joiningDate: emp.joiningDate ? emp.joiningDate.split('T')[0] : '',
       dateOfBirth: emp.dateOfBirth ? emp.dateOfBirth.split('T')[0] : '',
@@ -225,6 +232,14 @@ export const EmployeesPage: React.FC = () => {
     setIsSavingEdit(true);
     setEditError('');
     try {
+      const selectedShiftTiming = editForm.shiftTiming.trim();
+      const matchedShift = companyShifts.find(
+        (s) =>
+          formatShiftOption(s) === selectedShiftTiming ||
+          s.name.trim().toLowerCase() === selectedShiftTiming.split('(')[0].trim().toLowerCase() ||
+          selectedShiftTiming.toLowerCase().includes((s.name || '').trim().toLowerCase())
+      );
+
       const payload: any = {
         firstName: editForm.firstName.trim(),
         lastName: editForm.lastName.trim(),
@@ -232,7 +247,8 @@ export const EmployeesPage: React.FC = () => {
         role: isCompanyAdmin ? (['HR', 'FINANCE', 'IT'].includes(editForm.role) ? editForm.role : 'EMPLOYEE') : 'EMPLOYEE',
         workMode: editForm.workMode,
         employmentType: editForm.employmentType,
-        shiftTiming: editForm.shiftTiming.trim(),
+        shiftTiming: selectedShiftTiming,
+        shiftId: matchedShift?.id || null,
         workingAddress: editForm.workingAddress.trim(),
         personalEmail: editForm.personalEmail.trim(),
         emergencyContact: {
@@ -782,16 +798,20 @@ export const EmployeesPage: React.FC = () => {
 
                       {/* Shift Timing */}
                       <td className="px-5 py-3.5 whitespace-nowrap">
-                        <div className="flex flex-col">
-                          <span className="text-xs font-bold text-slate-800 leading-tight">
-                            {emp.shiftTiming ? emp.shiftTiming.split('(')[0].trim() : 'General Shift'}
-                          </span>
-                          <span className="text-[11px] text-slate-400 font-medium mt-0.5">
-                            {emp.shiftTiming && emp.shiftTiming.includes('(')
-                              ? emp.shiftTiming.split('(')[1]?.replace(')', '').trim()
-                              : '09:30 AM – 06:30 PM'}
-                          </span>
-                        </div>
+                        {emp.shiftTiming ? (
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-slate-800 leading-tight">
+                              {emp.shiftTiming.split('(')[0].trim()}
+                            </span>
+                            {emp.shiftTiming.includes('(') && (
+                              <span className="text-[11px] text-slate-400 font-medium mt-0.5">
+                                {emp.shiftTiming.split('(')[1]?.replace(')', '').trim()}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 text-xs italic">Not Assigned</span>
+                        )}
                       </td>
 
                       {/* Designation */}
@@ -1443,17 +1463,38 @@ export const EmployeesPage: React.FC = () => {
 
                     {/* Shift Timing (Editable) */}
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Shift Timing</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[11px] font-bold text-slate-700">Shift Timing</label>
+                        <Link
+                          to="/company/shift-roster"
+                          target="_blank"
+                          className="text-[10px] font-semibold text-indigo-600 hover:text-indigo-800 hover:underline"
+                        >
+                          Shift & Roster
+                        </Link>
+                      </div>
                       <select
                         value={editForm.shiftTiming}
                         onChange={(e) => setEditForm({ ...editForm, shiftTiming: e.target.value })}
                         className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
                       >
-                        <option value="General Shift (09:30 AM - 06:30 PM)">General Shift (09:30 AM - 06:30 PM)</option>
-                        <option value="Morning Shift (06:00 AM - 02:30 PM)">Morning Shift (06:00 AM - 02:30 PM)</option>
-                        <option value="Evening Shift (02:00 PM - 10:30 PM)">Evening Shift (02:00 PM - 10:30 PM)</option>
-                        <option value="Night Shift (10:00 PM - 06:30 AM)">Night Shift (10:00 PM - 06:30 AM)</option>
-                        <option value="Flexible Hours (09:00 AM - 06:00 PM)">Flexible Hours (09:00 AM - 06:00 PM)</option>
+                        <option value="">Select Shift Timing</option>
+                        {editForm.shiftTiming &&
+                          !companyShifts.some(
+                            (s) =>
+                              formatShiftOption(s) === editForm.shiftTiming ||
+                              s.name.trim().toLowerCase() === editForm.shiftTiming.split('(')[0].trim().toLowerCase()
+                          ) && (
+                            <option value={editForm.shiftTiming}>{editForm.shiftTiming}</option>
+                          )}
+                        {companyShifts.map((s) => {
+                          const opt = formatShiftOption(s);
+                          return (
+                            <option key={s.id} value={opt}>
+                              {opt} {s.code ? `[${s.code}]` : ''}
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
 

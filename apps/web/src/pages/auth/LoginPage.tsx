@@ -371,7 +371,7 @@ export const LoginPage: React.FC = () => {
             {/* Continue with Google Button */}
             <button
               type="button"
-              onClick={() => handle1ClickLogin(DEMO_PERSONAS[0])}
+              onClick={() => setError('Google Single Sign-On is not configured for your workspace. Please sign in with your username or work email.')}
               className="w-full py-2.5 px-3 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50 transition-colors text-xs font-semibold text-slate-700 flex items-center justify-center gap-2 shadow-2xs cursor-pointer"
             >
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">

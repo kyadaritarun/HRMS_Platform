@@ -47,14 +47,17 @@ export const ShiftRosterPage: React.FC = () => {
   // Week navigation
   const [weekOffset, setWeekOffset] = useState(0);
 
-  // Roster assignments map: `empId_dateStr` -> shiftCode
-  const [rosterMap, setRosterMap] = useState<Record<string, string>>(() => {
+  // Roster assignments map from PostgreSQL: `empId_dateStr` -> shiftCode
+  const [rosterMap, setRosterMap] = useState<Record<string, string>>({});
+
+  const fetchRoster = async () => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch (_) {}
-    return {};
-  });
+      const res = await api.get('/company/roster');
+      setRosterMap(res.data?.rosterMap || {});
+    } catch (err) {
+      console.error('Failed to load roster:', err);
+    }
+  };
 
   // Modal / Drawer: Shift Edit & Create
   const [showShiftDrawer, setShowShiftDrawer] = useState(false);
@@ -114,13 +117,8 @@ export const ShiftRosterPage: React.FC = () => {
       }
     };
     fetchShifts();
+    fetchRoster();
   }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(rosterMap));
-    } catch (_) {}
-  }, [rosterMap]);
 
   // Compute current week's 7 dates (Mon to Sun)
   const currentWeekDates = React.useMemo(() => {
@@ -144,23 +142,50 @@ export const ShiftRosterPage: React.FC = () => {
       ...prev,
       [`${empId}_${dateStr}`]: code,
     }));
+    const matched = shifts.find((s) => s.code === code);
+    api.post('/company/roster/bulk-assign', {
+      assignments: [
+        {
+          employeeId: empId,
+          date: dateStr,
+          shiftTiming: code,
+          shiftId: matched?.id || null,
+        },
+      ],
+    }).catch((err) => console.error('Failed to save roster assignment:', err));
   };
 
-  const handleBulkAssign = () => {
+  const handleBulkAssign = async () => {
     const updated = { ...rosterMap };
     const offShift = shifts.find((s) => s.startTime === '-' && s.endTime === '-');
     const offCode = offShift ? offShift.code : '';
+    const assignmentPayload: any[] = [];
 
     employees.forEach((emp) => {
       if (bulkDepartment !== 'ALL' && emp.department?.name !== bulkDepartment) return;
       currentWeekDates.forEach((d) => {
         const dateStr = d.toISOString().split('T')[0];
         const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-        updated[`${emp.id}_${dateStr}`] = isWeekend && offCode ? offCode : bulkShiftCode;
+        const assignedCode = isWeekend && offCode ? offCode : bulkShiftCode;
+        updated[`${emp.id}_${dateStr}`] = assignedCode;
+        const matched = shifts.find((s) => s.code === assignedCode);
+        assignmentPayload.push({
+          employeeId: emp.id,
+          date: dateStr,
+          shiftTiming: assignedCode,
+          shiftId: matched?.id || null,
+        });
       });
     });
+
     setRosterMap(updated);
     setShowBulkModal(false);
+
+    try {
+      await api.post('/company/roster/bulk-assign', { assignments: assignmentPayload });
+    } catch (err) {
+      console.error('Failed to bulk assign roster:', err);
+    }
   };
 
   const handleOpenCreateShift = () => {

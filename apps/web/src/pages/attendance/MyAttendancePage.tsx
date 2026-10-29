@@ -480,13 +480,13 @@ export const MyAttendancePage: React.FC = () => {
         <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
             <span className="text-xs font-bold text-slate-500">Shift Assigned</span>
-            <div className="text-sm font-black text-slate-900 mt-1 leading-tight tracking-tight truncate max-w-[170px]" title={userShift?.shiftName || 'General Shift'}>
-              {userShift?.shiftName || 'General Shift'}
+            <div className="text-sm font-black text-slate-900 mt-1 leading-tight tracking-tight truncate max-w-[170px]" title={userShift?.shiftName || 'Not Assigned'}>
+              {userShift?.shiftName || 'Not Assigned'}
             </div>
             <div className="text-[11px] font-bold text-blue-600 mt-1.5">
               {userShift?.startTime12 && userShift?.endTime12
                 ? `${userShift.startTime12} – ${userShift.endTime12}`
-                : '09:30 AM – 06:30 PM'}
+                : userShift?.shiftName ? 'Flexible' : 'No Timing'}
             </div>
           </div>
           <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">

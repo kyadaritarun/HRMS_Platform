@@ -66,50 +66,27 @@ export interface ExitRecord {
   };
 }
 
-const STORAGE_KEY = 'uptrix_exit_records';
-
 export const ExitManagementPage: React.FC = () => {
   const { company, user } = useAuth();
   const [employees, setEmployees] = useState<any[]>([]);
-  const [exitRecords, setExitRecords] = useState<ExitRecord[]>(() => {
+  const [exitRecords, setExitRecords] = useState<ExitRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchExitRecords = async () => {
+    setIsLoading(true);
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch (_) {}
-    return [
-      {
-        id: 'EXIT-2026-001',
-        employeeId: 101,
-        employeeName: 'Rahul Verma',
-        employeeEmail: 'rahul.verma@example.com',
-        department: 'Engineering',
-        jobTitle: 'Backend Engineer',
-        joiningDate: '2023-04-15',
-        resignationDate: '2026-10-01',
-        noticePeriodDays: 30,
-        lastWorkingDay: '2026-10-31',
-        reason: 'Higher Studies & Relocation',
-        status: 'NOC_CLEARANCE',
-        monthlySalary: 85000,
-        leaveBalanceDays: 8.5,
-        nocClearance: {
-          it: { cleared: true, remarks: 'MacBook Pro & Charger returned. Email disabled.', clearedBy: 'IT Lead' },
-          admin: { cleared: true, remarks: 'ID badge & parking tag returned', clearedBy: 'Admin Desk' },
-          finance: { cleared: false, remarks: 'Pending travel claim ₹4,200 verification' },
-          hr: { cleared: true, remarks: 'Exit interview documented', clearedBy: 'HR Lead' },
-        },
-        ffSettlement: {
-          daysWorkedInMonth: 31,
-          monthEarnings: 85000,
-          leaveEncashmentAmount: 24083,
-          gratuityAmount: 0,
-          noticeShortfallDeduction: 0,
-          otherDeductions: 4200,
-          netPayout: 104883,
-        },
-      },
-    ];
-  });
+      const res = await api.get('/company/exit-management');
+      setExitRecords(res.data?.exitRecords || []);
+    } catch (err) {
+      console.error('Failed to load exit records:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchExitRecords();
+  }, []);
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -145,19 +122,12 @@ export const ExitManagementPage: React.FC = () => {
     remarks: '',
   });
 
-  // Save to local storage whenever exitRecords changes
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(exitRecords));
-    } catch (_) {}
-  }, [exitRecords]);
-
   // Fetch company employees for dropdown
   useEffect(() => {
     const fetchStaff = async () => {
       try {
         const res = await api.get('/employees?pageSize=100');
-        setEmployees(res.data?.items || []);
+        setEmployees(res.data?.employees || res.data?.items || []);
       } catch (err) {
         console.error('Failed to load employees for exit:', err);
       }
@@ -173,7 +143,7 @@ export const ExitManagementPage: React.FC = () => {
     return d.toISOString().split('T')[0];
   }, [newExitForm.resignationDate, newExitForm.noticePeriodDays]);
 
-  const handleInitiateExit = (e: React.FormEvent) => {
+  const handleInitiateExit = async (e: React.FormEvent) => {
     e.preventDefault();
     const emp = employees.find((emp) => String(emp.id) === String(newExitForm.employeeId));
     if (!emp) return;
@@ -194,14 +164,13 @@ export const ExitManagementPage: React.FC = () => {
     const leaveEncashment = Math.round(perDay * leaveBalanceDays);
     const netPayout = monthlySalary + leaveEncashment + gratuity;
 
-    const newRecord: ExitRecord = {
-      id: `EXIT-${new Date().getFullYear()}-${String(exitRecords.length + 1).padStart(3, '0')}`,
+    const newRecordPayload = {
       employeeId: emp.id,
       employeeName: `${emp.firstName} ${emp.lastName}`.trim(),
       employeeEmail: emp.email,
       department: emp.department?.name || 'General',
       jobTitle: emp.jobTitle || 'Team Member',
-      joiningDate: emp.joiningDate ? emp.joiningDate.split('T')[0] : '2024-01-01',
+      joiningDate: emp.joiningDate ? emp.joiningDate.split('T')[0] : null,
       resignationDate: newExitForm.resignationDate,
       noticePeriodDays: Number(newExitForm.noticePeriodDays),
       lastWorkingDay: computedLwd,
@@ -226,9 +195,20 @@ export const ExitManagementPage: React.FC = () => {
       },
     };
 
-    setExitRecords([newRecord, ...exitRecords]);
-    setShowInitiateModal(false);
-    setSelectedRecord(newRecord);
+    try {
+      const res = await api.post('/company/exit-management', newRecordPayload);
+      const created = res.data?.exitRecord;
+      if (created) {
+        setExitRecords((prev) => [created, ...prev]);
+        setSelectedRecord(created);
+      } else {
+        await fetchExitRecords();
+      }
+      setShowInitiateModal(false);
+    } catch (err: any) {
+      console.error('Failed to initiate exit:', err);
+      alert(err.response?.data?.error?.message || 'Failed to initiate employee exit');
+    }
   };
 
   const handleUpdateNoc = (
@@ -263,7 +243,11 @@ export const ExitManagementPage: React.FC = () => {
     }
 
     setSelectedRecord(updated);
-    setExitRecords(exitRecords.map((r) => (r.id === updated.id ? updated : r)));
+    setExitRecords((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+    api.patch(`/company/exit-management/${updated.id}`, {
+      status: updated.status,
+      nocClearance: updated.nocClearance,
+    }).catch((err) => console.error('Failed to sync NOC update:', err));
   };
 
   const handleUpdateFf = (updates: Partial<ExitRecord['ffSettlement']>) => {
@@ -284,7 +268,10 @@ export const ExitManagementPage: React.FC = () => {
       ffSettlement: merged,
     };
     setSelectedRecord(updated);
-    setExitRecords(exitRecords.map((r) => (r.id === updated.id ? updated : r)));
+    setExitRecords((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+    api.patch(`/company/exit-management/${updated.id}`, {
+      ffSettlement: merged,
+    }).catch((err) => console.error('Failed to sync FF update:', err));
   };
 
   const handleMarkSettled = () => {

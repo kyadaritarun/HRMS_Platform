@@ -143,19 +143,38 @@ export const ComplianceReportsPage: React.FC = () => {
 
   const [recordedUtr, setRecordedUtr] = useState<any | null>(null);
 
-  // Load recorded UTR for selected period
-  useEffect(() => {
-    const key = `kyadari_payout_utr_${month}_${year}`;
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      try {
-        setRecordedUtr(JSON.parse(stored));
-      } catch (e) {
+  // Load recorded UTR for selected period from PostgreSQL
+  const fetchPayoutUtr = async () => {
+    try {
+      const res = await api.get('/payroll/compliance-reports', {
+        params: { month, year, type: 'BANK_PAYOUT' },
+      });
+      const reports = res.data?.reports || [];
+      if (reports.length > 0) {
+        const report = reports[0];
+        setRecordedUtr({
+          utrNumber: report.challanNumber || '',
+          bankName: report.details?.bankName || 'HDFC Bank Corporate CMS',
+          debitAccount: report.details?.debitAccount || '',
+          paymentDate: report.paymentDate || '',
+          disbursedAmount: report.totalAmount || 0,
+          remarks: report.details?.remarks || '',
+          status: report.status,
+          recordedAt: report.details?.recordedAt || '',
+          month: report.month,
+          year: report.year,
+        });
+      } else {
         setRecordedUtr(null);
       }
-    } else {
+    } catch (e) {
+      console.error('Failed to load payout UTR:', e);
       setRecordedUtr(null);
     }
+  };
+
+  useEffect(() => {
+    fetchPayoutUtr();
   }, [month, year]);
 
   // Totals
@@ -302,7 +321,7 @@ export const ComplianceReportsPage: React.FC = () => {
     downloadCsv(`Payroll_Disbursement_${format}_${month}_${year}.csv`, csv);
   };
 
-  const handleSaveUtr = (e: React.FormEvent) => {
+  const handleSaveUtr = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!utrData.utrNumber.trim()) {
       alert('Please enter a valid Bank UTR / Reference Number');
@@ -315,17 +334,37 @@ export const ComplianceReportsPage: React.FC = () => {
       month,
       year,
     };
-    const key = `kyadari_payout_utr_${month}_${year}`;
-    localStorage.setItem(key, JSON.stringify(record));
-    setRecordedUtr(record);
-    setUtrModalOpen(false);
+    try {
+      await api.post('/payroll/compliance-reports', {
+        type: 'BANK_PAYOUT',
+        month,
+        year,
+        status: 'DISBURSED',
+        challanNumber: utrData.utrNumber.trim(),
+        paymentDate: utrData.paymentDate,
+        totalAmount: utrData.disbursedAmount,
+        recordsCount: employees.length,
+        details: record,
+      });
+      setRecordedUtr(record);
+      setUtrModalOpen(false);
+    } catch (err: any) {
+      console.error('Failed to save payout UTR:', err);
+      alert(err.response?.data?.message || 'Failed to save payout UTR to database');
+    }
   };
 
-  const handleClearUtr = () => {
+  const handleClearUtr = async () => {
     if (window.confirm('Are you sure you want to revert this disbursement record to PENDING?')) {
-      const key = `kyadari_payout_utr_${month}_${year}`;
-      localStorage.removeItem(key);
-      setRecordedUtr(null);
+      try {
+        await api.delete('/payroll/compliance-reports', {
+          params: { year, month, type: 'BANK_PAYOUT' },
+        });
+        setRecordedUtr(null);
+      } catch (err: any) {
+        console.error('Failed to revert payout record:', err);
+        alert(err.response?.data?.message || 'Failed to revert disbursement record');
+      }
     }
   };
 

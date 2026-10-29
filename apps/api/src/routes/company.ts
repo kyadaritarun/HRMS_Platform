@@ -951,47 +951,6 @@ router.get('/billing', roleGuard('COMPANY_ADMIN'), async (req, res, next) => {
       return next(new AppError(404, 'NOT_FOUND', 'Company not found'));
     }
 
-    // If company has no invoices yet, auto-create an authentic tax invoice for this company's subscription
-    if (!company.invoices || company.invoices.length === 0) {
-      const now = new Date();
-      const yr = now.getFullYear();
-      const code = company.code || 'COMP';
-      const amount = Number(company.subAmount) || (company.planType === 'YEARLY' ? 49999 : 4999);
-
-      const inv = await prisma.invoice.create({
-        data: {
-          companyId,
-          invoiceNumber: `INV-${yr}-${code}-001`,
-          amount,
-          currency: 'INR',
-          billingCycle: company.planType || 'YEARLY',
-          periodStart: company.subStartDate || now,
-          periodEnd: company.subEndDate || new Date(yr + 1, now.getMonth(), now.getDate()),
-          dueDate: company.subStartDate || now,
-          status: 'PAID',
-          paidAt: company.subStartDate || now,
-          issuedAt: company.subStartDate || now,
-          payment: {
-            method: 'Razorpay UPI / Cards',
-            provider: 'RAZORPAY',
-            reference: `pay_rzp_${code.toLowerCase()}_${Date.now().toString().slice(-6)}`,
-            status: 'succeeded',
-            billingEmail: req.user!.email || 'finance@company.com',
-            cardBrand: 'Visa Corporate Card',
-            cardLast4: '4242',
-            expMonth: 12,
-            expYear: 2028,
-            itemDescription: `${company.package?.name || 'Enterprise Tier'} License (${company.planType || 'YEARLY'})`,
-          },
-        },
-      });
-
-      company = {
-        ...company,
-        invoices: [inv],
-      };
-    }
-
     const now = new Date();
     const expiryDate = company.subEndDate ? new Date(company.subEndDate) : null;
     const daysRemaining = expiryDate
@@ -1082,24 +1041,24 @@ router.get('/billing', roleGuard('COMPANY_ADMIN'), async (req, res, next) => {
 
     const paymentDetails = {
       gatewayProvider: latestPayment?.provider || 'RAZORPAY',
-      method: latestPayment?.method || latestPayment?.provider || 'Razorpay UPI & Cards',
-      channel: 'Razorpay Payment Gateway (Instant Checkout)',
-      paymentId: latestPaymentOrder?.paymentId || latestPayment?.reference || 'pay_rzp_mock_1792170772496_682',
-      orderId: latestPaymentOrder?.orderId || latestPayment?.orderId || 'comp_prop_2_1792170719572',
-      invoiceNumber: latestInvoice?.invoiceNumber || `INV-${now.getFullYear()}-${company.code || 'COMP'}-001`,
-      paidAt: latestPaymentOrder?.paidAt || latestInvoice?.paidAt || company.subStartDate,
+      method: latestPayment?.method || latestPayment?.provider || 'Razorpay Gateway',
+      channel: 'Razorpay Payment Gateway',
+      paymentId: latestPaymentOrder?.paymentId || latestPayment?.reference || '',
+      orderId: latestPaymentOrder?.orderId || latestPayment?.orderId || '',
+      invoiceNumber: latestInvoice?.invoiceNumber || (company.code ? `INV-${now.getFullYear()}-${company.code}-001` : ''),
+      paidAt: latestPaymentOrder?.paidAt || latestInvoice?.paidAt || company.subStartDate || null,
       amount: paymentAmount,
       currency: 'INR',
-      status: latestPaymentOrder?.status || latestInvoice?.status || 'PAID',
+      status: latestPaymentOrder?.status || latestInvoice?.status || (company.subIsActive ? 'PAID' : 'PENDING'),
       baseAmount,
       gstAmount,
-      cardBrand: settingsObj.paymentMethod?.cardBrand || latestPayment?.cardBrand || 'Visa Corporate Card',
-      cardLast4: settingsObj.paymentMethod?.cardLast4 || latestPayment?.cardLast4 || '4242',
-      expMonth: settingsObj.paymentMethod?.expMonth || latestPayment?.expMonth || 12,
-      expYear: settingsObj.paymentMethod?.expYear || latestPayment?.expYear || 2028,
+      cardBrand: settingsObj.paymentMethod?.cardBrand || latestPayment?.cardBrand || '',
+      cardLast4: settingsObj.paymentMethod?.cardLast4 || latestPayment?.cardLast4 || '',
+      expMonth: settingsObj.paymentMethod?.expMonth || latestPayment?.expMonth || null,
+      expYear: settingsObj.paymentMethod?.expYear || latestPayment?.expYear || null,
       payerEmail: latestPaymentOrder?.contactEmail || adminEmail,
       payerName: adminFullName,
-      mandateStatus: 'Active Auto-Debit (RBI Compliant E-Mandate)',
+      mandateStatus: company.subIsActive ? 'Active Subscription' : 'Pending Payment',
       itemDescription: latestPayment?.itemDescription || `${company.name} Subscription License (${company.planType || 'YEARLY'})`,
     };
 
@@ -1180,7 +1139,8 @@ router.post('/billing/seats', roleGuard('COMPANY_ADMIN'), async (req, res, next)
     }
 
     const now = new Date();
-    const invNum = `INV-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
+    const invoiceCount = await prisma.invoice.count({ where: { companyId } });
+    const invNum = `INV-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${String(invoiceCount + 101).padStart(4, '0')}`;
     const costPerSeat = 199;
     const totalCost = seatsToAdd * costPerSeat;
 
@@ -1197,13 +1157,11 @@ router.post('/billing/seats', roleGuard('COMPANY_ADMIN'), async (req, res, next)
         status: 'PAID',
         paidAt: now,
         payment: {
-          provider: 'STRIPE',
-          reference: `ch_${Date.now()}_seats`,
+          provider: 'RAZORPAY',
+          reference: `seats_${companyId}_${Date.now()}`,
           status: 'succeeded',
           billingEmail: req.user!.email,
           itemDescription: `Additional ${seatsToAdd} Employee Seats Expansion`,
-          cardBrand: 'visa',
-          cardLast4: '4242',
         },
       },
     });
@@ -1256,7 +1214,8 @@ router.post('/billing/plan', roleGuard('COMPANY_ADMIN'), async (req, res, next) 
     }
 
     const now = new Date();
-    const invNum = `INV-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
+    const invoiceCount = await prisma.invoice.count({ where: { companyId } });
+    const invNum = `INV-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${String(invoiceCount + 101).padStart(4, '0')}`;
 
     const invoice = await prisma.invoice.create({
       data: {
@@ -1271,13 +1230,11 @@ router.post('/billing/plan', roleGuard('COMPANY_ADMIN'), async (req, res, next) 
         status: 'PAID',
         paidAt: now,
         payment: {
-          provider: 'STRIPE',
-          reference: `ch_${Date.now()}_plan`,
+          provider: 'RAZORPAY',
+          reference: `plan_${companyId}_${Date.now()}`,
           status: 'succeeded',
           billingEmail: req.user!.email,
           itemDescription: `Plan Switch to ${planName} (${billingCycle || 'ANNUAL'})`,
-          cardBrand: 'visa',
-          cardLast4: '4242',
         },
       },
     });

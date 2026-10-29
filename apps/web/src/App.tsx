@@ -248,6 +248,14 @@ export const App: React.FC = () => {
               }
             />
             <Route
+              path="/company/shifts"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                  <ShiftRosterPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/company/assets-onboarding"
               element={
                 <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'IT']}>

@@ -49,82 +49,34 @@ const DEFAULT_ONBOARDING_TASKS: OnboardingChecklistItem[] = [
   { id: 't7', title: 'HRMS Portal Walkthrough', description: 'Self-service training for leaves, attendance and claims', category: 'HR' },
 ];
 
-const ASSETS_STORAGE_KEY = 'uptrix_company_assets';
-const ONBOARDING_STORAGE_KEY = 'uptrix_onboarding_progress';
-
 export const AssetsOnboardingPage: React.FC = () => {
   const { company } = useAuth();
   const [employees, setEmployees] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'ASSETS' | 'ONBOARDING'>('ASSETS');
 
-  // Asset Inventory State
-  const [assets, setAssets] = useState<CompanyAsset[]>(() => {
-    try {
-      const saved = localStorage.getItem(ASSETS_STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch (_) {}
-    return [
-      {
-        id: 'ast-1',
-        tag: 'AST-LPT-101',
-        name: 'Apple MacBook Pro M3 (16GB, 512GB)',
-        category: 'LAPTOP',
-        serialNumber: 'C02G80XZMD6R',
-        assignedToEmployeeId: 1,
-        assignedToName: 'Aarav Sharma',
-        assignedDate: '2026-08-10',
-        condition: 'EXCELLENT',
-        status: 'ASSIGNED',
-      },
-      {
-        id: 'ast-2',
-        tag: 'AST-LPT-102',
-        name: 'Dell XPS 15 (32GB, 1TB SSD)',
-        category: 'LAPTOP',
-        serialNumber: '8X92M01',
-        assignedToEmployeeId: 2,
-        assignedToName: 'Priya Patel',
-        assignedDate: '2026-09-01',
-        condition: 'NEW',
-        status: 'ASSIGNED',
-      },
-      {
-        id: 'ast-3',
-        tag: 'AST-MON-201',
-        name: 'Dell UltraSharp 27" 4K Monitor',
-        category: 'MONITOR',
-        serialNumber: 'CN-0X8231-742',
-        condition: 'GOOD',
-        status: 'IN_STOCK',
-      },
-      {
-        id: 'ast-4',
-        tag: 'AST-MOB-301',
-        name: 'iPhone 15 (Work Dedicated SIM)',
-        category: 'MOBILE',
-        serialNumber: 'F2LX902MZ',
-        condition: 'NEW',
-        status: 'IN_STOCK',
-      },
-    ];
-  });
+  // Asset Inventory State from PostgreSQL
+  const [assets, setAssets] = useState<CompanyAsset[]>([]);
+  // Onboarding Progress Map from PostgreSQL: `empId_taskId` -> boolean
+  const [onboardingMap, setOnboardingMap] = useState<Record<string, boolean>>({});
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Onboarding Progress Map: `empId_taskId` -> boolean
-  const [onboardingMap, setOnboardingMap] = useState<Record<string, boolean>>(() => {
+  const fetchAssets = async () => {
     try {
-      const saved = localStorage.getItem(ONBOARDING_STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch (_) {}
-    return {
-      '1_t1': true,
-      '1_t2': true,
-      '1_t3': true,
-      '1_t4': true,
-      '1_t5': true,
-      '2_t1': true,
-      '2_t2': true,
-    };
-  });
+      const res = await api.get('/company/assets');
+      setAssets(res.data?.assets || []);
+    } catch (err) {
+      console.error('Failed to load assets:', err);
+    }
+  };
+
+  const fetchOnboarding = async () => {
+    try {
+      const res = await api.get('/company/onboarding-progress');
+      setOnboardingMap(res.data?.progressMap || {});
+    } catch (err) {
+      console.error('Failed to load onboarding progress:', err);
+    }
+  };
 
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -151,94 +103,90 @@ export const AssetsOnboardingPage: React.FC = () => {
     const fetchStaff = async () => {
       try {
         const res = await api.get('/employees?pageSize=100');
-        setEmployees(res.data?.items || []);
+        setEmployees(res.data?.employees || res.data?.items || []);
       } catch (err) {
         console.error('Failed to load employees for assets/onboarding:', err);
       }
     };
     fetchStaff();
+    fetchAssets();
+    fetchOnboarding();
   }, []);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(ASSETS_STORAGE_KEY, JSON.stringify(assets));
-    } catch (_) {}
-  }, [assets]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(onboardingMap));
-    } catch (_) {}
-  }, [onboardingMap]);
-
-  const handleToggleTask = (empId: number, taskId: string) => {
+  const handleToggleTask = async (empId: number, taskId: string) => {
     const key = `${empId}_${taskId}`;
+    const nextVal = !onboardingMap[key];
     setOnboardingMap((prev) => ({
       ...prev,
-      [key]: !prev[key],
+      [key]: nextVal,
     }));
+    try {
+      await api.post('/company/onboarding-progress/toggle', {
+        employeeId: empId,
+        taskId,
+        completed: nextVal,
+      });
+    } catch (err) {
+      console.error('Failed to toggle task:', err);
+    }
   };
 
-  const handleCreateAsset = (e: React.FormEvent) => {
+  const handleCreateAsset = async (e: React.FormEvent) => {
     e.preventDefault();
-    const created: CompanyAsset = {
-      id: `ast-${Date.now()}`,
-      tag: newAsset.tag,
-      name: newAsset.name,
-      category: newAsset.category,
-      serialNumber: newAsset.serialNumber,
-      condition: newAsset.condition,
-      status: 'IN_STOCK',
-    };
-    setAssets([created, ...assets]);
-    setShowAddAssetModal(false);
-    setNewAsset({
-      tag: `AST-${Math.floor(100 + Math.random() * 900)}`,
-      name: '',
-      category: 'LAPTOP',
-      serialNumber: '',
-      condition: 'NEW',
-    });
+    try {
+      const res = await api.post('/company/assets', newAsset);
+      if (res.data?.asset) {
+        setAssets((prev) => [res.data.asset, ...prev]);
+      } else {
+        await fetchAssets();
+      }
+      setShowAddAssetModal(false);
+      setNewAsset({
+        tag: `AST-${Math.floor(100 + Math.random() * 900)}`,
+        name: '',
+        category: 'LAPTOP',
+        serialNumber: '',
+        condition: 'NEW',
+      });
+    } catch (err: any) {
+      console.error('Failed to create asset:', err);
+      alert(err.response?.data?.error?.message || 'Failed to create asset');
+    }
   };
 
-  const handleAssignAsset = () => {
+  const handleAssignAsset = async () => {
     if (!selectedAssetForAssign || !assignEmpId) return;
     const emp = employees.find((e) => String(e.id) === String(assignEmpId));
     if (!emp) return;
 
-    const updated = assets.map((a) => {
-      if (a.id === selectedAssetForAssign.id) {
-        return {
-          ...a,
-          status: 'ASSIGNED' as const,
-          assignedToEmployeeId: emp.id,
-          assignedToName: `${emp.firstName} ${emp.lastName}`.trim(),
-          assignedDate: new Date().toISOString().split('T')[0],
-        };
-      }
-      return a;
-    });
-
-    setAssets(updated);
-    setSelectedAssetForAssign(null);
-    setAssignEmpId('');
+    try {
+      await api.patch(`/company/assets/${selectedAssetForAssign.id}`, {
+        status: 'ASSIGNED',
+        assignedToEmployeeId: emp.id,
+        assignedToName: `${emp.firstName} ${emp.lastName}`.trim(),
+        assignedDate: new Date().toISOString().split('T')[0],
+      });
+      await fetchAssets();
+      setSelectedAssetForAssign(null);
+      setAssignEmpId('');
+    } catch (err) {
+      console.error('Failed to assign asset:', err);
+    }
   };
 
-  const handleReturnAsset = (assetId: string) => {
+  const handleReturnAsset = async (assetId: string) => {
     if (!window.confirm('Confirm hardware asset return to company IT inventory?')) return;
-    const updated = assets.map((a) => {
-      if (a.id === assetId) {
-        return {
-          ...a,
-          status: 'IN_STOCK' as const,
-          assignedToEmployeeId: undefined,
-          assignedToName: undefined,
-          assignedDate: undefined,
-        };
-      }
-      return a;
-    });
-    setAssets(updated);
+    try {
+      await api.patch(`/company/assets/${assetId}`, {
+        status: 'IN_STOCK',
+        assignedToEmployeeId: null,
+        assignedToName: null,
+        assignedDate: null,
+      });
+      await fetchAssets();
+    } catch (err) {
+      console.error('Failed to return asset:', err);
+    }
   };
 
   // Metrics

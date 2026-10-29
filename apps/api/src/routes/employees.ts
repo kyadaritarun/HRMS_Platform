@@ -190,6 +190,19 @@ router.post(
       const tempPasswordExpiresAt = isManual ? null : new Date(Date.now() + 72 * 60 * 60 * 1000);
       const mustChangePassword = data.mustChangePassword !== undefined ? Boolean(data.mustChangePassword) : true;
 
+      // Auto-resolve shiftId from company.shifts if not directly provided
+      const companyShifts = Array.isArray(company.shifts) ? (company.shifts as any[]) : [];
+      let resolvedShiftId = data.shiftId || null;
+      if (!resolvedShiftId && data.shiftTiming) {
+        const cleanTimingName = data.shiftTiming.split('(')[0].trim().toLowerCase();
+        const found = companyShifts.find((s: any) =>
+          s.id === data.shiftId ||
+          (s.name && s.name.trim().toLowerCase() === cleanTimingName) ||
+          data.shiftTiming.toLowerCase().includes((s.name || '').trim().toLowerCase())
+        );
+        if (found) resolvedShiftId = found.id;
+      }
+
       // 5. Create user
       const user = await prisma.user.create({
         data: {
@@ -204,7 +217,7 @@ router.post(
           departmentId: data.departmentId || null,
           managerId: data.managerId || null,
           jobTitle: data.jobTitle,
-          shiftId: data.shiftId || null,
+          shiftId: resolvedShiftId,
           workMode: data.workMode,
           employmentType: data.employmentType,
           employeeNumber: data.employeeNumber || '',
@@ -509,6 +522,8 @@ router.post(
         where: { companyId, isActive: true },
       });
 
+      const companyShifts = Array.isArray(company.shifts) ? (company.shifts as any[]) : [];
+
       // Pre-fetch all existing emails and usernames in a single query
       const batchEmails = employees.map((e: any) => String(e.email || '').toLowerCase().trim()).filter(Boolean);
       const batchUsernames = employees.map((e: any) => (e.username?.trim() || String(e.email || '').split('@')[0])).filter(Boolean);
@@ -611,6 +626,18 @@ router.post(
           assignedRole = item.role;
         }
 
+        const rawTiming = String(item.shiftTiming || 'General Shift (09:30 AM - 06:30 PM)').trim();
+        let bulkShiftId = item.shiftId || null;
+        if (!bulkShiftId && rawTiming) {
+          const cleanTimingName = rawTiming.split('(')[0].trim().toLowerCase();
+          const found = companyShifts.find((s: any) =>
+            s.id === item.shiftId ||
+            (s.name && s.name.trim().toLowerCase() === cleanTimingName) ||
+            rawTiming.toLowerCase().includes((s.name || '').trim().toLowerCase())
+          );
+          if (found) bulkShiftId = found.id;
+        }
+
         try {
           const user = await prisma.user.create({
             data: {
@@ -623,13 +650,14 @@ router.post(
               phone: String(item.phone || '').trim(),
               role: assignedRole,
               jobTitle: String(item.jobTitle || '').trim(),
+              shiftId: bulkShiftId,
               workMode: item.workMode === 'WFH' ? 'WFH' : 'WFO',
               employmentType: String(item.workType || item.employmentType || '').toUpperCase() === 'CONTRACT' ? 'CONTRACT' : 'PERMANENT',
               employeeNumber: String(item.employeeNumber || '').trim(),
               personalEmail: String(item.personalEmail || '').trim(),
               address: String(item.address || '').trim(),
               workingAddress: String(item.workingAddress || '').trim(),
-              shiftTiming: String(item.shiftTiming || 'General Shift (09:30 AM - 06:30 PM)').trim(),
+              shiftTiming: rawTiming,
               joiningDate: parseSafeDate(item.joiningDate) || new Date(),
               dateOfBirth: parseSafeDate(item.dateOfBirth),
               monthlySalary: Number(item.monthlySalary) || 0,
@@ -818,6 +846,21 @@ router.patch(
       const updateData: any = { ...data };
       if (data.joiningDate) updateData.joiningDate = new Date(data.joiningDate);
       if (data.dateOfBirth) updateData.dateOfBirth = new Date(data.dateOfBirth);
+
+      if (data.shiftTiming && !data.shiftId) {
+        const company = await prisma.company.findUnique({
+          where: { id: companyId },
+          select: { shifts: true },
+        });
+        const companyShifts = Array.isArray(company?.shifts) ? (company.shifts as any[]) : [];
+        const cleanTimingName = data.shiftTiming.split('(')[0].trim().toLowerCase();
+        const found = companyShifts.find((s: any) =>
+          s.id === data.shiftId ||
+          (s.name && s.name.trim().toLowerCase() === cleanTimingName) ||
+          data.shiftTiming.toLowerCase().includes((s.name || '').trim().toLowerCase())
+        );
+        if (found) updateData.shiftId = found.id;
+      }
 
       const updated = await prisma.user.update({
         where: { id: empId },

@@ -41,77 +41,24 @@ export interface LoanRecord {
   rejectionReason?: string;
 }
 
-const STORAGE_KEY = 'uptrix_salary_loans_advances';
-
-const DEFAULT_LOANS: LoanRecord[] = [
-  {
-    id: 'LN-2026-101',
-    employeeId: 3,
-    employeeName: 'Maya Patel',
-    employeeEmail: 'emp2@novatech.io',
-    department: 'Engineering & Tech',
-    type: 'EMERGENCY_ADVANCE',
-    principalAmount: 50000,
-    tenureMonths: 5,
-    monthlyEmi: 10000,
-    totalRepaid: 30000,
-    balanceRemaining: 20000,
-    reason: 'Family medical expense advance',
-    status: 'DISBURSED',
-    appliedDate: '2026-08-10',
-    approvedDate: '2026-08-12',
-    disbursedDate: '2026-08-13',
-    utrNumber: 'HDFCN26081392104',
-  },
-  {
-    id: 'LN-2026-102',
-    employeeId: 4,
-    employeeName: 'Rahul Verma',
-    employeeEmail: 'rahul.v@novatech.io',
-    department: 'Product & Design',
-    type: 'FESTIVAL_ADVANCE',
-    principalAmount: 30000,
-    tenureMonths: 3,
-    monthlyEmi: 10000,
-    totalRepaid: 0,
-    balanceRemaining: 30000,
-    reason: 'Diwali home renovation advance',
-    status: 'PENDING',
-    appliedDate: '2026-10-24',
-  },
-  {
-    id: 'LN-2026-103',
-    employeeId: 5,
-    employeeName: 'Ananya Roy',
-    employeeEmail: 'ananya.r@novatech.io',
-    department: 'Sales & Business Dev',
-    type: 'PERSONAL_LOAN',
-    principalAmount: 100000,
-    tenureMonths: 10,
-    monthlyEmi: 10000,
-    totalRepaid: 100000,
-    balanceRemaining: 0,
-    reason: 'Higher education course advance',
-    status: 'CLOSED',
-    appliedDate: '2026-01-05',
-    approvedDate: '2026-01-07',
-    disbursedDate: '2026-01-08',
-    utrNumber: 'ICICR26010874199',
-  },
-];
-
 export const LoansAdvancesPage: React.FC = () => {
   const { user } = useAuth();
   const isFinanceOrAdmin = user?.role === 'FINANCE' || user?.role === 'COMPANY_ADMIN' || user?.role === 'PRODUCT_SUPER_ADMIN';
 
-  const [loans, setLoans] = useState<LoanRecord[]>(() => {
+  const [loans, setLoans] = useState<LoanRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchLoans = async () => {
+    setIsLoading(true);
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : DEFAULT_LOANS;
-    } catch {
-      return DEFAULT_LOANS;
+      const res = await api.get('/payroll/loans');
+      setLoans(res.data?.loans || []);
+    } catch (err) {
+      console.error('Failed to load loans:', err);
+    } finally {
+      setIsLoading(false);
     }
-  });
+  };
 
   const [employees, setEmployees] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'ALL' | 'PENDING' | 'ACTIVE' | 'CLOSED'>('ALL');
@@ -134,19 +81,10 @@ export const LoansAdvancesPage: React.FC = () => {
     reason: '',
   });
 
-  // Save to localStorage on change
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(loans));
-    } catch (e) {
-      console.error('Failed to save loans to localStorage:', e);
-    }
-  }, [loans]);
-
-  // Load employee directory
-  useEffect(() => {
+    fetchLoans();
     api.get('/employees', { params: { pageSize: 100, status: 'ACTIVE' } })
-      .then((res) => setEmployees(res.data?.items || []))
+      .then((res) => setEmployees(res.data?.employees || res.data?.items || []))
       .catch((e) => console.error('Failed to load employees:', e));
   }, []);
 
@@ -198,18 +136,13 @@ export const LoansAdvancesPage: React.FC = () => {
   }, [loans]);
 
   // Actions
-  const handleApprove = (loanId: string) => {
-    setLoans((prev) =>
-      prev.map((l) =>
-        l.id === loanId
-          ? {
-            ...l,
-            status: 'APPROVED',
-            approvedDate: new Date().toISOString().split('T')[0],
-          }
-          : l
-      )
-    );
+  const handleApprove = async (loanId: string) => {
+    try {
+      await api.patch(`/payroll/loans/${loanId}`, { status: 'APPROVED' });
+      await fetchLoans();
+    } catch (err) {
+      console.error('Failed to approve loan:', err);
+    }
   };
 
   const handleOpenDisburseModal = (loan: LoanRecord) => {
@@ -218,85 +151,66 @@ export const LoansAdvancesPage: React.FC = () => {
     setIsDisburseModalOpen(true);
   };
 
-  const handleConfirmDisburse = () => {
+  const handleConfirmDisburse = async () => {
     if (!selectedLoan || !disburseUtr.trim()) return;
-    setLoans((prev) =>
-      prev.map((l) =>
-        l.id === selectedLoan.id
-          ? {
-            ...l,
-            status: 'DISBURSED',
-            disbursedDate: new Date().toISOString().split('T')[0],
-            utrNumber: disburseUtr.trim(),
-          }
-          : l
-      )
-    );
-    setIsDisburseModalOpen(false);
-    setSelectedLoan(null);
+    try {
+      await api.patch(`/payroll/loans/${selectedLoan.id}`, {
+        status: 'DISBURSED',
+        utrNumber: disburseUtr.trim(),
+      });
+      await fetchLoans();
+      setIsDisburseModalOpen(false);
+      setSelectedLoan(null);
+    } catch (err) {
+      console.error('Failed to disburse loan:', err);
+    }
   };
 
-  const handleReject = (loanId: string) => {
+  const handleReject = async (loanId: string) => {
     const reason = window.prompt('Enter rejection reason:') || 'Policy eligibility not met';
-    setLoans((prev) =>
-      prev.map((l) =>
-        l.id === loanId
-          ? {
-            ...l,
-            status: 'REJECTED',
-            rejectionReason: reason,
-          }
-          : l
-      )
-    );
+    try {
+      await api.patch(`/payroll/loans/${loanId}`, {
+        status: 'REJECTED',
+        rejectionReason: reason,
+      });
+      await fetchLoans();
+    } catch (err) {
+      console.error('Failed to reject loan:', err);
+    }
   };
 
-  const handleApplySubmit = (e: React.FormEvent) => {
+  const handleApplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const amount = Number(form.amount);
     const tenure = Math.max(1, Number(form.tenureMonths));
-    const emi = Math.round(amount / tenure);
 
-    let empName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Staff';
-    let empEmail = user?.email || '';
-    let dept = 'General';
+    try {
+      const payload = {
+        employeeId: Number(form.employeeId) || user?.id,
+        type: form.type,
+        amount,
+        tenureMonths: tenure,
+        reason: form.reason || 'General emergency advance',
+      };
 
-    if (isFinanceOrAdmin && form.employeeId) {
-      const targetEmp = employees.find((e) => e.id === Number(form.employeeId));
-      if (targetEmp) {
-        empName = `${targetEmp.firstName} ${targetEmp.lastName}`.trim();
-        empEmail = targetEmp.email;
-        dept = targetEmp.department?.name || 'General';
+      const res = await api.post('/payroll/loans', payload);
+      if (res.data?.loan) {
+        setLoans((prev) => [res.data.loan, ...prev]);
+      } else {
+        await fetchLoans();
       }
+      setIsApplyModalOpen(false);
+      setForm({
+        employeeId: user?.id || 0,
+        type: 'EMERGENCY_ADVANCE',
+        amount: '30000',
+        tenureMonths: '3',
+        reason: '',
+      });
+    } catch (err: any) {
+      console.error('Failed to apply for loan:', err);
+      alert(err.response?.data?.error?.message || 'Failed to submit loan request');
     }
-
-    const newLoan: LoanRecord = {
-      id: `LN-2026-${Math.floor(100 + Math.random() * 900)}`,
-      employeeId: Number(form.employeeId) || user?.id || 1,
-      employeeName: empName,
-      employeeEmail: empEmail,
-      department: dept,
-      type: form.type,
-      principalAmount: amount,
-      tenureMonths: tenure,
-      monthlyEmi: emi,
-      totalRepaid: 0,
-      balanceRemaining: amount,
-      reason: form.reason || 'General emergency advance',
-      status: isFinanceOrAdmin ? 'APPROVED' : 'PENDING',
-      appliedDate: new Date().toISOString().split('T')[0],
-      approvedDate: isFinanceOrAdmin ? new Date().toISOString().split('T')[0] : undefined,
-    };
-
-    setLoans((prev) => [newLoan, ...prev]);
-    setIsApplyModalOpen(false);
-    setForm({
-      employeeId: user?.id || 0,
-      type: 'EMERGENCY_ADVANCE',
-      amount: '30000',
-      tenureMonths: '3',
-      reason: '',
-    });
   };
 
   const getStatusBadge = (status: LoanRecord['status']) => {

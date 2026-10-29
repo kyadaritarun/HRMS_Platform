@@ -39,101 +39,30 @@ export interface TaxEmployee {
   proofFilesCount: number;
 }
 
-const DEFAULT_TAX_EMPLOYEES: TaxEmployee[] = [
-  {
-    id: 1,
-    name: 'Tarun Kyadari',
-    email: 'kyadarit@gmail.com',
-    pan: 'ABCDE1234F',
-    department: 'Management',
-    regime: 'NEW_REGIME',
-    grossSalary: 2400000,
-    section80CDeclared: 0,
-    section80CVerified: 0,
-    section80DDeclared: 0,
-    section80DVerified: 0,
-    hraDeclared: 0,
-    hraVerified: 0,
-    homeLoanInterestDeclared: 0,
-    homeLoanInterestVerified: 0,
-    status: 'LOCKED',
-    proofFilesCount: 0,
-  },
-  {
-    id: 2,
-    name: 'Jone Doe',
-    email: 'hr@gmail.com',
-    pan: 'BCDEF2345G',
-    department: 'Human Resources',
-    regime: 'OLD_REGIME',
-    grossSalary: 1200000,
-    section80CDeclared: 150000,
-    section80CVerified: 150000,
-    section80DDeclared: 25000,
-    section80DVerified: 25000,
-    hraDeclared: 180000,
-    hraVerified: 180000,
-    homeLoanInterestDeclared: 0,
-    homeLoanInterestVerified: 0,
-    status: 'VERIFIED',
-    proofFilesCount: 4,
-  },
-  {
-    id: 3,
-    name: 'Maya Patel',
-    email: 'emp2@novatech.io',
-    pan: 'CDEFG3456H',
-    department: 'Engineering & Tech',
-    regime: 'OLD_REGIME',
-    grossSalary: 1500000,
-    section80CDeclared: 150000,
-    section80CVerified: 120000,
-    section80DDeclared: 25000,
-    section80DVerified: 25000,
-    hraDeclared: 240000,
-    hraVerified: 240000,
-    homeLoanInterestDeclared: 150000,
-    homeLoanInterestVerified: 0,
-    status: 'PENDING_REVIEW',
-    proofFilesCount: 5,
-  },
-  {
-    id: 4,
-    name: 'Vikram Malhotra',
-    email: 'manager1@novatech.io',
-    pan: 'DEFGH4567J',
-    department: 'Engineering & Tech',
-    regime: 'OLD_REGIME',
-    grossSalary: 2200000,
-    section80CDeclared: 150000,
-    section80CVerified: 150000,
-    section80DDeclared: 50000,
-    section80DVerified: 50000,
-    hraDeclared: 360000,
-    hraVerified: 360000,
-    homeLoanInterestDeclared: 200000,
-    homeLoanInterestVerified: 200000,
-    status: 'VERIFIED',
-    proofFilesCount: 6,
-  },
-];
-
-const STORAGE_KEY = 'uptrix_tax_declarations';
-
 export const TaxDeclarationsPage: React.FC = () => {
   const { user } = useAuth();
   const isFinanceOrAdmin = user?.role === 'FINANCE' || user?.role === 'COMPANY_ADMIN' || user?.role === 'PRODUCT_SUPER_ADMIN';
 
-  const [records, setRecords] = useState<TaxEmployee[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : DEFAULT_TAX_EMPLOYEES;
-    } catch {
-      return DEFAULT_TAX_EMPLOYEES;
-    }
-  });
-
+  const [records, setRecords] = useState<TaxEmployee[]>([]);
   const [financialYear, setFinancialYear] = useState('2026-2027');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchTaxDeclarations = async () => {
+    setIsLoading(true);
+    try {
+      const res = await api.get('/payroll/tax-declarations', { params: { financialYear } });
+      setRecords(res.data?.records || []);
+    } catch (err) {
+      console.error('Failed to load tax declarations:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTaxDeclarations();
+  }, [financialYear]);
+
   const [activeTab, setActiveTab] = useState<'ALL' | 'PENDING' | 'VERIFIED' | 'LOCKED'>('ALL');
   const [search, setSearch] = useState('');
   const [selectedEmp, setSelectedEmp] = useState<TaxEmployee | null>(null);
@@ -143,14 +72,6 @@ export const TaxDeclarationsPage: React.FC = () => {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-    } catch (e) {
-      console.error('Failed to save tax records:', e);
-    }
-  }, [records]);
 
   const filteredRecords = useMemo(() => {
     return records.filter((r) => {
@@ -194,31 +115,52 @@ export const TaxDeclarationsPage: React.FC = () => {
     return { total, pending, verified, locked, totalTaxSaved };
   }, [records]);
 
-  const handleVerify = (empId: number) => {
-    setRecords((prev) =>
-      prev.map((r) =>
-        r.id === empId
-          ? {
-            ...r,
-            status: 'VERIFIED',
-            section80CVerified: r.section80CDeclared,
-            section80DVerified: r.section80DDeclared,
-            hraVerified: r.hraDeclared,
-            homeLoanInterestVerified: r.homeLoanInterestDeclared,
-          }
-          : r
-      )
-    );
-    if (selectedEmp?.id === empId) {
-      setSelectedEmp((prev) => prev ? { ...prev, status: 'VERIFIED' } : null);
+  const handleVerify = async (empId: number) => {
+    const target = records.find((r) => r.id === empId);
+    if (!target) return;
+
+    try {
+      await api.post('/payroll/tax-declarations/verify', {
+        employeeId: empId,
+        financialYear,
+        section80CVerified: target.section80CDeclared,
+        section80DVerified: target.section80DDeclared,
+        hraVerified: target.hraDeclared,
+        homeLoanInterestVerified: target.homeLoanInterestDeclared,
+      });
+
+      setRecords((prev) =>
+        prev.map((r) =>
+          r.id === empId
+            ? {
+              ...r,
+              status: 'VERIFIED',
+              section80CVerified: r.section80CDeclared,
+              section80DVerified: r.section80DDeclared,
+              hraVerified: r.hraDeclared,
+              homeLoanInterestVerified: r.homeLoanInterestDeclared,
+            }
+            : r
+        )
+      );
+      if (selectedEmp?.id === empId) {
+        setSelectedEmp((prev) => prev ? { ...prev, status: 'VERIFIED' } : null);
+      }
+    } catch (err) {
+      console.error('Failed to verify tax declaration:', err);
     }
   };
 
-  const handleLockAll = () => {
+  const handleLockAll = async () => {
     if (!window.confirm('Lock all verified tax proof declarations for the upcoming payroll run?')) return;
-    setRecords((prev) =>
-      prev.map((r) => (r.status === 'VERIFIED' ? { ...r, status: 'LOCKED' } : r))
-    );
+    try {
+      await api.post('/payroll/tax-declarations/lock-all', { financialYear });
+      setRecords((prev) =>
+        prev.map((r) => (r.status === 'VERIFIED' ? { ...r, status: 'LOCKED' } : r))
+      );
+    } catch (err) {
+      console.error('Failed to lock tax declarations:', err);
+    }
   };
 
   const handleOpenForm16 = (emp: TaxEmployee) => {

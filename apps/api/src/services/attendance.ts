@@ -58,7 +58,7 @@ export async function checkIn(opts: {
       where: { id: opts.userId },
       select: { shiftId: true, shiftTiming: true },
     });
-    assignedShiftId = user?.shiftTiming || user?.shiftId || 'General Shift (09:30 AM - 06:30 PM)';
+    assignedShiftId = user?.shiftTiming || user?.shiftId || null;
   }
 
   const address = await reverseGeocode(opts.latitude, opts.longitude);

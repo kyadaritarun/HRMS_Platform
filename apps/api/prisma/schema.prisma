@@ -91,6 +91,15 @@ model Company {
   invoices            Invoice[]
   emailLogs           EmailLog[]
   paymentOrders       SubscriptionPaymentOrder[]
+  offerLetters        OfferLetter[]
+  exitRecords         ExitRecord[]
+  companyAssets       CompanyAsset[]
+  onboardingProgress  OnboardingProgress[]
+  hrLetters           HrLetter[]
+  rosterAssignments   RosterAssignment[]
+  loanAdvances        LoanAdvance[]
+  taxDeclarations     TaxDeclaration[]
+  complianceReports   ComplianceReport[]
 }
 
 model Package {
@@ -535,4 +544,233 @@ model SubscriptionPaymentOrder {
   @@index([contactEmail, status])
   @@index([orderId])
   @@index([companyId])
+}
+
+// ------------------------------------------------------------------
+// OfferLetter: Full lifecycle candidate offer letters & salary breakdown
+// ------------------------------------------------------------------
+model OfferLetter {
+  id                        Int       @id @default(autoincrement())
+  letterCode                String    @default("") // OL-2026-101
+  companyId                 Int
+  company                   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  candidateName             String
+  candidateEmail            String
+  candidatePhone            String    @default("")
+  jobTitle                  String
+  department                String    @default("")
+  annualCtc                 Decimal   @default(0) @db.Decimal(12, 2)
+  monthlySalary             Decimal   @default(0) @db.Decimal(12, 2)
+  joiningDate               DateTime? @db.Date
+  status                    String    @default("DRAFT") // DRAFT | SENT | ACCEPTED | REJECTED | JOINED
+  terms                     Json      @default("{}") // {probationMonths, noticeDays, workMode, workingHours}
+  breakdown                 Json      @default("{}") // {basicMonthly, hraMonthly, specialAllowanceMonthly, pfMonthly, ptMonthly, netMonthly}
+  customComponents          Json      @default("[]") // [{name, monthly, annual, type}]
+  attachedFiles             Json      @default("[]") // [{name, size, url}]
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  @@index([companyId, status])
+  @@index([companyId, candidateEmail])
+}
+
+// ------------------------------------------------------------------
+// ExitRecord: Employee resignation, notice period, NOC and F&F settlement
+// ------------------------------------------------------------------
+model ExitRecord {
+  id                        Int       @id @default(autoincrement())
+  exitCode                  String    @default("") // EXIT-2026-001
+  companyId                 Int
+  company                   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId                Int
+  employeeName              String
+  employeeEmail             String
+  department                String    @default("")
+  jobTitle                  String    @default("")
+  joiningDate               DateTime? @db.Date
+  resignationDate           DateTime? @db.Date
+  noticePeriodDays          Int       @default(30)
+  lastWorkingDay            DateTime? @db.Date
+  reason                    String    @default("")
+  status                    String    @default("RESIGNED") // RESIGNED | NOTICE_PERIOD | NOC_CLEARANCE | SETTLED | CANCELLED
+  monthlySalary             Decimal   @default(0) @db.Decimal(12, 2)
+  leaveBalanceDays          Decimal   @default(0) @db.Decimal(5, 2)
+  nocClearance              Json      @default("{}") // {it: {cleared, remarks, clearedBy}, admin, finance, hr}
+  ffSettlement              Json      @default("{}") // {daysWorkedInMonth, monthEarnings, leaveEncashmentAmount, gratuityAmount, noticeShortfallDeduction, otherDeductions, netPayout}
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  @@index([companyId, status])
+  @@index([companyId, employeeId])
+}
+
+// ------------------------------------------------------------------
+// CompanyAsset: Hardware & IT equipment asset registry
+// ------------------------------------------------------------------
+model CompanyAsset {
+  id                        Int       @id @default(autoincrement())
+  companyId                 Int
+  company                   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  tag                       String    // e.g. AST-LPT-101
+  name                      String
+  category                  String    @default("LAPTOP") // LAPTOP | MONITOR | MOBILE | ACCESSORY | DESKTOP | OTHER
+  serialNumber              String    @default("")
+  assignedToEmployeeId      Int?
+  assignedToName            String?
+  assignedDate              DateTime? @db.Date
+  condition                 String    @default("NEW") // NEW | EXCELLENT | GOOD | FAIR | DAMAGED
+  status                    String    @default("IN_STOCK") // IN_STOCK | ASSIGNED | UNDER_MAINTENANCE | RETIRED
+  notes                     String    @default("")
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  @@unique([companyId, tag])
+  @@index([companyId, status])
+  @@index([companyId, assignedToEmployeeId])
+}
+
+// ------------------------------------------------------------------
+// OnboardingProgress: Per-employee onboarding checklist progress
+// ------------------------------------------------------------------
+model OnboardingProgress {
+  id                        Int       @id @default(autoincrement())
+  companyId                 Int
+  company                   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId                Int
+  taskId                    String    // e.g. t1, t2, t3
+  completed                 Boolean   @default(false)
+  completedAt               DateTime?
+  completedBy               String?
+  notes                     String    @default("")
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  @@unique([companyId, employeeId, taskId])
+  @@index([companyId, employeeId])
+}
+
+// ------------------------------------------------------------------
+// HrLetter: Official company letters (Relieving, Bonafide, Warning, etc.)
+// ------------------------------------------------------------------
+model HrLetter {
+  id                        Int       @id @default(autoincrement())
+  letterCode                String    @default("") // LTR-2026-001
+  companyId                 Int
+  company                   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  type                      String    // RELIEVING_EXPERIENCE | BONAFIDE_EMPLOYMENT | APPOINTMENT | PROMOTION | INTERNSHIP | WARNING | SALARY_REVISION
+  employeeName              String
+  employeeId                String    @default("")
+  designation               String    @default("")
+  department                String    @default("")
+  issueDate                 DateTime? @db.Date
+  referenceNumber           String    @default("")
+  contentSnapshot           Json      @default("{}") // {title, salutation, paragraphs, customFields}
+  signatoryName             String    @default("")
+  signatoryDesignation      String    @default("")
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  @@index([companyId, type])
+  @@index([companyId, employeeName])
+}
+
+// ------------------------------------------------------------------
+// RosterAssignment: Weekly shift roster assignments
+// ------------------------------------------------------------------
+model RosterAssignment {
+  id                        Int       @id @default(autoincrement())
+  companyId                 Int
+  company                   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId                Int
+  date                      String    // YYYY-MM-DD
+  shiftTiming               String    // e.g. "Morning Shift (07:00 AM - 03:00 PM)" or "Weekly Off"
+  shiftId                   String?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  @@unique([companyId, employeeId, date])
+  @@index([companyId, date])
+}
+
+// ------------------------------------------------------------------
+// LoanAdvance: Employee salary advances and personal emergency loans
+// ------------------------------------------------------------------
+model LoanAdvance {
+  id                        Int       @id @default(autoincrement())
+  loanCode                  String    @default("") // LN-2026-101
+  companyId                 Int
+  company                   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId                Int
+  employeeName              String
+  employeeEmail             String
+  department                String    @default("")
+  type                      String    @default("EMERGENCY_ADVANCE") // EMERGENCY_ADVANCE | SALARY_ADVANCE | FESTIVAL_ADVANCE | PERSONAL_LOAN
+  principalAmount           Decimal   @db.Decimal(12, 2)
+  tenureMonths              Int       @default(1)
+  monthlyEmi                Decimal   @db.Decimal(12, 2)
+  totalRepaid               Decimal   @default(0) @db.Decimal(12, 2)
+  balanceRemaining          Decimal   @db.Decimal(12, 2)
+  reason                    String    @default("")
+  status                    String    @default("PENDING") // PENDING | APPROVED | DISBURSED | REJECTED | CLOSED
+  appliedDate               DateTime  @default(now())
+  approvedDate              DateTime?
+  disbursedDate             DateTime?
+  utrNumber                 String?
+  rejectionReason           String?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  @@index([companyId, status])
+  @@index([companyId, employeeId])
+}
+
+// ------------------------------------------------------------------
+// TaxDeclaration: IT regime declaration, 80C, 80D, HRA, home loan proofs
+// ------------------------------------------------------------------
+model TaxDeclaration {
+  id                        Int       @id @default(autoincrement())
+  companyId                 Int
+  company                   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId                Int
+  financialYear             String    @default("2026-2027")
+  regime                    String    @default("NEW_REGIME") // NEW_REGIME | OLD_REGIME
+  grossSalary               Decimal   @default(0) @db.Decimal(12, 2)
+  section80CDeclared        Decimal   @default(0) @db.Decimal(12, 2)
+  section80CVerified        Decimal   @default(0) @db.Decimal(12, 2)
+  section80DDeclared        Decimal   @default(0) @db.Decimal(12, 2)
+  section80DVerified        Decimal   @default(0) @db.Decimal(12, 2)
+  hraDeclared               Decimal   @default(0) @db.Decimal(12, 2)
+  hraVerified               Decimal   @default(0) @db.Decimal(12, 2)
+  homeLoanInterestDeclared  Decimal   @default(0) @db.Decimal(12, 2)
+  homeLoanInterestVerified  Decimal   @default(0) @db.Decimal(12, 2)
+  status                    String    @default("PENDING_REVIEW") // PENDING_REVIEW | VERIFIED | LOCKED
+  proofFiles                Json      @default("[]") // [{name, size, category, status, url}]
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  @@unique([companyId, employeeId, financialYear])
+  @@index([companyId, financialYear, status])
+}
+
+// ------------------------------------------------------------------
+// ComplianceReport: Monthly PF, ESI, PT, and TDS filing records
+// ------------------------------------------------------------------
+model ComplianceReport {
+  id                        Int       @id @default(autoincrement())
+  companyId                 Int
+  company                   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  type                      String    // PF | ESI | PT | TDS
+  month                     Int
+  year                      Int
+  status                    String    @default("DRAFT") // DRAFT | FILED | AUDITED
+  challanNumber             String?
+  paymentDate               DateTime? @db.Date
+  totalAmount               Decimal   @default(0) @db.Decimal(12, 2)
+  recordsCount              Int       @default(0)
+  details                   Json      @default("{}")
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  @@unique([companyId, type, month, year])
+  @@index([companyId, year, month])
 }

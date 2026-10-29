@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
@@ -10,6 +11,9 @@ import {
   IconMessageCircle,
   IconHeadset,
   IconSearch,
+  IconEye,
+  IconExternalLink,
+  IconCheck,
 } from '@tabler/icons-react';
 
 interface TicketComment {
@@ -82,6 +86,17 @@ export const TicketsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
+  // Dismiss right sidebar drawer on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedTicket(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
@@ -100,14 +115,14 @@ export const TicketsPage: React.FC = () => {
       const fetchedTickets = res.data?.tickets || [];
       setTickets(fetchedTickets);
 
-      // Auto-select first ticket if none selected or if selected ticket needs refresh
+      // Keep active ticket in sync if one is currently open
       if (fetchedTickets.length > 0) {
         setSelectedTicket((prev) => {
           if (prev) {
             const match = fetchedTickets.find((t: Ticket) => t.id === prev.id);
-            return match || fetchedTickets[0];
+            return match || null;
           }
-          return fetchedTickets[0];
+          return null;
         });
       } else {
         setSelectedTicket(null);
@@ -417,37 +432,22 @@ export const TicketsPage: React.FC = () => {
           )}
         </div>
 
-        {/* Status Toggle Pills */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center bg-slate-50/80 border border-slate-200/70 p-1 rounded-xl">
-            {(['ALL', 'OPEN', 'IN_PROGRESS', 'RESOLVED'] as const).map((mode) => {
-              const label =
-                mode === 'ALL'
-                  ? 'All'
-                  : mode === 'OPEN'
-                  ? 'Open'
-                  : mode === 'IN_PROGRESS'
-                  ? 'In Progress'
-                  : 'Resolved';
-              const isActive = statusFilter === mode;
-              return (
-                <button
-                  key={mode}
-                  onClick={() => {
-                    setStatusFilter(mode);
-                    setCurrentPage(1);
-                  }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    isActive
-                      ? 'bg-white text-[#5E4BE2] shadow-2xs'
-                      : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
+        {/* Status Filter Dropdown & Ticket Count */}
+        <div className="flex items-center gap-2.5">
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="px-3.5 py-2 text-xs font-bold bg-white border border-slate-200/80 rounded-xl text-slate-700 shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all cursor-pointer"
+          >
+            <option value="ALL">All Status</option>
+            <option value="OPEN">Open</option>
+            <option value="IN_PROGRESS">In Progress</option>
+            <option value="RESOLVED">Resolved</option>
+            <option value="CLOSED">Closed</option>
+          </select>
 
           {/* Ticket Count Badge */}
           <span className="hidden sm:inline-flex px-3 py-2 rounded-xl bg-indigo-50/70 text-[#5E4BE2] text-xs font-bold border border-indigo-100/60 shrink-0">
@@ -456,351 +456,394 @@ export const TicketsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ===================== ROW 3: MASTER-DETAIL 2-COLUMN VIEW ===================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* Left Column: Ticket Feed */}
-        <div className="lg:col-span-5 space-y-3 overflow-y-auto max-h-[calc(100vh-230px)] min-h-[500px] pr-1 scrollbar-thin scrollbar-thumb-slate-200">
-          {isLoading ? (
-            Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs animate-pulse space-y-2.5"
-              >
-                <div className="flex justify-between">
-                  <div className="w-28 h-3.5 bg-slate-200 rounded-sm" />
-                  <div className="w-16 h-3.5 bg-slate-200 rounded-full" />
-                </div>
-                <div className="w-48 h-4 bg-slate-200 rounded-sm" />
-                <div className="w-full h-3 bg-slate-100 rounded-sm" />
-              </div>
-            ))
-          ) : filteredTickets.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center text-slate-400 shadow-xs">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-[#5E4BE2] flex items-center justify-center mx-auto mb-3 shadow-2xs">
-                <IconHeadset className="w-6 h-6" />
-              </div>
-              <p className="text-sm font-bold text-slate-800">No support tickets found</p>
-              <p className="text-xs text-slate-500 mt-1">
-                {search || statusFilter !== 'ALL'
-                  ? 'Try clearing your search query or status filter.'
-                  : 'Submit a ticket using the "Create Support Ticket" button above.'}
-              </p>
-              {(search || statusFilter !== 'ALL') && (
-                <button
-                  onClick={() => {
-                    setSearch('');
-                    setStatusFilter('ALL');
-                  }}
-                  className="mt-3 text-xs font-bold text-[#5E4BE2] hover:underline cursor-pointer"
-                >
-                  Reset filters
-                </button>
-              )}
+      {/* ===================== TICKETS TABLE VIEW ===================== */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        {isLoading ? (
+          <div className="p-8 space-y-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-12 bg-slate-100 rounded-xl animate-pulse" />
+            ))}
+          </div>
+        ) : filteredTickets.length === 0 ? (
+          <div className="p-16 text-center text-slate-400">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-[#5E4BE2] flex items-center justify-center mx-auto mb-3 shadow-2xs">
+              <IconHeadset className="w-6 h-6" />
             </div>
-          ) : (
-            paginatedTickets.map((t) => {
-              const ticketCode =
-                t.code ||
-                `#TIC-MUX${t.id.toString(36).toUpperCase()}${t.id * 17}-${Math.floor(
-                  100 + (t.id * 73) % 900
-                )}`;
-              const deptName =
-                typeof t.department === 'object'
-                  ? (t.department as any)?.name
-                  : t.department || t.category || 'HARDWARE';
-              const requesterName =
-                t.requester?.firstName || t.user?.firstName
-                  ? `${t.requester?.firstName || t.user?.firstName || ''} ${
-                      t.requester?.lastName || t.user?.lastName || ''
-                    }`.trim()
-                  : 'Sarah Connor';
-              const commentsCount = t.comments?.length || 0;
-              const isSelected = selectedTicket?.id === t.id;
+            <p className="text-sm font-bold text-slate-800">No support tickets found</p>
+            <p className="text-xs text-slate-500 mt-1">
+              {search || statusFilter !== 'ALL'
+                ? 'Try clearing your search query or status filter.'
+                : 'Submit a ticket using the "Create Ticket" button above.'}
+            </p>
+            {(search || statusFilter !== 'ALL') && (
+              <button
+                onClick={() => {
+                  setSearch('');
+                  setStatusFilter('ALL');
+                }}
+                className="mt-3 text-xs font-bold text-[#5E4BE2] hover:underline cursor-pointer"
+              >
+                Reset filters
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    <th className="py-3.5 px-4 whitespace-nowrap">Ticket ID</th>
+                    <th className="py-3.5 px-4 min-w-[260px]">Subject & Details</th>
+                    <th className="py-3.5 px-4 whitespace-nowrap">Category</th>
+                    <th className="py-3.5 px-4 min-w-[170px]">Raised By</th>
+                    <th className="py-3.5 px-4 whitespace-nowrap">Priority</th>
+                    <th className="py-3.5 px-4 whitespace-nowrap">Status</th>
+                    <th className="py-3.5 px-4 whitespace-nowrap">Assigned To</th>
+                    <th className="py-3.5 px-4 whitespace-nowrap">Date</th>
+                    <th className="py-3.5 px-4 whitespace-nowrap text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs">
+                  {paginatedTickets.map((t) => {
+                    const ticketCode =
+                      t.code ||
+                      `#TCK-${new Date(t.createdAt).getFullYear()}-${String(t.id).padStart(3, '0')}`;
+                    const deptName =
+                      typeof t.department === 'object'
+                        ? (t.department as any)?.name
+                        : t.department || t.category || 'SUPPORT';
+                    const requesterName =
+                      t.requester?.firstName || t.user?.firstName
+                        ? `${t.requester?.firstName || t.user?.firstName || ''} ${
+                            t.requester?.lastName || t.user?.lastName || ''
+                          }`.trim()
+                        : 'Employee';
+                    const requesterEmail = t.requester?.email || t.user?.email || '';
+                    const isSelected = selectedTicket?.id === t.id;
 
-              return (
-                <div
-                  key={t.id}
-                  onClick={() => setSelectedTicket(t)}
-                  className={`bg-white p-4 rounded-2xl border cursor-pointer transition-all ${
-                    isSelected
-                      ? 'border-[#5E4BE2] ring-2 ring-[#5E4BE2]/15 shadow-sm bg-indigo-50/20'
-                      : 'border-slate-200/70 hover:border-indigo-200/80 hover:shadow-xs'
-                  }`}
-                >
-                  {/* Top row: Code & Dept + Badges */}
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-[10px] font-mono font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md truncate max-w-[200px]">
-                      {ticketCode} • {deptName.toUpperCase()}
-                    </span>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {getPriorityBadge(t.priority)}
-                      {getStatusBadge(t.status)}
-                    </div>
-                  </div>
+                    return (
+                      <tr
+                        key={t.id}
+                        onClick={() => setSelectedTicket(t)}
+                        className={`transition-colors cursor-pointer group ${
+                          isSelected
+                            ? 'bg-indigo-50/70 ring-1 ring-inset ring-[#5E4BE2]/25'
+                            : 'hover:bg-indigo-50/40'
+                        }`}
+                      >
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <span className="font-mono font-bold text-[11px] text-[#5E4BE2] bg-indigo-50/80 border border-indigo-100/80 px-2 py-1 rounded-lg">
+                            {ticketCode}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <div className="font-bold text-slate-900 group-hover:text-[#5E4BE2] transition-colors line-clamp-1 text-xs sm:text-sm">
+                            {t.title || t.subject || `Ticket #${t.id}`}
+                          </div>
+                          <div className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                            {t.description}
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+                            {deptName.toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-indigo-100 text-[#5E4BE2] font-bold text-[10px] flex items-center justify-center shrink-0">
+                              {requesterName.charAt(0)}
+                            </div>
+                            <div className="truncate max-w-[150px]">
+                              <div className="font-bold text-slate-800 truncate">{requesterName}</div>
+                              {requesterEmail && (
+                                <div className="text-[10px] text-slate-400 truncate">{requesterEmail}</div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          {getPriorityBadge(t.priority)}
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          {getStatusBadge(t.status)}
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          {t.assignee ? (
+                            <span className="font-bold text-slate-700">
+                              {t.assignee.firstName} {t.assignee.lastName}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 italic">Unassigned</span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap text-slate-500 font-medium">
+                          {new Date(t.createdAt).toLocaleDateString(undefined, {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap text-right">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedTicket(t);
+                            }}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
+                              isSelected
+                                ? 'bg-[#5E4BE2] text-white shadow-xs'
+                                : 'bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white shadow-2xs hover:shadow-sm'
+                            }`}
+                            title="Open ticket in right sidebar"
+                          >
+                            <IconEye className="w-3.5 h-3.5" />
+                            <span>{isSelected ? 'Viewing' : 'Open'}</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-                  {/* Title & Description */}
-                  <h3
-                    className={`font-bold text-xs sm:text-sm line-clamp-1 mt-1 transition-colors ${
-                      isSelected ? 'text-[#5E4BE2]' : 'text-slate-900'
-                    }`}
-                  >
-                    {t.title || t.subject || `Ticket #${t.id}`}
-                  </h3>
-                  <p className="text-xs text-slate-500 line-clamp-2 mt-1 leading-relaxed">
-                    {t.description}
-                  </p>
-
-                  {/* Bottom Row: Requester & Messages Count */}
-                  <div className="mt-3 pt-2.5 border-t border-slate-100/80 flex items-center justify-between text-xs text-slate-400">
-                    <div className="flex items-center gap-1.5 truncate">
-                      <div className="w-4 h-4 rounded-full bg-indigo-100 text-[#5E4BE2] font-bold text-[9px] flex items-center justify-center shrink-0">
-                        {requesterName.charAt(0)}
-                      </div>
-                      <span className="truncate text-slate-600 font-medium">From: {requesterName}</span>
-                    </div>
-                    <span className="flex items-center gap-1 shrink-0 text-slate-400">
-                      <IconMessageCircle className="w-3.5 h-3.5" />
-                      <span>{commentsCount}</span>
-                    </span>
-                  </div>
-                </div>
-              );
-            })
-          )}
-
-          {/* Pagination Bar for Tickets Feed */}
-          {filteredTickets.length > 0 && (
-            <div className="bg-white rounded-2xl border border-slate-200/70 shadow-xs overflow-hidden">
+            {/* Table Pagination Bar */}
+            <div className="border-t border-slate-100">
               <TablePagination
                 currentPage={currentPage}
                 totalItems={filteredTickets.length}
                 pageSize={pageSize}
                 onPageChange={setCurrentPage}
                 onPageSizeChange={setPageSize}
-                pageSizeOptions={[5, 8, 15, 25]}
+                pageSizeOptions={[5, 8, 15, 25, 50]}
                 itemName="tickets"
               />
             </div>
-          )}
-        </div>
+          </>
+        )}
+      </div>
 
-        {/* Right Column: Ticket Conversation & Detail */}
-        <div className="lg:col-span-7">
-          {selectedTicket ? (
-            <div className="bg-white rounded-2xl border border-slate-200/70 shadow-xs flex flex-col h-[calc(100vh-230px)] min-h-[500px] overflow-hidden">
-              {/* Header & Status Control */}
-              <div className="p-5 border-b border-slate-100 shrink-0 bg-slate-50/30">
-                <div className="flex items-center justify-between mb-2.5">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-mono font-bold text-[#5E4BE2] bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-lg">
-                      TICKET #{selectedTicket.id}
-                    </span>
-                    <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
-                      {(
-                        typeof selectedTicket.department === 'object'
-                          ? (selectedTicket.department as any)?.name
-                          : selectedTicket.department || selectedTicket.category || 'HARDWARE'
-                      ).toUpperCase()}
-                    </span>
-                    {getPriorityBadge(selectedTicket.priority)}
-                  </div>
+      {/* ===================== RIGHT SIDE BAR / SLIDE-OVER DRAWER FOR TICKET DETAILS ===================== */}
+      {selectedTicket && typeof document !== 'undefined' ? (
+        createPortal(
+          <div className="fixed inset-0 z-[9999] overflow-hidden">
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in cursor-pointer"
+              onClick={() => setSelectedTicket(null)}
+            />
 
-                  <div className="flex items-center gap-2">
-                    {/* Agents (Admin, HR, IT, Finance, Assignee, Manager) have full status change */}
-                    {isAdminOrHr ||
-                    (user?.role === 'IT' && ['IT', 'HARDWARE'].includes((selectedTicket.category || '').toUpperCase())) ||
-                    (user?.role === 'FINANCE' && (selectedTicket.category || '').toUpperCase() === 'FINANCE') ||
-                    selectedTicket.assignee?.id === user?.id ||
-                    isManager ? (
-                      <select
-                        value={selectedTicket.status}
-                        onChange={(e) => handleStatusChange(e.target.value)}
-                        className="px-3 py-1.5 text-xs font-bold bg-white border border-slate-200 rounded-xl text-slate-700 shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] cursor-pointer uppercase"
-                      >
-                        <option value="OPEN">OPEN</option>
-                        <option value="IN_PROGRESS">IN PROGRESS</option>
-                        <option value="RESOLVED">RESOLVED</option>
-                        <option value="CLOSED">CLOSED</option>
-                      </select>
-                    ) : (
-                      /* Regular Employee Requester: Shows current status badge + action buttons */
-                      <div className="flex items-center gap-1.5">
-                        {getStatusBadge(selectedTicket.status)}
-                        {selectedTicket.status === 'RESOLVED' && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => handleStatusChange('CLOSED')}
-                              className="px-2.5 py-1 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-2xs transition-colors cursor-pointer"
-                              title="Confirm resolution and close ticket"
-                            >
-                              Confirm & Close
-                            </button>
+            {/* Slide-over Right Sidebar Panel */}
+            <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+              <div
+                className="w-screen max-w-xl sm:max-w-2xl bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 pointer-events-auto animate-in slide-in-from-right duration-300 overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header & Status Control */}
+                <div className="p-5 border-b border-slate-100 shrink-0 bg-slate-50/50">
+                  <div className="flex items-center justify-between mb-2.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-mono font-bold text-[#5E4BE2] bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-lg">
+                        TICKET #{selectedTicket.id}
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+                        {(
+                          typeof selectedTicket.department === 'object'
+                            ? (selectedTicket.department as any)?.name
+                            : selectedTicket.department || selectedTicket.category || 'SUPPORT'
+                        ).toUpperCase()}
+                      </span>
+                      {getPriorityBadge(selectedTicket.priority)}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {/* Agents / Managers: Status Dropdown */}
+                      {isAdminOrHr ||
+                      (user?.role === 'IT' && ['IT', 'HARDWARE'].includes((selectedTicket.category || '').toUpperCase())) ||
+                      (user?.role === 'FINANCE' && (selectedTicket.category || '').toUpperCase() === 'FINANCE') ||
+                      selectedTicket.assignee?.id === user?.id ||
+                      isManager ? (
+                        <select
+                          value={selectedTicket.status}
+                          onChange={(e) => handleStatusChange(e.target.value)}
+                          className="px-3 py-1.5 text-xs font-bold bg-white border border-slate-200 rounded-xl text-slate-700 shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] cursor-pointer uppercase"
+                        >
+                          <option value="OPEN">OPEN</option>
+                          <option value="IN_PROGRESS">IN PROGRESS</option>
+                          <option value="RESOLVED">RESOLVED</option>
+                          <option value="CLOSED">CLOSED</option>
+                        </select>
+                      ) : (
+                        /* Requester action buttons */
+                        <div className="flex items-center gap-1.5">
+                          {getStatusBadge(selectedTicket.status)}
+                          {selectedTicket.status === 'RESOLVED' && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleStatusChange('CLOSED')}
+                                className="px-2.5 py-1 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-2xs transition-colors cursor-pointer"
+                              >
+                                Confirm & Close
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleStatusChange('OPEN')}
+                                className="px-2 py-1 text-[11px] font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg shadow-2xs transition-colors cursor-pointer"
+                              >
+                                Reopen
+                              </button>
+                            </>
+                          )}
+                          {selectedTicket.status === 'CLOSED' && (
                             <button
                               type="button"
                               onClick={() => handleStatusChange('OPEN')}
                               className="px-2 py-1 text-[11px] font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg shadow-2xs transition-colors cursor-pointer"
-                              title="Reopen if not resolved"
                             >
                               Reopen
                             </button>
-                          </>
-                        )}
-                        {selectedTicket.status === 'CLOSED' && (
-                          <button
-                            type="button"
-                            onClick={() => handleStatusChange('OPEN')}
-                            className="px-2 py-1 text-[11px] font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg shadow-2xs transition-colors cursor-pointer"
-                            title="Reopen ticket"
-                          >
-                            Reopen
-                          </button>
-                        )}
-                        {selectedTicket.status === 'OPEN' && (
-                          <button
-                            type="button"
-                            onClick={() => handleStatusChange('CLOSED')}
-                            className="px-2 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors cursor-pointer"
-                            title="Cancel this request"
-                          >
-                            Cancel
-                          </button>
-                        )}
-                      </div>
-                    )}
-                    <button
-                      onClick={() => setSelectedTicket(null)}
-                      className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                      title="Close preview"
-                    >
-                      <IconX className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
+                          )}
+                          {selectedTicket.status === 'OPEN' && (
+                            <button
+                              type="button"
+                              onClick={() => handleStatusChange('CLOSED')}
+                              className="px-2 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </div>
+                      )}
 
-                <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-                  {selectedTicket.title || selectedTicket.subject || `Ticket #${selectedTicket.id}`}
-                </h2>
-
-                {/* Meta Bar: Requester & Assignee (with re-assignment for managers/agents) */}
-                <div className="flex flex-wrap items-center justify-between gap-2.5 mt-3 pt-3 border-t border-slate-100 text-xs">
-                  <div className="flex items-center gap-1.5 text-slate-600 flex-wrap">
-                    <span className="text-slate-400 font-medium">Raised by:</span>
-                    <span className="font-bold text-slate-800">
-                      {selectedTicket.requester?.firstName || selectedTicket.user?.firstName || 'Employee'}{' '}
-                      {selectedTicket.requester?.lastName || selectedTicket.user?.lastName || ''}
-                    </span>
-                    {(selectedTicket.requester?.email || selectedTicket.user?.email) && (
-                      <span className="text-slate-400 text-[11px]">
-                        ({selectedTicket.requester?.email || selectedTicket.user?.email})
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-400 font-medium">Assigned to:</span>
-                    {/* If manager/agent: Interactive Assignee Selector to reassign */}
-                    {isAdminOrHr ||
-                    (user?.role === 'IT' && ['IT', 'HARDWARE'].includes((selectedTicket.category || '').toUpperCase())) ||
-                    (user?.role === 'FINANCE' && (selectedTicket.category || '').toUpperCase() === 'FINANCE') ||
-                    selectedTicket.assignee?.id === user?.id ||
-                    isManager ? (
-                      <select
-                        value={selectedTicket.assignee?.id || ''}
-                        onChange={(e) => handleAssigneeChange(e.target.value ? Number(e.target.value) : null)}
-                        className="px-2.5 py-1 text-xs font-bold bg-white border border-slate-200 rounded-lg text-slate-800 shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] cursor-pointer"
-                        title="Reassign ticket to a team member"
+                      {/* Right Sidebar Close Icon */}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTicket(null)}
+                        className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                        title="Close right sidebar (Esc)"
                       >
-                        <option value="">Unassigned</option>
-                        {employees.map((emp) => (
-                          <option key={emp.id} value={emp.id}>
-                            {emp.firstName} {emp.lastName} ({emp.role || emp.jobTitle || 'Staff'})
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      /* If regular employee: Display assignee name */
-                      <span className="font-bold text-[#5E4BE2] bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md">
-                        {selectedTicket.assignee
-                          ? `${selectedTicket.assignee.firstName} ${selectedTicket.assignee.lastName}`.trim()
-                          : 'Pending Triage'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Primary Description Bubble */}
-                <div className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-3.5 text-xs sm:text-sm text-slate-700 mt-3 leading-relaxed">
-                  {selectedTicket.description}
-                </div>
-              </div>
-
-              {/* Threaded Discussion Messages */}
-              <div className="flex-1 p-5 overflow-y-auto space-y-3.5">
-                {!selectedTicket.comments || selectedTicket.comments.length === 0 ? (
-                  <div className="py-14 text-center text-xs text-slate-400">
-                    <IconMessageCircle className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                    <p className="font-semibold text-slate-600">No replies yet</p>
-                    <p className="mt-0.5">Post an update below to start the thread discussion.</p>
-                  </div>
-                ) : (
-                  selectedTicket.comments.map((c) => (
-                    <div key={c.id} className="space-y-1">
-                      <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-                        <span className="font-bold text-slate-700">
-                          {c.userName || (c as any).authorName || 'Sarah Connor'}
-                        </span>
-                        <span>•</span>
-                        <span className="text-slate-400">
-                          {new Date(c.createdAt).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                      </div>
-                      <div className="bg-slate-50/80 border border-slate-200/70 rounded-2xl p-3 text-xs sm:text-sm text-slate-700 max-w-xl inline-block shadow-2xs leading-relaxed">
-                        {c.message || (c as any).body || ''}
-                      </div>
+                        <IconX className="w-5 h-5" />
+                      </button>
                     </div>
-                  ))
-                )}
-              </div>
+                  </div>
 
-              {/* Reply Input Footer */}
-              <form
-                onSubmit={handleAddComment}
-                className="p-3.5 border-t border-slate-100 bg-white flex items-center gap-2 shrink-0"
-              >
-                <input
-                  type="text"
-                  placeholder="Type your reply to this ticket..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  className="flex-1 px-4 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all text-slate-800 placeholder:text-slate-400"
-                />
-                <button
-                  type="submit"
-                  disabled={isSubmittingComment || !newComment.trim()}
-                  className="p-2.5 rounded-xl bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white shadow-sm shadow-indigo-600/25 transition-all disabled:opacity-50 cursor-pointer active:scale-95"
-                  title="Send reply"
+                  <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                    {selectedTicket.title || selectedTicket.subject || `Ticket #${selectedTicket.id}`}
+                  </h2>
+
+                  {/* Meta Bar: Requester & Assignee */}
+                  <div className="flex flex-wrap items-center justify-between gap-2.5 mt-3 pt-3 border-t border-slate-100 text-xs">
+                    <div className="flex items-center gap-1.5 text-slate-600 flex-wrap">
+                      <span className="text-slate-400 font-medium">Raised by:</span>
+                      <span className="font-bold text-slate-800">
+                        {selectedTicket.requester?.firstName || selectedTicket.user?.firstName || 'Employee'}{' '}
+                        {selectedTicket.requester?.lastName || selectedTicket.user?.lastName || ''}
+                      </span>
+                      {(selectedTicket.requester?.email || selectedTicket.user?.email) && (
+                        <span className="text-slate-400 text-[11px]">
+                          ({selectedTicket.requester?.email || selectedTicket.user?.email})
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-400 font-medium">Assigned to:</span>
+                      {isAdminOrHr ||
+                      (user?.role === 'IT' && ['IT', 'HARDWARE'].includes((selectedTicket.category || '').toUpperCase())) ||
+                      (user?.role === 'FINANCE' && (selectedTicket.category || '').toUpperCase() === 'FINANCE') ||
+                      selectedTicket.assignee?.id === user?.id ||
+                      isManager ? (
+                        <select
+                          value={selectedTicket.assignee?.id || ''}
+                          onChange={(e) => handleAssigneeChange(e.target.value ? Number(e.target.value) : null)}
+                          className="px-2.5 py-1 text-xs font-bold bg-white border border-slate-200 rounded-lg text-slate-800 shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] cursor-pointer"
+                          title="Reassign ticket to a team member"
+                        >
+                          <option value="">Unassigned</option>
+                          {employees.map((emp) => (
+                            <option key={emp.id} value={emp.id}>
+                              {emp.firstName} {emp.lastName} ({emp.role || emp.jobTitle || 'Staff'})
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="font-bold text-[#5E4BE2] bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md">
+                          {selectedTicket.assignee
+                            ? `${selectedTicket.assignee.firstName} ${selectedTicket.assignee.lastName}`.trim()
+                            : 'Pending Triage'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Primary Description Bubble */}
+                  <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-3.5 text-xs sm:text-sm text-slate-700 mt-3 leading-relaxed">
+                    {selectedTicket.description}
+                  </div>
+                </div>
+
+                {/* Threaded Discussion Messages */}
+                <div className="flex-1 p-5 overflow-y-auto space-y-3.5">
+                  {!selectedTicket.comments || selectedTicket.comments.length === 0 ? (
+                    <div className="py-14 text-center text-xs text-slate-400">
+                      <IconMessageCircle className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                      <p className="font-semibold text-slate-600">No replies yet</p>
+                      <p className="mt-0.5">Post an update below to start the thread discussion.</p>
+                    </div>
+                  ) : (
+                    selectedTicket.comments.map((c) => (
+                      <div key={c.id} className="space-y-1">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                          <span className="font-bold text-slate-700">
+                            {c.userName || (c as any).authorName || 'Staff'}
+                          </span>
+                          <span>•</span>
+                          <span className="text-slate-400">
+                            {new Date(c.createdAt).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        </div>
+                        <div className="bg-slate-50/80 border border-slate-200/70 rounded-2xl p-3 text-xs sm:text-sm text-slate-700 max-w-xl inline-block shadow-2xs leading-relaxed">
+                          {c.message || (c as any).body || ''}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Reply Input Footer */}
+                <form
+                  onSubmit={handleAddComment}
+                  className="p-3.5 border-t border-slate-100 bg-white flex items-center gap-2 shrink-0"
                 >
-                  <IconSend className="w-4 h-4" />
-                </button>
-              </form>
-            </div>
-          ) : (
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-16 text-center text-slate-400 shadow-xs h-[calc(100vh-230px)] min-h-[500px] flex flex-col items-center justify-center">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-[#5E4BE2] flex items-center justify-center mb-3 shadow-2xs">
-                <IconHeadset className="w-6 h-6" />
+                  <input
+                    type="text"
+                    placeholder="Type your reply to this ticket..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    className="flex-1 px-4 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all text-slate-800 placeholder:text-slate-400"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSubmittingComment || !newComment.trim()}
+                    className="p-2.5 rounded-xl bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white shadow-sm shadow-indigo-600/25 transition-all disabled:opacity-50 cursor-pointer active:scale-95"
+                    title="Send reply"
+                  >
+                    <IconSend className="w-4 h-4" />
+                  </button>
+                </form>
               </div>
-              <p className="text-sm font-bold text-slate-800">Select a ticket</p>
-              <p className="text-xs text-slate-400 mt-1 max-w-xs">
-                Choose a ticket from the left list to view conversation threads and status actions.
-              </p>
             </div>
-          )}
-        </div>
-      </div>
+          </div>,
+          document.body
+        )
+      ) : null}
 
       {/* ===================== CREATE TICKET MODAL ===================== */}
       {isCreateModalOpen && (

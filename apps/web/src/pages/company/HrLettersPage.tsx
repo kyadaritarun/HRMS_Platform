@@ -180,43 +180,20 @@ const EditableParagraph: React.FC<EditableParagraphProps> = ({
 export const HrLettersPage: React.FC = () => {
   const { company, user } = useAuth();
   const [employees, setEmployees] = useState<any[]>([]);
-  const [issuedLetters, setIssuedLetters] = useState<IssuedLetter[]>(() => {
+  const [issuedLetters, setIssuedLetters] = useState<IssuedLetter[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchIssuedLetters = async () => {
+    setIsLoading(true);
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch (_) {}
-    return [
-      {
-        id: 'LTR-2026-001',
-        type: 'RELIEVING_EXPERIENCE',
-        employeeName: 'Pooja Reddy',
-        employeeId: 'EMP-104',
-        designation: 'Senior Frontend Developer',
-        department: 'Engineering',
-        issueDate: '2026-10-15',
-        referenceNumber: 'UPTX/HR/REL/2026/089',
-        contentSnapshot: {
-          joiningDate: '2023-01-10',
-          relievingDate: '2026-10-15',
-          conduct: 'exemplary',
-        },
-      },
-      {
-        id: 'LTR-2026-002',
-        type: 'BONAFIDE_EMPLOYMENT',
-        employeeName: 'Karan Mehra',
-        employeeId: 'EMP-112',
-        designation: 'Product Designer',
-        department: 'Product & Design',
-        issueDate: '2026-10-18',
-        referenceNumber: 'UPTX/HR/BON/2026/041',
-        contentSnapshot: {
-          purpose: 'Schengen Visa Application & Verification of Employment',
-          annualCtc: 950000,
-        },
-      },
-    ];
-  });
+      const res = await api.get('/company/hr-letters');
+      setIssuedLetters(res.data?.issuedLetters || []);
+    } catch (err) {
+      console.error('Failed to load HR letters:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const [activeTab, setActiveTab] = useState<'GENERATE' | 'REPOSITORY'>('GENERATE');
   const [selectedLetterType, setSelectedLetterType] = useState<LetterType>('RELIEVING_EXPERIENCE');
@@ -226,26 +203,26 @@ export const HrLettersPage: React.FC = () => {
   // Form State for Letter Generation
   const [formData, setFormData] = useState({
     employeeId: '',
-    recipientName: 'Vikram Joshi',
-    designation: 'Full Stack Engineer',
-    department: 'Engineering',
-    joiningDate: '2023-06-01',
-    relievingDate: '2026-10-31',
+    recipientName: '',
+    designation: '',
+    department: '',
+    joiningDate: '',
+    relievingDate: '',
     referenceNumber: `UPTX/HR/${new Date().getFullYear()}/${Math.floor(100 + Math.random() * 900)}`,
     issueDate: new Date().toISOString().split('T')[0],
     signatoryName: user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Head of Human Resources',
     signatoryDesignation: 'Head - People Operations',
     // Custom fields for specific letters
-    bonafidePurpose: 'Bank Home Loan Application & Proof of Employment',
-    annualCtc: 1200000,
-    previousCtc: 1000000,
-    revisedCtc: 1250000,
-    incrementPercentage: 25,
-    effectiveDate: '2026-11-01',
-    internshipProject: 'Design System & API Automation Portal',
+    bonafidePurpose: 'Proof of Employment',
+    annualCtc: 0,
+    previousCtc: 0,
+    revisedCtc: 0,
+    incrementPercentage: 0,
+    effectiveDate: new Date().toISOString().split('T')[0],
+    internshipProject: '',
     internshipDurationMonths: 6,
-    warningSubject: 'Unauthorized Absence & Lapses in Attendance Adherence',
-    warningIncidentDate: '2026-10-12',
+    warningSubject: 'Attendance and Policy Adherence',
+    warningIncidentDate: new Date().toISOString().split('T')[0],
     explanationDeadlineDays: 3,
   });
 
@@ -290,20 +267,14 @@ export const HrLettersPage: React.FC = () => {
     const fetchStaff = async () => {
       try {
         const res = await api.get('/employees?pageSize=100');
-        setEmployees(res.data?.items || []);
+        setEmployees(res.data?.employees || res.data?.items || []);
       } catch (err) {
         console.error('Failed to load employees for letters:', err);
       }
     };
     fetchStaff();
+    fetchIssuedLetters();
   }, []);
-
-  // Save issued letters
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(issuedLetters));
-    } catch (_) {}
-  }, [issuedLetters]);
 
   // When an employee is picked from dropdown, auto-fill fields & refresh letter
   const handleSelectEmployee = (empId: string) => {
@@ -391,27 +362,43 @@ export const HrLettersPage: React.FC = () => {
   };
 
   // Issue Letter
-  const handleIssueLetter = () => {
-    const newRecord: IssuedLetter = {
-      id: `LTR-${new Date().getFullYear()}-${String(issuedLetters.length + 1).padStart(3, '0')}`,
-      type: selectedLetterType,
-      employeeName: formData.recipientName,
-      employeeId: formData.employeeId ? `EMP-${formData.employeeId}` : undefined,
-      designation: formData.designation,
-      department: formData.department,
-      issueDate: formData.issueDate,
-      referenceNumber: formData.referenceNumber,
-      contentSnapshot: {
-        ...formData,
-        letterTitle,
-        letterSalutation,
-        letterParagraphs,
-        isCustomEdited,
-      },
-    };
+  const handleIssueLetter = async () => {
+    if (!formData.recipientName.trim()) {
+      alert('Please specify the recipient employee name.');
+      return;
+    }
 
-    setIssuedLetters([newRecord, ...issuedLetters]);
-    alert('Letter successfully registered in the HR repository! You can now print or save as PDF.');
+    try {
+      const payload = {
+        type: selectedLetterType,
+        employeeName: formData.recipientName.trim(),
+        employeeId: formData.employeeId ? `EMP-${formData.employeeId}` : '',
+        designation: formData.designation,
+        department: formData.department,
+        issueDate: formData.issueDate,
+        referenceNumber: formData.referenceNumber,
+        contentSnapshot: {
+          ...formData,
+          letterTitle,
+          letterSalutation,
+          letterParagraphs,
+          isCustomEdited,
+        },
+        signatoryName: formData.signatoryName,
+        signatoryDesignation: formData.signatoryDesignation,
+      };
+
+      const res = await api.post('/company/hr-letters', payload);
+      if (res.data?.issuedLetter) {
+        setIssuedLetters((prev) => [res.data.issuedLetter, ...prev]);
+      } else {
+        await fetchIssuedLetters();
+      }
+      alert('Letter successfully registered in the HR repository! You can now print or save as PDF.');
+    } catch (err: any) {
+      console.error('Failed to issue letter:', err);
+      alert(err.response?.data?.error?.message || 'Failed to issue letter');
+    }
   };
 
   return (

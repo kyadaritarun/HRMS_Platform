@@ -22,6 +22,7 @@ import {
   IconSearch,
   IconHistory,
 } from '@tabler/icons-react';
+import { ShiftTiming, formatShiftOption } from '../../utils/shifts';
 
 export interface BulkEmployeeRow {
   id: string;
@@ -47,55 +48,6 @@ export interface BulkEmployeeRow {
   emergencyContactPhone: string;
 }
 
-const DEMO_ROWS: BulkEmployeeRow[] = [
-  {
-    id: 'demo-1',
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@company.com',
-    personalEmail: 'john.personal@gmail.com',
-    employeeNumber: 'EMP-1001',
-    dateOfBirth: '1992-05-15',
-    workType: 'PERMANENT',
-    jobTitle: 'Senior Software Engineer',
-    role: 'EMPLOYEE',
-    phone: '9876543210',
-    workMode: 'WFO',
-    shiftTiming: 'General Shift (09:30 AM - 06:30 PM)',
-    address: 'Flat 402, Green Meadows, Indiranagar, Bengaluru, KA 560038',
-    workingAddress: 'Uptrix Tower, 5th Floor, Outer Ring Road, Bengaluru',
-    joiningDate: new Date().toISOString().split('T')[0],
-    monthlySalary: '85000',
-    currency: 'INR',
-    emergencyContactName: 'Mary Doe',
-    emergencyContactRelationship: 'Spouse',
-    emergencyContactPhone: '9876543219',
-  },
-  {
-    id: 'demo-2',
-    firstName: 'Sarah',
-    lastName: 'Connor',
-    email: 'sarah.c@company.com',
-    personalEmail: 'sarah.connor@yahoo.com',
-    employeeNumber: 'EMP-1002',
-    dateOfBirth: '1994-08-22',
-    workType: 'CONTRACT',
-    jobTitle: 'Product Designer',
-    role: 'EMPLOYEE',
-    phone: '9811223344',
-    workMode: 'WFH',
-    shiftTiming: 'Flexible Shift',
-    address: 'House 12, Palm Grove, Koramangala, Bengaluru, KA 560034',
-    workingAddress: 'Remote / Work From Home',
-    joiningDate: new Date().toISOString().split('T')[0],
-    monthlySalary: '65000',
-    currency: 'INR',
-    emergencyContactName: 'Robert Connor',
-    emergencyContactRelationship: 'Brother',
-    emergencyContactPhone: '9811223399',
-  },
-];
-
 const createEmptyRow = (): BulkEmployeeRow => ({
   id: Math.random().toString(36).substring(2, 9),
   firstName: '',
@@ -109,7 +61,7 @@ const createEmptyRow = (): BulkEmployeeRow => ({
   role: 'EMPLOYEE',
   phone: '',
   workMode: 'WFO',
-  shiftTiming: 'General Shift (09:30 AM - 06:30 PM)',
+  shiftTiming: '',
   address: '',
   workingAddress: '',
   joiningDate: new Date().toISOString().split('T')[0],
@@ -172,6 +124,7 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [allowedDomains, setAllowedDomains] = useState<string[]>([]);
+  const [companyShifts, setCompanyShifts] = useState<ShiftTiming[]>([]);
   const [successInfo, setSuccessInfo] = useState<{
     createdCount: number;
     failedCount: number;
@@ -183,11 +136,17 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
   useEffect(() => {
     const fetchCompanySettings = async () => {
       try {
-        const res = await api.get('/company/settings');
-        const comp = res.data?.company;
+        const [settingsRes, shiftsRes] = await Promise.all([
+          api.get('/company/settings'),
+          api.get('/company/shifts').catch(() => ({ data: { shifts: [] } })),
+        ]);
+        const comp = settingsRes.data?.company;
         const rawDomains = comp?.allowedEmailDomains?.trim() || (comp?.subdomain ? `${comp.subdomain}.com` : '');
         const parsed = (comp?.domainsAllowed as string[]) || (rawDomains ? rawDomains.split(',').map((d: string) => d.trim().replace(/^@/, '').toLowerCase()).filter(Boolean) : []);
         setAllowedDomains(parsed);
+
+        const loadedShifts = Array.isArray(shiftsRes.data?.shifts) ? shiftsRes.data.shifts : [];
+        setCompanyShifts(loadedShifts);
       } catch (err) {
         console.error('Failed to load company settings in bulk import:', err);
       }
@@ -236,7 +195,7 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
       role: isCompanyAdmin && ['HR', 'FINANCE', 'IT'].includes(rawRole) ? (rawRole as any) : 'EMPLOYEE',
       phone: getString(['phone', 'phonenumber', 'phone number', 'contact']),
       workMode: rawWorkMode === 'WFH' ? 'WFH' : 'WFO',
-      shiftTiming: rawShiftTiming || 'General Shift (09:30 AM - 06:30 PM)',
+      shiftTiming: rawShiftTiming || '',
       address: getString(['address', 'residentialaddress', 'residential address', 'permanentaddress', 'permanent address']),
       workingAddress: getString(['workingaddress', 'working address', 'officeaddress', 'office address', 'workaddress', 'work address']),
       joiningDate: parseExcelDate(getRaw(['joiningdate', 'joining date', 'date of joining', 'doj'])) || new Date().toISOString().split('T')[0],
@@ -308,12 +267,6 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
     setRows((prev) => prev.filter((r) => r.id !== id));
   };
 
-  const handleLoadDemo = () => {
-    setRows(DEMO_ROWS);
-    setFileName('sample_demo_records.xlsx');
-    setErrorMsg(null);
-    setCurrentPage(1);
-  };
 
   const handleClearAll = () => {
     setRows([createEmptyRow()]);
@@ -865,11 +818,23 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
                         onChange={(e) => handleCellChange(r.id, 'shiftTiming', e.target.value)}
                         className="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-hidden cursor-pointer"
                       >
-                        <option value="General Shift (09:30 AM - 06:30 PM)">General Shift (09:30 AM - 06:30 PM)</option>
-                        <option value="Morning Shift (06:00 AM - 03:00 PM)">Morning Shift (06:00 AM - 03:00 PM)</option>
-                        <option value="Afternoon Shift (02:00 PM - 11:00 PM)">Afternoon Shift (02:00 PM - 11:00 PM)</option>
-                        <option value="Night Shift (10:00 PM - 07:00 AM)">Night Shift (10:00 PM - 07:00 AM)</option>
-                        <option value="Flexible Shift">Flexible Shift</option>
+                        <option value="">Select Shift</option>
+                        {r.shiftTiming &&
+                          !companyShifts.some(
+                            (s) =>
+                              formatShiftOption(s) === r.shiftTiming ||
+                              s.name.trim().toLowerCase() === r.shiftTiming.split('(')[0].trim().toLowerCase()
+                          ) && (
+                            <option value={r.shiftTiming}>{r.shiftTiming}</option>
+                          )}
+                        {companyShifts.map((s) => {
+                          const opt = formatShiftOption(s);
+                          return (
+                            <option key={s.id} value={opt}>
+                              {opt} {s.code ? `[${s.code}]` : ''}
+                            </option>
+                          );
+                        })}
                       </select>
                     </td>
                     {/* Residential Address */}

@@ -93,6 +93,13 @@ router.get('/me', async (req, res, next) => {
 
     const companyShifts = Array.isArray(user?.company?.shifts) ? (user.company.shifts as any[]) : [];
     let matchedShift = companyShifts.find((s: any) => s.id === user?.shiftId);
+    if (!matchedShift && user?.shiftTiming) {
+      const cleanTimingName = user.shiftTiming.split('(')[0].trim().toLowerCase();
+      matchedShift = companyShifts.find((s: any) =>
+        (s.name && s.name.trim().toLowerCase() === cleanTimingName) ||
+        user.shiftTiming.toLowerCase().includes((s.name || '').trim().toLowerCase())
+      );
+    }
     if (!matchedShift) {
       matchedShift = companyShifts.find((s: any) => s.isDefault) || companyShifts[0];
     }
@@ -108,12 +115,12 @@ router.get('/me', async (req, res, next) => {
       return `${String(h).padStart(2, '0')}:${m} ${ampm}`;
     };
 
-    const shiftName = matchedShift?.name || 'General Day Shift (IST)';
-    const startTime = matchedShift?.startTime || '09:30';
-    const endTime = matchedShift?.endTime || '18:30';
-    const gracePeriodMinutes = Number(matchedShift?.gracePeriodMinutes) || 15;
+    const shiftName = matchedShift?.name || (user?.shiftTiming ? user.shiftTiming.split('(')[0].trim() : '');
+    const startTime = matchedShift?.startTime || '';
+    const endTime = matchedShift?.endTime || '';
+    const gracePeriodMinutes = Number(matchedShift?.gracePeriodMinutes) || 0;
 
-    let targetHours = 9.0;
+    let targetHours = 8.0;
     if (startTime && endTime) {
       const [sh, sm] = startTime.split(':').map(Number);
       const [eh, em] = endTime.split(':').map(Number);
@@ -124,8 +131,8 @@ router.get('/me', async (req, res, next) => {
       }
     }
 
-    let dynamicShiftTiming = user?.shiftTiming?.trim();
-    if (!dynamicShiftTiming) {
+    let dynamicShiftTiming = user?.shiftTiming?.trim() || '';
+    if (!dynamicShiftTiming && shiftName && startTime && endTime) {
       dynamicShiftTiming = `${shiftName} (${format12Hour(startTime)} – ${format12Hour(endTime)})`;
     }
 
