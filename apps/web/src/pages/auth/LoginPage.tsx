@@ -113,14 +113,10 @@ export const LoginPage: React.FC = () => {
         navigate('/change-password');
       } else if (data.user.role === 'PRODUCT_SUPER_ADMIN') {
         navigate('/super-admin/dashboard');
-      } else if (data.user.role === 'COMPANY_ADMIN') {
-        navigate('/company/dashboard');
-      } else if (data.user.role === 'HR') {
-        navigate('/employee/dashboard');
       } else if (data.user.role === 'FINANCE') {
         navigate('/payroll/attendance-salary');
       } else if (data.user.role === 'IT') {
-        navigate('/company/assets-onboarding');
+        navigate('/company/assets');
       } else {
         navigate('/employee/dashboard');
       }

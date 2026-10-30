@@ -20,7 +20,11 @@ import {
   IconAlertTriangle,
   IconPlayerStop,
   IconPlayerPlay,
+  IconSettings,
+  IconFileText,
 } from '@tabler/icons-react';
+import { SettingsModal } from '../SettingsModal';
+import { TermsAndConditionsModal, PrivacyPolicyModal } from '../LegalModals';
 
 export const AppLayout: React.FC = () => {
   const { user, company, logout } = useAuth();
@@ -30,6 +34,11 @@ export const AppLayout: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
+
+  // Profile Menu Modals
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
 
   // Live notifications
   interface NotificationItem {
@@ -486,7 +495,7 @@ export const AppLayout: React.FC = () => {
                     className="fixed inset-0 z-40 bg-transparent"
                     onClick={() => setProfileOpen(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-50 animate-in fade-in">
+                  <div className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-50 animate-in fade-in">
                   <div className="px-3.5 py-2.5 border-b border-slate-100">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Signed in as</p>
                     <p className="text-xs font-bold text-slate-800 truncate">{user?.email}</p>
@@ -503,7 +512,18 @@ export const AppLayout: React.FC = () => {
                     className="w-full px-3.5 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-medium"
                   >
                     <IconUser className="w-4 h-4 text-slate-400" />
-                    My Profile
+                    <span>My Profile</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setProfileOpen(false);
+                      setSettingsOpen(true);
+                    }}
+                    className="w-full px-3.5 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-medium"
+                  >
+                    <IconSettings className="w-4 h-4 text-slate-400" />
+                    <span>Settings</span>
                   </button>
 
                   {/* Attendance Check Out / Check In */}
@@ -537,11 +557,35 @@ export const AppLayout: React.FC = () => {
                   <div className="my-1 border-t border-slate-100" />
 
                   <button
+                    onClick={() => {
+                      setProfileOpen(false);
+                      setTermsOpen(true);
+                    }}
+                    className="w-full px-3.5 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-medium"
+                  >
+                    <IconFileText className="w-4 h-4 text-slate-400" />
+                    <span>Terms &amp; Conditions</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setProfileOpen(false);
+                      setPrivacyOpen(true);
+                    }}
+                    className="w-full px-3.5 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-medium"
+                  >
+                    <IconShieldLock className="w-4 h-4 text-slate-400" />
+                    <span>Privacy Policy</span>
+                  </button>
+
+                  <div className="my-1 border-t border-slate-100" />
+
+                  <button
                     onClick={handleLogout}
                     className="w-full px-3.5 py-2 text-left text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2.5 font-semibold cursor-pointer"
                   >
                     <IconLogout className="w-4 h-4 text-rose-500" />
-                    Sign Out
+                    <span>Sign Out</span>
                   </button>
                 </div>
               </>
@@ -555,6 +599,15 @@ export const AppLayout: React.FC = () => {
           <Outlet />
         </main>
       </div>
+
+      {/* Settings Modal */}
+      <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+
+      {/* Terms & Conditions Modal */}
+      <TermsAndConditionsModal isOpen={termsOpen} onClose={() => setTermsOpen(false)} />
+
+      {/* Privacy Policy Modal */}
+      <PrivacyPolicyModal isOpen={privacyOpen} onClose={() => setPrivacyOpen(false)} />
     </div>
   );
 };

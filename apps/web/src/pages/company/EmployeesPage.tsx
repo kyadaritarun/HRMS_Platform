@@ -668,7 +668,7 @@ export const EmployeesPage: React.FC = () => {
                     setSelectedWorkMode(mode);
                     setCurrentPage(1);
                   }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${isActive
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${isActive
                       ? 'bg-white text-[#5E4BE2] shadow-2xs'
                       : 'text-slate-500 hover:text-slate-800'
                     }`}
@@ -982,7 +982,7 @@ export const EmployeesPage: React.FC = () => {
                   <div>
                     <label className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Work Type</label>
                     <div className="flex items-center gap-1.5 font-bold text-slate-800 mt-1">
-                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${selectedEmp.employmentType === 'CONTRACT'
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${selectedEmp.employmentType === 'CONTRACT'
                           ? 'bg-amber-50 text-amber-700 border border-amber-200/80'
                           : 'bg-indigo-50 text-indigo-700 border border-indigo-200/80'
                         }`}>

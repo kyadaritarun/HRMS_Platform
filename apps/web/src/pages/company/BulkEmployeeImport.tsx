@@ -468,11 +468,11 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
                 </div>
                 <div className="flex items-center gap-1.5">
                   {res.success ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-md">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100/70 px-2.5 py-0.5 rounded-full">
                       <IconCheck className="w-3.5 h-3.5" /> Created & Invite Sent
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-100/70 px-2 py-0.5 rounded-md">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-100/70 px-2.5 py-0.5 rounded-full">
                       <IconAlertCircle className="w-3.5 h-3.5" /> {res.error}
                     </span>
                   )}
@@ -561,11 +561,11 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
             )}
 
             {/* Filter Toggle */}
-            <div className="inline-flex bg-white border border-slate-200 rounded-lg p-0.5 text-[11px] font-bold ml-1">
+            <div className="inline-flex bg-white border border-slate-200 rounded-xl p-0.5 text-[11px] font-bold ml-1">
               <button
                 type="button"
                 onClick={() => { setFilterMode('all'); setCurrentPage(1); }}
-                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
                   filterMode === 'all' ? 'bg-[#5E4BE2] text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -575,7 +575,7 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
                 <button
                   type="button"
                   onClick={() => { setFilterMode('invalid'); setCurrentPage(1); }}
-                  className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
                     filterMode === 'invalid' ? 'bg-amber-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >

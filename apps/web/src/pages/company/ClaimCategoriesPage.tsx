@@ -117,7 +117,7 @@ export const ClaimCategoriesPage: React.FC = () => {
             setError(null);
             setIsModalOpen(true);
           }}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white font-bold text-sm shadow-sm transition-all cursor-pointer active:scale-95"
+          className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white font-bold text-xs shadow-xs transition-colors cursor-pointer shrink-0"
         >
           <IconPlus className="w-4 h-4" />
           <span>Add Claim Category</span>
@@ -234,7 +234,7 @@ export const ClaimCategoriesPage: React.FC = () => {
         </div>
 
         {/* Table Content */}
-        <div className="overflow-x-auto -mx-5 -mb-5">
+        <div className="overflow-x-auto border border-slate-200/80 rounded-2xl shadow-2xs overflow-hidden">
           <table className="w-full min-w-[850px] text-left text-xs">
             <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>

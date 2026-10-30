@@ -759,7 +759,7 @@ export const NewEmployeePage: React.FC = () => {
             <button
               type="button"
               onClick={() => setOnboardingMode('single')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${onboardingMode === 'single'
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${onboardingMode === 'single'
                 ? 'bg-white text-slate-900 shadow-2xs'
                 : 'text-slate-500 hover:text-slate-800'
                 }`}
@@ -770,7 +770,7 @@ export const NewEmployeePage: React.FC = () => {
             <button
               type="button"
               onClick={() => setOnboardingMode('bulk')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${onboardingMode === 'bulk'
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${onboardingMode === 'bulk'
                 ? 'bg-white text-[#5E4BE2] shadow-2xs'
                 : 'text-slate-500 hover:text-slate-800'
                 }`}
@@ -1422,7 +1422,7 @@ export const NewEmployeePage: React.FC = () => {
                         <span>Offer Letter / Contract</span>
                       </label>
                       {uploadedFiles.offerLetter.file && (
-                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1">
+                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/60 flex items-center gap-1">
                           <IconCheck className="w-3 h-3" /> Attached
                         </span>
                       )}

@@ -358,15 +358,15 @@ export const HolidaysPage: React.FC = () => {
         <div className="flex items-center gap-2.5 shrink-0">
           <button
             onClick={() => setIsEmailSettingsOpen(true)}
-            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-[#5E4BE2] text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-[#5E4BE2] text-xs font-bold shadow-2xs transition-all cursor-pointer"
             title="Configure Automated Holiday & Birthday Emails"
           >
-            <IconMail className="w-4 h-4" />
+            <IconMail className="w-4 h-4 text-[#5E4BE2]" />
             <span>Automated Emails</span>
           </button>
           <button
             onClick={handleOpenAdd}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white text-xs font-bold shadow-xs hover:shadow-md transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
           >
             <IconPlus className="w-4 h-4" />
             <span>Add Holiday</span>
@@ -868,11 +868,11 @@ export const HolidaysPage: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-600">
-                      <span className="w-3 h-3 rounded-md border-2 border-rose-400 bg-rose-50" />
+                      <span className="w-3 h-3 rounded-full border-2 border-rose-400 bg-rose-50" />
                       Holiday
                     </span>
                     <span className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-600">
-                      <span className="w-3 h-3 rounded-md bg-[#5E4BE2]" />
+                      <span className="w-3 h-3 rounded-full bg-[#5E4BE2]" />
                       Selected
                     </span>
                   </div>

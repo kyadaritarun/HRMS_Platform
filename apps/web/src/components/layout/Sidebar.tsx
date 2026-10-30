@@ -128,13 +128,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           roles: ['PRODUCT_SUPER_ADMIN'],
           path: '/super-admin/super-admins/add',
         },
-        {
-          id: 'profile',
-          label: 'My Profile',
-          icon: IconUser,
-          roles: ['PRODUCT_SUPER_ADMIN'],
-          path: '/profile',
-        },
       ];
     }
 
@@ -145,17 +138,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
     if (user.role === 'COMPANY_ADMIN' || user.role === 'HR' || user.role === 'FINANCE' || user.role === 'IT') {
       return [
         {
-          id: 'company_dashboard',
-          label: 'Company Dashboard',
-          icon: IconSmartHome,
-          roles: ['COMPANY_ADMIN'],
-          path: '/company/dashboard',
-        },
-        {
           id: 'dashboard',
           label: 'Dashboard',
           icon: IconSmartHome,
-          roles: ['HR', 'FINANCE', 'IT'],
+          roles: ['COMPANY_ADMIN', 'HR', 'FINANCE', 'IT'],
           path: '/employee/dashboard',
         },
         {
@@ -164,6 +150,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           icon: IconBuildingSkyscraper,
           roles: ['COMPANY_ADMIN'],
           subItems: [
+            { label: 'Company Dashboard', path: '/company/dashboard', icon: IconSmartHome, roles: ['COMPANY_ADMIN'] },
             { label: 'Create Employee', path: '/company/employees/new', icon: IconUserPlus, permission: 'employees', roles: ['COMPANY_ADMIN'] },
             { label: 'Billing', path: '/company/billing', icon: IconCreditCard, roles: ['COMPANY_ADMIN'] },
             { label: 'Activity Logs', path: '/company/activity-logs', icon: IconHistory, roles: ['COMPANY_ADMIN'] },
@@ -175,17 +162,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           icon: IconBriefcase,
           roles: ['COMPANY_ADMIN', 'HR'],
           subItems: [
-            { label: 'Employees', path: '/company/employees', icon: IconUsers, permission: 'employees' },
-            { label: 'Create Employee', path: '/company/employees/new', icon: IconUserPlus, permission: 'employees', roles: ['HR'] },
-            { label: 'Activity Logs', path: '/company/activity-logs', icon: IconHistory, roles: ['HR'] },
-            { label: 'Employee Attendance', path: '/company/attendance', icon: IconClock, permission: 'attendance', feature: 'time_attendance_management' },
+            // Step 1: Setup prerequisites before adding users
             { label: 'Departments', path: '/company/departments', icon: IconBriefcase },
+            { label: 'Shift & Roster', path: '/company/shift-roster', icon: IconClock },
             { label: 'Holiday Calendar', path: '/company/holidays', icon: IconCalendarEvent, feature: 'holiday_calendar' },
             { label: 'Leave Types', path: '/company/leaves/types', icon: IconFileCertificate, feature: 'leave_management' },
             { label: 'Manage Policies', path: '/company/policies/manage', icon: IconFileText, feature: 'policy_documents_management' },
-            { label: 'Shift & Roster', path: '/company/shift-roster', icon: IconClock },
+
+            // Step 2: User creation & directory
+            { label: 'Create Employee', path: '/company/employees/new', icon: IconUserPlus, permission: 'employees', roles: ['HR'] },
+            { label: 'Employees', path: '/company/employees', icon: IconUsers, permission: 'employees' },
+
+            // Step 3: Employee management, operations & audit logs
+            { label: 'Employee Attendance', path: '/company/attendance', icon: IconClock, permission: 'attendance', feature: 'time_attendance_management' },
             { label: 'Manage Cycles', path: '/company/cycles', icon: IconCalendarEvent, feature: 'performance_management' },
             { label: 'Claim Categories', path: '/company/claims/categories', icon: IconReceipt2, feature: 'claim_process_management' },
+            { label: 'Activity Logs', path: '/company/activity-logs', icon: IconHistory, roles: ['HR'] },
           ],
         },
         {
@@ -194,7 +186,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           icon: IconDevices,
           roles: ['COMPANY_ADMIN', 'IT'],
           subItems: [
-            { label: 'Assets & Onboarding', path: '/company/assets-onboarding', icon: IconDevices },
+            { label: 'Assets', path: '/company/assets', icon: IconDevices },
+            { label: 'Onboarding', path: '/company/onboarding', icon: IconChecklist },
           ],
         },
         {
@@ -230,30 +223,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           icon: IconUser,
           roles: ['COMPANY_ADMIN', 'HR', 'FINANCE', 'IT'],
           subItems: [
+            // Daily Routine & Time Management
             { label: 'Attendance', path: '/attendance', icon: IconClock, feature: 'time_attendance_management' },
             { label: 'Leaves', path: '/leaves', icon: IconCalendarEvent, feature: 'leave_management' },
             { label: 'Comp Off', path: '/comp-off', icon: IconCalendarEvent, feature: 'comp_off_management' },
+
+            // Compensation, Claims & Financials
             { label: 'Payslips', path: '/payroll/my-payslips', icon: IconReceipt2, feature: 'payroll' },
-            { label: 'Performance Goals', path: '/performance/my-goals', icon: IconTarget, feature: 'performance_management' },
             { label: 'Claims', path: '/claims', icon: IconCash, feature: 'claim_process_management' },
             { label: 'Loans & Advances', path: '/loans-advances', icon: IconPigMoney, feature: 'payroll' },
             { label: 'Tax Declarations', path: '/tax-declarations', icon: IconFileCertificate, feature: 'payroll' },
-            { label: 'Tickets', path: '/tickets', icon: IconHelpCircle, feature: 'support_ticket_management' },
+
+            // Performance & Recognition
+            { label: 'Performance Goals', path: '/performance/my-goals', icon: IconTarget, feature: 'performance_management' },
+            { label: 'Appreciations', path: '/appreciations', icon: IconHeartHandshake, feature: 'employee_appreciation' },
+
+            // Organization & Policies
             { label: 'Roles & Hierarchy', path: '/company/roles-hierarchy', icon: IconNetwork },
             { label: 'Policies', path: '/policies', icon: IconFileText, feature: 'policy_documents_management' },
-            { label: 'Appreciations', path: '/appreciations', icon: IconHeartHandshake, feature: 'employee_appreciation' },
-            { label: 'AI Assistant', path: '/assistant', icon: IconCpu, feature: 'ai_assistance' },
-          ],
-        },
-        {
-          id: 'account',
-          label: 'Account',
-          icon: IconIdBadge,
-          roles: ['COMPANY_ADMIN', 'HR', 'FINANCE', 'IT'],
-          subItems: [
-            { label: 'Dashboard', path: '/employee/dashboard', icon: IconSmartHome, roles: ['COMPANY_ADMIN'] },
-            { label: 'My Profile', path: '/profile', icon: IconUser },
             { label: 'My Documents', path: '/my-documents', icon: IconFolderCheck, feature: 'employee_document_management' },
+
+            // Support & AI Assistant
+            { label: 'Tickets', path: '/tickets', icon: IconHelpCircle, feature: 'support_ticket_management' },
+            { label: 'AI Assistant', path: '/assistant', icon: IconCpu, feature: 'ai_assistance' },
           ],
         },
       ];
@@ -294,29 +286,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
         icon: IconUser,
         roles: ['EMPLOYEE'],
         subItems: [
+          // Daily Routine & Time Management
           { label: 'Attendance', path: '/attendance', icon: IconClock, feature: 'time_attendance_management' },
           { label: 'Leaves', path: '/leaves', icon: IconCalendarEvent, feature: 'leave_management' },
           { label: 'Comp Off', path: '/comp-off', icon: IconCalendarEvent, feature: 'comp_off_management' },
+
+          // Compensation, Claims & Financials
           { label: 'Payslips', path: '/payroll/my-payslips', icon: IconReceipt2, feature: 'payroll' },
-          { label: 'Performance Goals', path: '/performance/my-goals', icon: IconTarget, feature: 'performance_management' },
           { label: 'Claims', path: '/claims', icon: IconCash, feature: 'claim_process_management' },
           { label: 'Loans & Advances', path: '/loans-advances', icon: IconPigMoney, feature: 'payroll' },
           { label: 'Tax Declarations', path: '/tax-declarations', icon: IconFileCertificate, feature: 'payroll' },
-          { label: 'Tickets', path: '/tickets', icon: IconHelpCircle, feature: 'support_ticket_management' },
+
+          // Performance & Recognition
+          { label: 'Performance Goals', path: '/performance/my-goals', icon: IconTarget, feature: 'performance_management' },
+          { label: 'Appreciations', path: '/appreciations', icon: IconHeartHandshake, feature: 'employee_appreciation' },
+
+          // Organization & Policies
           { label: 'Roles & Hierarchy', path: '/company/roles-hierarchy', icon: IconNetwork },
           { label: 'Policies', path: '/policies', icon: IconFileText, feature: 'policy_documents_management' },
-          { label: 'Appreciations', path: '/appreciations', icon: IconHeartHandshake, feature: 'employee_appreciation' },
-          { label: 'AI Assistant', path: '/assistant', icon: IconCpu, feature: 'ai_assistance' },
-        ],
-      },
-      {
-        id: 'account',
-        label: 'Account',
-        icon: IconIdBadge,
-        roles: ['EMPLOYEE'],
-        subItems: [
-          { label: 'My Profile', path: '/profile', icon: IconUser },
           { label: 'My Documents', path: '/my-documents', icon: IconFolderCheck, feature: 'employee_document_management' },
+
+          // Support & AI Assistant
+          { label: 'Tickets', path: '/tickets', icon: IconHelpCircle, feature: 'support_ticket_management' },
+          { label: 'AI Assistant', path: '/assistant', icon: IconCpu, feature: 'ai_assistance' },
         ],
       },
     ];
@@ -388,6 +380,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
     if (
       subPath === '/payroll/attendance-salary' &&
       ['/payroll/attendance-salary', '/payroll/dashboard'].includes(location.pathname)
+    ) {
+      return true;
+    }
+    if (
+      subPath === '/company/assets' &&
+      ['/company/assets', '/company/assets-onboarding'].includes(location.pathname)
     ) {
       return true;
     }

@@ -133,10 +133,37 @@ export interface CalendarDayInfo {
   dayNum: number;
   isCurrentMonth: boolean;
   isToday: boolean;
-  status: 'PRESENT' | 'ABSENT' | 'HOLIDAY' | 'LEAVE_APPROVED' | 'LEAVE_PENDING' | 'WEEKEND' | 'FUTURE';
+  status:
+  | 'PRESENT'
+  | 'HALF_DAY'
+  | 'ABSENT'
+  | 'HOLIDAY'
+  | 'LEAVE_APPROVED'
+  | 'LEAVE_PENDING'
+  | 'COMP_OFF'
+  | 'WEEKEND'
+  | 'ROSTER_OFF'
+  | 'FUTURE';
   label: string;
   details?: string;
   badgeText?: string;
+  // Enhanced attributes
+  shiftName?: string;
+  shiftTiming?: string;
+  isRosteredOff?: boolean;
+  isRosteredWorkday?: boolean;
+  isScheduledShift?: boolean;
+  isLate?: boolean;
+  lateMinutes?: number;
+  isEarlyExit?: boolean;
+  earlyExitMinutes?: number;
+  isMissedPunch?: boolean;
+  isRegularized?: boolean;
+  isRegularizationPending?: boolean;
+  overtimeHours?: number;
+  durationHours?: number;
+  workMode?: 'WFO' | 'WFH';
+  isHalfDayLeave?: boolean;
 }
 
 const toLocalDateKey = (d: Date) => {
@@ -151,8 +178,24 @@ const getCalendarDays = (
   sessions: any[],
   activeSess: any,
   holidaysList: any[],
-  leavesList: any[]
-): { days: CalendarDayInfo[]; counts: { present: number; absent: number; leaves: number; holidays: number } } => {
+  leavesList: any[],
+  userId?: number,
+  rosterMap: Record<string, string> = {},
+  shiftsList: any[] = [],
+  userShift?: any,
+  regularizationsList: any[] = []
+): {
+  days: CalendarDayInfo[];
+  counts: {
+    present: number;
+    halfDay: number;
+    absent: number;
+    leaves: number;
+    holidays: number;
+    weekOffs: number;
+    scheduledShifts: number;
+  };
+} => {
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
 
@@ -189,11 +232,20 @@ const getCalendarDays = (
     }
   });
 
+  // Map regularizations by YYYY-MM-DD
+  const regDates = new Map<string, any>();
+  regularizationsList.forEach((r) => {
+    if (r.startDate) {
+      const dKey = r.startDate.split('T')[0];
+      regDates.set(dKey, r);
+    }
+  });
+
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayIndex = new Date(year, month, 1).getDay(); // 0 = Sunday
 
   const days: CalendarDayInfo[] = [];
-  const counts = { present: 0, absent: 0, leaves: 0, holidays: 0 };
+  const counts = { present: 0, halfDay: 0, absent: 0, leaves: 0, holidays: 0, weekOffs: 0, scheduledShifts: 0 };
 
   // Previous month trailing days
   const prevMonthDays = new Date(year, month, 0).getDate();
@@ -217,11 +269,78 @@ const getCalendarDays = (
     const dObj = new Date(year, month, d);
     const dStr = toLocalDateKey(dObj);
     const dayOfWeek = dObj.getDay();
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
     const isToday = dStr === todayStr;
     const isPast = dObj.getTime() < todayZero;
 
-    // 1. Holiday Check
+    // ---------------------------------------------------------
+    // A. Resolve Shift & Week-Off from HR Shift & Roster
+    // ---------------------------------------------------------
+    const rosterKey = userId ? `${userId}_${dStr}` : '';
+    const rosterCode = rosterKey && rosterMap[rosterKey] ? String(rosterMap[rosterKey]).trim() : '';
+    const cleanRosterLower = rosterCode.toLowerCase();
+
+    // Check if explicitly marked as off/weekly off
+    const isExplicitOff =
+      cleanRosterLower === 'off' ||
+      cleanRosterLower === 'wo' ||
+      cleanRosterLower.includes('week off') ||
+      cleanRosterLower.includes('weekly off') ||
+      cleanRosterLower === 'rest day';
+
+    const matchedRosterShift = shiftsList.find((s) => {
+      if (!s) return false;
+      const sCode = (s.code || '').trim().toLowerCase();
+      const sName = (s.name || '').trim().toLowerCase();
+      const sId = String(s.id || '').trim().toLowerCase();
+      return (
+        (sCode && sCode === cleanRosterLower) ||
+        (sName && sName === cleanRosterLower) ||
+        (sId && sId === cleanRosterLower) ||
+        (cleanRosterLower && sName && (cleanRosterLower.includes(sName) || sName.includes(cleanRosterLower)))
+      );
+    });
+
+    const isRosteredOff =
+      isExplicitOff ||
+      Boolean(matchedRosterShift?.isWeeklyOff) ||
+      matchedRosterShift?.startTime === '-' ||
+      Boolean(matchedRosterShift?.name && matchedRosterShift.name.toLowerCase().includes('off'));
+
+    // Critical fix: If rosterCode is present and not an off code, it is definitively a scheduled shift!
+    const isRosteredWorkday = Boolean(
+      rosterCode && !isRosteredOff && (matchedRosterShift ? matchedRosterShift.startTime !== '-' : true)
+    );
+
+    const scheduledShiftName = isRosteredWorkday
+      ? matchedRosterShift?.name || rosterCode
+      : userShift?.shiftName || 'General Shift';
+
+    const scheduledShiftTiming = isRosteredWorkday
+      ? matchedRosterShift?.startTime && matchedRosterShift?.endTime && matchedRosterShift.startTime !== '-'
+        ? `${matchedRosterShift.startTime} - ${matchedRosterShift.endTime}`
+        : rosterCode
+      : userShift?.startTime12 && userShift?.endTime12
+        ? `${userShift.startTime12} - ${userShift.endTime12}`
+        : userShift?.startTime && userShift?.endTime
+          ? `${userShift.startTime} - ${userShift.endTime}`
+          : '09:30 - 18:30';
+
+    const shiftStartTime = isRosteredWorkday
+      ? matchedRosterShift?.startTime || '09:30'
+      : userShift?.startTime || '09:30';
+    const shiftEndTime = isRosteredWorkday
+      ? matchedRosterShift?.endTime || '18:30'
+      : userShift?.endTime || '18:30';
+    const graceMinutes = isRosteredWorkday
+      ? matchedRosterShift?.gracePeriodMinutes ?? 15
+      : userShift?.gracePeriodMinutes ?? 15;
+    const targetHours = userShift?.targetHours || 9.0;
+
+    const isStandardWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+    // ---------------------------------------------------------
+    // B. Holiday Check
+    // ---------------------------------------------------------
     const holiday = holidayDates.get(dStr);
     if (holiday) {
       counts.holidays++;
@@ -233,45 +352,94 @@ const getCalendarDays = (
         isToday,
         status: 'HOLIDAY',
         label: holiday.name,
-        details: `${holiday.type || 'Company'} Holiday`,
+        details: `${holiday.type || 'Company'} Holiday • Scheduled Shift: ${scheduledShiftName}`,
         badgeText: 'H',
+        shiftName: scheduledShiftName,
+        shiftTiming: scheduledShiftTiming,
       });
       continue;
     }
 
-    // 2. Approved Leave Check
-    const approvedLeave = leavesList.find((l) => {
-      if (l.status !== 'APPROVED' || !l.startDate || !l.endDate) return false;
+    // ---------------------------------------------------------
+    // C. Approved / Pending Leave & Comp Off Check
+    // ---------------------------------------------------------
+    const leave = leavesList.find((l) => {
+      if ((l.status !== 'APPROVED' && l.status !== 'PENDING') || !l.startDate || !l.endDate) return false;
       const startKey = l.startDate.split('T')[0];
       const endKey = l.endDate.split('T')[0];
       return dStr >= startKey && dStr <= endKey;
     });
 
-    if (approvedLeave) {
-      counts.leaves++;
-      days.push({
-        date: dObj,
-        dateStr: dStr,
-        dayNum: d,
-        isCurrentMonth: true,
-        isToday,
-        status: 'LEAVE_APPROVED',
-        label: approvedLeave.leaveType?.name || 'Approved Leave',
-        details: approvedLeave.reason || 'Approved Leave',
-        badgeText: 'L',
-      });
-      continue;
-    }
+    if (leave) {
+      const isCompOff =
+        leave.type === 'COMP_OFF' ||
+        leave.leaveType?.code === 'COMP_OFF' ||
+        (leave.leaveType?.name || '').toLowerCase().includes('comp');
 
-    // 3. Pending Leave Check
-    const pendingLeave = leavesList.find((l) => {
-      if (l.status !== 'PENDING' || !l.startDate || !l.endDate) return false;
-      const startKey = l.startDate.split('T')[0];
-      const endKey = l.endDate.split('T')[0];
-      return dStr >= startKey && dStr <= endKey;
-    });
+      const isHalfDay = Boolean(
+        leave.isHalfDay ||
+        leave.halfDayPeriod ||
+        leave.dayCount === 0.5 ||
+        (leave.reason || '').toLowerCase().includes('half day') ||
+        (leave.leaveType?.name || '').toLowerCase().includes('half')
+      );
 
-    if (pendingLeave) {
+      if (leave.status === 'APPROVED') {
+        if (isCompOff) {
+          counts.leaves++;
+          days.push({
+            date: dObj,
+            dateStr: dStr,
+            dayNum: d,
+            isCurrentMonth: true,
+            isToday,
+            status: 'COMP_OFF',
+            label: 'Comp Off (Compensatory Leave)',
+            details: leave.reason ? `Approved Comp Off: ${leave.reason}` : 'Approved Compensatory Leave Taken',
+            badgeText: 'CO',
+            shiftName: scheduledShiftName,
+            shiftTiming: scheduledShiftTiming,
+          });
+          continue;
+        }
+
+        if (isHalfDay) {
+          counts.halfDay++;
+          days.push({
+            date: dObj,
+            dateStr: dStr,
+            dayNum: d,
+            isCurrentMonth: true,
+            isToday,
+            status: 'HALF_DAY',
+            label: `Half-Day Leave (${leave.leaveType?.name || 'Leave'})`,
+            details: `0.5 Day Leave • ${leave.reason || 'Approved'}`,
+            badgeText: 'HD',
+            isHalfDayLeave: true,
+            shiftName: scheduledShiftName,
+            shiftTiming: scheduledShiftTiming,
+          });
+          continue;
+        }
+
+        counts.leaves++;
+        days.push({
+          date: dObj,
+          dateStr: dStr,
+          dayNum: d,
+          isCurrentMonth: true,
+          isToday,
+          status: 'LEAVE_APPROVED',
+          label: leave.leaveType?.name || 'Approved Leave',
+          details: leave.reason || 'Approved Leave',
+          badgeText: 'L',
+          shiftName: scheduledShiftName,
+          shiftTiming: scheduledShiftTiming,
+        });
+        continue;
+      }
+
+      // Pending Leave
       days.push({
         date: dObj,
         dateStr: dStr,
@@ -279,21 +447,101 @@ const getCalendarDays = (
         isCurrentMonth: true,
         isToday,
         status: 'LEAVE_PENDING',
-        label: `${pendingLeave.leaveType?.name || 'Leave'} (Pending)`,
-        details: 'Awaiting review',
+        label: `${leave.leaveType?.name || 'Leave'} (Pending Review)`,
+        details: 'Awaiting manager approval',
         badgeText: '⏳',
+        shiftName: scheduledShiftName,
+        shiftTiming: scheduledShiftTiming,
       });
       continue;
     }
 
-    // 4. Attendance Session Check (Present)
+    // ---------------------------------------------------------
+    // D. Attendance Sessions Check (Present, Half Day, Punctuality, OT)
+    // ---------------------------------------------------------
     const session = sessionDates.get(dStr);
     if (session) {
-      counts.present++;
       const checkInTime = new Date(session.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const checkOutTime = session.checkOut
         ? new Date(session.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        : 'Active Session';
+        : isToday
+          ? 'Active Session'
+          : 'Missing Check-Out';
+
+      const workMode = (session.workMode === 'WFH' ? 'WFH' : 'WFO') as 'WFO' | 'WFH';
+
+      // Duration in hours
+      const durationHours =
+        session.durationHours != null
+          ? Number(session.durationHours)
+          : session.checkIn && session.checkOut
+            ? (new Date(session.checkOut).getTime() - new Date(session.checkIn).getTime()) / (1000 * 60 * 60)
+            : isToday
+              ? 0
+              : 0;
+
+      // Punctuality: Late check-in
+      const inDate = new Date(session.checkIn);
+      const inMinutes = inDate.getHours() * 60 + inDate.getMinutes();
+      const [shH, shM] = (shiftStartTime || '09:30').split(':').map((v: string) => parseInt(v, 10));
+      const shiftStartMinutes = (isNaN(shH) ? 9 : shH) * 60 + (isNaN(shM) ? 30 : shM);
+      const isLate = inMinutes > shiftStartMinutes + graceMinutes;
+      const lateMinutes = isLate ? inMinutes - shiftStartMinutes : 0;
+
+      // Punctuality: Early departure
+      let isEarlyExit = false;
+      let earlyExitMinutes = 0;
+      if (session.checkOut) {
+        const outDate = new Date(session.checkOut);
+        const outMinutes = outDate.getHours() * 60 + outDate.getMinutes();
+        const [ehH, ehM] = (shiftEndTime || '18:30').split(':').map((v: string) => parseInt(v, 10));
+        const shiftEndMinutes = (isNaN(ehH) ? 18 : ehH) * 60 + (isNaN(ehM) ? 30 : ehM);
+        if (outMinutes < shiftEndMinutes - 15) {
+          isEarlyExit = true;
+          earlyExitMinutes = shiftEndMinutes - outMinutes;
+        }
+      }
+
+      // Overtime
+      const overtimeHours =
+        durationHours > targetHours + 0.5 ? Number((durationHours - targetHours).toFixed(1)) : 0;
+
+      // Missed punch (past day with check-in but no check-out)
+      const isMissedPunch = Boolean(session.checkIn && !session.checkOut && !isToday);
+
+      // Half day present (session completed but worked < 5 hours)
+      const isHalfDayPresent = Boolean(
+        session.checkOut && durationHours > 0 && durationHours < 5.0 && !isMissedPunch
+      );
+
+      if (isHalfDayPresent) {
+        counts.halfDay++;
+        days.push({
+          date: dObj,
+          dateStr: dStr,
+          dayNum: d,
+          isCurrentMonth: true,
+          isToday,
+          status: 'HALF_DAY',
+          label: `Half Day Present (${workMode})`,
+          details: `In: ${checkInTime} • Out: ${checkOutTime} (${durationHours.toFixed(1)}h worked)${isLate ? ` • Late (+${lateMinutes}m)` : ''
+            }${isEarlyExit ? ' • Early Exit' : ''}${overtimeHours > 0 ? ` • +${overtimeHours}h OT` : ''}`,
+          badgeText: 'HD',
+          workMode,
+          shiftName: scheduledShiftName,
+          shiftTiming: scheduledShiftTiming,
+          isLate,
+          lateMinutes,
+          isEarlyExit,
+          earlyExitMinutes,
+          overtimeHours,
+          durationHours,
+        });
+        continue;
+      }
+
+      // Full Present
+      counts.present++;
       days.push({
         date: dObj,
         dateStr: dStr,
@@ -301,15 +549,92 @@ const getCalendarDays = (
         isCurrentMonth: true,
         isToday,
         status: 'PRESENT',
-        label: `Present (${session.workMode || 'WFO'})`,
-        details: `In: ${checkInTime} • Out: ${checkOutTime}`,
+        label: `Present (${workMode})`,
+        details: `In: ${checkInTime} • Out: ${checkOutTime}${isLate ? ` • Late (+${lateMinutes}m)` : ''
+          }${isEarlyExit ? ' • Early Exit' : ''}${overtimeHours > 0 ? ` • +${overtimeHours}h OT` : ''}${isMissedPunch ? ' • ⚠️ Missed Punch Out' : ''
+          }`,
         badgeText: 'P',
+        workMode,
+        shiftName: scheduledShiftName,
+        shiftTiming: scheduledShiftTiming,
+        isLate,
+        lateMinutes,
+        isEarlyExit,
+        earlyExitMinutes,
+        overtimeHours,
+        durationHours,
+        isMissedPunch,
       });
       continue;
     }
 
-    // 5. Weekend Check
-    if (isWeekend) {
+    // ---------------------------------------------------------
+    // E. Attendance Regularization Check
+    // ---------------------------------------------------------
+    const regReq = regDates.get(dStr);
+    if (regReq) {
+      if (regReq.status === 'PENDING') {
+        days.push({
+          date: dObj,
+          dateStr: dStr,
+          dayNum: d,
+          isCurrentMonth: true,
+          isToday,
+          status: 'LEAVE_PENDING',
+          label: 'Regularization Pending',
+          details: `Regularization requested: ${regReq.reason || 'Awaiting Manager Review'}`,
+          badgeText: '⏳',
+          isRegularizationPending: true,
+          shiftName: scheduledShiftName,
+          shiftTiming: scheduledShiftTiming,
+        });
+        continue;
+      }
+
+      if (regReq.status === 'APPROVED') {
+        counts.present++;
+        days.push({
+          date: dObj,
+          dateStr: dStr,
+          dayNum: d,
+          isCurrentMonth: true,
+          isToday,
+          status: 'PRESENT',
+          label: 'Present (Regularized)',
+          details: `Attendance regularized by manager • ${regReq.reason || 'Approved'}`,
+          badgeText: 'R',
+          isRegularized: true,
+          shiftName: scheduledShiftName,
+          shiftTiming: scheduledShiftTiming,
+        });
+        continue;
+      }
+    }
+
+    // ---------------------------------------------------------
+    // F. Scheduled Week Off / Weekend Check
+    // ---------------------------------------------------------
+    if (isRosteredOff) {
+      counts.weekOffs++;
+      days.push({
+        date: dObj,
+        dateStr: dStr,
+        dayNum: d,
+        isCurrentMonth: true,
+        isToday,
+        status: 'ROSTER_OFF',
+        label: 'Scheduled Week Off',
+        details: `${scheduledShiftName || 'Roster Day Off'} • Scheduled Rest Day`,
+        badgeText: 'WO',
+        isRosteredOff: true,
+        shiftName: scheduledShiftName,
+        shiftTiming: 'Scheduled Off',
+      });
+      continue;
+    }
+
+    if (isStandardWeekend && !isRosteredWorkday) {
+      counts.weekOffs++;
       days.push({
         date: dObj,
         dateStr: dStr,
@@ -318,12 +643,17 @@ const getCalendarDays = (
         isToday,
         status: 'WEEKEND',
         label: 'Weekend',
-        details: dayOfWeek === 0 ? 'Sunday Off' : 'Saturday Off',
+        details: `${dayOfWeek === 0 ? 'Sunday' : 'Saturday'} Off • Scheduled Rest Day`,
+        badgeText: 'WO',
+        shiftName: scheduledShiftName,
+        shiftTiming: 'Weekend Off',
       });
       continue;
     }
 
-    // 6. Absent Check (Past working day with no attendance & no leave)
+    // ---------------------------------------------------------
+    // G. Absent Check (Past working day with no attendance)
+    // ---------------------------------------------------------
     if (isPast) {
       counts.absent++;
       days.push({
@@ -334,13 +664,20 @@ const getCalendarDays = (
         isToday,
         status: 'ABSENT',
         label: 'Absent',
-        details: 'No attendance or approved leave',
+        details: `No attendance recorded • Scheduled Shift: ${scheduledShiftName} (${scheduledShiftTiming})`,
         badgeText: 'A',
+        shiftName: scheduledShiftName,
+        shiftTiming: scheduledShiftTiming,
       });
       continue;
     }
 
-    // 7. Today (not checked in) or Future workday
+    // ---------------------------------------------------------
+    // H. Today (Not Checked In Yet) or Future Workday / Scheduled Shift
+    // ---------------------------------------------------------
+    if (!isToday) {
+      counts.scheduledShifts++;
+    }
     days.push({
       date: dObj,
       dateStr: dStr,
@@ -348,9 +685,19 @@ const getCalendarDays = (
       isCurrentMonth: true,
       isToday,
       status: isToday ? 'ABSENT' : 'FUTURE',
-      label: isToday ? 'Not Checked In Yet' : 'Upcoming Workday',
-      details: isToday ? 'Start shift to record attendance' : 'Working Day',
-      badgeText: isToday ? '—' : undefined,
+      label: isToday
+        ? 'Not Checked In Yet'
+        : isRosteredWorkday
+          ? `Scheduled Shift: ${scheduledShiftName}`
+          : 'Upcoming Workday',
+      details: isToday
+        ? `Shift: ${scheduledShiftName} (${scheduledShiftTiming}) • Start shift to record attendance`
+        : `Scheduled Shift: ${scheduledShiftName} (${scheduledShiftTiming})`,
+      badgeText: isToday ? '—' : isRosteredWorkday ? (matchedRosterShift?.code || 'Shift') : undefined,
+      isScheduledShift: !isToday,
+      isRosteredWorkday,
+      shiftName: scheduledShiftName,
+      shiftTiming: scheduledShiftTiming,
     });
   }
 
@@ -412,6 +759,9 @@ export const EmployeeDashboard: React.FC = () => {
   const [allHolidays, setAllHolidays] = useState<any[]>([]);
   const [myLeaveRequests, setMyLeaveRequests] = useState<any[]>([]);
   const [attendanceSessions, setAttendanceSessions] = useState<any[]>([]);
+  const [rosterMap, setRosterMap] = useState<Record<string, string>>({});
+  const [companyShifts, setCompanyShifts] = useState<any[]>([]);
+  const [myRegularizations, setMyRegularizations] = useState<any[]>([]);
 
   // Fetch current attendance punch status & sessions history
   const fetchActiveSession = async () => {
@@ -441,19 +791,35 @@ export const EmployeeDashboard: React.FC = () => {
   const fetchDashboardWidgets = async () => {
     setIsLoadingWidgets(true);
     try {
-      const [empRes, typesRes, holiRes, empsRes, leavesTodayRes, myLeavesRes] = await Promise.all([
+      const [
+        empRes,
+        typesRes,
+        holiRes,
+        empsRes,
+        leavesTodayRes,
+        myLeavesRes,
+        rosterRes,
+        shiftsRes,
+        myRegsRes,
+      ] = await Promise.all([
         user?.id ? api.get(`/employees/${user.id}`).catch(() => ({ data: {} })) : Promise.resolve({ data: {} }),
         api.get('/company/leave-types').catch(() => ({ data: { leaveTypes: [] } })),
         api.get('/company/holidays').catch(() => ({ data: { holidays: [] } })),
         api.get('/employees?pageSize=100').catch(() => ({ data: { items: [] } })),
         api.get('/requests/today-leaves').catch(() => ({ data: { leaves: [] } })),
         api.get('/requests?type=LEAVE&scope=mine').catch(() => ({ data: { items: [] } })),
+        api.get('/company/roster').catch(() => ({ data: { rosterMap: {} } })),
+        api.get('/company/shifts').catch(() => ({ data: { shifts: [] } })),
+        api.get('/requests?type=REGULARIZATION&scope=mine').catch(() => ({ data: { items: [] } })),
       ]);
 
       // Raw holidays & leaves for calendar
       const rawHolidays = holiRes.data?.holidays || [];
       setAllHolidays(rawHolidays);
       setMyLeaveRequests(myLeavesRes.data?.items || []);
+      setRosterMap(rosterRes.data?.rosterMap || {});
+      setCompanyShifts(shiftsRes.data?.shifts || []);
+      setMyRegularizations(myRegsRes.data?.items || []);
 
       // 1. Leave Balances
       const userBalances = empRes.data?.employee?.leaveBalances;
@@ -589,8 +955,30 @@ export const EmployeeDashboard: React.FC = () => {
 
   // Calendar computed properties
   const { days: calendarDays, counts: calendarCounts } = useMemo(() => {
-    return getCalendarDays(calMonth, attendanceSessions, activeSession, allHolidays, myLeaveRequests);
-  }, [calMonth, attendanceSessions, activeSession, allHolidays, myLeaveRequests]);
+    return getCalendarDays(
+      calMonth,
+      attendanceSessions,
+      activeSession,
+      allHolidays,
+      myLeaveRequests,
+      user?.id,
+      rosterMap,
+      companyShifts,
+      userShift,
+      myRegularizations
+    );
+  }, [
+    calMonth,
+    attendanceSessions,
+    activeSession,
+    allHolidays,
+    myLeaveRequests,
+    user?.id,
+    rosterMap,
+    companyShifts,
+    userShift,
+    myRegularizations,
+  ]);
 
   const selectedDayInfo = useMemo(() => {
     return (
@@ -869,10 +1257,10 @@ export const EmployeeDashboard: React.FC = () => {
 
               <span
                 className={`text-[11px] px-3 py-1 rounded-full font-bold flex items-center gap-1.5 transition-all ${activeSession
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : isShiftCompletedToday
                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                    : isShiftCompletedToday
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                      : 'bg-slate-100 text-slate-600 border border-slate-200/60'
+                    : 'bg-slate-100 text-slate-600 border border-slate-200/60'
                   }`}
               >
                 {activeSession ? (
@@ -934,8 +1322,8 @@ export const EmployeeDashboard: React.FC = () => {
                 disabled={isShiftCompletedToday && !activeSession}
                 onClick={() => setWorkMode('WFO')}
                 className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:cursor-not-allowed ${workMode === 'WFO'
-                    ? 'bg-white text-indigo-700 shadow-2xs font-extrabold'
-                    : 'text-slate-500 hover:text-slate-700'
+                  ? 'bg-white text-indigo-700 shadow-2xs font-extrabold'
+                  : 'text-slate-500 hover:text-slate-700'
                   }`}
               >
                 <IconBuilding className="w-3.5 h-3.5" />
@@ -946,8 +1334,8 @@ export const EmployeeDashboard: React.FC = () => {
                 disabled={isShiftCompletedToday && !activeSession}
                 onClick={() => setWorkMode('WFH')}
                 className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:cursor-not-allowed ${workMode === 'WFH'
-                    ? 'bg-white text-indigo-700 shadow-2xs font-extrabold'
-                    : 'text-slate-500 hover:text-slate-700'
+                  ? 'bg-white text-indigo-700 shadow-2xs font-extrabold'
+                  : 'text-slate-500 hover:text-slate-700'
                   }`}
               >
                 <IconHome className="w-3.5 h-3.5" />
@@ -1010,8 +1398,8 @@ export const EmployeeDashboard: React.FC = () => {
               <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                 <div
                   className={`h-full transition-all duration-500 rounded-full ${shiftCalculator.diffHours >= 0
-                      ? 'bg-gradient-to-r from-indigo-500 to-emerald-500'
-                      : 'bg-[#4338ca]'
+                    ? 'bg-gradient-to-r from-indigo-500 to-emerald-500'
+                    : 'bg-[#4338ca]'
                     }`}
                   style={{ width: `${Math.max(4, Math.min(100, shiftCalculator.progressPercent))}%` }}
                 />
@@ -1021,8 +1409,8 @@ export const EmployeeDashboard: React.FC = () => {
             {attendanceMessage && (
               <div
                 className={`text-xs p-2.5 rounded-xl border font-medium flex items-center gap-2 ${attendanceMessage.isError
-                    ? 'bg-rose-50 border-rose-200 text-rose-700'
-                    : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                  ? 'bg-rose-50 border-rose-200 text-rose-700'
+                  : 'bg-emerald-50 border-emerald-200 text-emerald-800'
                   }`}
               >
                 {attendanceMessage.isError ? (
@@ -1097,7 +1485,7 @@ export const EmployeeDashboard: React.FC = () => {
                     Attendance Calendar
                   </h3>
                   <p className="text-xs text-slate-400 font-medium mt-0.5">
-                    {calMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} • {calendarCounts.present} Days Present
+                    {calMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} • {calendarCounts.present} Days Present{calendarCounts.halfDay > 0 ? ` • ${calendarCounts.halfDay} Half Day` : ''} • {calendarCounts.absent} Absent
                   </p>
                 </div>
               </div>
@@ -1140,6 +1528,10 @@ export const EmployeeDashboard: React.FC = () => {
                 <span>{calendarCounts.present} Present</span>
               </div>
               <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                <span>{calendarCounts.halfDay} Half Day</span>
+              </div>
+              <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
                 <span>{calendarCounts.absent} Absent</span>
               </div>
@@ -1149,7 +1541,15 @@ export const EmployeeDashboard: React.FC = () => {
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
-                <span>{calendarCounts.leaves} Leave</span>
+                <span>{calendarCounts.leaves} Leave / Comp Off</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
+                <span>{calendarCounts.weekOffs} Week Off</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
+                <span>{calendarCounts.scheduledShifts} Scheduled Shifts</span>
               </div>
             </div>
 
@@ -1171,10 +1571,13 @@ export const EmployeeDashboard: React.FC = () => {
               {calendarDays.map((cell: CalendarDayInfo) => {
                 const isSelected = selectedDateStr === cell.dateStr;
                 const isPresent = cell.status === 'PRESENT';
+                const isHalfDay = cell.status === 'HALF_DAY';
                 const isAbsent = cell.status === 'ABSENT';
                 const isHoliday = cell.status === 'HOLIDAY';
                 const isLeaveApproved = cell.status === 'LEAVE_APPROVED';
+                const isCompOff = cell.status === 'COMP_OFF';
                 const isLeavePending = cell.status === 'LEAVE_PENDING';
+                const isRosterOff = cell.status === 'ROSTER_OFF';
                 const isWeekend = cell.status === 'WEEKEND';
 
                 if (!cell.isCurrentMonth) {
@@ -1191,14 +1594,20 @@ export const EmployeeDashboard: React.FC = () => {
                 let dotColorClass = '';
                 if (isPresent) {
                   dotColorClass = 'bg-emerald-500';
+                } else if (isHalfDay) {
+                  dotColorClass = 'bg-amber-500';
                 } else if (isAbsent) {
                   dotColorClass = 'bg-rose-500';
                 } else if (isHoliday) {
                   dotColorClass = 'bg-sky-500';
-                } else if (isLeaveApproved) {
+                } else if (isLeaveApproved || isCompOff) {
                   dotColorClass = 'bg-purple-500';
-                } else if (isLeavePending) {
-                  dotColorClass = 'bg-amber-500 animate-pulse';
+                } else if (isLeavePending || cell.isRegularizationPending) {
+                  dotColorClass = 'bg-amber-400 animate-pulse';
+                } else if (isRosterOff) {
+                  dotColorClass = 'bg-slate-300';
+                } else if (cell.isRosteredWorkday || cell.status === 'FUTURE') {
+                  dotColorClass = cell.isRosteredWorkday ? 'bg-indigo-600' : 'bg-indigo-400';
                 }
 
                 return (
@@ -1211,14 +1620,21 @@ export const EmployeeDashboard: React.FC = () => {
                         ? 'bg-[#4338ca] text-white font-black shadow-sm shadow-indigo-600/30'
                         : cell.isToday
                           ? 'ring-1.5 ring-indigo-500 bg-indigo-50/70 text-indigo-700 font-extrabold'
-                          : isWeekend
-                            ? 'text-slate-300 font-normal hover:bg-slate-50'
-                            : 'text-slate-700 font-semibold hover:bg-slate-50'
+                          : isRosterOff || isWeekend
+                            ? 'text-slate-400 font-normal hover:bg-slate-50'
+                            : cell.isRosteredWorkday
+                              ? 'text-indigo-900 font-bold hover:bg-indigo-50/50'
+                              : 'text-slate-700 font-semibold hover:bg-slate-50'
                       }`}
                   >
-                    <span className="text-[11px] sm:text-xs leading-none">
-                      {cell.dayNum}
-                    </span>
+                    <div className="flex items-center gap-0.5 leading-none">
+                      <span className="text-[11px] sm:text-xs">
+                        {cell.dayNum}
+                      </span>
+                      {cell.workMode === 'WFH' && (
+                        <span className="w-1 h-1 rounded-full bg-indigo-500 shrink-0" title="Work From Home" />
+                      )}
+                    </div>
                     {dotColorClass ? (
                       <span
                         className={`w-1.5 h-1.5 rounded-full mt-1 shrink-0 ${isSelected ? 'bg-white' : dotColorClass
@@ -1233,78 +1649,163 @@ export const EmployeeDashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Clean Selected Date Details Strip */}
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div
-                className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs font-mono shrink-0 shadow-2xs ${selectedDayInfo?.status === 'PRESENT'
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                    : selectedDayInfo?.status === 'ABSENT'
-                      ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                      : selectedDayInfo?.status === 'HOLIDAY'
-                        ? 'bg-sky-50 text-sky-700 border border-sky-200'
-                        : selectedDayInfo?.status === 'LEAVE_APPROVED'
-                          ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                          : 'bg-white text-slate-700 border border-slate-200'
-                  }`}
-              >
-                {selectedDayInfo?.dayNum}
-              </div>
-              <div className="min-w-0">
-                <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5 truncate">
-                  <span>
-                    {selectedDayInfo?.date.toLocaleDateString('en-US', {
-                      weekday: 'short',
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </span>
-                  {selectedDayInfo?.isToday && (
-                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-indigo-100 text-indigo-700 shrink-0">
-                      Today
-                    </span>
-                  )}
-                </div>
-                <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
-                  {selectedDayInfo?.label} {selectedDayInfo?.details ? `• ${selectedDayInfo.details}` : ''}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-              <span
-                className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${selectedDayInfo?.status === 'PRESENT'
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : selectedDayInfo?.status === 'ABSENT'
-                      ? 'bg-rose-50 text-rose-700 border-rose-200'
-                      : selectedDayInfo?.status === 'HOLIDAY'
-                        ? 'bg-sky-50 text-sky-700 border-sky-200'
-                        : selectedDayInfo?.status === 'LEAVE_APPROVED'
-                          ? 'bg-purple-50 text-purple-700 border-purple-200'
-                          : selectedDayInfo?.status === 'LEAVE_PENDING'
-                            ? 'bg-amber-50 text-amber-700 border-amber-200'
-                            : 'bg-white text-slate-600 border-slate-200'
-                  }`}
-              >
-                {selectedDayInfo?.status === 'PRESENT' && '✓ Present'}
-                {selectedDayInfo?.status === 'ABSENT' && '✕ Absent'}
-                {selectedDayInfo?.status === 'HOLIDAY' && '★ Holiday'}
-                {selectedDayInfo?.status === 'LEAVE_APPROVED' && '● Approved Leave'}
-                {selectedDayInfo?.status === 'LEAVE_PENDING' && '⏳ Pending Leave'}
-                {selectedDayInfo?.status === 'WEEKEND' && 'Weekend'}
-                {selectedDayInfo?.status === 'FUTURE' && 'Upcoming Workday'}
-              </span>
-
-              {(selectedDayInfo?.status === 'FUTURE' || selectedDayInfo?.status === 'ABSENT') && (
-                <button
-                  type="button"
-                  onClick={() => navigate('/leaves')}
-                  className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-white border border-indigo-200 px-2.5 py-1 rounded-full shadow-2xs hover:bg-indigo-50 transition-colors cursor-pointer"
+          {/* Clean Selected Date Details Strip with Full HR Metadata */}
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 flex flex-col gap-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs font-mono shrink-0 shadow-2xs ${selectedDayInfo?.status === 'PRESENT'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : selectedDayInfo?.status === 'HALF_DAY'
+                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                        : selectedDayInfo?.status === 'ABSENT'
+                          ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                          : selectedDayInfo?.status === 'HOLIDAY'
+                            ? 'bg-sky-50 text-sky-700 border border-sky-200'
+                            : selectedDayInfo?.status === 'LEAVE_APPROVED'
+                              ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                              : selectedDayInfo?.status === 'COMP_OFF'
+                                ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                                : selectedDayInfo?.status === 'ROSTER_OFF' || selectedDayInfo?.status === 'WEEKEND'
+                                  ? 'bg-slate-100 text-slate-600 border border-slate-200'
+                                  : selectedDayInfo?.isRosteredWorkday
+                                    ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                                    : 'bg-white text-slate-700 border border-slate-200'
+                    }`}
                 >
-                  Apply Leave →
-                </button>
-              )}
+                  {selectedDayInfo?.dayNum}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-slate-900 flex items-center gap-2 flex-wrap truncate">
+                    <span>
+                      {selectedDayInfo?.date.toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </span>
+                    {selectedDayInfo?.isToday && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-indigo-100 text-indigo-700 shrink-0">
+                        Today
+                      </span>
+                    )}
+                    {selectedDayInfo?.shiftName && (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-600 shrink-0 flex items-center gap-1">
+                        <IconClock className="w-3 h-3 text-indigo-500" />
+                        <span>
+                          {selectedDayInfo.shiftName} {selectedDayInfo.shiftTiming ? `(${selectedDayInfo.shiftTiming})` : ''}
+                        </span>
+                      </span>
+                    )}
+                    {selectedDayInfo?.workMode && (
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 shrink-0 flex items-center gap-1">
+                        {selectedDayInfo.workMode === 'WFH' ? <IconHome className="w-3 h-3" /> : <IconBuilding className="w-3 h-3" />}
+                        <span>{selectedDayInfo.workMode}</span>
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-600 font-medium truncate mt-0.5">
+                    {selectedDayInfo?.label} {selectedDayInfo?.details ? `• ${selectedDayInfo.details}` : ''}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                {selectedDayInfo?.isLate && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 shrink-0">
+                    Late In (+{selectedDayInfo.lateMinutes}m)
+                  </span>
+                )}
+                {selectedDayInfo?.isEarlyExit && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 shrink-0">
+                    Early Exit (-{selectedDayInfo.earlyExitMinutes}m)
+                  </span>
+                )}
+                {selectedDayInfo?.overtimeHours && selectedDayInfo.overtimeHours > 0 ? (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 shrink-0">
+                    +{selectedDayInfo.overtimeHours}h OT
+                  </span>
+                ) : null}
+                {selectedDayInfo?.isMissedPunch && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 shrink-0">
+                    Missed Punch
+                  </span>
+                )}
+                {selectedDayInfo?.isRegularizationPending && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-300 animate-pulse shrink-0">
+                    ⏳ Reg. Pending
+                  </span>
+                )}
+                {selectedDayInfo?.isRegularized && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 shrink-0">
+                    ✓ Regularized
+                  </span>
+                )}
+
+                <span
+                  className={`text-[10px] font-bold px-2.5 py-1 rounded-full border shrink-0 ${selectedDayInfo?.status === 'PRESENT'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : selectedDayInfo?.status === 'HALF_DAY'
+                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : selectedDayInfo?.status === 'ABSENT'
+                          ? 'bg-rose-50 text-rose-700 border-rose-200'
+                          : selectedDayInfo?.status === 'HOLIDAY'
+                            ? 'bg-sky-50 text-sky-700 border-sky-200'
+                            : selectedDayInfo?.status === 'LEAVE_APPROVED'
+                              ? 'bg-purple-50 text-purple-700 border-purple-200'
+                              : selectedDayInfo?.status === 'COMP_OFF'
+                                ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                : selectedDayInfo?.status === 'LEAVE_PENDING'
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                  : selectedDayInfo?.status === 'ROSTER_OFF'
+                                    ? 'bg-slate-100 text-slate-600 border-slate-300'
+                                    : selectedDayInfo?.status === 'WEEKEND'
+                                      ? 'bg-slate-100 text-slate-500 border-slate-200'
+                                      : selectedDayInfo?.isRosteredWorkday
+                                        ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                        : 'bg-white text-slate-600 border-slate-200'
+                    }`}
+                >
+                  {selectedDayInfo?.status === 'PRESENT' && '✓ Present'}
+                  {selectedDayInfo?.status === 'HALF_DAY' && '◐ Half Day'}
+                  {selectedDayInfo?.status === 'ABSENT' && '✕ Absent'}
+                  {selectedDayInfo?.status === 'HOLIDAY' && '★ Holiday'}
+                  {selectedDayInfo?.status === 'LEAVE_APPROVED' && '● Approved Leave'}
+                  {selectedDayInfo?.status === 'COMP_OFF' && '● Comp Off'}
+                  {selectedDayInfo?.status === 'LEAVE_PENDING' && '⏳ Pending Leave'}
+                  {selectedDayInfo?.status === 'ROSTER_OFF' && 'Rostered Week Off'}
+                  {selectedDayInfo?.status === 'WEEKEND' && 'Weekend'}
+                  {selectedDayInfo?.status === 'FUTURE' && (
+                    selectedDayInfo.isRosteredWorkday
+                      ? `🗓️ Shift: ${selectedDayInfo.shiftName || 'Scheduled'}`
+                      : 'Upcoming Workday'
+                  )}
+                </span>
+
+                {(selectedDayInfo?.status === 'ABSENT' || selectedDayInfo?.isMissedPunch || selectedDayInfo?.isLate) &&
+                  !selectedDayInfo?.isRegularized &&
+                  !selectedDayInfo?.isRegularizationPending &&
+                  selectedDayInfo?.status !== 'FUTURE' && (
+                    <button
+                      type="button"
+                      onClick={() => navigate('/attendance')}
+                      className="text-[11px] font-bold text-amber-800 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-full shadow-2xs transition-colors cursor-pointer shrink-0"
+                    >
+                      Regularize →
+                    </button>
+                  )}
+
+                {(selectedDayInfo?.status === 'FUTURE' || selectedDayInfo?.status === 'ABSENT') && (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/leaves')}
+                    className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-white border border-indigo-200 px-2.5 py-1 rounded-full shadow-2xs hover:bg-indigo-50 transition-colors cursor-pointer shrink-0"
+                  >
+                    Apply Leave →
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

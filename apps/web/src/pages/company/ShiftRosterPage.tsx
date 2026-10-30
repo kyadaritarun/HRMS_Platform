@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../../api/client';
+import TablePagination from '../../components/common/TablePagination';
 import { useAuth } from '../../context/AuthContext';
 import {
   IconClock,
@@ -21,6 +22,8 @@ import {
   IconPencil,
   IconTrash,
   IconLoader2,
+  IconSearch,
+  IconChevronDown,
 } from '@tabler/icons-react';
 
 export interface ShiftTiming {
@@ -36,6 +39,24 @@ export interface ShiftTiming {
 }
 
 const STORAGE_KEY = 'uptrix_shift_roster_data';
+
+const toLocalDateKey = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+const avatarColorList = [
+  'bg-indigo-100 text-indigo-700',
+  'bg-purple-100 text-purple-700',
+  'bg-blue-100 text-blue-700',
+  'bg-emerald-100 text-emerald-700',
+  'bg-amber-100 text-amber-700',
+  'bg-rose-100 text-rose-700',
+  'bg-teal-100 text-teal-700',
+  'bg-cyan-100 text-cyan-700',
+];
 
 export const ShiftRosterPage: React.FC = () => {
   const { company } = useAuth();
@@ -82,12 +103,51 @@ export const ShiftRosterPage: React.FC = () => {
   const [bulkShiftCode, setBulkShiftCode] = useState('');
   const [bulkDepartment, setBulkDepartment] = useState('ALL');
 
-  // Fetch employees
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('ALL');
+  const [shiftFilter, setShiftFilter] = useState('ALL');
+
+  // Shift Legend Dropdown state
+  const [showLegendDropdown, setShowLegendDropdown] = useState(false);
+  const legendDropdownRef = React.useRef<HTMLDivElement>(null);
+
+  // Close shift legend popover on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (legendDropdownRef.current && !legendDropdownRef.current.contains(event.target as Node)) {
+        setShowLegendDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Fetch employees (supports multi-page fetching if staff > 100)
   useEffect(() => {
     const fetchStaff = async () => {
       try {
         const res = await api.get('/employees?pageSize=100');
-        setEmployees(res.data?.items || []);
+        let allStaff = res.data?.items || [];
+        const total = res.data?.total || allStaff.length;
+        if (total > 100) {
+          const totalPages = Math.ceil(total / 100);
+          const promises = [];
+          for (let p = 2; p <= totalPages; p++) {
+            promises.push(api.get(`/employees?pageSize=100&page=${p}`));
+          }
+          const extraResponses = await Promise.all(promises);
+          extraResponses.forEach((r) => {
+            if (r.data?.items) {
+              allStaff = [...allStaff, ...r.data.items];
+            }
+          });
+        }
+        setEmployees(allStaff);
       } catch (err) {
         console.error('Failed to load employees for roster:', err);
       }
@@ -152,7 +212,12 @@ export const ShiftRosterPage: React.FC = () => {
           shiftId: matched?.id || null,
         },
       ],
-    }).catch((err) => console.error('Failed to save roster assignment:', err));
+    })
+      .then(() => {
+        window.dispatchEvent(new Event('attendance-updated'));
+        localStorage.setItem('attendance_sync_ts', Date.now().toString());
+      })
+      .catch((err) => console.error('Failed to save roster assignment:', err));
   };
 
   const handleBulkAssign = async () => {
@@ -164,7 +229,7 @@ export const ShiftRosterPage: React.FC = () => {
     employees.forEach((emp) => {
       if (bulkDepartment !== 'ALL' && emp.department?.name !== bulkDepartment) return;
       currentWeekDates.forEach((d) => {
-        const dateStr = d.toISOString().split('T')[0];
+        const dateStr = toLocalDateKey(d);
         const isWeekend = d.getDay() === 0 || d.getDay() === 6;
         const assignedCode = isWeekend && offCode ? offCode : bulkShiftCode;
         updated[`${emp.id}_${dateStr}`] = assignedCode;
@@ -183,6 +248,8 @@ export const ShiftRosterPage: React.FC = () => {
 
     try {
       await api.post('/company/roster/bulk-assign', { assignments: assignmentPayload });
+      window.dispatchEvent(new Event('attendance-updated'));
+      localStorage.setItem('attendance_sync_ts', Date.now().toString());
     } catch (err) {
       console.error('Failed to bulk assign roster:', err);
     }
@@ -308,7 +375,59 @@ export const ShiftRosterPage: React.FC = () => {
   };
 
   // Distinct departments
-  const departments = Array.from(new Set(employees.map((e) => e.department?.name).filter(Boolean)));
+  const departments = useMemo(() => {
+    const set = new Set<string>();
+    employees.forEach((e) => {
+      const dName = e.department?.name || 'General';
+      set.add(dName);
+    });
+    return Array.from(set).sort();
+  }, [employees]);
+
+  // Filtered employees based on search & department
+  const filteredEmployees = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    return employees.filter((emp) => {
+      if (q) {
+        const fullName = `${emp.firstName || ''} ${emp.lastName || ''}`.toLowerCase();
+        const title = (emp.jobTitle || '').toLowerCase();
+        const dept = (emp.department?.name || 'General').toLowerCase();
+        const empNum = (emp.employeeNumber || '').toLowerCase();
+        const email = (emp.email || emp.user?.email || emp.personalEmail || '').toLowerCase();
+        const matches =
+          fullName.includes(q) ||
+          title.includes(q) ||
+          dept.includes(q) ||
+          empNum.includes(q) ||
+          email.includes(q);
+        if (!matches) return false;
+      }
+
+      if (departmentFilter !== 'ALL') {
+        const deptName = emp.department?.name || 'General';
+        if (deptName !== departmentFilter) return false;
+      }
+
+      if (shiftFilter !== 'ALL') {
+        const hasShiftThisWeek = currentWeekDates.some((d) => {
+          const dateStr = toLocalDateKey(d);
+          const key = `${emp.id}_${dateStr}`;
+          return rosterMap[key] === shiftFilter;
+        });
+        if (!hasShiftThisWeek) return false;
+      }
+
+      return true;
+    });
+  }, [employees, searchQuery, departmentFilter, shiftFilter, currentWeekDates, rosterMap]);
+
+  // Paginated employees for current page
+  const totalPages = Math.max(1, Math.ceil(filteredEmployees.length / pageSize));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const paginatedEmployees = useMemo(() => {
+    const start = (safeCurrentPage - 1) * pageSize;
+    return filteredEmployees.slice(start, start + pageSize);
+  }, [filteredEmployees, safeCurrentPage, pageSize]);
 
   return (
     <div className="space-y-6">
@@ -387,112 +506,324 @@ export const ShiftRosterPage: React.FC = () => {
       )}
 
       {activeTab === 'ROSTER' ? (
-        <div className="space-y-4">
-          {/* Controls: Week navigator + Bulk Assign button */}
-          <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
+        /* Weekly Interactive Roster View - Matching AssetsOnboardingPage & DepartmentsPage */
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
+          {/* Controls Bar: Week Navigator on left, Search & Actions on right */}
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+            {/* Left: Week Navigator */}
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
+                type="button"
                 onClick={() => setWeekOffset(weekOffset - 1)}
-                className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600"
+                className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer"
+                title="Previous week"
               >
                 <IconChevronLeft className="w-4 h-4" />
               </button>
-              <div className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 flex items-center gap-2">
-                <IconCalendar className="w-4 h-4 text-indigo-600" />
+              <div className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 flex items-center gap-2 whitespace-nowrap">
+                <IconCalendar className="w-4 h-4 text-indigo-600 shrink-0" />
                 <span>
                   {currentWeekDates[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} –{' '}
                   {currentWeekDates[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 </span>
               </div>
               <button
+                type="button"
                 onClick={() => setWeekOffset(weekOffset + 1)}
-                className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600"
+                className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer"
+                title="Next week"
               >
                 <IconChevronRight className="w-4 h-4" />
               </button>
               {weekOffset !== 0 && (
                 <button
+                  type="button"
                   onClick={() => setWeekOffset(0)}
-                  className="px-2.5 py-1 text-xs font-semibold text-indigo-600 hover:underline"
+                  className="px-2 py-1 text-xs font-semibold text-indigo-600 hover:underline cursor-pointer whitespace-nowrap"
                 >
                   This Week
                 </button>
               )}
             </div>
 
-            <div className="flex items-center gap-3">
-              {/* Legend preview */}
-              <div className="hidden lg:flex items-center gap-2 text-[11px] font-semibold text-slate-600">
-                {shifts.map((s) => (
-                  <span key={s.id} className={`px-2 py-0.5 rounded-md border text-[10px] ${s.color}`}>
-                    {s.code}: {s.name}
-                  </span>
-                ))}
+            {/* Right Controls: Search, Dept Filter, Legend, Bulk Assign */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              {/* Search input */}
+              <div className="relative min-w-[180px] sm:w-56">
+                <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search employee, dept..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full pl-9 pr-8 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-800 placeholder-slate-400"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setCurrentPage(1);
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                    title="Clear search"
+                  >
+                    <IconX className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
+              {/* Department Filter */}
+              <div className="relative">
+                <select
+                  value={departmentFilter}
+                  onChange={(e) => {
+                    setDepartmentFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="appearance-none pl-8 pr-7 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-700 cursor-pointer"
+                >
+                  <option value="ALL">All Departments</option>
+                  {departments.map((deptName) => (
+                    <option key={deptName} value={deptName}>
+                      {deptName}
+                    </option>
+                  ))}
+                </select>
+                <IconFilter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+
+              {/* Shift Legend & Filter Dropdown */}
+              <div className="relative" ref={legendDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowLegendDropdown(!showLegendDropdown)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-2 border rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+                    shiftFilter !== 'ALL'
+                      ? 'bg-indigo-50 border-indigo-300 text-indigo-700 shadow-xs'
+                      : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
+                  }`}
+                  title="View Shift Legend & Timings"
+                >
+                  <IconClock className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <span>
+                    {shiftFilter === 'ALL'
+                      ? 'Shift Legend'
+                      : `Shift: ${shiftFilter}`}
+                  </span>
+                  <IconChevronDown
+                    className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                      showLegendDropdown ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+
+                {showLegendDropdown && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-slate-200 shadow-xl p-3 z-50 animate-in fade-in zoom-in-95">
+                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
+                      <div className="flex items-center gap-1.5">
+                        <IconClock className="w-4 h-4 text-indigo-600" />
+                        <span className="text-xs font-bold text-slate-800">Shift Legend & Timings</span>
+                      </div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+                        {shifts.length} {shifts.length === 1 ? 'shift' : 'shifts'}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-slate-400 mb-2 px-1">
+                      Click any shift to filter the roster, or view timing rules:
+                    </p>
+
+                    {/* "All Shifts" Option */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShiftFilter('ALL');
+                        setCurrentPage(1);
+                        setShowLegendDropdown(false);
+                      }}
+                      className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-colors cursor-pointer mb-1 ${
+                        shiftFilter === 'ALL' ? 'bg-indigo-50/70 text-indigo-900 font-bold' : 'hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="w-8 h-6 rounded-lg bg-slate-100 border border-slate-200 text-[11px] font-bold text-slate-600 flex items-center justify-center">
+                          ALL
+                        </span>
+                        <span className="text-xs font-semibold">Show All Shifts</span>
+                      </div>
+                      {shiftFilter === 'ALL' && <IconCheck className="w-4 h-4 text-indigo-600" />}
+                    </button>
+
+                    {/* Shifts List */}
+                    <div className="space-y-1 max-h-60 overflow-y-auto pr-0.5">
+                      {shifts.map((s) => {
+                        const isSelected = shiftFilter === s.code;
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => {
+                              setShiftFilter(isSelected ? 'ALL' : s.code);
+                              setCurrentPage(1);
+                              setShowLegendDropdown(false);
+                            }}
+                            className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-colors cursor-pointer ${
+                              isSelected ? 'bg-indigo-50 border border-indigo-200' : 'hover:bg-slate-50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <span className={`px-2.5 py-0.5 rounded-full border text-xs font-bold shrink-0 ${s.color}`}>
+                                {s.code}
+                              </span>
+                              <div className="min-w-0">
+                                <div className="text-xs font-bold text-slate-800 truncate">{s.name}</div>
+                                <div className="text-[10px] text-slate-400 font-medium">
+                                  {s.startTime === '-' && s.endTime === '-' ? 'Weekly Off / Non-working' : `${s.startTime} – ${s.endTime}`}
+                                  {s.startTime !== '-' && s.breakDurationMinutes > 0 && ` • ${s.breakDurationMinutes}m break`}
+                                </div>
+                              </div>
+                            </div>
+                            {isSelected && <IconCheck className="w-4 h-4 text-indigo-600 shrink-0 ml-2" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Footer Link to Shift Rules */}
+                    <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] px-1">
+                      <span className="text-slate-400">Configure hours or rules:</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowLegendDropdown(false);
+                          setActiveTab('SHIFTS_MASTER');
+                        }}
+                        className="font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                      >
+                        Shift Rules →
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {(searchQuery || departmentFilter !== 'ALL' || shiftFilter !== 'ALL') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setDepartmentFilter('ALL');
+                    setShiftFilter('ALL');
+                    setCurrentPage(1);
+                  }}
+                  className="px-2.5 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer shrink-0"
+                >
+                  Reset
+                </button>
+              )}
+
+              {/* Bulk Assign Button */}
               <button
+                type="button"
                 onClick={() => setShowBulkModal(true)}
-                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
+                className="px-3.5 py-2 bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer shrink-0"
               >
                 Bulk Assign
               </button>
             </div>
           </div>
 
-          {/* Weekly Interactive Roster Matrix Table */}
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-600">
-                <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
+          {/* Table Structure matching AssetsOnboardingPage & DepartmentsPage */}
+          <div className="overflow-x-auto border border-slate-200/80 rounded-2xl shadow-2xs overflow-hidden">
+            <table className="w-full text-left text-xs text-slate-600">
+              <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
+                <tr>
+                  <th className="px-5 py-3.5 min-w-[220px]">Employee</th>
+                  {currentWeekDates.map((d) => {
+                    const isToday = d.toDateString() === new Date().toDateString();
+                    const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                    return (
+                      <th
+                        key={d.toISOString()}
+                        className={`px-3 py-3.5 text-center min-w-[110px] ${
+                          isToday ? 'bg-indigo-100/60 text-indigo-950 font-black' : isWeekend ? 'bg-slate-200/60' : ''
+                        }`}
+                      >
+                        <span className="block text-[10px] uppercase font-bold text-slate-500">
+                          {d.toLocaleDateString('en-US', { weekday: 'short' })}
+                        </span>
+                        <span className="text-sm font-bold text-slate-900">{d.getDate()}</span>
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {paginatedEmployees.length === 0 ? (
                   <tr>
-                    <th className="px-6 py-4 w-64">Employee</th>
-                    {currentWeekDates.map((d) => {
-                      const isToday = d.toDateString() === new Date().toDateString();
-                      const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-                      return (
-                        <th
-                          key={d.toISOString()}
-                          className={`px-3 py-4 text-center min-w-[110px] ${
-                            isToday ? 'bg-indigo-50/70 text-indigo-900 font-black' : isWeekend ? 'bg-slate-100/50' : ''
-                          }`}
-                        >
-                          <span className="block text-[10px] uppercase font-bold text-slate-400">
-                            {d.toLocaleDateString('en-US', { weekday: 'short' })}
-                          </span>
-                          <span className="text-sm font-bold text-slate-900">{d.getDate()}</span>
-                        </th>
-                      );
-                    })}
+                    <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
+                      <div className="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-2">
+                        <IconClock className="w-6 h-6" />
+                      </div>
+                      <h4 className="text-sm font-bold text-slate-800">No employees found</h4>
+                      <p className="text-xs text-slate-400 mt-1">
+                        {employees.length === 0
+                          ? 'No employees registered yet. Add employees first to plan shifts.'
+                          : `No employees match "${searchQuery || departmentFilter}".`}
+                      </p>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {employees.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
-                        No employees found. Add employees first to plan shifts.
-                      </td>
-                    </tr>
-                  ) : (
-                    employees.map((emp) => (
-                      <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="font-bold text-slate-900">{emp.firstName} {emp.lastName}</div>
-                          <div className="text-[11px] text-slate-400">{emp.department?.name || 'General'} • {emp.jobTitle}</div>
+                ) : (
+                  paginatedEmployees.map((emp, empIdx) => {
+                    const initials = `${emp.firstName?.[0] || 'U'}${emp.lastName?.[0] || ''}`.toUpperCase();
+                    const avatarBg = avatarColorList[empIdx % avatarColorList.length];
+
+                    return (
+                      <tr key={emp.id} className="hover:bg-slate-50/60 transition-colors">
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            {emp.profilePhoto ? (
+                              <img
+                                src={emp.profilePhoto}
+                                alt={`${emp.firstName} ${emp.lastName}`}
+                                className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-slate-200"
+                              />
+                            ) : (
+                              <div
+                                className={`w-8 h-8 rounded-full ${avatarBg} flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs`}
+                              >
+                                {initials}
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <span className="font-bold text-slate-900 block truncate">
+                                {emp.firstName} {emp.lastName}
+                              </span>
+                              <span className="text-[11px] text-slate-400 block truncate">
+                                {emp.department?.name || 'General'} • {emp.jobTitle || 'Team Member'}
+                              </span>
+                            </div>
+                          </div>
                         </td>
 
                         {currentWeekDates.map((d) => {
-                          const dateStr = d.toISOString().split('T')[0];
+                          const dateStr = toLocalDateKey(d);
                           const key = `${emp.id}_${dateStr}`;
                           const currentCode = rosterMap[key] || '';
                           const activeShift = shifts.find((s) => s.code === currentCode);
 
                           return (
-                            <td key={dateStr} className="px-2 py-3 text-center">
+                            <td key={dateStr} className="px-2 py-2.5 text-center">
                               <select
                                 value={currentCode}
                                 title={activeShift ? `${activeShift.code}: ${activeShift.name} (${activeShift.startTime} - ${activeShift.endTime})` : 'Select shift'}
                                 onChange={(e) => handleSetShift(emp.id, dateStr, e.target.value)}
-                                className={`px-2 py-1 rounded-lg text-xs font-bold border transition-colors cursor-pointer w-full text-center ${activeShift?.color || 'bg-slate-50 text-slate-700 border-slate-200'}`}
+                                className={`px-2 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer w-full text-center ${activeShift?.color || 'bg-slate-50 text-slate-700 border-slate-200/80 hover:bg-slate-100'}`}
                               >
                                 <option value="">-</option>
                                 {shifts.map((s) => (
@@ -505,12 +836,25 @@ export const ShiftRosterPage: React.FC = () => {
                           );
                         })}
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
+
+          {/* Pagination Component */}
+          {filteredEmployees.length > 0 && (
+            <TablePagination
+              currentPage={safeCurrentPage}
+              totalItems={filteredEmployees.length}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+              pageSizeOptions={[10, 25, 50, 100]}
+              itemName="employees"
+            />
+          )}
         </div>
       ) : (
         /* Shifts Master View */

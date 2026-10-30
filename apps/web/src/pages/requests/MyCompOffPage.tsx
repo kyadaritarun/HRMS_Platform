@@ -378,10 +378,10 @@ export const MyCompOffPage: React.FC = () => {
 
         <button
           onClick={handleOpenModal}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white font-bold text-xs shadow-sm transition-all cursor-pointer active:scale-95"
+          className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer shrink-0"
         >
           <IconPlus className="w-4 h-4" />
-          Request Comp Off
+          <span>Request Comp Off</span>
         </button>
       </div>
 
@@ -510,7 +510,7 @@ export const MyCompOffPage: React.FC = () => {
             <div className="flex items-center bg-slate-50 border border-slate-200 p-1 rounded-xl shrink-0">
               <button
                 onClick={() => setTypeFilter('ALL')}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                   typeFilter === 'ALL'
                     ? 'bg-white text-[#5E4BE2] shadow-2xs font-bold'
                     : 'text-slate-500 hover:text-slate-800'
@@ -520,7 +520,7 @@ export const MyCompOffPage: React.FC = () => {
               </button>
               <button
                 onClick={() => setTypeFilter('WEEKEND')}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                   typeFilter === 'WEEKEND'
                     ? 'bg-white text-[#5E4BE2] shadow-2xs font-bold'
                     : 'text-slate-500 hover:text-slate-800'
@@ -530,7 +530,7 @@ export const MyCompOffPage: React.FC = () => {
               </button>
               <button
                 onClick={() => setTypeFilter('HOLIDAY')}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                   typeFilter === 'HOLIDAY'
                     ? 'bg-white text-[#5E4BE2] shadow-2xs font-bold'
                     : 'text-slate-500 hover:text-slate-800'
@@ -547,7 +547,7 @@ export const MyCompOffPage: React.FC = () => {
               <button
                 key={tab}
                 onClick={() => setStatusFilter(tab)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                   statusFilter === tab
                     ? 'bg-white text-[#5E4BE2] shadow-2xs font-bold'
                     : 'text-slate-500 hover:text-slate-800'
@@ -700,7 +700,7 @@ export const MyCompOffPage: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => handleCancel(r.id)}
-                              className="px-2.5 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200/80 rounded-lg transition-colors cursor-pointer"
+                              className="px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200/80 rounded-xl shadow-2xs transition-colors cursor-pointer"
                             >
                               Cancel
                             </button>
@@ -708,7 +708,7 @@ export const MyCompOffPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setViewReq(r)}
-                            className="px-2.5 py-1 text-xs font-bold text-slate-600 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors cursor-pointer"
+                            className="px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 border border-slate-200 rounded-xl shadow-2xs transition-colors cursor-pointer"
                           >
                             View
                           </button>
@@ -1017,18 +1017,18 @@ export const MyCompOffPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2.5 text-xs font-bold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors"
+                    className="px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-2xs cursor-pointer transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-5 py-2.5 text-xs font-bold rounded-xl bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white shadow-xs disabled:opacity-50 cursor-pointer transition-all"
+                    className="px-3.5 py-2 text-xs font-bold rounded-xl bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white shadow-xs disabled:opacity-50 cursor-pointer transition-colors"
                   >
                     {isSubmitting ? 'Submitting...' : 'Submit Comp Off Request'}
                   </button>
@@ -1171,14 +1171,15 @@ export const MyCompOffPage: React.FC = () => {
                       setViewReq(null);
                       handleCancel(id);
                     }}
-                    className="px-3.5 py-2 text-xs font-bold rounded-xl text-rose-600 hover:bg-rose-50 border border-rose-200 cursor-pointer"
+                    className="px-3.5 py-2 text-xs font-bold rounded-xl text-rose-600 hover:bg-rose-50 border border-rose-200/80 shadow-2xs transition-colors cursor-pointer"
                   >
                     Cancel Request
                   </button>
                 ) : <div />}
                 <button
+                  type="button"
                   onClick={() => setViewReq(null)}
-                  className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  className="px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer"
                 >
                   Close
                 </button>

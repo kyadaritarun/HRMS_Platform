@@ -165,7 +165,7 @@ export const ManageCyclesPage: React.FC = () => {
             }
             setIsModalOpen(true);
           }}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white font-bold text-sm shadow-sm transition-all cursor-pointer active:scale-95"
+          className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white font-bold text-xs shadow-xs transition-colors cursor-pointer shrink-0"
         >
           <IconPlus className="w-4 h-4" />
           <span>{activeTab === 'PERFORMANCE' ? 'Add Appraisal Cycle' : 'Add Payroll Cycle'}</span>
@@ -181,7 +181,7 @@ export const ManageCyclesPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('PERFORMANCE')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'PERFORMANCE'
                   ? 'bg-white text-[#5E4BE2] shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -193,7 +193,7 @@ export const ManageCyclesPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('PAYROLL')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'PAYROLL'
                   ? 'bg-white text-[#5E4BE2] shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -227,7 +227,7 @@ export const ManageCyclesPage: React.FC = () => {
         </div>
 
         {/* Table Content */}
-        <div className="overflow-x-auto -mx-5 -mb-5">
+        <div className="overflow-x-auto border border-slate-200/80 rounded-2xl shadow-2xs overflow-hidden">
           {isLoading ? (
             <div className="p-12 text-center text-slate-400">
               <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-[#5E4BE2] border-t-transparent mb-2" />
@@ -304,7 +304,7 @@ export const ManageCyclesPage: React.FC = () => {
 
                       {/* Duration */}
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <span className="px-2.5 py-1 rounded-md bg-slate-100 font-bold text-slate-700 text-xs border border-slate-200">
+                        <span className="px-3 py-1 rounded-full bg-slate-100 font-bold text-slate-700 text-xs border border-slate-200/80">
                           {getCycleDuration(cycle.startDate, cycle.endDate)}
                         </span>
                       </td>
@@ -408,14 +408,14 @@ export const ManageCyclesPage: React.FC = () => {
 
                     {/* Cutoff Day */}
                     <td className="px-5 py-4 whitespace-nowrap">
-                      <span className="px-2.5 py-1 rounded-md bg-slate-100 font-semibold text-slate-800 text-xs border border-slate-200">
+                      <span className="px-3 py-1 rounded-full bg-slate-100 font-semibold text-slate-800 text-xs border border-slate-200/80">
                         {cycle.cutoffDay}th of month
                       </span>
                     </td>
 
                     {/* Disbursement Day */}
                     <td className="px-5 py-4 whitespace-nowrap">
-                      <span className="px-2.5 py-1 rounded-md bg-purple-50 font-bold text-purple-700 text-xs border border-purple-100">
+                      <span className="px-3 py-1 rounded-full bg-purple-50 font-bold text-purple-700 text-xs border border-purple-200/80">
                         {cycle.payDay}th of month
                       </span>
                     </td>

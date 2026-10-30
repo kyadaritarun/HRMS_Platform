@@ -83,7 +83,6 @@ const RootRedirect: React.FC = () => {
   if (!user) return <Navigate to="/login" replace />;
   if (user.mustChangePassword) return <Navigate to="/change-password" replace />;
   if (user.role === 'PRODUCT_SUPER_ADMIN') return <Navigate to="/super-admin/dashboard" replace />;
-  if (user.role === 'COMPANY_ADMIN') return <Navigate to="/company/dashboard" replace />;
   return <Navigate to="/employee/dashboard" replace />;
 };
 
@@ -252,6 +251,22 @@ export const App: React.FC = () => {
               element={
                 <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
                   <ShiftRosterPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/company/assets"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'IT']}>
+                  <AssetsOnboardingPage initialTab="ASSETS" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/company/onboarding"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'IT']}>
+                  <AssetsOnboardingPage initialTab="ONBOARDING" />
                 </ProtectedRoute>
               }
             />

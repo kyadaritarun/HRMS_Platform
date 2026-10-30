@@ -572,14 +572,77 @@ businessCompanyRouter.delete('/assets/:id', roleGuard('COMPANY_ADMIN', 'HR', 'IT
 businessCompanyRouter.get('/onboarding-progress', roleGuard('COMPANY_ADMIN', 'HR'), async (req, res, next) => {
   try {
     const companyId = req.user!.companyId!;
-    const records = await prisma.onboardingProgress.findMany({ where: { companyId } });
+    const [records, company] = await Promise.all([
+      prisma.onboardingProgress.findMany({ where: { companyId } }),
+      prisma.company.findUnique({
+        where: { id: companyId },
+        select: { settings: true },
+      }),
+    ]);
 
     const progressMap: Record<string, boolean> = {};
     for (const r of records) {
       progressMap[`${r.employeeId}_${r.taskId}`] = r.completed;
     }
 
-    return res.json({ success: true, progressMap, records });
+    const companySettings = (company?.settings as any) || {};
+    const tasks = companySettings.onboardingTasks || null;
+
+    return res.json({ success: true, progressMap, records, tasks });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /api/v1/company/onboarding-tasks
+businessCompanyRouter.get('/onboarding-tasks', roleGuard('COMPANY_ADMIN', 'HR'), async (req, res, next) => {
+  try {
+    const companyId = req.user!.companyId!;
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { settings: true },
+    });
+    const settings = (company?.settings as any) || {};
+    return res.json({ success: true, tasks: settings.onboardingTasks || [] });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PUT /api/v1/company/onboarding-tasks
+businessCompanyRouter.put('/onboarding-tasks', roleGuard('COMPANY_ADMIN', 'HR'), async (req, res, next) => {
+  try {
+    const companyId = req.user!.companyId!;
+    const { tasks } = req.body;
+
+    if (!Array.isArray(tasks)) {
+      return next(new AppError(400, 'VALIDATION_ERROR', 'tasks must be an array'));
+    }
+
+    const sanitizedTasks = tasks
+      .map((t: any, idx: number) => ({
+        id: String(t.id || `task_${Date.now()}_${idx}`),
+        title: String(t.title || '').trim(),
+        description: String(t.description || '').trim(),
+        category: ['IT', 'HR', 'FINANCE', 'FACILITIES', 'GENERAL'].includes(t.category)
+          ? t.category
+          : 'HR',
+      }))
+      .filter((t: any) => t.title.length > 0);
+
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { settings: true },
+    });
+    const currentSettings = (company?.settings && typeof company.settings === 'object' ? company.settings : {}) as any;
+    currentSettings.onboardingTasks = sanitizedTasks;
+
+    await prisma.company.update({
+      where: { id: companyId },
+      data: { settings: currentSettings },
+    });
+
+    return res.json({ success: true, tasks: sanitizedTasks });
   } catch (error) {
     next(error);
   }
@@ -756,7 +819,7 @@ businessCompanyRouter.delete('/hr-letters/:id', roleGuard('COMPANY_ADMIN', 'HR')
 // ============================================================================
 
 // GET /api/v1/company/roster
-businessCompanyRouter.get('/roster', roleGuard('COMPANY_ADMIN', 'HR', 'EMPLOYEE'), async (req, res, next) => {
+businessCompanyRouter.get('/roster', roleGuard('COMPANY_ADMIN', 'HR', 'EMPLOYEE', 'IT', 'FINANCE'), async (req, res, next) => {
   try {
     const companyId = req.user!.companyId!;
     const { startDate, endDate } = req.query;

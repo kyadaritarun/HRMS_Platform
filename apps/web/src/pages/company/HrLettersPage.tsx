@@ -167,7 +167,7 @@ const EditableParagraph: React.FC<EditableParagraphProps> = ({
         <button
           type="button"
           onClick={onDelete}
-          className="absolute -right-6 top-1.5 opacity-0 group-hover/p:opacity-100 transition-opacity p-1 rounded-md bg-rose-50 hover:bg-rose-100 text-rose-600 print:hidden cursor-pointer"
+          className="absolute -right-6 top-1.5 opacity-0 group-hover/p:opacity-100 transition-opacity p-1 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 print:hidden cursor-pointer"
           title="Delete paragraph"
         >
           <IconTrash className="w-3.5 h-3.5" />
@@ -418,20 +418,20 @@ export const HrLettersPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveTab('GENERATE')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'GENERATE'
-                ? 'bg-indigo-600 text-white shadow-xs'
-                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                ? 'bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white shadow-xs'
+                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs'
             }`}
           >
             Create New Letter
           </button>
           <button
             onClick={() => setActiveTab('REPOSITORY')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'REPOSITORY'
-                ? 'bg-indigo-600 text-white shadow-xs'
-                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                ? 'bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white shadow-xs'
+                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs'
             }`}
           >
             Letter Repository ({issuedLetters.length})

@@ -253,7 +253,7 @@ export const ActivityLogsPage: React.FC = () => {
             fetchAccountLogs();
           }}
           disabled={isLoading}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer self-stretch sm:self-auto justify-center"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white text-xs font-bold rounded-xl shadow-xs transition-colors disabled:opacity-50 cursor-pointer shrink-0"
         >
           <IconRefresh className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           <span>Refresh Feed</span>
@@ -445,7 +445,7 @@ export const ActivityLogsPage: React.FC = () => {
                         <h3 className="text-sm font-bold text-slate-900 group-hover:text-[#5E4BE2] transition-colors">
                           {account.name}
                         </h3>
-                        <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60 font-mono">
+                        <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200/60 font-mono">
                           {account.employeeNumber}
                         </span>
                         <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200/60">

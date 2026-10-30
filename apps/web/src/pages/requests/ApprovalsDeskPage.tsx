@@ -853,11 +853,11 @@ export const ApprovalsDeskPage: React.FC = () => {
                   )}
 
                   {/* Sticky Footer Actions */}
-                  <div className="sticky bottom-0 -mx-6 -mb-6 p-6 bg-white/95 backdrop-blur-xs border-t border-slate-100 flex items-center justify-end gap-3 mt-6">
+                  <div className="sticky bottom-0 -mx-6 -mb-6 p-4 bg-white/95 backdrop-blur-xs border-t border-slate-100 flex items-center justify-end gap-2.5 mt-6">
                     <button
                       type="button"
                       onClick={() => setReviewModal({ open: false, decision: '', note: '' })}
-                      className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                      className="px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer"
                     >
                       Close
                     </button>
@@ -870,7 +870,7 @@ export const ApprovalsDeskPage: React.FC = () => {
                           !reviewModal.decision ||
                           (reviewModal.decision === 'REJECTED' && !reviewModal.note.trim())
                         }
-                        className={`inline-flex items-center gap-1.5 px-5 py-2.5 text-xs font-bold rounded-xl text-white shadow-xs transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                        className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl text-white shadow-xs transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                           reviewModal.decision === 'APPROVED'
                             ? 'bg-emerald-600 hover:bg-emerald-700'
                             : reviewModal.decision === 'REJECTED'

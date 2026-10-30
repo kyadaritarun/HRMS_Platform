@@ -240,10 +240,10 @@ export const AppreciationsPage: React.FC = () => {
             setForm({ receiverId: '', badge: 'Rockstar Delivery', message: '' });
             setIsModalOpen(true);
           }}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-[#5E4BE2] hover:from-amber-600 hover:to-[#4B39C3] text-white font-bold text-sm shadow-sm transition-all shadow-amber-500/20 active:scale-95 cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer shrink-0"
         >
           <IconSparkles className="w-4 h-4" />
-          Give Kudos
+          <span>Give Kudos</span>
         </button>
       </div>
 
@@ -477,7 +477,7 @@ export const AppreciationsPage: React.FC = () => {
                       <label className="block text-xs font-semibold text-slate-700">
                         Appreciation Badge <span className="text-rose-500">*</span>
                       </label>
-                      <div className="flex items-center bg-slate-100 p-0.5 rounded-lg text-[11px] font-semibold">
+                      <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-semibold">
                         <button
                           type="button"
                           onClick={() => {
@@ -486,9 +486,9 @@ export const AppreciationsPage: React.FC = () => {
                               setForm({ ...form, badge: 'Rockstar Delivery' });
                             }
                           }}
-                          className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                          className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
                             badgeMode === 'preset'
-                              ? 'bg-white text-[#5E4BE2] shadow-xs font-bold'
+                              ? 'bg-white text-[#5E4BE2] shadow-2xs font-bold'
                               : 'text-slate-600 hover:text-slate-900'
                           }`}
                         >
@@ -502,9 +502,9 @@ export const AppreciationsPage: React.FC = () => {
                               setForm({ ...form, badge: '' });
                             }
                           }}
-                          className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                          className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
                             badgeMode === 'custom'
-                              ? 'bg-white text-[#5E4BE2] shadow-xs font-bold'
+                              ? 'bg-white text-[#5E4BE2] shadow-2xs font-bold'
                               : 'text-slate-600 hover:text-slate-900'
                           }`}
                         >
@@ -638,18 +638,18 @@ export const AppreciationsPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors"
+                    className="px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-2xs cursor-pointer transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-5 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white shadow-xs disabled:opacity-50 cursor-pointer transition-all"
+                    className="px-3.5 py-2 text-xs font-bold rounded-xl bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white shadow-xs disabled:opacity-50 cursor-pointer transition-colors"
                   >
                     {isSubmitting ? 'Posting...' : 'Send Kudos'}
                   </button>

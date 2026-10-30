@@ -341,7 +341,7 @@ export const TicketsPage: React.FC = () => {
         {/* Right CTA Button */}
         <button
           onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 active:scale-[0.98] transition-all cursor-pointer self-stretch sm:self-auto justify-center"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer shrink-0"
         >
           <IconPlus className="w-4 h-4" />
           <span>Create Ticket</span>
@@ -359,7 +359,7 @@ export const TicketsPage: React.FC = () => {
                 setScope('mine');
                 setCurrentPage(1);
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 scope === 'mine'
                   ? 'bg-white text-[#5E4BE2] shadow-2xs'
                   : 'text-slate-500 hover:text-slate-800'
@@ -373,7 +373,7 @@ export const TicketsPage: React.FC = () => {
                 setScope('assigned');
                 setCurrentPage(1);
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 scope === 'assigned'
                   ? 'bg-white text-[#5E4BE2] shadow-2xs'
                   : 'text-slate-500 hover:text-slate-800'
@@ -394,7 +394,7 @@ export const TicketsPage: React.FC = () => {
                   setScope('company');
                   setCurrentPage(1);
                 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   scope === 'company'
                     ? 'bg-white text-[#5E4BE2] shadow-2xs'
                     : 'text-slate-500 hover:text-slate-800'
@@ -592,10 +592,10 @@ export const TicketsPage: React.FC = () => {
                               e.stopPropagation();
                               setSelectedTicket(t);
                             }}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                               isSelected
                                 ? 'bg-[#5E4BE2] text-white shadow-xs'
-                                : 'bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white shadow-2xs hover:shadow-sm'
+                                : 'bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-[#5E4BE2] hover:border-indigo-200 shadow-2xs'
                             }`}
                             title="Open ticket in right sidebar"
                           >
@@ -832,7 +832,7 @@ export const TicketsPage: React.FC = () => {
                   <button
                     type="submit"
                     disabled={isSubmittingComment || !newComment.trim()}
-                    className="p-2.5 rounded-xl bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white shadow-sm shadow-indigo-600/25 transition-all disabled:opacity-50 cursor-pointer active:scale-95"
+                    className="p-2 rounded-xl bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
                     title="Send reply"
                   >
                     <IconSend className="w-4 h-4" />
@@ -943,14 +943,14 @@ export const TicketsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  className="px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isCreating}
-                  className="px-5 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white shadow-sm shadow-indigo-600/25 disabled:opacity-50 cursor-pointer active:scale-98 transition-all"
+                  className="px-3.5 py-2 text-xs font-bold rounded-xl bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {isCreating ? 'Submitting...' : 'Submit Ticket'}
                 </button>

@@ -135,10 +135,10 @@ export const PayrollDashboardPage: React.FC = () => {
           <button
             onClick={handlePublishAll}
             disabled={isPublishing || employees.length === 0}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm shadow-sm transition-all shadow-brand-500/20 active:scale-95 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer shrink-0 disabled:opacity-50"
           >
             <IconPlayerPlay className="w-4 h-4" />
-            {isPublishing ? 'Calculating & Publishing...' : 'Publish Payroll'}
+            <span>{isPublishing ? 'Calculating & Publishing...' : 'Publish Payroll'}</span>
           </button>
         </div>
       </div>

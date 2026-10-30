@@ -341,7 +341,7 @@ export const ClaimsPage: React.FC = () => {
               setError(null);
               setIsCreating(true);
             }}
-            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 transition-all active:scale-[0.98] cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer shrink-0"
           >
             <IconPlus className="w-4 h-4" />
             <span>New Claim</span>
@@ -600,7 +600,7 @@ export const ClaimsPage: React.FC = () => {
                             type="button"
                             onClick={() => setSelectedClaim(claim)}
                             title="View Details"
-                            className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-[#5E4BE2] hover:border-indigo-200 hover:bg-indigo-50/50 transition-all cursor-pointer"
+                            className="w-8 h-8 rounded-xl border border-slate-200 text-slate-600 hover:text-[#5E4BE2] hover:border-indigo-200 hover:bg-indigo-50/50 shadow-2xs transition-all flex items-center justify-center cursor-pointer"
                           >
                             <IconEye className="w-4 h-4" />
                           </button>
@@ -611,7 +611,7 @@ export const ClaimsPage: React.FC = () => {
                               type="button"
                               onClick={() => handleMarkPaid(claim.id)}
                               title="Disburse Reimbursement"
-                              className="px-2.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-lg text-xs font-bold shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
+                              className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1 cursor-pointer"
                             >
                               <IconCash className="w-3.5 h-3.5" />
                               <span>Disburse</span>
@@ -625,7 +625,7 @@ export const ClaimsPage: React.FC = () => {
                                 type="button"
                                 onClick={() => handleCancelClaim(claim.id)}
                                 title="Cancel Claim"
-                                className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50/50 transition-all cursor-pointer"
+                                className="w-8 h-8 rounded-xl border border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50/50 shadow-2xs transition-all flex items-center justify-center cursor-pointer"
                               >
                                 <IconX className="w-4 h-4" />
                               </button>
@@ -805,13 +805,13 @@ export const ClaimsPage: React.FC = () => {
               </div>
 
               {/* Drawer Sticky Footer */}
-              <div className="p-5 bg-white border-t border-slate-100 flex items-center justify-end gap-3 sticky bottom-0 z-10 shrink-0">
+              <div className="p-4 bg-white border-t border-slate-100 flex items-center justify-end gap-2.5 sticky bottom-0 z-10 shrink-0">
                 {/* Disburse button if approved & canPay */}
                 {canPay && selectedClaim.status === 'APPROVED' && (
                   <button
                     type="button"
                     onClick={() => handleMarkPaid(selectedClaim.id)}
-                    className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-bold shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
                   >
                     <IconCash className="w-4 h-4" />
                     <span>Disburse Payment</span>
@@ -829,14 +829,14 @@ export const ClaimsPage: React.FC = () => {
                           handleDecideClaim(selectedClaim.id, 'REJECTED', note);
                         }
                       }}
-                      className="px-4 py-2.5 text-xs font-bold text-rose-600 border border-rose-200 rounded-xl hover:bg-rose-50 transition-all cursor-pointer"
+                      className="px-3.5 py-2 text-xs font-bold text-rose-600 border border-rose-200/80 rounded-xl hover:bg-rose-50 shadow-2xs transition-colors cursor-pointer"
                     >
                       Reject
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDecideClaim(selectedClaim.id, 'APPROVED')}
-                      className="px-4 py-2.5 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] text-white rounded-xl text-xs font-bold shadow-2xs hover:from-[#5340D4] hover:to-[#4130B4] transition-all cursor-pointer"
+                      className="px-3.5 py-2 bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
                     >
                       Approve Claim
                     </button>
@@ -848,7 +848,7 @@ export const ClaimsPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleCancelClaim(selectedClaim.id)}
-                      className="px-4 py-2.5 text-xs font-bold text-rose-600 border border-rose-200 rounded-xl hover:bg-rose-50 transition-all cursor-pointer"
+                      className="px-3.5 py-2 text-xs font-bold text-rose-600 border border-rose-200/80 rounded-xl hover:bg-rose-50 shadow-2xs transition-colors cursor-pointer"
                     >
                       Cancel Claim
                     </button>
@@ -1022,18 +1022,18 @@ export const ClaimsPage: React.FC = () => {
                 </div>
 
                 {/* Drawer Sticky Footer */}
-                <div className="p-5 bg-white border-t border-slate-100 flex items-center justify-end gap-3 sticky bottom-0 z-10 shrink-0">
+                <div className="p-4 bg-white border-t border-slate-100 flex items-center justify-end gap-2.5 sticky bottom-0 z-10 shrink-0">
                   <button
                     type="button"
                     onClick={() => setIsCreating(false)}
-                    className="px-4 py-2.5 text-xs font-bold text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all cursor-pointer"
+                    className="px-3.5 py-2 text-xs font-bold text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 shadow-2xs transition-all cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-5 py-2.5 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50"
+                    className="px-3.5 py-2 bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
                   >
                     {isSubmitting ? 'Submitting...' : 'Submit Claim'}
                   </button>

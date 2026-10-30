@@ -449,7 +449,7 @@ HR Operations Team`,
 
         <button
           onClick={() => setShowInitiateModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs hover:shadow-md transition-all cursor-pointer shrink-0"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer shrink-0"
         >
           <IconPlus className="w-4 h-4" />
           <span>Initiate Employee Exit</span>
@@ -506,7 +506,7 @@ HR Operations Team`,
         </div>
 
         {/* Responsive Table with horizontal scroll support */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto border border-slate-200/80 rounded-2xl shadow-2xs overflow-hidden">
           <table className="w-full min-w-[850px] text-left text-xs">
             <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
@@ -549,7 +549,7 @@ HR Operations Team`,
                         <div className="text-[11px] text-slate-400 font-normal">{r.jobTitle}</div>
                       </td>
                       <td className="px-4 py-3.5 whitespace-nowrap">
-                        <span className="inline-block text-[10px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+                        <span className="inline-block text-[10px] font-medium text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200/60">
                           {r.department}
                         </span>
                       </td>
@@ -563,7 +563,7 @@ HR Operations Team`,
                         </span>
                       </td>
                       <td className="px-4 py-3.5 whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-50 border border-slate-100">
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-50 border border-slate-200/80">
                           <span
                             className={`w-2 h-2 rounded-full shrink-0 ${
                               nocClearedCount === 4
@@ -1008,7 +1008,7 @@ HR Operations Team`,
                       <p className="text-xs text-slate-500">Human Resources & Payroll Operations</p>
                     </div>
                     <div className="text-right">
-                      <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-md">
+                      <span className="text-xs font-bold text-rose-600 bg-rose-50 px-3 py-1 rounded-full border border-rose-200">
                         FULL & FINAL SETTLEMENT STATEMENT
                       </span>
                       <p className="text-xs text-slate-400 mt-1">Ref: {selectedRecord.id}</p>
@@ -1234,13 +1234,13 @@ HR Operations Team`,
                   <button
                     type="button"
                     onClick={() => setShowInitiateModal(false)}
-                    className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                    className="px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors cursor-pointer"
+                    className="px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors cursor-pointer"
                   >
                     Submit &amp; Open Clearances
                   </button>
@@ -1418,14 +1418,14 @@ HR Operations Team`,
                   <button
                     type="button"
                     onClick={() => setShowSendUpdateModal(false)}
-                    className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                    className="px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSendingUpdate || (!sendEmailChannel && !sendPortalChannel)}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 disabled:bg-slate-300 text-white shadow-xs transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 disabled:bg-slate-300 text-white shadow-xs transition-colors cursor-pointer"
                   >
                     <IconSend className="w-4 h-4" />
                     <span>{isSendingUpdate ? 'Dispatching...' : 'Dispatch Update Now'}</span>

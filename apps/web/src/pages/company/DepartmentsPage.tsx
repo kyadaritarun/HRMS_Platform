@@ -320,7 +320,7 @@ export const DepartmentsPage: React.FC = () => {
         {/* Primary CTA: Add Department */}
         <button
           onClick={handleOpenAddModal}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white text-xs font-bold shadow-xs hover:shadow-md transition-all cursor-pointer shrink-0"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer shrink-0"
         >
           <IconPlus className="w-4 h-4" />
           <span>Create</span>
@@ -377,7 +377,7 @@ export const DepartmentsPage: React.FC = () => {
         </div>
 
         {/* Table Structure */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto border border-slate-200/80 rounded-2xl shadow-2xs overflow-hidden">
           <table className="w-full text-left text-xs">
             <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
@@ -439,7 +439,7 @@ export const DepartmentsPage: React.FC = () => {
                               {dept.name}
                             </span>
                             {isDeactivated && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 font-medium">
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-semibold">
                                 Deactivated
                               </span>
                             )}
@@ -734,9 +734,9 @@ export const DepartmentsPage: React.FC = () => {
 
         const getWorkModeBadge = (workMode?: string) => {
           if (workMode === 'REMOTE' || workMode === 'WFH') {
-            return <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-emerald-50 text-emerald-700">Work From Home</span>;
+            return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">Work From Home</span>;
           }
-          return <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-blue-50 text-blue-700">Office</span>;
+          return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/60">Office</span>;
         };
 
         return (

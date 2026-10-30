@@ -563,7 +563,7 @@ export const CompanyDashboard: React.FC = () => {
                 <select
                   value={attendanceFilter}
                   onChange={(e) => setAttendanceFilter(e.target.value as 'Today' | 'This Month')}
-                  className="px-2.5 py-1 pr-6 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer appearance-none outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-1.5 pr-7 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer appearance-none outline-none focus:ring-1 focus:ring-indigo-500"
                 >
                   <option value="Today">Today</option>
                   <option value="This Month">This Month</option>
@@ -702,7 +702,7 @@ export const CompanyDashboard: React.FC = () => {
               <div className="flex items-center gap-2">
                 <IconCake className="w-4 h-4 text-pink-600" />
                 <h3 className="font-bold text-slate-900 text-sm">Employee Birthdays</h3>
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-pink-50 text-pink-700 border border-pink-200/60" title="Birthday greeting emails are automatically sent by server">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-pink-50 text-pink-700 border border-pink-200/60" title="Birthday greeting emails are automatically sent by server">
                   Auto Email
                 </span>
               </div>
@@ -767,7 +767,7 @@ export const CompanyDashboard: React.FC = () => {
               <div className="flex items-center gap-2">
                 <IconGift className="w-4 h-4 text-purple-600" />
                 <h3 className="font-bold text-slate-900 text-sm">Upcoming Events</h3>
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-[#5E4BE2] border border-indigo-200/60" title="Holiday announcement emails are automatically sent by server once configured">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-[#5E4BE2] border border-indigo-200/60" title="Holiday announcement emails are automatically sent by server once configured">
                   Auto Email
                 </span>
               </div>
@@ -1162,7 +1162,7 @@ export const CompanyDashboard: React.FC = () => {
                 <p className="text-xs text-slate-400 mt-0.5">Create departments to visualize employee distribution.</p>
                 <button
                   onClick={() => navigate('/company/departments')}
-                  className="mt-3 px-3 py-1.5 bg-[#5E4BE2] text-white text-xs font-bold rounded-xl"
+                  className="mt-3 px-3.5 py-2 bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
                 >
                   + Add Department
                 </button>

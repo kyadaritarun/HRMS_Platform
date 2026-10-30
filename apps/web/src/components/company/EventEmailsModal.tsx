@@ -314,14 +314,14 @@ export const EventEmailsModal: React.FC<EventEmailsModalProps> = ({ isOpen, onCl
         <div className="p-4 sm:p-5 border-t border-slate-100 flex items-center justify-end gap-3 bg-slate-50/80 shrink-0">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200/60 transition-colors cursor-pointer"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 border border-slate-200 bg-white hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer"
           >
             Close
           </button>
           <button
             onClick={handleSave}
             disabled={isSaving || isLoading}
-            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer disabled:opacity-60"
           >
             {isSaving && <IconLoader2 className="w-4 h-4 animate-spin" />}
             <span>Save Configuration</span>
