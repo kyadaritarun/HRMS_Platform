@@ -22,6 +22,7 @@ import {
   IconExternalLink,
   IconPaperclip,
   IconDownload,
+  IconBuildingSkyscraper,
 } from '@tabler/icons-react';
 
 interface ApprovalRequest {
@@ -306,45 +307,31 @@ export const ApprovalsDeskPage: React.FC = () => {
 
           {/* Right Controls: Scope, Category & Status */}
           <div className="flex flex-wrap items-center gap-2.5">
-            {/* Scope Toggle for HR / Admin */}
+            {/* Scope Dropdown for HR / Admin */}
             {isAdminOrHr && (
-              <div className="flex items-center bg-slate-50 border border-slate-200 p-1 rounded-xl shrink-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setScope('company');
+              <div className="relative shrink-0">
+                <select
+                  value={scope}
+                  onChange={(e) => {
+                    setScope(e.target.value as 'company' | 'assigned');
                     setCurrentPage(1);
                   }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    scope === 'company'
-                      ? 'bg-white text-[#5E4BE2] shadow-xs'
-                      : 'text-slate-500 hover:text-slate-800'
-                  }`}
+                  className="appearance-none pl-8 pr-7 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-[#5E4BE2] text-slate-700 cursor-pointer shadow-2xs hover:border-slate-300 transition-colors"
                 >
-                  All Company
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setScope('assigned');
-                    setCurrentPage(1);
-                  }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    scope === 'assigned'
-                      ? 'bg-white text-[#5E4BE2] shadow-xs'
-                      : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  Assigned to Me
-                </button>
+                  <option value="company">All Company</option>
+                  <option value="assigned">Assigned to Me</option>
+                </select>
+                <IconBuildingSkyscraper className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             )}
+
             {/* Request Type Dropdown */}
             <div className="relative shrink-0">
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="appearance-none pl-8 pr-7 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-[#5E4BE2] text-slate-700 cursor-pointer"
+                className="appearance-none pl-8 pr-7 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-[#5E4BE2] text-slate-700 cursor-pointer shadow-2xs hover:border-slate-300 transition-colors"
               >
                 <option value="">All Request Types</option>
                 <option value="LEAVE">Leaves</option>
@@ -357,29 +344,20 @@ export const ApprovalsDeskPage: React.FC = () => {
               <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
-            {/* Status Segmented Buttons */}
-            <div className="flex items-center bg-slate-50 border border-slate-200 p-1 rounded-xl shrink-0">
-              {[
-                { id: 'PENDING', label: 'Pending' },
-                { id: 'APPROVED', label: 'Approved' },
-                { id: 'REJECTED', label: 'Rejected' },
-                { id: 'ALL', label: 'All' },
-              ].map((st) => {
-                const isActive = selectedStatus === st.id;
-                return (
-                  <button
-                    key={st.id}
-                    onClick={() => setSelectedStatus(st.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      isActive
-                        ? 'bg-white text-[#5E4BE2] shadow-xs'
-                        : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    {st.label}
-                  </button>
-                );
-              })}
+            {/* Status Dropdown */}
+            <div className="relative shrink-0">
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="appearance-none pl-8 pr-7 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-[#5E4BE2] text-slate-700 cursor-pointer shadow-2xs hover:border-slate-300 transition-colors"
+              >
+                <option value="PENDING">Pending</option>
+                <option value="APPROVED">Approved</option>
+                <option value="REJECTED">Rejected</option>
+                <option value="ALL">All</option>
+              </select>
+              <IconChecklist className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
         </div>

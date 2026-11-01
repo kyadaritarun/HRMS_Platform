@@ -573,6 +573,72 @@ router.put('/event-emails/settings', roleGuard('COMPANY_ADMIN', 'HR'), async (re
   }
 });
 
+// GET /company/sidebar-operations
+router.get('/sidebar-operations', roleGuard('COMPANY_ADMIN'), async (req, res, next) => {
+  try {
+    const companyId = req.user!.companyId!;
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { settings: true },
+    });
+    const settings = (company?.settings as any) || {};
+    const sidebarOperations = {
+      hr_operations: settings.sidebarOperations?.hr_operations !== false,
+      it_operations: settings.sidebarOperations?.it_operations !== false,
+      finance_operations: settings.sidebarOperations?.finance_operations !== false,
+    };
+    return res.json({ success: true, sidebarOperations });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PUT /company/sidebar-operations
+router.put('/sidebar-operations', roleGuard('COMPANY_ADMIN'), async (req, res, next) => {
+  try {
+    const companyId = req.user!.companyId!;
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { settings: true },
+    });
+    const currentSettings = (company?.settings as any) || {};
+    const updatedSidebarOps = {
+      hr_operations: req.body.hr_operations !== false,
+      it_operations: req.body.it_operations !== false,
+      finance_operations: req.body.finance_operations !== false,
+    };
+
+    const newSettings = {
+      ...currentSettings,
+      sidebarOperations: updatedSidebarOps,
+    };
+
+    await prisma.company.update({
+      where: { id: companyId },
+      data: {
+        settings: newSettings,
+      },
+    });
+
+    await logActivity({
+      companyId,
+      actorId: req.user!.id,
+      action: 'UPDATE_SIDEBAR_OPERATIONS',
+      objectType: 'CompanySettings',
+      objectId: String(companyId),
+      message: `${req.user!.firstName} updated company sidebar operation modules visibility`,
+    });
+
+    return res.json({
+      success: true,
+      message: 'Sidebar operations settings saved to database successfully.',
+      sidebarOperations: updatedSidebarOps,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // POST /company/event-emails/trigger-test
 router.post('/event-emails/trigger-test', roleGuard('COMPANY_ADMIN', 'HR'), async (req, res, next) => {
   try {

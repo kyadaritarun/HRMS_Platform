@@ -750,35 +750,32 @@ export const NewEmployeePage: React.FC = () => {
             title="Download Sample Excel Format (.xlsx)"
           >
             <IconFileSpreadsheet className="w-4 h-4 text-emerald-600" />
-            <span>{isDownloadingTemplate ? 'Downloading...' : 'Download Sample'}</span>
+            <span>{isDownloadingTemplate ? 'Downloading...' : 'Sample'}</span>
             <IconDownload className="w-3.5 h-3.5 text-emerald-700" />
           </button>
 
-          {/* Mode Switcher */}
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/70">
-            <button
-              type="button"
-              onClick={() => setOnboardingMode('single')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${onboardingMode === 'single'
-                ? 'bg-white text-slate-900 shadow-2xs'
-                : 'text-slate-500 hover:text-slate-800'
-                }`}
-            >
-              <IconUser className="w-3.5 h-3.5" />
-              <span>Single Form</span>
-            </button>
+          {/* Action Button: Bulk Upload by default, or Single Form if in bulk mode */}
+          {onboardingMode === 'single' ? (
             <button
               type="button"
               onClick={() => setOnboardingMode('bulk')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${onboardingMode === 'bulk'
-                ? 'bg-white text-[#5E4BE2] shadow-2xs'
-                : 'text-slate-500 hover:text-slate-800'
-                }`}
+              className="flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-200/90 shadow-2xs transition-all cursor-pointer active:scale-[0.98]"
+              title="Bulk Import Employees via Excel"
             >
-              <IconFileSpreadsheet className="w-3.5 h-3.5" />
+              <IconFileSpreadsheet className="w-4 h-4 text-[#5E4BE2]" />
               <span>Bulk Upload</span>
             </button>
-          </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setOnboardingMode('single')}
+              className="flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-200/90 shadow-2xs transition-all cursor-pointer active:scale-[0.98]"
+              title="Switch to Single Employee Form"
+            >
+              <IconUser className="w-4 h-4 text-[#5E4BE2]" />
+              <span>Single Form</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -786,6 +783,7 @@ export const NewEmployeePage: React.FC = () => {
         <BulkEmployeeImport
           onDownloadTemplate={handleDownloadTemplate}
           isDownloadingTemplate={isDownloadingTemplate}
+          onSwitchToSingle={() => setOnboardingMode('single')}
         />
       ) : (
         <>
@@ -1069,9 +1067,9 @@ export const NewEmployeePage: React.FC = () => {
                         to="/company/shift-roster"
                         target="_blank"
                         className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1"
-                        title="Add or configure shifts in Shift & Roster"
+                        title="Add or configure shifts in Shift Management"
                       >
-                        <span>Manage in Shift & Roster</span>
+                        <span>Create Shift</span>
                         <IconExternalLink className="w-3 h-3" />
                       </Link>
                     </div>
@@ -1091,7 +1089,7 @@ export const NewEmployeePage: React.FC = () => {
                           {loadingShifts
                             ? '-- Loading shifts from database... --'
                             : companyShifts.length === 0
-                              ? '-- No Shifts Configured in Shift & Roster --'
+                              ? '-- No Shifts Configured in Shift Management --'
                               : '-- Select Shift Timing --'}
                         </option>
                         {companyShifts.map((s) => {

@@ -27,6 +27,7 @@ export interface Company {
   logo?: string | null;
   workingDays?: string;
   timezone?: string;
+  settings?: any;
 }
 
 interface AuthContextType {

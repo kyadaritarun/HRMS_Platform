@@ -336,7 +336,7 @@ export const DepartmentsPage: React.FC = () => {
               <IconUsers className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-900">All Departments</h2>
+              <h2 className="text-sm font-bold text-slate-900">Department Directory</h2>
               <p className="text-xs text-slate-400 mt-0.5">View and manage all departments in your organization.</p>
             </div>
           </div>

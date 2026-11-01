@@ -18,6 +18,7 @@ import {
   IconBriefcase,
   IconSun,
   IconDownload,
+  IconFilter,
 } from '@tabler/icons-react';
 
 interface CompOffRequest {
@@ -483,81 +484,72 @@ export const MyCompOffPage: React.FC = () => {
       {/* ===================== MAIN TABLE CARD ===================== */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
         {/* Search & Filter Toolbar */}
-        <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
-          <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center flex-1 max-w-xl">
-            {/* Search Input */}
-            <div className="relative flex-1">
-              <IconSearch className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search by occasion, reason, or approver..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800 placeholder-slate-400"
-              />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                >
-                  <IconX className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-
-            {/* Occasion Type Filter */}
-            <div className="flex items-center bg-slate-50 border border-slate-200 p-1 rounded-xl shrink-0">
+        <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+          {/* Search Input */}
+          <div className="relative flex-1">
+            <IconSearch className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search by occasion, reason, or approver..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800 placeholder-slate-400 transition-all"
+            />
+            {search && (
               <button
-                onClick={() => setTypeFilter('ALL')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                  typeFilter === 'ALL'
-                    ? 'bg-white text-[#5E4BE2] shadow-2xs font-bold'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
+                type="button"
+                onClick={() => {
+                  setSearch('');
+                  setCurrentPage(1);
+                }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
               >
-                All
+                <IconX className="w-3.5 h-3.5" />
               </button>
-              <button
-                onClick={() => setTypeFilter('WEEKEND')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                  typeFilter === 'WEEKEND'
-                    ? 'bg-white text-[#5E4BE2] shadow-2xs font-bold'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                Weekend
-              </button>
-              <button
-                onClick={() => setTypeFilter('HOLIDAY')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                  typeFilter === 'HOLIDAY'
-                    ? 'bg-white text-[#5E4BE2] shadow-2xs font-bold'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                Holiday
-              </button>
-            </div>
+            )}
           </div>
 
-          {/* Status Filter Tabs */}
-          <div className="flex items-center bg-slate-50 border border-slate-200 p-1 rounded-xl shrink-0">
-            {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setStatusFilter(tab)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                  statusFilter === tab
-                    ? 'bg-white text-[#5E4BE2] shadow-2xs font-bold'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
+          {/* Right Controls: Occasion Dropdown & Status Dropdown */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Occasion / Work Type Dropdown */}
+            <div className="relative shrink-0">
+              <select
+                value={typeFilter}
+                onChange={(e) => {
+                  setTypeFilter(e.target.value as any);
+                  setCurrentPage(1);
+                }}
+                className="appearance-none pl-8 pr-8 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-[#5E4BE2] text-slate-700 cursor-pointer shadow-2xs hover:border-slate-300 transition-colors"
               >
-                {tab === 'ALL'
-                  ? 'All Status'
-                  : tab.charAt(0) + tab.slice(1).toLowerCase()}
-              </button>
-            ))}
+                <option value="ALL">All</option>
+                <option value="WEEKEND">Weekend</option>
+                <option value="HOLIDAY">Holiday</option>
+              </select>
+              <IconCalendar className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+
+            {/* Status Filter Dropdown */}
+            <div className="relative shrink-0">
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value as any);
+                  setCurrentPage(1);
+                }}
+                className="appearance-none pl-8 pr-8 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-[#5E4BE2] text-slate-700 cursor-pointer shadow-2xs hover:border-slate-300 transition-colors"
+              >
+                <option value="ALL">All Status</option>
+                <option value="PENDING">Pending</option>
+                <option value="APPROVED">Approved</option>
+                <option value="REJECTED">Rejected</option>
+              </select>
+              <IconFilter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
           </div>
         </div>
 

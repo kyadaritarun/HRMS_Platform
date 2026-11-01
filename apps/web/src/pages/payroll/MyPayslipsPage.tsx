@@ -380,16 +380,16 @@ export const MyPayslipsPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleViewPayslip(p)}
-                            className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-[#5E4BE2] font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                            className="p-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 text-[#5E4BE2] transition-colors cursor-pointer shadow-2xs"
+                            title="View & Print"
                           >
-                            <IconEye className="w-3.5 h-3.5" />
-                            <span>View &amp; Print</span>
+                            <IconEye className="w-4 h-4" />
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDownloadPdf(p.id, p.month, p.year)}
                             disabled={downloadingId === p.id}
-                            className="p-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs transition-colors cursor-pointer disabled:opacity-50"
+                            className="p-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer disabled:opacity-50 shadow-2xs"
                             title="Download PDF"
                           >
                             <IconDownload className="w-4 h-4" />

@@ -3,6 +3,11 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, UserRole } from '../../context/AuthContext';
 import { LockedFeatureModal } from '../LockedFeatureModal';
 import {
+  SidebarOpsVisibility,
+  getSidebarOpsVisibility,
+  SIDEBAR_OPS_EVENT,
+} from '../../utils/sidebarPreferences';
+import {
   IconSmartHome,
   IconUsers,
   IconUserPlus,
@@ -69,6 +74,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
 
   const [openCategoryId, setOpenCategoryId] = useState<string | null>(null);
   const [lockedModal, setLockedModal] = useState<{ open: boolean; featureName?: string }>({ open: false });
+
+  // Company admin custom visibility preferences for operations modules
+  const [sidebarOpsPrefs, setSidebarOpsPrefs] = useState<SidebarOpsVisibility>(() =>
+    getSidebarOpsVisibility(user?.id, company?.settings)
+  );
+
+  useEffect(() => {
+    setSidebarOpsPrefs(getSidebarOpsVisibility(user?.id, company?.settings));
+
+    const handlePrefsChange = () => {
+      setSidebarOpsPrefs(getSidebarOpsVisibility(user?.id, company?.settings));
+    };
+
+    window.addEventListener(SIDEBAR_OPS_EVENT, handlePrefsChange);
+    window.addEventListener('storage', handlePrefsChange);
+
+    return () => {
+      window.removeEventListener(SIDEBAR_OPS_EVENT, handlePrefsChange);
+      window.removeEventListener('storage', handlePrefsChange);
+    };
+  }, [user?.id, company?.settings]);
 
   // Distinct, non-overlapping categories based on user role
   const categories: NavCategory[] = useMemo(() => {
@@ -164,7 +190,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           subItems: [
             // Step 1: Setup prerequisites before adding users
             { label: 'Departments', path: '/company/departments', icon: IconBriefcase },
-            { label: 'Shift & Roster', path: '/company/shift-roster', icon: IconClock },
+            { label: 'Shift Management', path: '/company/shift-roster', icon: IconClock },
             { label: 'Holiday Calendar', path: '/company/holidays', icon: IconCalendarEvent, feature: 'holiday_calendar' },
             { label: 'Leave Types', path: '/company/leaves/types', icon: IconFileCertificate, feature: 'leave_management' },
             { label: 'Manage Policies', path: '/company/policies/manage', icon: IconFileText, feature: 'policy_documents_management' },
@@ -317,9 +343,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
 
   if (!user) return null;
 
-  // Filter categories and sub-items based on manager status & HR permissions
+  // Filter categories and sub-items based on manager status & HR permissions & company admin preferences
   const filteredCategories = categories
     .filter((cat) => cat.roles.includes(user.role))
+    .filter((cat) => {
+      // If user is COMPANY_ADMIN, check configurable operation modules visibility
+      if (user.role === 'COMPANY_ADMIN') {
+        if (cat.id === 'hr_operations' && !sidebarOpsPrefs.hr_operations) return false;
+        if (cat.id === 'it_operations' && !sidebarOpsPrefs.it_operations) return false;
+        if (cat.id === 'finance_operations' && !sidebarOpsPrefs.finance_operations) return false;
+      }
+      return true;
+    })
     .map((cat) => {
       if (!cat.subItems) return cat;
 

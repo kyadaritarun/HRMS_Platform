@@ -108,13 +108,7 @@ export const TermsAndConditionsModal: React.FC<LegalModalProps> = ({ isOpen, onC
             <IconScale className="w-4 h-4 text-slate-400" />
             <span>Governed under enterprise subscription terms.</span>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
-          >
-            <span>Close Agreement</span>
-          </button>
+          
         </div>
       </div>
     </div>,
@@ -217,13 +211,6 @@ export const PrivacyPolicyModal: React.FC<LegalModalProps> = ({ isOpen, onClose 
             <IconServer className="w-4 h-4 text-emerald-600" />
             <span>Encrypted &amp; securely isolated per tenant.</span>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
-          >
-            <span>Close Privacy Policy</span>
-          </button>
         </div>
       </div>
     </div>,

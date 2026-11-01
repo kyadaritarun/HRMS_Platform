@@ -463,7 +463,7 @@ export const CompanyBillingPage: React.FC = () => {
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
               <IconReceipt2 className="w-5 h-5 text-indigo-600 shrink-0" />
-              <span>Subscription & Billing</span>
+              <span>Billing</span>
             </h1>
            
             <span

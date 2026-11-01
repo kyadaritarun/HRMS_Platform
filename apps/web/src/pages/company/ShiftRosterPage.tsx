@@ -438,7 +438,7 @@ export const ShiftRosterPage: React.FC = () => {
             <div>
               <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
                 <IconClock className="w-5 h-5 text-indigo-600 shrink-0" />
-                <span>Shift & Roster Management</span>
+                <span>Shift Management</span>
               </h1>
               <p className="text-xs text-slate-500 mt-0.5">
                 Configure rotational shifts, morning/night hours, grace periods, and weekly employee roster planning.
@@ -451,7 +451,7 @@ export const ShiftRosterPage: React.FC = () => {
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs transition-all cursor-pointer"
               >
                 <IconSettings className="w-4 h-4 text-indigo-600" />
-                <span>Shift Rules</span>
+                <span>Shift Configuration</span>
               </button>
             </div>
           </>
@@ -468,7 +468,7 @@ export const ShiftRosterPage: React.FC = () => {
               <div>
                 <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
                   <IconSettings className="w-5 h-5 text-indigo-600 shrink-0" />
-                  <span>Shift Master & Rules</span>
+                  <span>Shift Configuration</span>
                 </h1>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Configure standardized work timings, automated grace periods for check-in delays, and overtime multipliers.
@@ -482,7 +482,7 @@ export const ShiftRosterPage: React.FC = () => {
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
               >
                 <IconPlus className="w-4 h-4" />
-                <span>Create Custom Shift</span>
+                <span>Create Shift</span>
               </button>
             </div>
           </>
@@ -1065,7 +1065,7 @@ export const ShiftRosterPage: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-slate-900">
-                      {editingShift ? `Edit Shift: ${editingShift.name}` : 'Create Custom Shift'}
+                      {editingShift ? `Edit Shift: ${editingShift.name}` : 'Create Shift'}
                     </h3>
                     <p className="text-xs text-slate-500">
                       {editingShift
@@ -1216,7 +1216,7 @@ export const ShiftRosterPage: React.FC = () => {
                     className="px-5 py-2 font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs cursor-pointer transition-all active:scale-95 text-xs flex items-center gap-1.5 disabled:opacity-50"
                   >
                     {isSavingShift && <IconLoader2 className="w-3.5 h-3.5 animate-spin" />}
-                    <span>{isSavingShift ? 'Saving to Database...' : editingShift ? 'Save Changes' : 'Create Shift'}</span>
+                    <span>{isSavingShift ? 'Saving to Database...' : editingShift ? 'Save Changes' : 'Create'}</span>
                   </button>
                 </div>
               </form>

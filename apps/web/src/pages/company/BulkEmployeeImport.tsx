@@ -15,6 +15,7 @@ import {
   IconCopy,
   IconRefresh,
   IconUserCheck,
+  IconUser,
   IconArrowRight,
   IconSparkles,
   IconChevronLeft,
@@ -108,11 +109,13 @@ const parseExcelDate = (val: any): string => {
 interface BulkEmployeeImportProps {
   onDownloadTemplate: () => void;
   isDownloadingTemplate?: boolean;
+  onSwitchToSingle?: () => void;
 }
 
 export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
   onDownloadTemplate,
   isDownloadingTemplate,
+  onSwitchToSingle,
 }) => {
   const { user } = useAuth();
   const isCompanyAdmin = user?.role === 'COMPANY_ADMIN' || user?.role === 'PRODUCT_SUPER_ADMIN';
@@ -504,7 +507,17 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
             </p>
           </div>
 
-         
+          {onSwitchToSingle && (
+            <button
+              type="button"
+              onClick={onSwitchToSingle}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-2xs transition-all cursor-pointer shrink-0"
+              title="Return to Single Employee Form"
+            >
+              <IconUser className="w-3.5 h-3.5 text-[#5E4BE2]" />
+              <span>Back to Single Form</span>
+            </button>
+          )}
         </div>
 
         {/* Upload Dropzone */}

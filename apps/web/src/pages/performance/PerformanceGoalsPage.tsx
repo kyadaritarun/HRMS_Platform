@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../../api/client';
 import {
   IconTarget,
@@ -427,165 +428,218 @@ export const PerformanceGoalsPage: React.FC = () => {
         )}
       </div>
 
-      {/* New Goal Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2]">
-                  <IconTarget className="w-4.5 h-4.5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">Define Performance Objective</h3>
-                  <p className="text-xs text-slate-500">
-                    Submit a key result or OKR to your manager for quarterly evaluation.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+      {/* ===================== DEFINE PERFORMANCE OBJECTIVE RIGHT-SIDE DRAWER ===================== */}
+      {isModalOpen && typeof document !== 'undefined' ? (
+        createPortal(
+          <div className="fixed inset-0 z-[9999] overflow-hidden">
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in cursor-pointer"
+              onClick={() => setIsModalOpen(false)}
+            />
+
+            {/* Slide-over Right Sidebar Panel */}
+            <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+              <div
+                className="w-screen max-w-md sm:max-w-lg bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 pointer-events-auto animate-in slide-in-from-right duration-300 overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
               >
-                <IconX className="w-4 h-4" />
-              </button>
+                {/* Header */}
+                <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0 shadow-2xs">
+                      <IconTarget className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 leading-tight">
+                        Performance Objective
+                      </h3>
+                      <p className="text-xs text-slate-400 font-medium mt-0.5">
+                        Submit a key result or OKR to your manager for quarterly evaluation.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                    title="Close panel"
+                  >
+                    <IconX className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {error && (
+                  <div className="mx-6 mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium flex items-center gap-2 shrink-0">
+                    <IconAlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                )}
+
+                {/* Form Body - scrollable */}
+                <form onSubmit={handleCreate} className="flex flex-col flex-1 min-h-0">
+                  <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Objective Title <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={form.title}
+                        onChange={(e) => setForm({ ...form, title: e.target.value })}
+                        placeholder="e.g. Optimize API latency by 40% & achieve 99.9% uptime"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Key Results & Success Metrics <span className="text-rose-500">*</span>
+                      </label>
+                      <textarea
+                        required
+                        rows={4}
+                        value={form.reason}
+                        onChange={(e) => setForm({ ...form, reason: e.target.value })}
+                        placeholder="Detail the measurable metrics, deliverables, and targets..."
+                        className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all resize-none"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Target Completion Date</label>
+                        <input
+                          type="date"
+                          required
+                          value={form.endDate}
+                          onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Weightage (%)</label>
+                        <input
+                          type="number"
+                          min="5"
+                          max="100"
+                          value={form.weight}
+                          onChange={(e) => setForm({ ...form, weight: Number(e.target.value) || 25 })}
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Drawer Footer */}
+                  <div className="p-4 px-6 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end gap-2.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setIsModalOpen(false)}
+                      className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] disabled:opacity-50 transition-all shadow-sm shadow-indigo-600/25 cursor-pointer"
+                    >
+                      {isSubmitting ? 'Submitting...' : 'Submit Goal'}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
+          </div>,
+          document.body
+        )
+      ) : null}
 
-            {error && (
-              <div className="mx-6 mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium flex items-center gap-2">
-                <IconAlertCircle className="w-4 h-4 shrink-0" />
-                {error}
-              </div>
-            )}
+      {/* ===================== COMMENT / PROGRESS NOTE RIGHT-SIDE DRAWER ===================== */}
+      {commentModal.open && typeof document !== 'undefined' ? (
+        createPortal(
+          <div className="fixed inset-0 z-[9999] overflow-hidden">
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in cursor-pointer"
+              onClick={() => setCommentModal({ open: false, note: '' })}
+            />
 
-            <form onSubmit={handleCreate} className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Objective Title <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  placeholder="e.g. Optimize API latency by 40% & achieve 99.9% uptime"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Key Results & Success Metrics <span className="text-rose-500">*</span>
-                </label>
-                <textarea
-                  required
-                  rows={3}
-                  value={form.reason}
-                  onChange={(e) => setForm({ ...form, reason: e.target.value })}
-                  placeholder="Detail the measurable metrics, deliverables, and targets..."
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] resize-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Target Completion Date</label>
-                  <input
-                    type="date"
-                    required
-                    value={form.endDate}
-                    onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Weightage (%)</label>
-                  <input
-                    type="number"
-                    min="5"
-                    max="100"
-                    value={form.weight}
-                    onChange={(e) => setForm({ ...form, weight: Number(e.target.value) || 25 })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] disabled:opacity-50 transition-all shadow-sm shadow-indigo-600/25 cursor-pointer"
-                >
-                  {isSubmitting ? 'Submitting...' : 'Submit Goal for Approval'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Comment / Progress Note Modal */}
-      {commentModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2]">
-                  <IconMessageCircle className="w-4.5 h-4.5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">Add Milestone Progress Note</h3>
-                  <p className="text-xs text-slate-500">
-                    Record an update or milestone achievement towards this objective.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setCommentModal({ open: false, note: '' })}
-                className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+            {/* Slide-over Right Sidebar Panel */}
+            <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+              <div
+                className="w-screen max-w-md sm:max-w-md bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 pointer-events-auto animate-in slide-in-from-right duration-300 overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
               >
-                <IconX className="w-4 h-4" />
-              </button>
+                {/* Header */}
+                <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0 shadow-2xs">
+                      <IconMessageCircle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 leading-tight">
+                        Add Milestone Progress Note
+                      </h3>
+                      <p className="text-xs text-slate-400 font-medium mt-0.5">
+                        Record an update or milestone achievement towards this objective.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCommentModal({ open: false, note: '' })}
+                    className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                    title="Close panel"
+                  >
+                    <IconX className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Form Body */}
+                <form onSubmit={handleAddComment} className="flex flex-col flex-1 min-h-0">
+                  <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Progress Update Note <span className="text-rose-500">*</span>
+                      </label>
+                      <textarea
+                        required
+                        rows={5}
+                        value={commentModal.note}
+                        onChange={(e) => setCommentModal({ ...commentModal, note: e.target.value })}
+                        placeholder="e.g. Completed initial database index optimization; latency reduced by 22%."
+                        className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Drawer Footer */}
+                  <div className="p-4 px-6 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end gap-2.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setCommentModal({ open: false, note: '' })}
+                      className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] transition-all shadow-sm shadow-indigo-600/25 cursor-pointer"
+                    >
+                      Save Progress Note
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
-            <form onSubmit={handleAddComment} className="p-6 space-y-4">
-              <div>
-                <textarea
-                  required
-                  rows={3}
-                  value={commentModal.note}
-                  onChange={(e) => setCommentModal({ ...commentModal, note: e.target.value })}
-                  placeholder="e.g. Completed initial database index optimization; latency reduced by 22%."
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] resize-none"
-                />
-              </div>
-              <div className="flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setCommentModal({ open: false, note: '' })}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] transition-all shadow-sm shadow-indigo-600/25 cursor-pointer"
-                >
-                  Save Progress Note
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )
+      ) : null}
     </div>
   );
 };

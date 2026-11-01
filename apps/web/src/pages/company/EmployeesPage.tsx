@@ -29,6 +29,7 @@ import {
   IconHistory,
 } from '@tabler/icons-react';
 import { ShiftTiming, formatShiftOption } from '../../utils/shifts';
+import { getAvatarColor } from '../../utils/avatarColors';
 
 interface Employee {
   id: number;
@@ -750,8 +751,9 @@ export const EmployeesPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                paginatedEmployees.map((emp) => {
+                paginatedEmployees.map((emp, empIdx) => {
                   const initials = `${emp.firstName?.[0] || ''}${emp.lastName?.[0] || ''}`.toUpperCase();
+                  const avatarColor = getAvatarColor(emp.firstName + ' ' + emp.lastName, empIdx);
                   return (
                     <tr
                       key={emp.id}
@@ -760,7 +762,7 @@ export const EmployeesPage: React.FC = () => {
                       {/* Employee Name & Email */}
                       <td className="px-5 py-3.5 whitespace-nowrap">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#5E4BE2] to-indigo-500 text-white flex items-center justify-center font-bold text-xs shadow-2xs overflow-hidden shrink-0 relative">
+                          <div className={`w-9 h-9 rounded-xl ${avatarColor} flex items-center justify-center font-bold text-xs shadow-2xs overflow-hidden shrink-0 relative`}>
                             <span className="select-none">{initials || 'U'}</span>
                             {getEmployeePhotoUrl(emp.profilePhoto) && (
                               <img
@@ -922,7 +924,7 @@ export const EmployeesPage: React.FC = () => {
                 </button>
                 <div className="flex items-center gap-4">
                   <div className="relative group shrink-0">
-                    <div className="w-16 h-16 rounded-2xl bg-white text-[#5E4BE2] font-black text-xl flex items-center justify-center shadow-lg shrink-0 overflow-hidden relative border-2 border-white/60">
+                    <div className={`w-16 h-16 rounded-2xl ${getAvatarColor(selectedEmp.firstName + ' ' + selectedEmp.lastName)} font-black text-xl flex items-center justify-center shadow-lg shrink-0 overflow-hidden relative border-2 border-white/60`}>
                       <span className="select-none">
                         {selectedEmp.firstName?.[0]}
                         {selectedEmp.lastName?.[0]}
@@ -1204,7 +1206,7 @@ export const EmployeesPage: React.FC = () => {
                 </button>
                 <div className="flex items-center gap-3.5 pr-8">
                   <div className="relative shrink-0">
-                    <div className="w-13 h-13 rounded-2xl bg-white text-[#5E4BE2] font-black text-lg flex items-center justify-center shadow-md shrink-0 overflow-hidden relative border border-white/60">
+                    <div className={`w-13 h-13 rounded-2xl ${getAvatarColor(editTarget.firstName + ' ' + editTarget.lastName)} font-black text-lg flex items-center justify-center shadow-md shrink-0 overflow-hidden relative border border-white/60`}>
                       <span className="select-none">
                         {editTarget.firstName?.[0]}
                         {editTarget.lastName?.[0]}
@@ -1244,7 +1246,7 @@ export const EmployeesPage: React.FC = () => {
                   {/* Employee Image Upload / Change Section */}
                   <div className="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-200/80 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-12 h-12 rounded-xl bg-white text-[#5E4BE2] font-black text-sm flex items-center justify-center shadow-xs overflow-hidden relative border border-slate-200 shrink-0">
+                      <div className={`w-12 h-12 rounded-xl ${getAvatarColor(editTarget.firstName + ' ' + editTarget.lastName)} font-black text-sm flex items-center justify-center shadow-xs overflow-hidden relative border border-slate-200 shrink-0`}>
                         <span className="select-none">
                           {editTarget.firstName?.[0]}
                           {editTarget.lastName?.[0]}
@@ -1470,7 +1472,7 @@ export const EmployeesPage: React.FC = () => {
                           target="_blank"
                           className="text-[10px] font-semibold text-indigo-600 hover:text-indigo-800 hover:underline"
                         >
-                          Shift & Roster
+                          Shift Management
                         </Link>
                       </div>
                       <select

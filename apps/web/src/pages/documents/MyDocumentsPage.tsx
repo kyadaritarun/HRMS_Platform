@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../../api/client';
 import {
   IconFolder,
@@ -485,140 +486,167 @@ export const MyDocumentsPage: React.FC = () => {
         )}
       </div>
 
-      {/* 5. Upload / Re-upload Modal */}
-      {isUploadModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">
-                  {reuploadDocId ? 'Re-upload Corrected Document' : 'Upload New KYC Document'}
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Securely upload and submit official records for verification.
-                </p>
-              </div>
-              <button
-                onClick={() => setIsUploadModalOpen(false)}
-                className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+      {/* ===================== UPLOAD / RE-UPLOAD KYC DOCUMENT RIGHT-SIDE DRAWER ===================== */}
+      {isUploadModalOpen && typeof document !== 'undefined' ? (
+        createPortal(
+          <div className="fixed inset-0 z-[9999] overflow-hidden">
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in cursor-pointer"
+              onClick={() => setIsUploadModalOpen(false)}
+            />
+
+            {/* Slide-over Right Sidebar Panel */}
+            <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+              <div
+                className="w-screen max-w-md sm:max-w-lg bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 pointer-events-auto animate-in slide-in-from-right duration-300 overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
               >
-                <IconX className="w-4 h-4" />
-              </button>
-            </div>
-
-            {error && (
-              <div className="mx-5 mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium flex items-center gap-2">
-                <IconAlertCircle className="w-4 h-4 shrink-0" />
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleUploadSubmit} className="p-5 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Category</label>
-                  <select
-                    value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-[#5E4BE2]"
+                {/* Header */}
+                <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0 shadow-2xs">
+                      <IconUpload className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 leading-tight">
+                        {reuploadDocId ? 'Re-upload Corrected Document' : 'Upload New KYC Document'}
+                      </h3>
+                      <p className="text-xs text-slate-400 font-medium mt-0.5">
+                        Securely upload and submit official records for verification.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsUploadModalOpen(false)}
+                    className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                    title="Close panel"
                   >
-                    <option value="IDENTITY">National ID (Passport / SSN / Aadhaar)</option>
-                    <option value="EDUCATION">Education Degree / Marksheet</option>
-                    <option value="EXPERIENCE">Past Experience / Relieving</option>
-                    <option value="ONBOARDING">Company Compliance / Contract</option>
-                    <option value="OTHER">Other Proof</option>
-                  </select>
+                    <IconX className="w-5 h-5" />
+                  </button>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Document Title <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={form.title}
-                    onChange={(e) => setForm({ ...form, title: e.target.value })}
-                    placeholder="e.g. Passport, Master's Degree"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-[#5E4BE2]"
-                  />
-                </div>
-              </div>
+                {error && (
+                  <div className="mx-6 mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium flex items-center gap-2 shrink-0">
+                    <IconAlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                )}
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Document Identifier / Number</label>
-                <input
-                  type="text"
-                  value={form.identifier}
-                  onChange={(e) => setForm({ ...form, identifier: e.target.value })}
-                  placeholder="e.g. A12345678"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-[#5E4BE2]"
-                />
-              </div>
+                {/* Form Body - scrollable */}
+                <form onSubmit={handleUploadSubmit} className="flex flex-col flex-1 min-h-0">
+                  <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Category</label>
+                        <select
+                          value={form.category}
+                          onChange={(e) => setForm({ ...form, category: e.target.value })}
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all cursor-pointer"
+                        >
+                          <option value="IDENTITY">National ID (Passport / SSN / Aadhaar)</option>
+                          <option value="EDUCATION">Education Degree / Marksheet</option>
+                          <option value="EXPERIENCE">Past Experience / Relieving</option>
+                          <option value="ONBOARDING">Company Compliance / Contract</option>
+                          <option value="OTHER">Other Proof</option>
+                        </select>
+                      </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Issue Date</label>
-                  <input
-                    type="date"
-                    value={form.issueDate}
-                    onChange={(e) => setForm({ ...form, issueDate: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-[#5E4BE2]"
-                  />
-                </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Document Title <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={form.title}
+                          onChange={(e) => setForm({ ...form, title: e.target.value })}
+                          placeholder="e.g. Passport, Master's Degree"
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all"
+                        />
+                      </div>
+                    </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Expiry Date</label>
-                  <input
-                    type="date"
-                    value={form.expiryDate}
-                    onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-[#5E4BE2]"
-                  />
-                </div>
-              </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Document Identifier / Number</label>
+                      <input
+                        type="text"
+                        value={form.identifier}
+                        onChange={(e) => setForm({ ...form, identifier: e.target.value })}
+                        placeholder="e.g. A12345678"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all"
+                      />
+                    </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Attach File (PDF, PNG, JPG)</label>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,application/pdf"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 file:mr-3 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-[#5E4BE2] hover:file:bg-indigo-100 cursor-pointer"
-                />
-              </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Issue Date</label>
+                        <input
+                          type="date"
+                          value={form.issueDate}
+                          onChange={(e) => setForm({ ...form, issueDate: e.target.value })}
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all"
+                        />
+                      </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Notes / Additional Context</label>
-                <textarea
-                  rows={2}
-                  value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  placeholder="Optional context or comments for reviewer..."
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-[#5E4BE2]"
-                />
-              </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Expiry Date</label>
+                        <input
+                          type="date"
+                          value={form.expiryDate}
+                          onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all"
+                        />
+                      </div>
+                    </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsUploadModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] disabled:opacity-50 transition-all shadow-sm shadow-indigo-600/25 active:scale-[0.98] cursor-pointer"
-                >
-                  {isSubmitting ? 'Uploading...' : reuploadDocId ? 'Submit Update' : 'Upload Document'}
-                </button>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Attach File (PDF, PNG, JPG)</label>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,application/pdf"
+                        onChange={(e) => setFile(e.target.files?.[0] || null)}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 file:mr-3 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-[#5E4BE2] hover:file:bg-indigo-100 cursor-pointer"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Notes / Additional Context</label>
+                      <textarea
+                        rows={3}
+                        value={form.notes}
+                        onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                        placeholder="Optional context or comments for reviewer..."
+                        className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Drawer Footer */}
+                  <div className="p-4 px-6 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end gap-2.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setIsUploadModalOpen(false)}
+                      className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] disabled:opacity-50 transition-all shadow-sm shadow-indigo-600/25 active:scale-[0.98] cursor-pointer"
+                    >
+                      {isSubmitting ? 'Uploading...' : reuploadDocId ? 'Submit Update' : 'Upload Document'}
+                    </button>
+                  </div>
+                </form>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+            </div>
+          </div>,
+          document.body
+        )
+      ) : null}
     </div>
   );
 };

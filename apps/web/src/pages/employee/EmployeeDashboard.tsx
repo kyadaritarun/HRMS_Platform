@@ -27,6 +27,11 @@ import {
   IconAlertCircle,
   IconInfoCircle,
   IconCalculator,
+  IconCoffee,
+  IconStar,
+  IconCircleCheck,
+  IconCircleX,
+  IconCalendarStats,
 } from '@tabler/icons-react';
 import api from '../../api/client';
 import { getHolidayIcon } from '../../utils/holidayIcons';
@@ -164,6 +169,10 @@ export interface CalendarDayInfo {
   durationHours?: number;
   workMode?: 'WFO' | 'WFH';
   isHalfDayLeave?: boolean;
+  checkInTime?: string;
+  checkOutTime?: string;
+  holidayName?: string;
+  holidayType?: string;
 }
 
 const toLocalDateKey = (d: Date) => {
@@ -356,6 +365,8 @@ const getCalendarDays = (
         badgeText: 'H',
         shiftName: scheduledShiftName,
         shiftTiming: scheduledShiftTiming,
+        holidayName: holiday.name,
+        holidayType: holiday.type || 'Company',
       });
       continue;
     }
@@ -536,6 +547,8 @@ const getCalendarDays = (
           earlyExitMinutes,
           overtimeHours,
           durationHours,
+          checkInTime,
+          checkOutTime,
         });
         continue;
       }
@@ -564,6 +577,8 @@ const getCalendarDays = (
         overtimeHours,
         durationHours,
         isMissedPunch,
+        checkInTime,
+        checkOutTime,
       });
       continue;
     }
@@ -988,6 +1003,18 @@ export const EmployeeDashboard: React.FC = () => {
     );
   }, [calendarDays, selectedDateStr]);
 
+  // Interactive calendar filter state
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [hoveredFilter, setHoveredFilter] = useState<string | null>(null);
+
+  // Attendance rate score
+  const attendanceRate = useMemo(() => {
+    const totalRecorded = calendarCounts.present + calendarCounts.halfDay + calendarCounts.absent;
+    if (totalRecorded === 0) return null;
+    const effective = calendarCounts.present + calendarCounts.halfDay * 0.5;
+    return Math.round((effective / totalRecorded) * 100);
+  }, [calendarCounts]);
+
   const handlePrevMonth = () => {
     setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1));
   };
@@ -1210,30 +1237,233 @@ export const EmployeeDashboard: React.FC = () => {
     };
   }, [userShift, activeSession, todaySession, seconds, isShiftCompletedToday]);
 
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }, []);
+
+  const formattedDateStr = useMemo(() => {
+    return new Date().toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  }, []);
+
+  const totalAvailableLeaves = useMemo(() => {
+    return leaveBalances.reduce((sum, item) => sum + (Number(item.balance) || 0), 0);
+  }, [leaveBalances]);
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       {/* ===================== TOP HEADER BAR ===================== */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
-            <IconSmartHome className="w-5 h-5 text-indigo-600 shrink-0" />
-            <span>Dashboard</span>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <span>{greeting}, {user?.firstName || 'Employee'}</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Welcome back{user?.firstName ? `, ${user.firstName}` : ''}! Here is your personal activity, shift status, and shortcuts.
+          <p className="text-xs text-slate-500 font-medium mt-1">
+            {formattedDateStr} • {userShift?.shiftName ? userShift.shiftName.replace(/\(IST\)/i, '').trim() : 'General Shift'}
+            {userShift?.startTime12 && userShift?.endTime12 ? ` (${userShift.startTime12} – ${userShift.endTime12})` : ''}
+            {activeSession?.checkIn ? ' • Checked In at ' + new Date(activeSession.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
           </p>
+        </div>
+
+        {/* Quick Header Actions */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => navigate('/leaves')}
+            className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold border border-slate-200/80 shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <IconCalendarEvent className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Apply Leave</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/attendance')}
+            className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold border border-slate-200/80 shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <IconClock className="w-3.5 h-3.5 text-teal-600" />
+            <span>My Attendance</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ===================== 1. CLEAN EXECUTIVE KPI CARDS (LIGHT & NEAT) ===================== */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Today's Shift Hours */}
+        <div className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between space-y-3 group">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 border border-teal-100 flex items-center justify-center shrink-0">
+                <IconClock className="w-4 h-4 stroke-[2]" />
+              </div>
+              <span className="text-xs font-semibold text-slate-500">Today's Hours</span>
+            </div>
+            <span
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                activeSession
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200/70'
+                  : isShiftCompletedToday
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200/70'
+                    : 'bg-slate-50 text-slate-500 border-slate-200/70'
+              }`}
+            >
+              {activeSession ? 'In Progress' : isShiftCompletedToday ? 'Done' : 'Shift Pending'}
+            </span>
+          </div>
+
+          <div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-black text-slate-900 font-mono tracking-tight">
+                {shiftCalculator.loggedHours.toFixed(1)}h
+              </span>
+              <span className="text-xs text-slate-400 font-medium">/ {shiftCalculator.targetHours}h target</span>
+            </div>
+          </div>
+
+          {/* Mini Sparkline Dot Histogram */}
+          <div className="pt-2 border-t border-slate-100 flex items-end gap-1 h-5">
+            {[20, 45, 30, 80, 60, 95, 70, 85, 40, 65, 30, 50].map((h, i) => {
+              const activeCount = Math.min(12, Math.round((shiftCalculator.progressPercent / 100) * 12));
+              const isFilled = i < activeCount;
+              return (
+                <div
+                  key={i}
+                  className={`flex-1 rounded-sm transition-all duration-300 ${
+                    isFilled ? 'bg-teal-500' : 'bg-slate-100'
+                  }`}
+                  style={{ height: `${h}%` }}
+                />
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Card 2: Monthly Attendance */}
+        <div className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between space-y-3 group">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0">
+                <IconCircleCheck className="w-4 h-4 stroke-[2]" />
+              </div>
+              <span className="text-xs font-semibold text-slate-500">Monthly Attendance</span>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70">
+              {attendanceRate ?? 95}% Rate
+            </span>
+          </div>
+
+          <div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-black text-slate-900 font-mono tracking-tight">
+                {calendarCounts.present} Days
+              </span>
+              <span className="text-xs text-slate-400 font-medium">Present in {calMonth.toLocaleDateString('en-US', { month: 'short' })}</span>
+            </div>
+          </div>
+
+          {/* Mini Dot Histogram in Emerald */}
+          <div className="pt-2 border-t border-slate-100 flex items-end gap-1 h-5">
+            {[40, 70, 55, 90, 65, 80, 50, 95, 75, 85, 60, 90].map((h, i) => (
+              <div
+                key={i}
+                className="flex-1 rounded-sm bg-emerald-500/80 transition-all duration-300"
+                style={{ height: `${h}%` }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Card 3: Leave Quota Available */}
+        <div
+          onClick={() => navigate('/leaves')}
+          className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between space-y-3 cursor-pointer group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0">
+                <IconBriefcase className="w-4 h-4 stroke-[2]" />
+              </div>
+              <span className="text-xs font-semibold text-slate-500">Available Leaves</span>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200/70 group-hover:bg-purple-100 transition-colors">
+              {leaveBalances.length} Categories
+            </span>
+          </div>
+
+          <div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-black text-slate-900 font-mono tracking-tight">
+                {totalAvailableLeaves} Days
+              </span>
+              <span className="text-xs text-slate-400 font-medium">Annual Quota Balance</span>
+            </div>
+          </div>
+
+          {/* Mini Dot Histogram in Purple */}
+          <div className="pt-2 border-t border-slate-100 flex items-end gap-1 h-5">
+            {[60, 45, 80, 70, 90, 55, 75, 85, 50, 70, 40, 60].map((h, i) => (
+              <div
+                key={i}
+                className="flex-1 rounded-sm bg-purple-500/75 transition-all duration-300"
+                style={{ height: `${h}%` }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Card 4: Upcoming Holiday */}
+        <div
+          onClick={() => navigate('/company/holidays')}
+          className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between space-y-3 cursor-pointer group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0">
+                <IconGift className="w-4 h-4 stroke-[2]" />
+              </div>
+              <span className="text-xs font-semibold text-slate-500">Upcoming Holiday</span>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/70 group-hover:bg-amber-100 transition-colors">
+              {upcomingHolidays[0]?.dateStr || 'Calendar'}
+            </span>
+          </div>
+
+          <div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight truncate max-w-[200px] block">
+                {upcomingHolidays[0]?.name || 'No Holiday Soon'}
+              </span>
+            </div>
+          </div>
+
+          {/* Mini Dot Histogram in Amber */}
+          <div className="pt-2 border-t border-slate-100 flex items-end gap-1 h-5">
+            {[30, 50, 75, 60, 85, 70, 95, 65, 80, 55, 70, 90].map((h, i) => (
+              <div
+                key={i}
+                className="flex-1 rounded-sm bg-amber-500/80 transition-all duration-300"
+                style={{ height: `${h}%` }}
+              />
+            ))}
+          </div>
         </div>
       </div>
 
       {/* 2. Grid: Time & Attendance Check-In + Monthly Attendance & Leave Calendar */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         {/* Time & Attendance Check-In (Left Box) */}
-        <div className="lg:col-span-12 xl:col-span-5 bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm flex flex-col justify-between space-y-4">
+        <div className="lg:col-span-12 xl:col-span-5 bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between space-y-4">
           <div className="space-y-4">
             {/* Clean Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 text-[#5E4BE2] flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 text-[#5E4BE2] border border-indigo-100 flex items-center justify-center shrink-0">
                   <IconClock className="w-5 h-5" />
                 </div>
                 <div>
@@ -1257,10 +1487,10 @@ export const EmployeeDashboard: React.FC = () => {
 
               <span
                 className={`text-[11px] px-3 py-1 rounded-full font-bold flex items-center gap-1.5 transition-all ${activeSession
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/70'
                   : isShiftCompletedToday
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                    : 'bg-slate-100 text-slate-600 border border-slate-200/60'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/70'
+                    : 'bg-slate-50 text-slate-600 border border-slate-200/70'
                   }`}
               >
                 {activeSession ? (
@@ -1343,44 +1573,6 @@ export const EmployeeDashboard: React.FC = () => {
               </button>
             </div>
 
-            {/* Unified Metrics Strip: In | Out | Worked & Status (Single clean row, zero nested boxes!) */}
-            <div className="grid grid-cols-3 divide-x divide-slate-100 rounded-xl bg-slate-50 border border-slate-200/70 p-3 text-center">
-              <div className="px-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  In
-                </span>
-                <span className="font-bold text-slate-800 font-mono text-xs sm:text-sm mt-0.5 block">
-                  {todayInTime}
-                </span>
-                <span className={`text-[10px] font-semibold mt-0.5 block truncate ${shiftCalculator.punctuality.textClass}`}>
-                  {shiftCalculator.hasPunchIn ? shiftCalculator.punctuality.label : '—'}
-                </span>
-              </div>
-
-              <div className="px-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Out
-                </span>
-                <span className="font-bold text-slate-800 font-mono text-xs sm:text-sm mt-0.5 block">
-                  {todayOutTime}
-                </span>
-                <span className="text-[10px] text-slate-400 font-medium mt-0.5 block truncate">
-                  {activeSession ? 'In Progress' : isShiftCompletedToday ? 'Finished' : 'Upcoming'}
-                </span>
-              </div>
-
-              <div className="px-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Shift
-                </span>
-                <span className={`font-bold font-mono text-xs sm:text-sm mt-0.5 block ${activeSession ? 'text-indigo-600' : isShiftCompletedToday ? 'text-emerald-600' : 'text-slate-700'}`}>
-                  {shiftCalculator.loggedHours.toFixed(1)}h <span className="text-[10px] text-slate-400 font-normal">/ {shiftCalculator.targetHours.toFixed(0)}h</span>
-                </span>
-                <span className={`text-[10px] font-semibold mt-0.5 block truncate ${shiftCalculator.dayStatus.textClass}`}>
-                  {shiftCalculator.dayStatus.label}
-                </span>
-              </div>
-            </div>
 
             {/* Clean Single Progress Bar */}
             <div className="space-y-1.5 px-0.5">
@@ -1399,7 +1591,7 @@ export const EmployeeDashboard: React.FC = () => {
                 <div
                   className={`h-full transition-all duration-500 rounded-full ${shiftCalculator.diffHours >= 0
                     ? 'bg-gradient-to-r from-indigo-500 to-emerald-500'
-                    : 'bg-[#4338ca]'
+                    : 'bg-[#5E4BE2]'
                     }`}
                   style={{ width: `${Math.max(4, Math.min(100, shiftCalculator.progressPercent))}%` }}
                 />
@@ -1429,7 +1621,7 @@ export const EmployeeDashboard: React.FC = () => {
               <button
                 onClick={() => handleCheckAction('check-out')}
                 disabled={loadingCheck}
-                className="w-full py-2.5 sm:py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 active:scale-[0.99] transition-all shadow-sm shadow-rose-600/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full py-2.5 sm:py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 active:scale-[0.99] transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 <IconPlayerStop className="w-4 h-4 fill-white" />
                 <span>{loadingCheck ? 'Recording Check-Out...' : 'Check Out (End Shift)'}</span>
@@ -1462,7 +1654,7 @@ export const EmployeeDashboard: React.FC = () => {
               <button
                 onClick={() => handleCheckAction('check-in')}
                 disabled={loadingCheck}
-                className="w-full py-2.5 sm:py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#4338ca] hover:bg-[#3730a3] active:scale-[0.99] transition-all shadow-sm shadow-indigo-600/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full py-2.5 sm:py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#5E4BE2] hover:bg-[#4D3BC9] active:scale-[0.99] transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 <IconPlayerPlay className="w-4 h-4 fill-white" />
                 <span>{loadingCheck ? 'Recording Check-In...' : 'Check In (Start Shift)'}</span>
@@ -1472,101 +1664,124 @@ export const EmployeeDashboard: React.FC = () => {
         </div>
 
         {/* Monthly Attendance & Leave Calendar (Right Box) */}
-        <div className="lg:col-span-12 xl:col-span-7 bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm flex flex-col justify-between space-y-4">
-          <div className="space-y-3">
+        <div className="lg:col-span-12 xl:col-span-7 bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between space-y-2.5">
+          <div className="space-y-2.5">
             {/* Calendar Header with Navigation */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 text-[#5E4BE2] flex items-center justify-center shrink-0">
-                  <IconCalendar className="w-5 h-5" />
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-[#5E4BE2] border border-indigo-100/70 flex items-center justify-center shrink-0">
+                  <IconCalendar className="w-4 h-4" />
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900 leading-tight">
-                    Attendance Calendar
-                  </h3>
-                  <p className="text-xs text-slate-400 font-medium mt-0.5">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-tight">
+                      Attendance Calendar
+                    </h3>
+                    {attendanceRate !== null && (
+                      <span
+                        className={`text-[9px] font-black px-1.5 py-0.2 rounded-full border ${
+                          attendanceRate >= 85
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
+                            : attendanceRate >= 65
+                              ? 'bg-indigo-50 text-indigo-700 border-indigo-200/80'
+                              : 'bg-amber-50 text-amber-700 border-amber-200/80'
+                        }`}
+                      >
+                        {attendanceRate}% Score
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5">
                     {calMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} • {calendarCounts.present} Days Present{calendarCounts.halfDay > 0 ? ` • ${calendarCounts.halfDay} Half Day` : ''} • {calendarCounts.absent} Absent
                   </p>
                 </div>
               </div>
 
-              {/* Month Navigation Segmented Controls */}
-              <div className="flex items-center bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 self-start sm:self-auto">
+              {/* Month Navigation Controls */}
+              <div className="flex items-center bg-slate-100/90 p-0.5 rounded-lg border border-slate-200/70 shrink-0 shadow-2xs">
                 <button
                   type="button"
                   onClick={handlePrevMonth}
-                  className="w-7 h-7 rounded-lg hover:bg-white text-slate-600 flex items-center justify-center transition-all cursor-pointer hover:shadow-2xs"
+                  className="w-6 h-6 rounded-md hover:bg-white text-slate-600 hover:text-slate-900 flex items-center justify-center transition-all cursor-pointer hover:shadow-xs active:scale-90"
                   title="Previous Month"
                 >
-                  <IconChevronLeft className="w-4 h-4" />
+                  <IconChevronLeft className="w-3.5 h-3.5 stroke-[2.2]" />
                 </button>
-                <div className="px-2 text-xs font-black text-slate-800 tracking-tight min-w-[95px] text-center select-none">
+                <div className="px-2 text-[11px] font-black text-slate-800 tracking-tight min-w-[80px] text-center select-none font-mono">
                   {calMonth.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                 </div>
                 <button
                   type="button"
                   onClick={handleNextMonth}
-                  className="w-7 h-7 rounded-lg hover:bg-white text-slate-600 flex items-center justify-center transition-all cursor-pointer hover:shadow-2xs"
+                  className="w-6 h-6 rounded-md hover:bg-white text-slate-600 hover:text-slate-900 flex items-center justify-center transition-all cursor-pointer hover:shadow-xs active:scale-90"
                   title="Next Month"
                 >
-                  <IconChevronRight className="w-4 h-4" />
+                  <IconChevronRight className="w-3.5 h-3.5 stroke-[2.2]" />
                 </button>
                 <button
                   type="button"
                   onClick={handleGoToday}
-                  className="ml-1 px-2.5 py-1 text-[11px] font-bold rounded-lg bg-white hover:bg-indigo-50 text-[#5E4BE2] border border-slate-200/70 shadow-2xs transition-all cursor-pointer"
+                  className="ml-0.5 px-2 py-0.5 text-[10px] font-bold rounded-md bg-white hover:bg-indigo-50 text-indigo-700 border border-slate-200/80 shadow-2xs transition-all cursor-pointer active:scale-95"
                 >
                   Today
                 </button>
               </div>
             </div>
 
-            {/* Quick Legend Pill Strip */}
-            <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-[11px] font-medium text-slate-500 py-1 border-b border-slate-100">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                <span>{calendarCounts.present} Present</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                <span>{calendarCounts.halfDay} Half Day</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
-                <span>{calendarCounts.absent} Absent</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-sky-500 shrink-0" />
-                <span>{calendarCounts.holidays} Holiday</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
-                <span>{calendarCounts.leaves} Leave / Comp Off</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
-                <span>{calendarCounts.weekOffs} Week Off</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
-                <span>{calendarCounts.scheduledShifts} Scheduled Shifts</span>
-              </div>
+            {/* Quick Legend Pill Strip (Single Sleek Row) */}
+            <div className="flex items-center gap-2 sm:gap-2.5 text-[10px] font-medium text-slate-500 py-0.5 border-b border-slate-100 overflow-x-auto no-scrollbar">
+              {[
+                { key: 'PRESENT', label: 'Present', count: calendarCounts.present, dot: 'bg-emerald-500' },
+                { key: 'HALF_DAY', label: 'Half Day', count: calendarCounts.halfDay, dot: 'bg-amber-500' },
+                { key: 'ABSENT', label: 'Absent', count: calendarCounts.absent, dot: 'bg-rose-500' },
+                { key: 'HOLIDAY', label: 'Holiday', count: calendarCounts.holidays, dot: 'bg-sky-500' },
+                { key: 'LEAVE', label: 'Leave', count: calendarCounts.leaves, dot: 'bg-purple-500' },
+                { key: 'WEEKEND', label: 'Week Off', count: calendarCounts.weekOffs, dot: 'bg-slate-400' },
+                { key: 'FUTURE', label: 'Shifts', count: calendarCounts.scheduledShifts, dot: 'bg-indigo-500' },
+              ].map((item) => {
+                const isActive = statusFilter === item.key;
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => setStatusFilter((prev) => (prev === item.key ? null : item.key))}
+                    onMouseEnter={() => setHoveredFilter(item.key)}
+                    onMouseLeave={() => setHoveredFilter(null)}
+                    className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-all cursor-pointer shrink-0 ${
+                      isActive ? 'bg-indigo-100 text-indigo-800 font-bold' : 'hover:bg-slate-100'
+                    }`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${item.dot} shrink-0`} />
+                    <span>{item.count} {item.label}</span>
+                  </button>
+                );
+              })}
+              {statusFilter && (
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter(null)}
+                  className="text-[9px] text-slate-400 hover:text-slate-700 underline font-medium cursor-pointer shrink-0 ml-auto"
+                >
+                  Clear
+                </button>
+              )}
             </div>
 
             {/* Days of Week Header */}
-            <div className="grid grid-cols-7 gap-1 text-center pt-0.5">
+            <div className="grid grid-cols-7 gap-1 text-center">
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((dw, idx) => (
                 <div
                   key={dw}
-                  className={`text-[10px] sm:text-[11px] font-bold uppercase tracking-wider py-0.5 ${idx === 0 || idx === 6 ? 'text-slate-300' : 'text-slate-400'
-                    }`}
+                  className={`text-[9.5px] sm:text-[10px] font-extrabold uppercase tracking-wider py-0.5 ${
+                    idx === 0 || idx === 6 ? 'text-rose-400/80' : 'text-slate-400'
+                  }`}
                 >
                   {dw}
                 </div>
               ))}
             </div>
 
-            {/* Clean Flat 7-Columns Calendar Grid (No heavy individual box borders) */}
+            {/* 7-Columns Calendar Grid with Compact Card Cells */}
             <div className="grid grid-cols-7 gap-1">
               {calendarDays.map((cell: CalendarDayInfo) => {
                 const isSelected = selectedDateStr === cell.dateStr;
@@ -1584,30 +1799,57 @@ export const EmployeeDashboard: React.FC = () => {
                   return (
                     <div
                       key={cell.dateStr}
-                      className="h-8 sm:h-9 rounded-xl flex items-center justify-center text-slate-300/40 text-xs font-medium select-none pointer-events-none"
+                      className="h-7 sm:h-8 rounded-lg flex items-center justify-center text-slate-300/40 text-xs font-semibold select-none pointer-events-none"
                     >
                       {cell.dayNum}
                     </div>
                   );
                 }
 
-                let dotColorClass = '';
+                // Check filter active
+                const activeFilterKey = hoveredFilter || statusFilter;
+                let isFilteredOut = false;
+                if (activeFilterKey) {
+                  if (activeFilterKey === 'PRESENT' && !isPresent) isFilteredOut = true;
+                  else if (activeFilterKey === 'HALF_DAY' && !isHalfDay) isFilteredOut = true;
+                  else if (activeFilterKey === 'ABSENT' && !isAbsent) isFilteredOut = true;
+                  else if (activeFilterKey === 'HOLIDAY' && !isHoliday) isFilteredOut = true;
+                  else if (activeFilterKey === 'LEAVE' && !(isLeaveApproved || isCompOff || isLeavePending)) isFilteredOut = true;
+                  else if (activeFilterKey === 'WEEKEND' && !(isRosterOff || isWeekend)) isFilteredOut = true;
+                  else if (activeFilterKey === 'FUTURE' && cell.status !== 'FUTURE') isFilteredOut = true;
+                }
+
+                // Status styling
+                let cellTheme = '';
+                let dotTheme = '';
+
                 if (isPresent) {
-                  dotColorClass = 'bg-emerald-500';
+                  cellTheme = 'bg-emerald-50/70 border-emerald-200/70 text-emerald-950 font-bold hover:bg-emerald-100 shadow-2xs';
+                  dotTheme = 'bg-emerald-500';
                 } else if (isHalfDay) {
-                  dotColorClass = 'bg-amber-500';
+                  cellTheme = 'bg-amber-50/70 border-amber-200/70 text-amber-950 font-bold hover:bg-amber-100 shadow-2xs';
+                  dotTheme = 'bg-amber-500';
                 } else if (isAbsent) {
-                  dotColorClass = 'bg-rose-500';
+                  cellTheme = 'bg-rose-50/70 border-rose-200/70 text-rose-950 font-bold hover:bg-rose-100 shadow-2xs';
+                  dotTheme = 'bg-rose-500';
                 } else if (isHoliday) {
-                  dotColorClass = 'bg-sky-500';
+                  cellTheme = 'bg-gradient-to-br from-sky-50 to-indigo-50/70 border-sky-200/80 text-sky-950 font-bold hover:from-sky-100 hover:to-indigo-100 shadow-2xs';
+                  dotTheme = 'bg-sky-500';
                 } else if (isLeaveApproved || isCompOff) {
-                  dotColorClass = 'bg-purple-500';
+                  cellTheme = 'bg-purple-50/70 border-purple-200/80 text-purple-950 font-bold hover:bg-purple-100 shadow-2xs';
+                  dotTheme = 'bg-purple-500';
                 } else if (isLeavePending || cell.isRegularizationPending) {
-                  dotColorClass = 'bg-amber-400 animate-pulse';
-                } else if (isRosterOff) {
-                  dotColorClass = 'bg-slate-300';
-                } else if (cell.isRosteredWorkday || cell.status === 'FUTURE') {
-                  dotColorClass = cell.isRosteredWorkday ? 'bg-indigo-600' : 'bg-indigo-400';
+                  cellTheme = 'bg-amber-50/50 border-amber-300 border-dashed text-amber-900 font-bold animate-pulse';
+                  dotTheme = 'bg-amber-400';
+                } else if (isRosterOff || isWeekend) {
+                  cellTheme = 'bg-slate-50/70 border-slate-100 text-slate-400 font-medium hover:bg-slate-100';
+                  dotTheme = 'bg-slate-300';
+                } else {
+                  // Scheduled / Future
+                  cellTheme = cell.isRosteredWorkday
+                    ? 'bg-white border-indigo-200/70 text-indigo-900 font-bold hover:bg-indigo-50/50 shadow-2xs'
+                    : 'bg-white border-slate-200/70 text-slate-700 font-semibold hover:bg-slate-50 shadow-2xs';
+                  dotTheme = cell.isRosteredWorkday ? 'bg-indigo-500' : 'bg-indigo-300';
                 }
 
                 return (
@@ -1616,304 +1858,230 @@ export const EmployeeDashboard: React.FC = () => {
                     type="button"
                     onClick={() => setSelectedDateStr(cell.dateStr)}
                     title={`${cell.dateStr}: ${cell.label}${cell.details ? ` (${cell.details})` : ''}`}
-                    className={`h-8 sm:h-9 rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer relative select-none ${isSelected
-                        ? 'bg-[#4338ca] text-white font-black shadow-sm shadow-indigo-600/30'
+                    className={`h-7 sm:h-8 rounded-lg flex flex-col items-center justify-between py-0.5 px-1 transition-all duration-150 cursor-pointer relative select-none border group ${
+                      isFilteredOut ? 'opacity-20 pointer-events-none' : ''
+                    } ${
+                      isSelected
+                        ? '!bg-[#5E4BE2] !text-white !font-black !border-[#5E4BE2] shadow-xs scale-[1.04] z-10'
                         : cell.isToday
-                          ? 'ring-1.5 ring-indigo-500 bg-indigo-50/70 text-indigo-700 font-extrabold'
-                          : isRosterOff || isWeekend
-                            ? 'text-slate-400 font-normal hover:bg-slate-50'
-                            : cell.isRosteredWorkday
-                              ? 'text-indigo-900 font-bold hover:bg-indigo-50/50'
-                              : 'text-slate-700 font-semibold hover:bg-slate-50'
-                      }`}
+                          ? `${cellTheme} ring-1.5 ring-indigo-500 font-black`
+                          : cellTheme
+                    }`}
                   >
-                    <div className="flex items-center gap-0.5 leading-none">
-                      <span className="text-[11px] sm:text-xs">
+                    {/* Top Row: Date Number */}
+                    <div className="w-full flex items-center justify-center leading-none">
+                      <span className={`text-[10px] sm:text-[11px] tracking-tight ${isSelected ? 'text-white font-black' : ''}`}>
                         {cell.dayNum}
                       </span>
-                      {cell.workMode === 'WFH' && (
-                        <span className="w-1 h-1 rounded-full bg-indigo-500 shrink-0" title="Work From Home" />
+                    </div>
+
+                    {/* Bottom Status Dot */}
+                    <div className="flex items-center justify-center w-full leading-none">
+                      {isSelected ? (
+                        <span className="w-1 h-1 rounded-full bg-white shadow-xs" />
+                      ) : dotTheme ? (
+                        <span className={`w-1 h-1 rounded-full ${dotTheme}`} />
+                      ) : (
+                        <span className="w-1 h-1 opacity-0" />
                       )}
                     </div>
-                    {dotColorClass ? (
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full mt-1 shrink-0 ${isSelected ? 'bg-white' : dotColorClass
-                          }`}
-                      />
-                    ) : (
-                      <span className="w-1.5 h-1.5 mt-1 shrink-0 opacity-0" />
-                    )}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Clean Selected Date Details Strip with Full HR Metadata */}
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 flex flex-col gap-2.5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs font-mono shrink-0 shadow-2xs ${selectedDayInfo?.status === 'PRESENT'
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                      : selectedDayInfo?.status === 'HALF_DAY'
-                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                        : selectedDayInfo?.status === 'ABSENT'
-                          ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                          : selectedDayInfo?.status === 'HOLIDAY'
-                            ? 'bg-sky-50 text-sky-700 border border-sky-200'
-                            : selectedDayInfo?.status === 'LEAVE_APPROVED'
-                              ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                              : selectedDayInfo?.status === 'COMP_OFF'
-                                ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                                : selectedDayInfo?.status === 'ROSTER_OFF' || selectedDayInfo?.status === 'WEEKEND'
-                                  ? 'bg-slate-100 text-slate-600 border border-slate-200'
-                                  : selectedDayInfo?.isRosteredWorkday
-                                    ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                                    : 'bg-white text-slate-700 border border-slate-200'
-                    }`}
-                >
+          {/* Compact Selected Day Inspector Strip (Single Unified Row Matching Left Side) */}
+          <div className="p-2 sm:p-2.5 rounded-xl bg-slate-50/90 border border-slate-200/80 flex items-center justify-between gap-2.5 shadow-2xs">
+            {/* Left: Mini Date Badge + Text */}
+            <div className="flex items-center gap-2 min-w-0">
+              <div
+                className={`w-8 h-8 rounded-lg flex flex-col items-center justify-center font-bold shrink-0 border shadow-2xs overflow-hidden leading-none ${
+                  selectedDayInfo?.status === 'PRESENT'
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                    : selectedDayInfo?.status === 'HALF_DAY'
+                      ? 'bg-amber-50 text-amber-800 border-amber-200'
+                      : selectedDayInfo?.status === 'ABSENT'
+                        ? 'bg-rose-50 text-rose-800 border-rose-200'
+                        : selectedDayInfo?.status === 'HOLIDAY'
+                          ? 'bg-sky-50 text-sky-800 border-sky-200'
+                          : selectedDayInfo?.status === 'LEAVE_APPROVED' || selectedDayInfo?.status === 'COMP_OFF'
+                            ? 'bg-purple-50 text-purple-800 border-purple-200'
+                            : 'bg-white text-slate-800 border-slate-200'
+                }`}
+              >
+                <span className="text-[8px] font-extrabold uppercase tracking-tight text-slate-400">
+                  {selectedDayInfo?.date.toLocaleDateString('en-US', { month: 'short' })}
+                </span>
+                <span className="text-xs font-black font-mono mt-0.5">
                   {selectedDayInfo?.dayNum}
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs font-bold text-slate-900 flex items-center gap-2 flex-wrap truncate">
-                    <span>
-                      {selectedDayInfo?.date.toLocaleDateString('en-US', {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </span>
-                    {selectedDayInfo?.isToday && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-indigo-100 text-indigo-700 shrink-0">
-                        Today
-                      </span>
-                    )}
-                    {selectedDayInfo?.shiftName && (
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-600 shrink-0 flex items-center gap-1">
-                        <IconClock className="w-3 h-3 text-indigo-500" />
-                        <span>
-                          {selectedDayInfo.shiftName} {selectedDayInfo.shiftTiming ? `(${selectedDayInfo.shiftTiming})` : ''}
-                        </span>
-                      </span>
-                    )}
-                    {selectedDayInfo?.workMode && (
-                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 shrink-0 flex items-center gap-1">
-                        {selectedDayInfo.workMode === 'WFH' ? <IconHome className="w-3 h-3" /> : <IconBuilding className="w-3 h-3" />}
-                        <span>{selectedDayInfo.workMode}</span>
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-slate-600 font-medium truncate mt-0.5">
-                    {selectedDayInfo?.label} {selectedDayInfo?.details ? `• ${selectedDayInfo.details}` : ''}
-                  </p>
-                </div>
+                </span>
               </div>
 
-              <div className="flex flex-wrap items-center gap-1.5 shrink-0 self-end sm:self-auto">
-                {selectedDayInfo?.isLate && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 shrink-0">
-                    Late In (+{selectedDayInfo.lateMinutes}m)
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-xs font-bold text-slate-900">
+                    {selectedDayInfo?.date.toLocaleDateString('en-US', {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
                   </span>
-                )}
-                {selectedDayInfo?.isEarlyExit && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 shrink-0">
-                    Early Exit (-{selectedDayInfo.earlyExitMinutes}m)
-                  </span>
-                )}
-                {selectedDayInfo?.overtimeHours && selectedDayInfo.overtimeHours > 0 ? (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 shrink-0">
-                    +{selectedDayInfo.overtimeHours}h OT
-                  </span>
-                ) : null}
-                {selectedDayInfo?.isMissedPunch && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 shrink-0">
-                    Missed Punch
-                  </span>
-                )}
-                {selectedDayInfo?.isRegularizationPending && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-300 animate-pulse shrink-0">
-                    ⏳ Reg. Pending
-                  </span>
-                )}
-                {selectedDayInfo?.isRegularized && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 shrink-0">
-                    ✓ Regularized
-                  </span>
-                )}
-
-                <span
-                  className={`text-[10px] font-bold px-2.5 py-1 rounded-full border shrink-0 ${selectedDayInfo?.status === 'PRESENT'
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : selectedDayInfo?.status === 'HALF_DAY'
-                        ? 'bg-amber-50 text-amber-700 border-amber-200'
-                        : selectedDayInfo?.status === 'ABSENT'
-                          ? 'bg-rose-50 text-rose-700 border-rose-200'
-                          : selectedDayInfo?.status === 'HOLIDAY'
-                            ? 'bg-sky-50 text-sky-700 border-sky-200'
-                            : selectedDayInfo?.status === 'LEAVE_APPROVED'
-                              ? 'bg-purple-50 text-purple-700 border-purple-200'
-                              : selectedDayInfo?.status === 'COMP_OFF'
-                                ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                                : selectedDayInfo?.status === 'LEAVE_PENDING'
-                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                  : selectedDayInfo?.status === 'ROSTER_OFF'
-                                    ? 'bg-slate-100 text-slate-600 border-slate-300'
-                                    : selectedDayInfo?.status === 'WEEKEND'
-                                      ? 'bg-slate-100 text-slate-500 border-slate-200'
-                                      : selectedDayInfo?.isRosteredWorkday
-                                        ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                                        : 'bg-white text-slate-600 border-slate-200'
-                    }`}
-                >
-                  {selectedDayInfo?.status === 'PRESENT' && '✓ Present'}
-                  {selectedDayInfo?.status === 'HALF_DAY' && '◐ Half Day'}
-                  {selectedDayInfo?.status === 'ABSENT' && '✕ Absent'}
-                  {selectedDayInfo?.status === 'HOLIDAY' && '★ Holiday'}
-                  {selectedDayInfo?.status === 'LEAVE_APPROVED' && '● Approved Leave'}
-                  {selectedDayInfo?.status === 'COMP_OFF' && '● Comp Off'}
-                  {selectedDayInfo?.status === 'LEAVE_PENDING' && '⏳ Pending Leave'}
-                  {selectedDayInfo?.status === 'ROSTER_OFF' && 'Rostered Week Off'}
-                  {selectedDayInfo?.status === 'WEEKEND' && 'Weekend'}
-                  {selectedDayInfo?.status === 'FUTURE' && (
-                    selectedDayInfo.isRosteredWorkday
-                      ? `🗓️ Shift: ${selectedDayInfo.shiftName || 'Scheduled'}`
-                      : 'Upcoming Workday'
+                  {selectedDayInfo?.isToday && (
+                    <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-indigo-600 text-white shadow-2xs">
+                      Today
+                    </span>
                   )}
-                </span>
-
-                {(selectedDayInfo?.status === 'ABSENT' || selectedDayInfo?.isMissedPunch || selectedDayInfo?.isLate) &&
-                  !selectedDayInfo?.isRegularized &&
-                  !selectedDayInfo?.isRegularizationPending &&
-                  selectedDayInfo?.status !== 'FUTURE' && (
-                    <button
-                      type="button"
-                      onClick={() => navigate('/attendance')}
-                      className="text-[11px] font-bold text-amber-800 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-full shadow-2xs transition-colors cursor-pointer shrink-0"
-                    >
-                      Regularize →
-                    </button>
+                  {selectedDayInfo?.shiftName && (
+                    <span className="text-[10px] font-medium text-slate-500 hidden sm:inline-flex items-center gap-0.5">
+                      • {selectedDayInfo.shiftName} {selectedDayInfo.shiftTiming ? `(${selectedDayInfo.shiftTiming})` : ''}
+                    </span>
                   )}
+                  {selectedDayInfo?.workMode && (
+                    <span className="text-[9px] font-semibold px-1 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-100">
+                      {selectedDayInfo.workMode}
+                    </span>
+                  )}
+                </div>
 
-                {(selectedDayInfo?.status === 'FUTURE' || selectedDayInfo?.status === 'ABSENT') && (
+                <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
+                  {selectedDayInfo?.status === 'PRESENT' || selectedDayInfo?.status === 'HALF_DAY' ? (
+                    <>
+                      In: <span className="font-semibold text-slate-700">{selectedDayInfo.checkInTime || '--:--'}</span> • Out:{' '}
+                      <span className="font-semibold text-slate-700">{selectedDayInfo.checkOutTime || '--:--'}</span>
+                      {selectedDayInfo.durationHours != null ? ` (${selectedDayInfo.durationHours.toFixed(1)}h worked)` : ''}
+                      {selectedDayInfo.isLate ? ` • Late (+${selectedDayInfo.lateMinutes}m)` : ''}
+                      {selectedDayInfo.overtimeHours && selectedDayInfo.overtimeHours > 0 ? ` • +${selectedDayInfo.overtimeHours}h OT` : ''}
+                    </>
+                  ) : selectedDayInfo?.status === 'ROSTER_OFF' ? (
+                    'Scheduled Rest Day • General Shift • Rostered Week Off'
+                  ) : selectedDayInfo?.status === 'WEEKEND' ? (
+                    'Weekend Rest Day • Scheduled Weekly Off'
+                  ) : selectedDayInfo?.status === 'HOLIDAY' ? (
+                    `${selectedDayInfo.label || 'Company Holiday'} • Public Holiday`
+                  ) : selectedDayInfo?.status === 'ABSENT' ? (
+                    'No attendance recorded for this shift'
+                  ) : (
+                    selectedDayInfo?.label || 'Scheduled Workday'
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* Right: Status Pill & Actions */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span
+                className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border shadow-2xs flex items-center gap-1 ${
+                  selectedDayInfo?.status === 'PRESENT'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : selectedDayInfo?.status === 'HALF_DAY'
+                      ? 'bg-amber-50 text-amber-700 border-amber-200'
+                      : selectedDayInfo?.status === 'ABSENT'
+                        ? 'bg-rose-50 text-rose-700 border-rose-200'
+                        : selectedDayInfo?.status === 'HOLIDAY'
+                          ? 'bg-sky-50 text-sky-700 border-sky-200'
+                          : selectedDayInfo?.status === 'LEAVE_APPROVED' || selectedDayInfo?.status === 'COMP_OFF'
+                            ? 'bg-purple-50 text-purple-700 border-purple-200'
+                            : selectedDayInfo?.status === 'ROSTER_OFF'
+                              ? 'bg-slate-100 text-slate-700 border-slate-300'
+                              : selectedDayInfo?.status === 'WEEKEND'
+                                ? 'bg-slate-100 text-slate-600 border-slate-200'
+                                : 'bg-white text-slate-600 border-slate-200'
+                }`}
+              >
+                {selectedDayInfo?.status === 'PRESENT' && (
+                  <>
+                    <IconCircleCheck className="w-3.5 h-3.5 text-emerald-600 stroke-[2.2]" />
+                    <span>Present</span>
+                  </>
+                )}
+                {selectedDayInfo?.status === 'HALF_DAY' && '◐ Half Day'}
+                {selectedDayInfo?.status === 'ABSENT' && (
+                  <>
+                    <IconCircleX className="w-3.5 h-3.5 text-rose-600 stroke-[2.2]" />
+                    <span>Absent</span>
+                  </>
+                )}
+                {selectedDayInfo?.status === 'HOLIDAY' && (
+                  <>
+                    <IconStar className="w-3 h-3 text-sky-600 fill-sky-600" />
+                    <span className="truncate max-w-[100px]">{selectedDayInfo.label || 'Holiday'}</span>
+                  </>
+                )}
+                {selectedDayInfo?.status === 'LEAVE_APPROVED' && '● Approved Leave'}
+                {selectedDayInfo?.status === 'COMP_OFF' && '● Comp Off'}
+                {selectedDayInfo?.status === 'ROSTER_OFF' && 'Rostered Week Off'}
+                {selectedDayInfo?.status === 'WEEKEND' && 'Weekend Off'}
+                {selectedDayInfo?.status === 'FUTURE' && 'Upcoming Workday'}
+              </span>
+
+              {(selectedDayInfo?.status === 'ABSENT' || selectedDayInfo?.isMissedPunch || selectedDayInfo?.isLate) &&
+                !selectedDayInfo?.isRegularized &&
+                !selectedDayInfo?.isRegularizationPending &&
+                selectedDayInfo?.status !== 'FUTURE' && (
                   <button
                     type="button"
-                    onClick={() => navigate('/leaves')}
-                    className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-white border border-indigo-200 px-2.5 py-1 rounded-full shadow-2xs hover:bg-indigo-50 transition-colors cursor-pointer shrink-0"
+                    onClick={() => navigate('/attendance')}
+                    className="text-[10px] font-bold text-amber-800 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-lg shadow-2xs transition-all cursor-pointer shrink-0"
                   >
-                    Apply Leave →
+                    Regularize
                   </button>
                 )}
-              </div>
+
+              {(selectedDayInfo?.status === 'FUTURE' || selectedDayInfo?.status === 'ABSENT') && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/leaves')}
+                  className="text-[10px] font-bold text-indigo-700 hover:text-indigo-900 bg-white hover:bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-lg shadow-2xs transition-all cursor-pointer shrink-0"
+                >
+                  Apply Leave
+                </button>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* 3. Leave Quota Balances (Annual) */}
-      <div className="space-y-3.5">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm sm:text-base font-bold text-slate-900">
-            Leave Quota Balances (Annual)
-          </h3>
-          <button
-            onClick={() => navigate('/leaves')}
-            className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors cursor-pointer"
-          >
-            <span>View All</span>
-            <IconArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
-          {isLoadingWidgets && leaveBalances.length === 0 ? (
-            Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm animate-pulse space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-slate-100" />
-                  <div className="space-y-1.5 flex-1">
-                    <div className="h-2 w-8 bg-slate-200 rounded" />
-                    <div className="h-4 w-14 bg-slate-200 rounded" />
-                  </div>
-                </div>
-                <div className="h-1.5 w-full bg-slate-100 rounded-full" />
-              </div>
-            ))
-          ) : (
-            leaveBalances.map((lb) => {
-              const IconComp = lb.icon;
-              const pct = lb.max > 0 ? Math.min(100, Math.round((lb.balance / lb.max) * 100)) : 0;
-
-              return (
-                <div
-                  key={lb.code}
-                  onClick={() => navigate('/leaves')}
-                  className="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300 transition-all cursor-pointer flex flex-col justify-between group"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`w-9 h-9 rounded-xl ${lb.iconBg} flex items-center justify-center shrink-0`}>
-                      <IconComp className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        {lb.code}
-                      </div>
-                      <div className="text-lg font-black text-slate-900 leading-tight mt-0.5">
-                        {lb.balance} Days
-                      </div>
-                      <div className="text-[11px] font-semibold text-slate-500 mt-0.5 line-clamp-1">
-                        {lb.name}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div className={`h-1.5 w-full ${lb.barBg} rounded-full mt-3 overflow-hidden`}>
-                    <div
-                      className={`h-full ${lb.barColor} rounded-full transition-all duration-500`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-
-      {/* 4. Three Columns: On Leave Today, Upcoming Birthdays, Upcoming Holidays */}
+      {/* ===================== 3. TEAM & COMMUNITY (ON LEAVE, BIRTHDAYS, LEAVE BALANCES) ===================== */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* On Leave Today */}
-        <div className="p-5 sm:p-6 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div className="p-5 sm:p-6 bg-white rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between space-y-4">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <IconUsers className="w-4 h-4 text-emerald-600" />
-              <h4 className="text-sm font-bold text-slate-900">On Leave Today</h4>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0">
+                  <IconUsers className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 leading-tight">On Leave Today</h4>
+                  <p className="text-[11px] text-slate-400 font-medium">Team availability</p>
+                </div>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70">
+                {onLeaveToday.length} Out
+              </span>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium">
-              {onLeaveToday.length > 0 ? `${onLeaveToday.length} colleague(s) out of office today` : 'All team members are present today 🎉'}
-            </p>
 
             {onLeaveToday.length === 0 ? (
-              <div className="mt-4 p-4 rounded-xl bg-emerald-50/50 border border-emerald-100 flex items-center gap-3">
+              <div className="mt-4 p-4 rounded-xl bg-slate-50/70 border border-slate-200/60 flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
                   <IconCheck className="w-5 h-5 stroke-[2.5]" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-900">No one is on leave today</div>
-                  <div className="text-[11px] text-slate-500">Great teamwork!</div>
+                  <div className="text-xs font-bold text-slate-900">All team members are present</div>
+                  <div className="text-[11px] text-slate-500">100% team availability today 🎉</div>
                 </div>
               </div>
             ) : (
               <div className="mt-3 divide-y divide-slate-100 max-h-56 overflow-y-auto pr-1">
                 {onLeaveToday.map((item) => (
-                  <div key={item.id} className="py-2.5 flex items-center justify-between group px-1">
+                  <div key={item.id} className="py-2.5 flex items-center justify-between group px-1 hover:bg-slate-50/60 rounded-xl transition-colors">
                     <div className="flex items-center gap-3">
                       {item.user?.profilePhoto ? (
-                        <img src={item.user.profilePhoto} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
+                        <img src={item.user.profilePhoto} alt="" className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0" />
                       ) : (
-                        <div className="w-8 h-8 rounded-full bg-indigo-100 text-[#5E4BE2] font-bold text-xs flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-indigo-50 text-[#5E4BE2] border border-indigo-100 font-bold text-xs flex items-center justify-center shrink-0">
                           {item.user?.firstName?.[0] || 'U'}
                         </div>
                       )}
@@ -1926,7 +2094,7 @@ export const EmployeeDashboard: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-100">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200/70">
                       {item.leaveType?.name || 'Leave'}
                     </span>
                   </div>
@@ -1937,29 +2105,39 @@ export const EmployeeDashboard: React.FC = () => {
         </div>
 
         {/* Upcoming Birthdays */}
-        <div className="p-5 sm:p-6 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div className="p-5 sm:p-6 bg-white rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between space-y-4">
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <IconCake className="w-4 h-4 text-rose-500" />
-              <h4 className="text-sm font-bold text-slate-900">Upcoming Birthdays</h4>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-pink-50 text-pink-600 border border-pink-100 flex items-center justify-center shrink-0">
+                  <IconCake className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 leading-tight">Upcoming Birthdays</h4>
+                  <p className="text-[11px] text-slate-400 font-medium">Team celebrations</p>
+                </div>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-50 text-pink-700 border border-pink-200/70">
+                {upcomingBirthdays.length} Upcoming
+              </span>
             </div>
 
             <div className="divide-y divide-slate-100 max-h-56 overflow-y-auto pr-1">
               {upcomingBirthdays.length === 0 ? (
-                <div className="py-4 text-center text-xs text-slate-400 font-medium">
-                  No upcoming birthdays soon
+                <div className="py-6 text-center text-xs text-slate-400 font-medium">
+                  No upcoming birthdays in next 30 days
                 </div>
               ) : (
                 upcomingBirthdays.map((bday) => (
                   <div
                     key={bday.id}
-                    className="py-2.5 flex items-center justify-between group hover:bg-slate-50/50 px-1 rounded-xl transition-colors"
+                    className="py-2.5 flex items-center justify-between group hover:bg-slate-50/60 px-1 rounded-xl transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       {bday.profilePhoto ? (
-                        <img src={bday.profilePhoto} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
+                        <img src={bday.profilePhoto} alt="" className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0" />
                       ) : (
-                        <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-pink-50 text-pink-600 border border-pink-100 font-bold text-xs flex items-center justify-center shrink-0">
                           {bday.initials}
                         </div>
                       )}
@@ -1970,10 +2148,15 @@ export const EmployeeDashboard: React.FC = () => {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5 text-slate-400">
-                      <span className="text-[11px] font-semibold text-slate-600">{bday.dateStr}</span>
-                      {bday.isToday && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-600">Today 🎂</span>
+                    <div className="flex items-center gap-1.5">
+                      {bday.isToday ? (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-100 text-pink-700 border border-pink-200">
+                          Today 🎂
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-semibold text-slate-500 bg-slate-50 border border-slate-200/60 px-2 py-0.5 rounded-md">
+                          {bday.dateStr}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -1983,44 +2166,60 @@ export const EmployeeDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Upcoming Holidays */}
-        <div className="p-5 sm:p-6 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+        {/* Leave Quota Balances */}
+        <div className="p-5 sm:p-6 bg-white rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between space-y-4">
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <IconGift className="w-4 h-4 text-purple-600" />
-              <h4 className="text-sm font-bold text-slate-900">Upcoming Holidays</h4>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0">
+                  <IconBriefcase className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 leading-tight">Leave Quota Balances</h4>
+                  <p className="text-[11px] text-slate-400 font-medium">Annual entitlement</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/leaves')}
+                className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-0.5 cursor-pointer"
+              >
+                <span>View All</span>
+                <IconChevronRight className="w-3.5 h-3.5" />
+              </button>
             </div>
 
             <div className="divide-y divide-slate-100 max-h-56 overflow-y-auto pr-1">
-              {upcomingHolidays.length === 0 ? (
-                <div className="py-4 text-center text-xs text-slate-400 font-medium">
-                  No upcoming holidays scheduled
+              {leaveBalances.length === 0 ? (
+                <div className="py-6 text-center text-xs text-slate-400 font-medium">
+                  No leave quotas assigned
                 </div>
               ) : (
-                upcomingHolidays.map((h) => {
-                  const holidayStyle = getHolidayIcon(h.name);
-                  const HolidayIcon = holidayStyle.Icon;
+                leaveBalances.map((lb) => {
+                  const IconComp = lb.icon;
                   return (
                     <div
-                      key={h.id}
-                      onClick={() => navigate('/company/holidays')}
-                      className="py-2.5 flex items-center justify-between group cursor-pointer hover:bg-slate-50/50 px-1 rounded-xl transition-colors"
+                      key={lb.code}
+                      onClick={() => navigate('/leaves')}
+                      className="py-2.5 flex items-center justify-between group cursor-pointer hover:bg-slate-50/60 px-1 rounded-xl transition-colors"
                     >
                       <div className="flex items-center gap-3">
                         <div
-                          className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${holidayStyle.className}`}
+                          className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${lb.iconBg} border border-slate-100`}
                         >
-                          <HolidayIcon className="w-4 h-4" />
+                          <IconComp className="w-4 h-4" />
                         </div>
                         <div>
-                          <div className="text-xs font-bold text-slate-800">{h.name}</div>
-                          <div className="text-[10px] text-slate-400 font-medium capitalize">
-                            {h.type.toLowerCase()} Holiday
+                          <div className="text-xs font-bold text-slate-800">{lb.name}</div>
+                          <div className="text-[10px] text-slate-400 font-medium">
+                            {lb.code} • Max {lb.max || lb.balance} Days
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 text-slate-400">
-                        <span className="text-[11px] font-semibold text-slate-600">{h.dateStr}</span>
+                        <span className="text-[11px] font-bold text-slate-700 bg-slate-50 border border-slate-200/60 px-2 py-0.5 rounded-md font-mono">
+                          {lb.balance} Days
+                        </span>
                         <IconChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
                       </div>
                     </div>

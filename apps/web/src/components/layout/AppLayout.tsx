@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { useAuth } from '../../context/AuthContext';
 import api, { getFileUrl } from '../../api/client';
@@ -17,18 +17,20 @@ import {
   IconClock,
   IconCreditCard,
   IconSparkles,
+  IconRobot,
   IconAlertTriangle,
-  IconPlayerStop,
-  IconPlayerPlay,
   IconSettings,
   IconFileText,
 } from '@tabler/icons-react';
 import { SettingsModal } from '../SettingsModal';
 import { TermsAndConditionsModal, PrivacyPolicyModal } from '../LegalModals';
+import { getAvatarColor } from '../../utils/avatarColors';
 
 export const AppLayout: React.FC = () => {
   const { user, company, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAssistantActive = location.pathname === '/assistant';
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -205,61 +207,6 @@ export const AppLayout: React.FC = () => {
     navigate('/login');
   };
 
-  const [isCheckActionLoading, setIsCheckActionLoading] = useState(false);
-
-  const handleCheckOutAction = async () => {
-    setProfileOpen(false);
-    setIsCheckActionLoading(true);
-    const perform = async (latitude: number, longitude: number) => {
-      try {
-        await api.post('/attendance/check-out', { latitude, longitude });
-        setActiveAttendance(null);
-        window.dispatchEvent(new Event('attendance-updated'));
-        localStorage.setItem('attendance_sync_ts', String(Date.now()));
-      } catch (err) {
-        console.error('Failed to check out:', err);
-      } finally {
-        setIsCheckActionLoading(false);
-      }
-    };
-
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => perform(pos.coords.latitude, pos.coords.longitude),
-        () => perform(19.076, 72.8777),
-        { timeout: 4000 }
-      );
-    } else {
-      perform(19.076, 72.8777);
-    }
-  };
-
-  const handleCheckInAction = async () => {
-    setProfileOpen(false);
-    setIsCheckActionLoading(true);
-    const perform = async (latitude: number, longitude: number) => {
-      try {
-        const res = await api.post('/attendance/check-in', { latitude, longitude, workMode: 'WFO' });
-        setActiveAttendance(res.data?.attendance || { checkIn: new Date().toISOString() });
-        window.dispatchEvent(new Event('attendance-updated'));
-        localStorage.setItem('attendance_sync_ts', String(Date.now()));
-      } catch (err) {
-        console.error('Failed to check in:', err);
-      } finally {
-        setIsCheckActionLoading(false);
-      }
-    };
-
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => perform(pos.coords.latitude, pos.coords.longitude),
-        () => perform(19.076, 72.8777),
-        { timeout: 4000 }
-      );
-    } else {
-      perform(19.076, 72.8777);
-    }
-  };
 
   // Quick navigation items for search autocomplete
   const quickLinks = [
@@ -343,8 +290,18 @@ export const AppLayout: React.FC = () => {
             </div>
           </div>
 
-          {/* Right: Notifications, Settings & User Profile */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* Right: AI Assistant, Notifications, Settings & User Profile */}
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            {/* AI Assistant Robot Icon */}
+            <button
+              type="button"
+              onClick={() => navigate('/assistant')}
+              title="AI Assistant"
+              className="w-9 h-9 rounded-xl hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <IconRobot className="w-6 h-6 stroke-[1.9] text-[#5E4BE2] hover:text-[#4D3BC9] animate-ai-float" />
+            </button>
+
             {/* Notification Bell */}
             <div className="relative">
               <button
@@ -454,7 +411,7 @@ export const AppLayout: React.FC = () => {
                 onClick={() => setProfileOpen(!profileOpen)}
                 className="flex items-center gap-2.5 p-1 pl-1.5 rounded-xl hover:bg-slate-100/80 transition-colors cursor-pointer"
               >
-                <div className="w-9 h-9 rounded-full bg-[#4338ca] text-white font-bold text-sm flex items-center justify-center shadow-xs shrink-0 overflow-hidden">
+                <div className={`w-9 h-9 rounded-full ${getAvatarColor(user?.firstName ? `${user.firstName} ${user.lastName || ''}` : user?.email || 'User')} font-bold text-sm flex items-center justify-center shadow-xs shrink-0 overflow-hidden`}>
                   {user?.profilePhoto ? (
                     <img
                       src={
@@ -499,9 +456,6 @@ export const AppLayout: React.FC = () => {
                   <div className="px-3.5 py-2.5 border-b border-slate-100">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Signed in as</p>
                     <p className="text-xs font-bold text-slate-800 truncate">{user?.email}</p>
-                    <span className="inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700">
-                      {user?.role === 'PRODUCT_SUPER_ADMIN' ? 'Product Super Admin' : user?.role}
-                    </span>
                   </div>
 
                   <button
@@ -526,33 +480,6 @@ export const AppLayout: React.FC = () => {
                     <span>Settings</span>
                   </button>
 
-                  {/* Attendance Check Out / Check In */}
-                  {user?.role !== 'PRODUCT_SUPER_ADMIN' && (
-                    activeAttendance ? (
-                      <button
-                        onClick={handleCheckOutAction}
-                        disabled={isCheckActionLoading}
-                        className="w-full px-3.5 py-2 text-left text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2.5 cursor-pointer font-semibold transition-colors disabled:opacity-50"
-                      >
-                        <IconPlayerStop className="w-4 h-4 text-rose-500 shrink-0 fill-rose-500" />
-                        <span>{isCheckActionLoading ? 'Checking Out...' : 'Check Out'}</span>
-                      </button>
-                    ) : isShiftCompletedToday ? (
-                      <div className="w-full px-3.5 py-2 text-left text-xs text-emerald-800 bg-emerald-50/80 flex items-center gap-2.5 font-semibold cursor-default">
-                        <IconCheck className="w-4 h-4 text-emerald-600 shrink-0 stroke-[2.5]" />
-                        <span>Shift Completed Today</span>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={handleCheckInAction}
-                        disabled={isCheckActionLoading}
-                        className="w-full px-3.5 py-2 text-left text-xs text-indigo-600 hover:bg-indigo-50 flex items-center gap-2.5 cursor-pointer font-semibold transition-colors disabled:opacity-50"
-                      >
-                        <IconPlayerPlay className="w-4 h-4 text-indigo-600 shrink-0 fill-indigo-600" />
-                        <span>{isCheckActionLoading ? 'Checking In...' : 'Check In'}</span>
-                      </button>
-                    )
-                  )}
 
                   <div className="my-1 border-t border-slate-100" />
 

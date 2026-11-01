@@ -239,7 +239,7 @@ export const ActivityLogsPage: React.FC = () => {
         <div>
           <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
             <IconMail className="w-5 h-5 text-[#5E4BE2] shrink-0" />
-            <span>Employee Account Emails</span>
+            <span>Account Emails</span>
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             When employee accounts are created, their login ID and password are sent to their email. If not received, click "Resend Email" below to dispatch their login credentials.

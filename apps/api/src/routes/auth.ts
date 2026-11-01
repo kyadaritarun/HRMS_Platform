@@ -128,6 +128,7 @@ router.post('/login', validateBody(LoginSchema), async (req, res, next) => {
             logo: user.company.logo,
             workingDays: user.company.workingDays,
             timezone: user.company.timezone,
+            settings: user.company.settings,
           }
         : null,
     });

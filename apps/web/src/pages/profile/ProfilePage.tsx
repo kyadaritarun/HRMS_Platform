@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api, { getFileUrl } from '../../api/client';
+import { getAvatarColor } from '../../utils/avatarColors';
 import {
   IconUser,
   IconBriefcase,
@@ -284,7 +285,7 @@ export const ProfilePage: React.FC = () => {
               />
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-700 flex items-center justify-center font-bold text-lg border-2 border-white shadow-sm shrink-0 cursor-pointer overflow-hidden relative transition-all group-hover:shadow-md"
+                className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl ${getAvatarColor(displayName || user?.email)} flex items-center justify-center font-bold text-lg border-2 border-white shadow-sm shrink-0 cursor-pointer overflow-hidden relative transition-all group-hover:shadow-md`}
                 title="Click to change profile image (saved in AWS S3 image folder)"
               >
                 {getAvatarUrl(user?.profilePhoto) ? (

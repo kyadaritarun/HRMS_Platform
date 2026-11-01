@@ -12,6 +12,7 @@ import {
   IconCheck,
   IconX,
   IconUserCheck,
+  IconUserPlus,
   IconDeviceLaptop,
   IconDeviceMobile,
   IconScreenShare,
@@ -415,12 +416,12 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
             {activeTab === 'ASSETS' ? (
               <>
                 <IconDevices className="w-5 h-5 text-indigo-600 shrink-0" />
-                <span>Company Hardware & IT Assets</span>
+                <span>Company Assets</span>
               </>
             ) : (
               <>
                 <IconChecklist className="w-5 h-5 text-indigo-600 shrink-0" />
-                <span>Employee Onboarding Checklists</span>
+                <span>Employee Onboarding</span>
               </>
             )}
           </h1>
@@ -523,19 +524,19 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
                               <button
                                 type="button"
                                 onClick={() => setSelectedAssetForAssign(item)}
-                                className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg font-bold text-xs cursor-pointer transition-colors"
+                                className="p-1.5 text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/60 rounded-lg transition-colors cursor-pointer"
+                                title={`Assign ${item.name || item.tag}`}
                               >
-                                Assign
+                                <IconUserPlus className="w-4 h-4 text-indigo-600" />
                               </button>
                             ) : (
                               <button
                                 type="button"
                                 onClick={() => handleReturnAsset(item.id)}
-                                className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg font-bold text-xs inline-flex items-center gap-1 cursor-pointer transition-colors"
+                                className="p-1.5 text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200/60 rounded-lg transition-colors cursor-pointer"
                                 title="Return hardware to inventory"
                               >
-                                <IconArrowBackUp className="w-3.5 h-3.5" />
-                                Return
+                                <IconArrowBackUp className="w-4 h-4 text-amber-600" />
                               </button>
                             )}
 
@@ -580,7 +581,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
                 <IconChecklist className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-slate-900">New Hire Onboarding Tracker</h2>
+                <h2 className="text-sm font-bold text-slate-900">Onboarding Overview</h2>
                 <p className="text-xs text-slate-400 mt-0.5">
                   Ensure each joined employee completes all {onboardingTasks.length} compliance and orientation milestones.
                 </p>
@@ -853,175 +854,268 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
         </div>
       )}
 
-      {/* Modal: Add New Hardware Asset */}
-      {showAddAssetModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <IconDeviceLaptop className="w-5 h-5 text-indigo-600" />
-              Register New Hardware Asset
-            </h2>
-
-            <form onSubmit={handleCreateAsset} className="space-y-3 pt-2">
-              <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Asset Tag</label>
-                <input
-                  type="text"
-                  required
-                  value={newAsset.tag}
-                  onChange={(e) => setNewAsset({ ...newAsset, tag: e.target.value })}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Device Name / Model</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. MacBook Air M2 16GB"
-                  value={newAsset.name}
-                  onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })}
-                  className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">Category</label>
-                  <select
-                    value={newAsset.category}
-                    onChange={(e) => setNewAsset({ ...newAsset, category: e.target.value as any })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-bold"
-                  >
-                    <option value="LAPTOP">Laptop</option>
-                    <option value="MONITOR">Monitor</option>
-                    <option value="MOBILE">Mobile Phone</option>
-                    <option value="ACCESSORY">Peripheral / Accessory</option>
-                    <option value="KEYCARD">Access Keycard</option>
-                  </select>
+      {/* Right-Side Drawer: Register New Asset */}
+      {showAddAssetModal && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] overflow-hidden bg-slate-900/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+          onClick={() => setShowAddAssetModal(false)}
+        >
+          <div className="absolute inset-y-0 right-0 max-w-full flex pl-10 pointer-events-none">
+            <div
+              className="w-screen max-w-md bg-white shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-300 border-l border-slate-100 pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drawer Header */}
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0 shadow-2xs">
+                    <IconDeviceLaptop className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900 leading-tight">
+                      Register New Asset
+                    </h2>
+                    <p className="text-xs text-slate-400 font-medium mt-0.5">
+                      Add equipment or devices to company inventory
+                    </p>
+                  </div>
                 </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">Condition</label>
-                  <select
-                    value={newAsset.condition}
-                    onChange={(e) => setNewAsset({ ...newAsset, condition: e.target.value as any })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-bold"
-                  >
-                    <option value="NEW">Brand New</option>
-                    <option value="EXCELLENT">Excellent</option>
-                    <option value="GOOD">Good</option>
-                    <option value="NEEDS_REPAIR">Needs Maintenance</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Serial Number</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. C02G89X0..."
-                  value={newAsset.serialNumber}
-                  onChange={(e) => setNewAsset({ ...newAsset, serialNumber: e.target.value })}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
-                  Assign to Employee <span className="text-[11px] font-normal text-slate-400">(Optional - can be allocated now)</span>
-                </label>
-                <select
-                  value={newAsset.assignedToEmployeeId}
-                  onChange={(e) => setNewAsset({ ...newAsset, assignedToEmployeeId: e.target.value })}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium cursor-pointer"
-                >
-                  <option value="">-- Keep in Stock (Unassigned) --</option>
-                  {employees.map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.firstName} {e.lastName} ({e.department?.name || 'General'} • {e.jobTitle})
-                    </option>
-                  ))}
-                </select>
-                {newAsset.assignedToEmployeeId && (
-                  <p className="text-[11px] text-indigo-600 font-semibold mt-1">
-                    ✓ Device will be marked as Assigned immediately upon registration.
-                  </p>
-                )}
-              </div>
-
-              <div className="pt-3 flex justify-end gap-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowAddAssetModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  title="Close panel"
+                >
+                  <IconX className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Form Body - scrollable */}
+              <form onSubmit={handleCreateAsset} className="flex flex-col flex-1 min-h-0">
+                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                  {/* Asset Tag */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">
+                      Asset Tag <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newAsset.tag}
+                      onChange={(e) => setNewAsset({ ...newAsset, tag: e.target.value })}
+                      placeholder="e.g. AST-101"
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                    />
+                    <p className="text-[11px] text-slate-400 mt-1">Unique internal identification tag for tracking.</p>
+                  </div>
+
+                  {/* Device Name / Model */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">
+                      Device Name / Model <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. MacBook Air M2 16GB"
+                      value={newAsset.name}
+                      onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                    />
+                  </div>
+
+                  {/* Category & Condition */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 block mb-1">Category</label>
+                      <select
+                        value={newAsset.category}
+                        onChange={(e) => setNewAsset({ ...newAsset, category: e.target.value as any })}
+                        className="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all cursor-pointer"
+                      >
+                        <option value="LAPTOP">Laptop</option>
+                        <option value="MONITOR">Monitor</option>
+                        <option value="MOBILE">Mobile Phone</option>
+                        <option value="ACCESSORY">Peripheral / Accessory</option>
+                        <option value="KEYCARD">Access Keycard</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 block mb-1">Condition</label>
+                      <select
+                        value={newAsset.condition}
+                        onChange={(e) => setNewAsset({ ...newAsset, condition: e.target.value as any })}
+                        className="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all cursor-pointer"
+                      >
+                        <option value="NEW">Brand New</option>
+                        <option value="EXCELLENT">Excellent</option>
+                        <option value="GOOD">Good</option>
+                        <option value="NEEDS_REPAIR">Needs Maintenance</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Serial Number */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">
+                      Serial Number <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. C02G89X0..."
+                      value={newAsset.serialNumber}
+                      onChange={(e) => setNewAsset({ ...newAsset, serialNumber: e.target.value })}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl font-mono text-slate-800 placeholder-slate-400 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                    />
+                  </div>
+
+                  {/* Assign to Employee */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">
+                      Assign to Employee <span className="text-[11px] font-normal text-slate-400">(Optional - can be allocated now)</span>
+                    </label>
+                    <select
+                      value={newAsset.assignedToEmployeeId}
+                      onChange={(e) => setNewAsset({ ...newAsset, assignedToEmployeeId: e.target.value })}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all cursor-pointer"
+                    >
+                      <option value="">-- Keep in Stock (Unassigned) --</option>
+                      {employees.map((e) => (
+                        <option key={e.id} value={e.id}>
+                          {e.firstName} {e.lastName} ({e.department?.name || 'General'} • {e.jobTitle})
+                        </option>
+                      ))}
+                    </select>
+                    {newAsset.assignedToEmployeeId ? (
+                      <div className="mt-2 p-2.5 rounded-xl bg-emerald-50 border border-emerald-100 text-[11px] text-emerald-700 font-semibold flex items-center gap-1.5">
+                        <IconCheck className="w-3.5 h-3.5 shrink-0" />
+                        <span>Device will be automatically marked as Assigned upon registration.</span>
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        Leave unassigned to keep this device available in stock inventory.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Drawer Footer */}
+                <div className="p-4 px-6 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end gap-2.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddAssetModal(false)}
+                    className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 text-xs font-bold bg-[#5E4BE2] hover:bg-[#4E3BC2] text-white rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <IconPlus className="w-4 h-4" />
+                    <span>Register Asset</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Right-Side Drawer: Assign Asset */}
+      {selectedAssetForAssign && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] overflow-hidden bg-slate-900/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+          onClick={() => setSelectedAssetForAssign(null)}
+        >
+          <div className="absolute inset-y-0 right-0 max-w-full flex pl-10 pointer-events-none">
+            <div
+              className="w-screen max-w-md bg-white shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-300 border-l border-slate-100 pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drawer Header */}
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0 shadow-2xs">
+                    <IconUserCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900 leading-tight">
+                      Assign Asset to Employee
+                    </h2>
+                    <p className="text-xs text-slate-400 font-medium mt-0.5">
+                      Allocate equipment to an employee custodian
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedAssetForAssign(null)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  title="Close panel"
+                >
+                  <IconX className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Drawer Content */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 text-xs space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Selected Asset</span>
+                  <span className="font-bold text-slate-900 text-sm block">{selectedAssetForAssign.name}</span>
+                  <div className="flex items-center gap-2 text-slate-500 font-mono text-[11px] pt-1">
+                    <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200 font-bold text-slate-700">
+                      {selectedAssetForAssign.tag}
+                    </span>
+                    <span>S/N: {selectedAssetForAssign.serialNumber}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">
+                    Select Employee Custodian <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={assignEmpId}
+                    onChange={(e) => setAssignEmpId(e.target.value)}
+                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all cursor-pointer"
+                  >
+                    <option value="">-- Choose Employee --</option>
+                    {employees.map((e) => (
+                      <option key={e.id} value={e.id}>
+                        {e.firstName} {e.lastName} ({e.department?.name || 'General'} - {e.jobTitle})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Drawer Footer */}
+              <div className="p-4 px-6 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end gap-2.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setSelectedAssetForAssign(null)}
+                  className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
-                  type="submit"
-                  className="px-5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-xs"
+                  type="button"
+                  disabled={!assignEmpId}
+                  onClick={handleAssignAsset}
+                  className="px-5 py-2.5 text-xs font-bold bg-[#5E4BE2] hover:bg-[#4E3BC2] disabled:opacity-50 text-white rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
                 >
-                  Register Asset
+                  <IconCheck className="w-4 h-4" />
+                  <span>Confirm Allocation</span>
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Assign Asset */}
-      {selectedAssetForAssign && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <IconUserCheck className="w-5 h-5 text-indigo-600" />
-              Assign Hardware to Employee
-            </h2>
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
-              <span className="font-bold text-slate-900 block">{selectedAssetForAssign.name}</span>
-              <span className="text-slate-400 block font-mono">
-                {selectedAssetForAssign.tag} • S/N: {selectedAssetForAssign.serialNumber}
-              </span>
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">
-                Select Employee Custodian
-              </label>
-              <select
-                value={assignEmpId}
-                onChange={(e) => setAssignEmpId(e.target.value)}
-                className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl font-bold"
-              >
-                <option value="">-- Choose Employee --</option>
-                {employees.map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {e.firstName} {e.lastName} ({e.department?.name || 'General'} - {e.jobTitle})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="pt-3 flex justify-end gap-2 border-t border-slate-100">
-              <button
-                onClick={() => setSelectedAssetForAssign(null)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
-              >
-                Cancel
-              </button>
-              <button
-                disabled={!assignEmpId}
-                onClick={handleAssignAsset}
-                className="px-5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl shadow-xs"
-              >
-                Confirm Allocation
-              </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ===================== ONBOARDING CHECKLIST RIGHT SIDEBAR DRAWER ===================== */}
