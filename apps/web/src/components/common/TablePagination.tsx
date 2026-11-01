@@ -80,58 +80,70 @@ export const TablePagination: React.FC<TablePaginationProps> = ({
 
       {/* Right: Page Navigation Buttons */}
       {totalPages > 1 && (
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           {/* Previous Button */}
           <button
             type="button"
             onClick={() => onPageChange(Math.max(1, safePage - 1))}
             disabled={safePage <= 1}
-            className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 disabled:opacity-30 disabled:hover:bg-white flex items-center justify-center transition-colors shadow-2xs cursor-pointer disabled:cursor-not-allowed"
+            className={`h-8 px-2.5 sm:px-3 rounded-xl border flex items-center justify-center gap-1.5 text-xs font-bold transition-all shadow-2xs mr-1 ${
+              safePage <= 1
+                ? 'bg-slate-50 border-slate-200 text-slate-300 cursor-not-allowed'
+                : 'bg-slate-100 hover:bg-indigo-50 border-slate-200/90 hover:border-indigo-300 text-slate-700 hover:text-indigo-600 active:scale-95 cursor-pointer'
+            }`}
             title="Previous page"
             aria-label="Previous page"
           >
-            <IconChevronLeft className="w-4 h-4" />
+            <IconChevronLeft className="w-4 h-4 stroke-[2.5] shrink-0" />
+            <span className="hidden sm:inline text-[11px] font-semibold">Prev</span>
           </button>
 
           {/* Numbered Page Buttons with Ellipsis */}
-          {pages.map((p, idx) => {
-            if (p === '...') {
+          <div className="flex items-center gap-1">
+            {pages.map((p, idx) => {
+              if (p === '...') {
+                return (
+                  <span key={`dots-${idx}`} className="w-6 text-center font-bold text-slate-400 select-none">
+                    •••
+                  </span>
+                );
+              }
+              const pageNum = Number(p);
+              const isActive = safePage === pageNum;
               return (
-                <span key={`dots-${idx}`} className="w-6 text-center font-bold text-slate-400 select-none">
-                  •••
-                </span>
+                <button
+                  key={pageNum}
+                  type="button"
+                  onClick={() => onPageChange(pageNum)}
+                  className={`w-8 h-8 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-[#5E4BE2] text-white shadow-xs scale-105'
+                      : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-2xs'
+                  }`}
+                  aria-label={`Page ${pageNum}`}
+                  aria-current={isActive ? 'page' : undefined}
+                >
+                  {pageNum}
+                </button>
               );
-            }
-            const pageNum = Number(p);
-            const isActive = safePage === pageNum;
-            return (
-              <button
-                key={pageNum}
-                type="button"
-                onClick={() => onPageChange(pageNum)}
-                className={`w-8 h-8 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-[#5E4BE2] text-white shadow-xs'
-                    : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 shadow-2xs'
-                }`}
-                aria-label={`Page ${pageNum}`}
-                aria-current={isActive ? 'page' : undefined}
-              >
-                {pageNum}
-              </button>
-            );
-          })}
+            })}
+          </div>
 
           {/* Next Button */}
           <button
             type="button"
             onClick={() => onPageChange(Math.min(totalPages, safePage + 1))}
             disabled={safePage >= totalPages}
-            className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 disabled:opacity-30 disabled:hover:bg-white flex items-center justify-center transition-colors shadow-2xs cursor-pointer disabled:cursor-not-allowed"
+            className={`h-8 px-2.5 sm:px-3 rounded-xl border flex items-center justify-center gap-1.5 text-xs font-bold transition-all shadow-2xs ml-1 ${
+              safePage >= totalPages
+                ? 'bg-slate-50 border-slate-200 text-slate-300 cursor-not-allowed'
+                : 'bg-slate-100 hover:bg-indigo-50 border-slate-200/90 hover:border-indigo-300 text-slate-700 hover:text-indigo-600 active:scale-95 cursor-pointer'
+            }`}
             title="Next page"
             aria-label="Next page"
           >
-            <IconChevronRight className="w-4 h-4" />
+            <span className="hidden sm:inline text-[11px] font-semibold">Next</span>
+            <IconChevronRight className="w-4 h-4 stroke-[2.5] shrink-0" />
           </button>
         </div>
       )}

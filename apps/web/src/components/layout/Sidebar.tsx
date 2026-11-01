@@ -43,6 +43,8 @@ import {
   IconChartPie,
   IconPigMoney,
   IconHeadset,
+  IconShieldCheck,
+  IconSchool,
 } from '@tabler/icons-react';
 import { HelplineDrawer } from '../HelplineDrawer';
 
@@ -184,10 +186,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           id: 'company',
           label: 'Company',
           icon: IconBuildingSkyscraper,
-          roles: ['COMPANY_ADMIN'],
+          roles: ['COMPANY_ADMIN', 'HR'],
           subItems: [
             { label: 'Company Dashboard', path: '/company/dashboard', icon: IconSmartHome, roles: ['COMPANY_ADMIN'] },
-            { label: 'Create Employee', path: '/company/employees/new', icon: IconUserPlus, permission: 'employees', roles: ['COMPANY_ADMIN'] },
+            { label: 'Create Employee', path: '/company/employees/new', icon: IconUserPlus, permission: 'employees', roles: ['COMPANY_ADMIN', 'HR'] },
+            { label: 'Background Verification', path: '/company/background-verification', icon: IconShieldCheck, roles: ['COMPANY_ADMIN', 'HR'] },
+            { label: 'Employee Training', path: '/company/training', icon: IconSchool, roles: ['COMPANY_ADMIN', 'HR'] },
             { label: 'Billing', path: '/company/billing', icon: IconCreditCard, roles: ['COMPANY_ADMIN'] },
             { label: 'Activity Logs', path: '/company/activity-logs', icon: IconHistory, roles: ['COMPANY_ADMIN'] },
           ],

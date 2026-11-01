@@ -1268,9 +1268,15 @@ export const CompaniesPage: React.FC = () => {
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage <= 1}
-              className="p-1 rounded-md hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
+              className={`h-7 px-2 rounded-lg border flex items-center justify-center gap-1 text-xs font-bold transition-all shadow-2xs mr-1 ${
+                currentPage <= 1
+                  ? 'bg-slate-50 border-slate-200 text-slate-300 cursor-not-allowed'
+                  : 'bg-slate-100 hover:bg-blue-50 border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-700 cursor-pointer'
+              }`}
+              title="Previous page"
             >
-              <IconChevronLeft className="w-4 h-4" />
+              <IconChevronLeft className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span className="text-[10px] hidden sm:inline">Prev</span>
             </button>
 
             {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((pageNum) => (
@@ -1290,9 +1296,15 @@ export const CompaniesPage: React.FC = () => {
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage >= totalPages}
-              className="p-1 rounded-md hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
+              className={`h-7 px-2 rounded-lg border flex items-center justify-center gap-1 text-xs font-bold transition-all shadow-2xs ml-1 ${
+                currentPage >= totalPages
+                  ? 'bg-slate-50 border-slate-200 text-slate-300 cursor-not-allowed'
+                  : 'bg-slate-100 hover:bg-blue-50 border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-700 cursor-pointer'
+              }`}
+              title="Next page"
             >
-              <IconChevronRight className="w-4 h-4" />
+              <span className="text-[10px] hidden sm:inline">Next</span>
+              <IconChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
             </button>
           </div>
         </div>

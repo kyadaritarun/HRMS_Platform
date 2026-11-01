@@ -123,6 +123,41 @@ export const ShiftRosterPage: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Active Roster Cell Dropdown Popover
+  const [activeCellMenu, setActiveCellMenu] = useState<{
+    empId: number;
+    empName: string;
+    dateStr: string;
+    dateLabel: string;
+    anchorRect: { top: number; left: number; width: number; height: number; bottom: number };
+  } | null>(null);
+
+  // Close cell menu on Escape, outside scroll, or resize
+  useEffect(() => {
+    if (!activeCellMenu) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setActiveCellMenu(null);
+    };
+
+    const handleScroll = (e: Event) => {
+      if ((e.target as HTMLElement)?.closest?.('.shift-popover-card')) return;
+      setActiveCellMenu(null);
+    };
+
+    const handleResize = () => setActiveCellMenu(null);
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [activeCellMenu]);
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -816,22 +851,43 @@ export const ShiftRosterPage: React.FC = () => {
                           const key = `${emp.id}_${dateStr}`;
                           const currentCode = rosterMap[key] || '';
                           const activeShift = shifts.find((s) => s.code === currentCode);
+                          const isOpen = activeCellMenu?.empId === emp.id && activeCellMenu?.dateStr === dateStr;
+
+                          const openMenuForCell = (e: React.MouseEvent<HTMLButtonElement>) => {
+                            e.stopPropagation();
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            if (isOpen) {
+                              setActiveCellMenu(null);
+                            } else {
+                              setActiveCellMenu({
+                                empId: emp.id,
+                                empName: `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Employee',
+                                dateStr,
+                                dateLabel: d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+                                anchorRect: {
+                                  top: rect.top,
+                                  left: rect.left,
+                                  width: rect.width,
+                                  height: rect.height,
+                                  bottom: rect.bottom,
+                                },
+                              });
+                            }
+                          };
 
                           return (
                             <td key={dateStr} className="px-2 py-2.5 text-center">
-                              <select
-                                value={currentCode}
+                              <button
+                                type="button"
+                                onClick={openMenuForCell}
                                 title={activeShift ? `${activeShift.code}: ${activeShift.name} (${activeShift.startTime} - ${activeShift.endTime})` : 'Select shift'}
-                                onChange={(e) => handleSetShift(emp.id, dateStr, e.target.value)}
-                                className={`px-2 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer w-full text-center ${activeShift?.color || 'bg-slate-50 text-slate-700 border-slate-200/80 hover:bg-slate-100'}`}
+                                className={`w-full py-1.5 px-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-between gap-1 shadow-2xs cursor-pointer ${
+                                  activeShift?.color || (currentCode ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-slate-50 text-slate-600 border-slate-200/80 hover:bg-slate-100')
+                                } ${isOpen ? 'ring-2 ring-indigo-500/40' : ''}`}
                               >
-                                <option value="">-</option>
-                                {shifts.map((s) => (
-                                  <option key={s.id} value={s.code} title={`${s.name} (${s.startTime} - ${s.endTime})`}>
-                                    {s.code}
-                                  </option>
-                                ))}
-                              </select>
+                                <span className="truncate">{currentCode || '-'}</span>
+                                <IconChevronDown className={`w-3.5 h-3.5 shrink-0 opacity-60 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                              </button>
                             </td>
                           );
                         })}
@@ -948,6 +1004,93 @@ export const ShiftRosterPage: React.FC = () => {
             </div>
           )}
         </div>
+      )}
+
+      {/* ===================== ROSTER CELL SHIFT SELECTOR POPOVER ===================== */}
+      {activeCellMenu && typeof document !== 'undefined' && createPortal(
+        (() => {
+          const menuWidth = 180;
+          const rect = activeCellMenu.anchorRect;
+          const spaceBelow = window.innerHeight - rect.bottom;
+          const openUpward = spaceBelow < 180 && rect.top > 180;
+
+          let left = rect.left;
+          if (left + menuWidth > window.innerWidth - 12) {
+            left = window.innerWidth - menuWidth - 12;
+          }
+          if (left < 12) left = 12;
+
+          const cardStyle: React.CSSProperties = {
+            position: 'fixed',
+            left: `${left}px`,
+            width: `${menuWidth}px`,
+            zIndex: 9999,
+            ...(openUpward
+              ? { bottom: `${window.innerHeight - rect.top + 4}px` }
+              : { top: `${rect.bottom + 4}px` }),
+          };
+
+          const currentActiveCode = rosterMap[`${activeCellMenu.empId}_${activeCellMenu.dateStr}`] || '';
+
+          return (
+            <div className="fixed inset-0 z-[9999]">
+              {/* Invisible Backdrop to close on click outside */}
+              <div
+                className="fixed inset-0 bg-transparent"
+                onClick={() => setActiveCellMenu(null)}
+              />
+
+              {/* Simple, compact dropdown menu */}
+              <div
+                style={cardStyle}
+                className="shift-popover-card bg-white rounded-xl border border-slate-200 shadow-xl p-1 z-10 animate-in fade-in zoom-in-95 duration-100"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Clear / Unassigned Option */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleSetShift(activeCellMenu.empId, activeCellMenu.dateStr, '');
+                    setActiveCellMenu(null);
+                  }}
+                  className={`w-full px-2.5 py-1.5 text-xs font-semibold rounded-lg text-left flex items-center justify-between transition-colors cursor-pointer ${
+                    !currentActiveCode ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <span>- (Unassign)</span>
+                  {!currentActiveCode && <IconCheck className="w-3.5 h-3.5 text-indigo-600" />}
+                </button>
+
+                {/* Defined Shifts */}
+                {shifts.map((s) => {
+                  const isSelected = currentActiveCode === s.code;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => {
+                        handleSetShift(activeCellMenu.empId, activeCellMenu.dateStr, s.code);
+                        setActiveCellMenu(null);
+                      }}
+                      className={`w-full px-2 py-1.5 text-xs font-semibold rounded-lg text-left flex items-center justify-between transition-colors cursor-pointer ${
+                        isSelected ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate min-w-0">
+                        <span className={`px-1.5 py-0.5 rounded text-[11px] font-bold shrink-0 ${s.color || 'bg-slate-100 text-slate-700'}`}>
+                          {s.code}
+                        </span>
+                        <span className="text-xs text-slate-700 truncate">{s.name}</span>
+                      </div>
+                      {isSelected && <IconCheck className="w-3.5 h-3.5 text-indigo-600 shrink-0 ml-1.5" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })(),
+        document.body
       )}
 
       {/* ===================== BULK ASSIGN RIGHT-SIDE DRAWER ===================== */}
