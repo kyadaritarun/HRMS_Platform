@@ -1692,7 +1692,7 @@ export const EmployeeDashboard: React.FC = () => {
                     )}
                   </div>
                   <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5">
-                    {calMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} • {calendarCounts.present} Days Present{calendarCounts.halfDay > 0 ? ` • ${calendarCounts.halfDay} Half Day` : ''} • {calendarCounts.absent} Absent
+                    {calMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                   </p>
                 </div>
               </div>

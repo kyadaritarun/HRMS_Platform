@@ -16,6 +16,7 @@ import { upload } from '../lib/storage.js';
 import { sendEmail } from '../lib/mailer.js';
 import { sendPlanProposal, checkAndSendExpiryAlerts } from '../services/subscriptionBilling.js';
 import { createRazorpayPaymentLink } from '../lib/razorpay.js';
+import { getHelplineConfig, updateHelplineConfig } from '../services/helplineService.js';
 
 const router = Router();
 
@@ -1632,6 +1633,31 @@ router.post('/infrastructure/servers/:id/test', async (req, res) => {
     latencyMs: 42,
     message: 'SSH connection tested successfully.',
   });
+});
+
+// ==========================================
+// GLOBAL HELPLINE CONFIGURATION
+// ==========================================
+router.get('/helpline', async (_req, res, next) => {
+  try {
+    const config = await getHelplineConfig();
+    return res.json({ config });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put('/helpline', async (req, res, next) => {
+  try {
+    const updated = await updateHelplineConfig(req.body, req.user?.email);
+    return res.json({
+      success: true,
+      message: 'Global helpline settings updated successfully.',
+      config: updated,
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 export default router;

@@ -19,6 +19,7 @@ import { RenewalsPage } from './pages/superadmin/RenewalsPage';
 import { InfrastructurePage } from './pages/superadmin/InfrastructurePage';
 import { AddSuperAdminPage } from './pages/superadmin/AddSuperAdminPage';
 import { EmailsPage } from './pages/superadmin/EmailsPage';
+import { SuperAdminHelplinePage } from './pages/superadmin/SuperAdminHelplinePage';
 
 // Company Management Pages
 import { CompanyDashboard } from './pages/company/CompanyDashboard';
@@ -185,6 +186,14 @@ export const App: React.FC = () => {
               element={
                 <ProtectedRoute allowedRoles={['PRODUCT_SUPER_ADMIN']}>
                   <EmailsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/super-admin/helpline"
+              element={
+                <ProtectedRoute allowedRoles={['PRODUCT_SUPER_ADMIN']}>
+                  <SuperAdminHelplinePage />
                 </ProtectedRoute>
               }
             />

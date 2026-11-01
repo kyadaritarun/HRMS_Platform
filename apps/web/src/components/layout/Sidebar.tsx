@@ -42,7 +42,9 @@ import {
   IconDevices,
   IconChartPie,
   IconPigMoney,
+  IconHeadset,
 } from '@tabler/icons-react';
+import { HelplineDrawer } from '../HelplineDrawer';
 
 export interface SubMenuItem {
   label: string;
@@ -74,6 +76,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
 
   const [openCategoryId, setOpenCategoryId] = useState<string | null>(null);
   const [lockedModal, setLockedModal] = useState<{ open: boolean; featureName?: string }>({ open: false });
+  const [isHelplineOpen, setIsHelplineOpen] = useState(false);
 
   // Company admin custom visibility preferences for operations modules
   const [sidebarOpsPrefs, setSidebarOpsPrefs] = useState<SidebarOpsVisibility>(() =>
@@ -146,6 +149,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           icon: IconMail,
           roles: ['PRODUCT_SUPER_ADMIN'],
           path: '/super-admin/emails',
+        },
+        {
+          id: 'helpline',
+          label: 'Global Helpline',
+          icon: IconHeadset,
+          roles: ['PRODUCT_SUPER_ADMIN'],
+          path: '/super-admin/helpline',
         },
         {
           id: 'admins',
@@ -688,6 +698,46 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
             );
           })}
         </div>
+
+        {/* Pinned Helpline & Support Footer - Hidden for Super Admin */}
+        {user?.role !== 'PRODUCT_SUPER_ADMIN' && (
+          <div className="p-2.5 border-t border-slate-100 bg-slate-50/50 shrink-0">
+            {collapsed ? (
+              <button
+                type="button"
+                onClick={() => setIsHelplineOpen(true)}
+                className="w-10 h-10 mx-auto rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100 border border-indigo-100/80 text-[#5E4BE2] flex items-center justify-center transition-all shadow-2xs group cursor-pointer"
+                title="Helpline & Contact Us"
+              >
+                <IconHeadset className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsHelplineOpen(true)}
+                className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-gradient-to-r from-indigo-50/70 via-purple-50/40 to-slate-50 border border-indigo-100/70 hover:border-indigo-200 text-slate-800 transition-all cursor-pointer group shadow-2xs text-left"
+              >
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#5E4BE2] to-[#4938CA] text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                  <IconHeadset className="w-4.5 h-4.5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900 group-hover:text-[#5E4BE2] transition-colors">
+                      Helpline
+                    </span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Support
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                    Contact us &amp; emergency info
+                  </p>
+                </div>
+              </button>
+            )}
+          </div>
+        )}
       </aside>
 
       {/* Feature Locked Modal */}
@@ -696,6 +746,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
         onClose={() => setLockedModal({ open: false })}
         featureName={lockedModal.featureName}
       />
+
+      {/* Helpline Slide-over Drawer - Hidden for Super Admin */}
+      {user?.role !== 'PRODUCT_SUPER_ADMIN' && (
+        <HelplineDrawer
+          isOpen={isHelplineOpen}
+          onClose={() => setIsHelplineOpen(false)}
+        />
+      )}
     </>
   );
 };

@@ -24,6 +24,7 @@ import orgStructureRoutes from './routes/orgStructure.js';
 import assistantRoutes from './routes/assistant.js';
 import subscriptionRoutes from './routes/subscription.js';
 import { businessCompanyRouter, businessPayrollRouter } from './routes/businessRecords.js';
+import { getHelplineConfig } from './services/helplineService.js';
 
 import fs from 'fs';
 import { isS3Configured, getS3FileStream } from './lib/storage.js';
@@ -157,6 +158,12 @@ app.use('/api/v1/appreciations', appreciationsRoutes);
 app.use('/api/v1/org-structure', orgStructureRoutes);
 app.use('/api/v1/assistant', assistantRoutes);
 app.use('/api/v1/subscription', subscriptionRoutes);
+
+// Global Helpline endpoint accessible across all companies
+app.get('/api/v1/helpline', async (_req, res) => {
+  const config = await getHelplineConfig();
+  res.json({ config });
+});
 
 // Protected tenant test endpoint
 app.get(

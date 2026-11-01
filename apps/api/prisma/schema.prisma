@@ -774,3 +774,26 @@ model ComplianceReport {
   @@unique([companyId, type, month, year])
   @@index([companyId, year, month])
 }
+
+// ------------------------------------------------------------------
+// GlobalHelpline: Global Helpline and Support configuration managed by Super Admin
+// ------------------------------------------------------------------
+model GlobalHelpline {
+  id                Int      @id @default(autoincrement())
+  key               String   @unique @default("primary")
+  emergencyNumber   String   @default("")
+  emergencyLabel    String   @default("")
+  emergencySubtext  String   @default("")
+  hrPhone           String   @default("")
+  hrTollFree        String   @default("")
+  hrEmail           String   @default("")
+  itEmail           String   @default("")
+  itExtension       String   @default("")
+  supportHours      String   @default("")
+  supportDays       String   @default("")
+  workplaceAddress  String   @default("")
+  announcement      String   @default("")
+  updatedBy         String   @default("")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}

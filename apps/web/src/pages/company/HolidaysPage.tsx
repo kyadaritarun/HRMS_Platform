@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../../api/client';
 import TablePagination from '../../components/common/TablePagination';
 import {
@@ -21,7 +22,8 @@ import {
   IconShieldLock,
   IconMail,
   IconSend,
-  IconLoader2,
+  IconRepeat,
+  IconCalendarRepeat,
 } from '@tabler/icons-react';
 import { getHolidayIcon } from '../../utils/holidayIcons';
 import { EventEmailsModal } from '../../components/company/EventEmailsModal';
@@ -34,11 +36,37 @@ interface Holiday {
   description?: string;
 }
 
+export interface AnnualHolidayTemplate {
+  name: string;
+  month: number; // 1-12
+  day: number; // 1-31
+  type: string;
+  description?: string;
+  isCustom?: boolean;
+}
+
+// Standard statutory & recognized annual recurring holidays
+export const STANDARD_ANNUAL_HOLIDAYS: AnnualHolidayTemplate[] = [
+  { name: "New Year's Day", month: 1, day: 1, type: 'PUBLIC', description: 'Celebration of the New Year [Repeats Annually]' },
+  { name: 'Republic Day', month: 1, day: 26, type: 'PUBLIC', description: 'National Statutory Holiday [Repeats Annually]' },
+  { name: "International Workers' Day", month: 5, day: 1, type: 'PUBLIC', description: 'Labour Day observance [Repeats Annually]' },
+  { name: 'Independence Day', month: 8, day: 15, type: 'PUBLIC', description: 'National Independence Day [Repeats Annually]' },
+  { name: 'Gandhi Jayanti', month: 10, day: 2, type: 'PUBLIC', description: 'National statutory observance [Repeats Annually]' },
+  { name: 'Christmas Day', month: 12, day: 25, type: 'PUBLIC', description: 'Christian Festival [Repeats Annually]' },
+];
+
 export const HolidaysPage: React.FC = () => {
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('ALL');
+
+  // Year Selection & Annual Recurring Holidays State
+  const currentActualYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState<number>(currentActualYear);
+  const [showAllYears, setShowAllYears] = useState(false);
+  const [isAnnualDrawerOpen, setIsAnnualDrawerOpen] = useState(false);
+  const [isBulkAdding, setIsBulkAdding] = useState(false);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -63,11 +91,13 @@ export const HolidaysPage: React.FC = () => {
     }, 4500);
     return () => clearTimeout(timer);
   }, [toast]);
+
   const [form, setForm] = useState({
     name: '',
     date: new Date().toISOString().split('T')[0],
     type: 'PUBLIC',
     description: '',
+    isRecurring: false,
     sendEmailToEmployees: true,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -115,18 +145,157 @@ export const HolidaysPage: React.FC = () => {
     }
   };
 
-  const handleOpenAdd = () => {
+  // Compile all annual recurring holidays: combining standard templates + any custom marked [Repeats Annually]
+  const allAnnualHolidays = useMemo(() => {
+    const map = new Map<string, AnnualHolidayTemplate>();
+
+    // 1. Standard annual defaults
+    STANDARD_ANNUAL_HOLIDAYS.forEach((std) => {
+      map.set(std.name.toLowerCase().trim(), std);
+    });
+
+    // 2. Discover custom holidays marked [Repeats Annually] in company database
+    holidays.forEach((h) => {
+      if (h.description && h.description.includes('[Repeats Annually]')) {
+        if (h.date) {
+          const d = parseDateString(h.date);
+          const nameKey = h.name.toLowerCase().trim();
+          map.set(nameKey, {
+            name: h.name,
+            month: d.getMonth() + 1,
+            day: d.getDate(),
+            type: h.type || 'PUBLIC',
+            description: h.description.replace(/\s*\[Repeats Annually\]/g, '').trim(),
+            isCustom: true,
+          });
+        }
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.month !== b.month) return a.month - b.month;
+      return a.day - b.day;
+    });
+  }, [holidays]);
+
+  // Check which annual recurring holidays are already present in the currently selected calendar year
+  const annualHolidayStatus = useMemo(() => {
+    const existingForYear = holidays.filter((h) => {
+      if (!h.date) return false;
+      const yr = parseDateString(h.date).getFullYear();
+      return yr === selectedYear;
+    });
+
+    return allAnnualHolidays.map((ann) => {
+      const isAdded = existingForYear.some((h) => {
+        const d = parseDateString(h.date);
+        const isSameDate = d.getMonth() + 1 === ann.month && d.getDate() === ann.day;
+        const isSameName = h.name.toLowerCase().trim() === ann.name.toLowerCase().trim();
+        return isSameDate || isSameName;
+      });
+
+      return {
+        ...ann,
+        isAdded,
+      };
+    });
+  }, [allAnnualHolidays, holidays, selectedYear]);
+
+  const missingAnnualHolidays = annualHolidayStatus.filter((a) => !a.isAdded);
+  const missingAnnualCount = missingAnnualHolidays.length;
+
+  // Auto-Add ALL missing annual recurring holidays for the selected calendar year
+  const handleAutoAddAllAnnual = async () => {
+    if (missingAnnualCount === 0) {
+      setToast({
+        type: 'success',
+        message: `All annual recurring holidays are already in the ${selectedYear} calendar!`,
+      });
+      return;
+    }
+
+    setIsBulkAdding(true);
+    try {
+      let added = 0;
+      for (const item of missingAnnualHolidays) {
+        const mStr = String(item.month).padStart(2, '0');
+        const dStr = String(item.day).padStart(2, '0');
+        const dateStr = `${selectedYear}-${mStr}-${dStr}`;
+        const finalDesc = item.description
+          ? `${item.description} [Repeats Annually]`
+          : '[Repeats Annually]';
+
+        await api.post('/company/holidays', {
+          name: item.name,
+          date: dateStr,
+          type: item.type,
+          description: finalDesc,
+          sendEmailToEmployees: false,
+        });
+        added++;
+      }
+
+      await fetchHolidays();
+      setToast({
+        type: 'success',
+        message: `Successfully auto-added ${added} annual holiday${added > 1 ? 's' : ''} to ${selectedYear} calendar!`,
+      });
+    } catch (err: any) {
+      setToast({
+        type: 'error',
+        message: err.response?.data?.error || err.response?.data?.message || 'Failed to auto-add annual holidays.',
+      });
+    } finally {
+      setIsBulkAdding(false);
+    }
+  };
+
+  // Add a single annual recurring holiday manually for the selected calendar year
+  const handleAddSingleAnnualHoliday = async (item: AnnualHolidayTemplate) => {
+    const mStr = String(item.month).padStart(2, '0');
+    const dStr = String(item.day).padStart(2, '0');
+    const dateStr = `${selectedYear}-${mStr}-${dStr}`;
+    const finalDesc = item.description
+      ? `${item.description} [Repeats Annually]`
+      : '[Repeats Annually]';
+
+    try {
+      await api.post('/company/holidays', {
+        name: item.name,
+        date: dateStr,
+        type: item.type,
+        description: finalDesc,
+        sendEmailToEmployees: false,
+      });
+
+      await fetchHolidays();
+      setToast({
+        type: 'success',
+        message: `Holiday "${item.name}" added to ${selectedYear} calendar!`,
+      });
+    } catch (err: any) {
+      setToast({
+        type: 'error',
+        message: err.response?.data?.error || err.response?.data?.message || `Failed to add "${item.name}".`,
+      });
+    }
+  };
+
+  const handleOpenAdd = (prefill?: { name?: string; date?: string; type?: string; isRecurring?: boolean }) => {
     setEditingHoliday(null);
     const today = new Date();
-    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const defaultDateStr =
+      prefill?.date ||
+      `${selectedYear}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     setForm({
-      name: '',
-      date: todayStr,
-      type: 'PUBLIC',
+      name: prefill?.name || '',
+      date: defaultDateStr,
+      type: prefill?.type || 'PUBLIC',
       description: '',
+      isRecurring: prefill?.isRecurring ?? false,
       sendEmailToEmployees: true,
     });
-    setCalViewDate(new Date(today.getFullYear(), today.getMonth(), 1));
+    setCalViewDate(new Date(selectedYear, today.getMonth(), 1));
     setError(null);
     setIsModalOpen(true);
   };
@@ -141,11 +310,16 @@ export const HolidaysPage: React.FC = () => {
     } else {
       setCalViewDate(new Date());
     }
+
+    const isRec = Boolean(h.description && h.description.includes('[Repeats Annually]'));
+    const cleanDesc = (h.description || '').replace(/\s*\[Repeats Annually\]/g, '').trim();
+
     setForm({
       name: h.name,
       date: dateStr,
       type: h.type || 'PUBLIC',
-      description: h.description || '',
+      description: cleanDesc,
+      isRecurring: isRec,
       sendEmailToEmployees: true,
     });
     setError(null);
@@ -157,13 +331,34 @@ export const HolidaysPage: React.FC = () => {
     setError(null);
     setIsSubmitting(true);
     try {
+      const cleanDesc = (form.description || '').replace(/\s*\[Repeats Annually\]/g, '').trim();
+      const finalDesc = form.isRecurring
+        ? cleanDesc
+          ? `${cleanDesc} [Repeats Annually]`
+          : '[Repeats Annually]'
+        : cleanDesc;
+
+      const payload = {
+        name: form.name,
+        date: form.date,
+        type: form.type,
+        description: finalDesc,
+        sendEmailToEmployees: form.sendEmailToEmployees,
+      };
+
       if (editingHoliday) {
-        await api.patch(`/company/holidays/${editingHoliday.id}`, form);
+        await api.patch(`/company/holidays/${editingHoliday.id}`, payload);
       } else {
-        await api.post('/company/holidays', form);
+        await api.post('/company/holidays', payload);
       }
       setIsModalOpen(false);
       fetchHolidays();
+      setToast({
+        type: 'success',
+        message: editingHoliday
+          ? `Holiday "${form.name}" was updated.`
+          : `Holiday "${form.name}" was added to the calendar.`,
+      });
     } catch (err: any) {
       setError(err.response?.data?.error || err.response?.data?.message || 'Failed to save holiday');
     } finally {
@@ -259,6 +454,12 @@ export const HolidaysPage: React.FC = () => {
     const q = search.toLowerCase().trim();
     const matchesSearch = !q || h.name.toLowerCase().includes(q) || (h.description || '').toLowerCase().includes(q);
 
+    // Year Filter
+    if (!showAllYears && h.date) {
+      const yr = parseDateString(h.date).getFullYear();
+      if (yr !== selectedYear) return false;
+    }
+
     const rel = getRelativeDateInfo(h.date);
     const t = (h.type || '').toUpperCase();
 
@@ -274,6 +475,9 @@ export const HolidaysPage: React.FC = () => {
     if (filterType === 'FLOATER') {
       return matchesSearch && (t === 'FLOATER' || t === 'OPTIONAL');
     }
+    if (filterType === 'ANNUAL') {
+      return matchesSearch && Boolean(h.description && h.description.includes('[Repeats Annually]'));
+    }
     return matchesSearch;
   });
 
@@ -283,19 +487,28 @@ export const HolidaysPage: React.FC = () => {
     return filteredHolidays.slice(start, start + pageSize);
   }, [filteredHolidays, currentPage, pageSize]);
 
+  // Year scoped holidays for KPIs
+  const yearScopedHolidays = useMemo(() => {
+    if (showAllYears) return uniqueHolidays;
+    return uniqueHolidays.filter((h) => {
+      if (!h.date) return false;
+      return parseDateString(h.date).getFullYear() === selectedYear;
+    });
+  }, [uniqueHolidays, showAllYears, selectedYear]);
+
   // KPI calculations
-  const totalHolidays = uniqueHolidays.length;
-  const upcomingList = uniqueHolidays
+  const totalHolidays = yearScopedHolidays.length;
+  const upcomingList = yearScopedHolidays
     .filter((h) => getRelativeDateInfo(h.date).isUpcoming)
     .sort((a, b) => parseDateString(a.date).getTime() - parseDateString(b.date).getTime());
   const upcomingHolidays = upcomingList.length;
   const nextHoliday = upcomingList[0];
 
-  const mandatoryHolidays = uniqueHolidays.filter((h) => {
+  const mandatoryHolidays = yearScopedHolidays.filter((h) => {
     const t = (h.type || '').toUpperCase();
     return t === 'PUBLIC' || t === 'MANDATORY';
   }).length;
-  const floaterHolidays = uniqueHolidays.filter((h) => {
+  const floaterHolidays = yearScopedHolidays.filter((h) => {
     const t = (h.type || '').toUpperCase();
     return t === 'FLOATER' || t === 'OPTIONAL';
   }).length;
@@ -340,16 +553,54 @@ export const HolidaysPage: React.FC = () => {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
               <IconCalendarEvent className="w-5 h-5 text-indigo-600 shrink-0" />
               <span>Holiday Calendar</span>
             </h1>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-[#5E4BE2] border border-indigo-100 shrink-0">
-              Calendar 2026
-            </span>
+
+            {/* Dynamic Year Selector */}
+            <div className="inline-flex items-center bg-slate-100 rounded-xl p-0.5 border border-slate-200 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedYear((y) => y - 1);
+                  setShowAllYears(false);
+                }}
+                className="p-1 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer"
+                title="Previous Year"
+              >
+                <IconChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <span className="px-2 text-xs font-bold text-slate-900">
+                {showAllYears ? 'All Years' : `Calendar ${selectedYear}`}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedYear((y) => y + 1);
+                  setShowAllYears(false);
+                }}
+                className="p-1 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer"
+                title="Next Year"
+              >
+                <IconChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowAllYears((prev) => !prev)}
+              className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-colors cursor-pointer ${
+                showAllYears
+                  ? 'bg-[#5E4BE2] text-white border-[#5E4BE2]'
+                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              {showAllYears ? 'Filtered View' : 'Show All Years'}
+            </button>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 mt-1">
             Configure public, statutory, and optional floating holidays used across attendance tracking and payroll engines.
           </p>
         </div>
@@ -365,7 +616,7 @@ export const HolidaysPage: React.FC = () => {
             <span>Automated Emails</span>
           </button>
           <button
-            onClick={handleOpenAdd}
+            onClick={() => handleOpenAdd()}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
           >
             <IconPlus className="w-4 h-4" />
@@ -521,16 +772,30 @@ export const HolidaysPage: React.FC = () => {
                 <option value="UPCOMING">Upcoming Only</option>
                 <option value="PUBLIC">Public Mandatory</option>
                 <option value="FLOATER">Floating / Optional</option>
+                <option value="ANNUAL">Repeats Every Year</option>
                 <option value="PAST">Past Holidays</option>
               </select>
               <IconFilter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
-            {/* Record Count Badge */}
-            <span className="hidden sm:inline-flex px-3 py-2 rounded-xl bg-indigo-50/70 text-[#5E4BE2] text-xs font-bold border border-indigo-100/60 shrink-0">
-              {filteredHolidays.length} {filteredHolidays.length === 1 ? 'holiday' : 'holidays'}
-            </span>
+            {/* Annual Recurring Holidays Drawer Trigger Button */}
+            <button
+              type="button"
+              onClick={() => setIsAnnualDrawerOpen(true)}
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-50 via-purple-50/60 to-indigo-50 hover:from-indigo-100 hover:to-purple-100 border border-indigo-200 text-[#5E4BE2] text-xs font-bold shadow-2xs transition-all cursor-pointer shrink-0"
+              title="Open Annual Recurring Holidays right sidebar"
+            >
+              <IconCalendarRepeat className="w-4 h-4 text-[#5E4BE2]" />
+              <span>Annual Recurring Holidays</span>
+              {missingAnnualCount > 0 ? (
+                <span className="px-1.5 py-0.2 rounded-full bg-[#5E4BE2] text-white text-[10px] font-bold">
+                  {missingAnnualCount}
+                </span>
+              ) : (
+                <IconCheck className="w-3.5 h-3.5 text-emerald-600" />
+              )}
+            </button>
           </div>
         </div>
 
@@ -588,7 +853,7 @@ export const HolidaysPage: React.FC = () => {
                       </button>
                     ) : (
                       <button
-                        onClick={handleOpenAdd}
+                        onClick={() => handleOpenAdd()}
                         className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
                       >
                         <IconPlus className="w-4 h-4" />
@@ -610,6 +875,8 @@ export const HolidaysPage: React.FC = () => {
 
                   const holidayStyle = getHolidayIcon(holiday.name);
                   const HolidayIcon = holidayStyle.Icon;
+                  const isRecurring = Boolean(holiday.description && holiday.description.includes('[Repeats Annually]'));
+                  const cleanDesc = (holiday.description || '').replace(/\s*\[Repeats Annually\]/g, '').trim();
 
                   return (
                     <tr key={holiday.id} className="hover:bg-indigo-50/20 transition-colors group">
@@ -619,9 +886,27 @@ export const HolidaysPage: React.FC = () => {
                           <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${holidayStyle.className}`}>
                             <HolidayIcon className="w-4 h-4" />
                           </div>
-                          <span className="font-bold text-xs text-slate-900 leading-tight">
-                            {holiday.name}
-                          </span>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-xs text-slate-900 leading-tight">
+                                {holiday.name}
+                              </span>
+                              {isRecurring && (
+                                <span
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-indigo-50 text-[#5E4BE2] border border-indigo-100 shrink-0"
+                                  title="Defined to repeat every year"
+                                >
+                                  <IconRepeat className="w-2.5 h-2.5 text-[#5E4BE2]" />
+                                  <span>Annual</span>
+                                </span>
+                              )}
+                            </div>
+                            {cleanDesc && (
+                              <span className="text-[10px] text-slate-400 block truncate max-w-[240px] mt-0.5">
+                                {cleanDesc}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </td>
 
@@ -980,6 +1265,33 @@ export const HolidaysPage: React.FC = () => {
                     />
                   </div>
 
+                  {/* Repeats Every Year (Annual Holiday) Checkbox */}
+                  <div
+                    className={`p-3.5 rounded-2xl border transition-all ${
+                      form.isRecurring
+                        ? 'bg-indigo-50/90 border-indigo-200 shadow-2xs'
+                        : 'bg-slate-50 border-slate-200/80 hover:bg-slate-100/60'
+                    }`}
+                  >
+                    <label className="flex items-start gap-3 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={form.isRecurring}
+                        onChange={(e) => setForm({ ...form, isRecurring: e.target.checked })}
+                        className="mt-0.5 w-4 h-4 rounded text-[#5E4BE2] focus:ring-[#5E4BE2] border-slate-300 cursor-pointer shrink-0"
+                      />
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                          <IconRepeat className={`w-3.5 h-3.5 ${form.isRecurring ? 'text-[#5E4BE2]' : 'text-slate-500'}`} />
+                          Repeats Every Year (Annual Holiday)
+                        </span>
+                        <span className="text-[11px] text-slate-500 block mt-0.5 leading-relaxed">
+                          Save this holiday as an annual recurring event (e.g. Independence Day, Republic Day, Christmas). It will be saved in your Annual Holidays list so you can auto-populate it for upcoming years in 1 click or add it manually.
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+
                   {/* Automated Email Announcement Notice */}
                   <div className="p-3 bg-indigo-50/70 rounded-xl border border-indigo-100/80 flex items-center gap-2.5">
                     <div className="w-7 h-7 rounded-lg bg-indigo-100 text-[#5E4BE2] flex items-center justify-center shrink-0">
@@ -1082,6 +1394,183 @@ export const HolidaysPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ===================== ANNUAL RECURRING HOLIDAYS RIGHT SIDEBAR DRAWER ===================== */}
+      {isAnnualDrawerOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] overflow-hidden">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in cursor-pointer"
+            onClick={() => setIsAnnualDrawerOpen(false)}
+          />
+
+          {/* Slide-over Right Sidebar Panel */}
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+            <div
+              className="w-screen max-w-md sm:max-w-lg bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 pointer-events-auto animate-in slide-in-from-right duration-300 overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0 shadow-2xs">
+                    <IconCalendarRepeat className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 leading-tight">
+                      Annual Recurring Holidays
+                    </h3>
+                    <p className="text-xs text-slate-400 font-medium mt-0.5">
+                      Holidays defined to repeat every year
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAnnualDrawerOpen(false)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  title="Close sidebar"
+                >
+                  <IconX className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Drawer Content */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                {/* Context & Auto-Add Banner */}
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-50/90 via-purple-50/50 to-white border border-indigo-100 space-y-3 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900">
+                      Target Calendar Year: {selectedYear}
+                    </span>
+                    {missingAnnualCount === 0 ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <IconCheck className="w-3 h-3" /> All {allAnnualHolidays.length} Added
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                        {missingAnnualCount} Missing in {selectedYear}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Auto-add all missing annual holidays to your <strong>{selectedYear}</strong> calendar with one click, or add individual holidays manually below.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleAutoAddAllAnnual}
+                    disabled={isBulkAdding || missingAnnualCount === 0}
+                    className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer ${
+                      missingAnnualCount === 0
+                        ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                        : 'bg-gradient-to-r from-[#5E4BE2] to-[#4938CA] hover:from-[#523ED4] hover:to-[#3E2EB8] text-white shadow-indigo-600/25'
+                    }`}
+                  >
+                    <IconSparkles className={`w-4 h-4 ${isBulkAdding ? 'animate-spin' : ''}`} />
+                    <span>
+                      {isBulkAdding
+                        ? 'Auto-Adding to Calendar...'
+                        : missingAnnualCount === 0
+                        ? `All Annual Holidays Already in ${selectedYear}`
+                        : `Auto-Add All Missing to ${selectedYear} (${missingAnnualCount})`}
+                    </span>
+                  </button>
+                </div>
+
+                {/* List of Annual Recurring Holidays */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between pb-1">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      Defined Recurring Holidays ({allAnnualHolidays.length})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAnnualDrawerOpen(false);
+                        handleOpenAdd({ isRecurring: true });
+                      }}
+                      className="text-xs font-bold text-[#5E4BE2] hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <IconPlus className="w-3.5 h-3.5" />
+                      <span>Define New</span>
+                    </button>
+                  </div>
+
+                  {annualHolidayStatus.map((item, idx) => {
+                    const monthNames = [
+                      'January', 'February', 'March', 'April', 'May', 'June',
+                      'July', 'August', 'September', 'October', 'November', 'December',
+                    ];
+                    const monthLabel = monthNames[item.month - 1];
+                    const holidayStyle = getHolidayIcon(item.name);
+                    const HolidayIcon = holidayStyle.Icon;
+
+                    return (
+                      <div
+                        key={`${item.name}-${idx}`}
+                        className="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex items-center justify-between gap-3 hover:border-indigo-200 transition-all"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${holidayStyle.className}`}>
+                            <HolidayIcon className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-xs font-bold text-slate-900 block truncate">
+                              {item.name}
+                            </span>
+                            <span className="text-[11px] text-slate-500 font-medium block">
+                              Every {monthLabel} {item.day} • {item.type}
+                            </span>
+                            {item.description && (
+                              <span className="text-[10px] text-slate-400 block truncate max-w-[200px]">
+                                {item.description}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="shrink-0">
+                          {item.isAdded ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <IconCheck className="w-3 h-3" />
+                              <span>Added</span>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleAddSingleAnnualHoliday(item)}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white shadow-2xs transition-colors cursor-pointer"
+                              title={`Add ${item.name} to ${selectedYear} calendar`}
+                            >
+                              <IconPlus className="w-3.5 h-3.5" />
+                              <span>Add</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Drawer Footer */}
+              <div className="p-4 px-6 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between shrink-0">
+                <span className="text-[11px] text-slate-400 font-medium">
+                  {allAnnualHolidays.length} recurring holiday templates
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsAnnualDrawerOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200/70 transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );
