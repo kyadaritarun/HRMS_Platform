@@ -161,7 +161,7 @@ export const ChangePasswordPage: React.FC = () => {
               </div>
               <div>
                 <h2 className="text-lg font-bold text-slate-900">Security Update Required</h2>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
                   Set your new private password to unlock your workspace.
                 </p>
               </div>
@@ -188,7 +188,7 @@ export const ChangePasswordPage: React.FC = () => {
                   Current Temporary Password <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500 font-medium">
                     <IconKey className="w-4 h-4" />
                   </div>
                   <input
@@ -202,7 +202,7 @@ export const ChangePasswordPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowOld(!showOld)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 font-medium hover:text-slate-600 cursor-pointer"
                     tabIndex={-1}
                   >
                     {showOld ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
@@ -230,7 +230,7 @@ export const ChangePasswordPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowNew(!showNew)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 font-medium hover:text-slate-600 cursor-pointer"
                     tabIndex={-1}
                   >
                     {showNew ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
@@ -272,7 +272,7 @@ export const ChangePasswordPage: React.FC = () => {
                   Confirm New Password <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500 font-medium">
                     <IconLock className="w-4 h-4" />
                   </div>
                   <input
@@ -286,7 +286,7 @@ export const ChangePasswordPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowConfirm(!showConfirm)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 font-medium hover:text-slate-600 cursor-pointer"
                     tabIndex={-1}
                   >
                     {showConfirm ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}

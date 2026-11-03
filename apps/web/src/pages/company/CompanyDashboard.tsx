@@ -542,7 +542,7 @@ export const CompanyDashboard: React.FC = () => {
           </div>
           <button
             onClick={() => setEmailToast(null)}
-            className="text-slate-400 hover:text-slate-600 cursor-pointer text-xs"
+            className="text-slate-500 font-medium hover:text-slate-600 cursor-pointer text-xs"
           >
             ✕
           </button>
@@ -568,7 +568,7 @@ export const CompanyDashboard: React.FC = () => {
                   <option value="Today">Today</option>
                   <option value="This Month">This Month</option>
                 </select>
-                <IconChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <IconChevronDown className="w-3 h-3 text-slate-500 font-medium absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
 
@@ -633,7 +633,7 @@ export const CompanyDashboard: React.FC = () => {
                   <span className="text-lg font-black text-slate-900 leading-none">
                     {totalEmployeesCount.toLocaleString()}
                   </span>
-                  <span className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wide">
+                  <span className="text-[10px] font-bold text-slate-500 mt-0.5 uppercase tracking-wide">
                     Total
                   </span>
                 </div>
@@ -843,7 +843,7 @@ export const CompanyDashboard: React.FC = () => {
                   <option value="This Month">This Month</option>
                   <option value="All Time">All Time</option>
                 </select>
-                <IconChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <IconChevronDown className="w-3 h-3 text-slate-500 font-medium absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
 
@@ -901,13 +901,13 @@ export const CompanyDashboard: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-3 pt-3 text-xs">
               <div>
-                <span className="text-[11px] font-semibold text-slate-400 block">Active Employees</span>
+                <span className="text-[11px] font-semibold text-slate-500 block">Active Employees</span>
                 <span className="font-black text-slate-900 text-sm mt-0.5 block">
                   {totalEmployeesCount.toLocaleString()}
                 </span>
               </div>
               <div>
-                <span className="text-[11px] font-semibold text-slate-400 block">Total Salary Pool</span>
+                <span className="text-[11px] font-semibold text-slate-500 block">Total Salary Pool</span>
                 <span className="font-black text-slate-900 text-sm mt-0.5 block truncate">
                   {payrollTotalCost}
                 </span>
@@ -1159,7 +1159,7 @@ export const CompanyDashboard: React.FC = () => {
                   <IconBuilding className="w-6 h-6" />
                 </div>
                 <p className="text-sm font-bold text-slate-800">No departments added yet</p>
-                <p className="text-xs text-slate-400 mt-0.5">Create departments to visualize employee distribution.</p>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">Create departments to visualize employee distribution.</p>
                 <button
                   onClick={() => navigate('/company/departments')}
                   className="mt-3 px-3.5 py-2 bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
@@ -1200,7 +1200,7 @@ export const CompanyDashboard: React.FC = () => {
                         <p className="text-xs font-bold text-slate-800 leading-tight truncate">
                           {log.message}
                         </p>
-                        <span className="text-[10px] font-semibold text-slate-400 mt-0.5 block">
+                        <span className="text-[10px] font-semibold text-slate-500 mt-0.5 block">
                           {formatRelativeTime(log.createdAt)}
                         </span>
                       </div>
@@ -1219,7 +1219,7 @@ export const CompanyDashboard: React.FC = () => {
                         <p className="text-xs font-bold text-slate-800 leading-tight truncate">
                           Employee {emp.firstName} {emp.lastName} registered
                         </p>
-                        <span className="text-[10px] font-semibold text-slate-400 mt-0.5 block">
+                        <span className="text-[10px] font-semibold text-slate-500 mt-0.5 block">
                           {formatRelativeTime(emp.createdAt)}
                         </span>
                       </div>
@@ -1227,7 +1227,7 @@ export const CompanyDashboard: React.FC = () => {
                   </div>
                 ))
               ) : (
-                <div className="py-8 text-center text-xs text-slate-400">
+                <div className="py-8 text-center text-xs text-slate-500 font-medium">
                   No recent activities recorded yet.
                 </div>
               )}

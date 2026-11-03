@@ -457,7 +457,7 @@ export const ManagePoliciesPage: React.FC = () => {
             <IconFileCheck className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>Manage Policies</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Author and publish official HR guidelines, mandatory employee compliance documents, and revisions.
           </p>
         </div>
@@ -479,7 +479,7 @@ export const ManagePoliciesPage: React.FC = () => {
         <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-slate-50/40">
           {/* Search Input */}
           <div className="relative flex-1">
-            <IconSearch className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={search}
@@ -512,8 +512,8 @@ export const ManagePoliciesPage: React.FC = () => {
                 <option value="REMOTE_WORK">Remote & Hybrid</option>
                 <option value="HR">General HR</option>
               </select>
-              <IconFilter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconFilter className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
             {/* Compliance Filter */}
@@ -530,8 +530,8 @@ export const ManagePoliciesPage: React.FC = () => {
                 <option value="MANDATORY">Mandatory Sign-off</option>
                 <option value="OPTIONAL">General Guidance</option>
               </select>
-              <IconShieldLock className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconShieldLock className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
             {/* Record Count Badge */}
@@ -583,7 +583,7 @@ export const ManagePoliciesPage: React.FC = () => {
                       <IconFileCheck className="w-6 h-6" />
                     </div>
                     <p className="text-sm font-bold text-slate-800">No corporate policies found</p>
-                    <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                    <p className="text-xs text-slate-500 font-medium mt-1 max-w-sm mx-auto">
                       {search || selectedCategory !== 'ALL' || selectedCompliance !== 'ALL'
                         ? 'Try modifying or clearing your search filters.'
                         : 'Start by publishing official HR rules, employee guidelines, and mandatory compliance documents.'}
@@ -641,7 +641,7 @@ export const ManagePoliciesPage: React.FC = () => {
                                 </span>
                               )}
                             </div>
-                            <div className="text-[11px] text-slate-400 line-clamp-1 mt-0.5 flex items-center gap-1.5">
+                            <div className="text-[11px] text-slate-500 font-medium line-clamp-1 mt-0.5 flex items-center gap-1.5">
                               {p.documentUrl ? (
                                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#5E4BE2]">
                                   <IconPaperclip className="w-3.5 h-3.5 shrink-0" />
@@ -714,7 +714,7 @@ export const ManagePoliciesPage: React.FC = () => {
                       {/* Published Date */}
                       <td className="px-5 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium whitespace-nowrap">
-                          <IconCalendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <IconCalendar className="w-3.5 h-3.5 text-slate-500 font-medium shrink-0" />
                           <span className="whitespace-nowrap">
                             {new Date(p.createdAt).toLocaleDateString('en-US', {
                               month: 'short',
@@ -887,7 +887,7 @@ export const ManagePoliciesPage: React.FC = () => {
                   {/* Clauses Box (if body/content exists) */}
                   {(viewingPolicy.body || viewingPolicy.content) && (
                     <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/70 space-y-2.5">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
                         Official Clauses & Policy Scope
                       </span>
                       <p className="text-xs text-slate-800 whitespace-pre-line leading-relaxed font-normal">
@@ -897,7 +897,7 @@ export const ManagePoliciesPage: React.FC = () => {
                   )}
 
                   {!viewingPolicy.documentUrl && !viewingPolicy.body && !viewingPolicy.content && (
-                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/70 text-center text-slate-400 text-xs">
+                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/70 text-center text-slate-500 font-medium text-xs">
                       No document or text content available for this policy.
                     </div>
                   )}
@@ -910,7 +910,7 @@ export const ManagePoliciesPage: React.FC = () => {
                       </div>
                       <div className="min-w-0">
                         <h4 className="font-bold text-xs text-slate-900">Compliance & Employee Sign-offs</h4>
-                        <p className="text-[11px] text-slate-500">
+                        <p className="text-[11px] text-slate-500 font-medium">
                           {Array.isArray(viewingPolicy.acceptances) ? viewingPolicy.acceptances.length : 0} employees have digitally acknowledged this policy version.
                         </p>
                       </div>
@@ -928,7 +928,7 @@ export const ManagePoliciesPage: React.FC = () => {
 
                 {/* Drawer Footer */}
                 <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50/80 flex items-center justify-between gap-3 shrink-0">
-                  <span className="text-[11px] text-slate-400 font-medium truncate">
+                  <span className="text-[11px] text-slate-500 font-medium truncate">
                     Published on {new Date(viewingPolicy.createdAt).toLocaleDateString()}
                   </span>
                   <div className="flex items-center gap-2 shrink-0">
@@ -1074,7 +1074,7 @@ export const ManagePoliciesPage: React.FC = () => {
                         <label className="block text-xs font-bold text-slate-700">
                           Attach Policy Document <span className="text-rose-500">*</span>
                         </label>
-                        <span className="text-[11px] text-slate-400 font-medium">
+                        <span className="text-[11px] text-slate-500 font-medium">
                           PDF, DOC, DOCX (Max 10MB)
                         </span>
                       </div>
@@ -1127,7 +1127,7 @@ export const ManagePoliciesPage: React.FC = () => {
                                 setAttachedFile(null);
                                 if (fileInputRef.current) fileInputRef.current.value = '';
                               }}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-slate-500 font-medium hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                               title="Remove file"
                             >
                               <IconTrash className="w-4 h-4" />
@@ -1168,7 +1168,7 @@ export const ManagePoliciesPage: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => setExistingDocumentUrl(null)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-slate-500 font-medium hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                               title="Remove attached document"
                             >
                               <IconTrash className="w-4 h-4" />
@@ -1197,7 +1197,7 @@ export const ManagePoliciesPage: React.FC = () => {
                           <p className="text-xs font-bold text-slate-800">
                             Click to browse or drag and drop your document
                           </p>
-                          <p className="text-[11px] text-slate-400 mt-1">
+                          <p className="text-[11px] text-slate-500 font-medium mt-1">
                             Upload official policy PDF, DOC, or DOCX document (up to 10MB)
                           </p>
                         </div>
@@ -1216,7 +1216,7 @@ export const ManagePoliciesPage: React.FC = () => {
                         <span className="text-xs font-bold text-slate-900 block leading-tight">
                           Mandatory Compliance Sign-off
                         </span>
-                        <span className="text-[11px] text-slate-500 mt-0.5 block">
+                        <span className="text-[11px] text-slate-500 font-medium mt-0.5 block">
                           Requires all company employees to digitally read and acknowledge this version upon login.
                         </span>
                       </div>
@@ -1270,7 +1270,7 @@ export const ManagePoliciesPage: React.FC = () => {
                     onClick={() => {
                       if (!isDeactivating) setDeactivatingPolicy(null);
                     }}
-                    className="p-1 -mr-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                    className="p-1 -mr-1 text-slate-500 font-medium hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                     title="Dismiss"
                   >
                     <IconX className="w-4 h-4" />
@@ -1346,7 +1346,7 @@ export const ManagePoliciesPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setToast(null)}
-              className="p-1 -mr-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-black/5 transition-colors cursor-pointer shrink-0"
+              className="p-1 -mr-1 text-slate-500 font-medium hover:text-slate-600 rounded-lg hover:bg-black/5 transition-colors cursor-pointer shrink-0"
               title="Dismiss"
             >
               <IconX className="w-4 h-4" />

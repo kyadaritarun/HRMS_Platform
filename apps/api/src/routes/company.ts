@@ -2036,7 +2036,7 @@ router.get(
 );
 
 // GET /company/cycles (Performance & Payroll Cycles)
-router.get('/cycles', roleGuard('COMPANY_ADMIN', 'HR'), async (req, res, next) => {
+router.get('/cycles', async (req, res, next) => {
   try {
     const companyId = req.user!.companyId!;
     const company = await prisma.company.findUnique({
@@ -2044,14 +2044,8 @@ router.get('/cycles', roleGuard('COMPANY_ADMIN', 'HR'), async (req, res, next) =
       select: { settings: true },
     });
     const settings = (company?.settings as any) || {};
-    const performanceCycles = settings.performanceCycles || [
-      { id: 'cycle-2026-q1', name: 'Q1 2026 Appraisal Cycle', description: 'Jan 2026 - Mar 2026 OKR Evaluation', startDate: '2026-01-01', endDate: '2026-03-31', isActive: true },
-      { id: 'cycle-2026-q2', name: 'Q2 2026 Appraisal Cycle', description: 'Apr 2026 - Jun 2026 Mid-Year Review', startDate: '2026-04-01', endDate: '2026-06-30', isActive: true },
-      { id: 'cycle-2026-annual', name: 'Annual 2026 Review', description: 'Comprehensive annual 360 appraisal', startDate: '2026-01-01', endDate: '2026-12-31', isActive: false },
-    ];
-    const payrollCycles = settings.payrollCycles || [
-      { id: 'pay-cycle-monthly', name: 'Standard Monthly Payroll', payDay: 30, cutoffDay: 25, freezeAttendance: true, isActive: true },
-    ];
+    const performanceCycles = Array.isArray(settings.performanceCycles) ? settings.performanceCycles : [];
+    const payrollCycles = Array.isArray(settings.payrollCycles) ? settings.payrollCycles : [];
     return res.json({ performanceCycles, payrollCycles });
   } catch (error) {
     next(error);
@@ -2068,20 +2062,60 @@ router.post('/cycles', roleGuard('COMPANY_ADMIN', 'HR'), async (req, res, next) 
       select: { settings: true },
     });
     const settings = (company?.settings as any) || {};
+
     if (type === 'payroll') {
-      const existing = settings.payrollCycles || [];
-      const newCycle = { id: `pay-${Date.now()}`, ...cycle };
-      settings.payrollCycles = [...existing, newCycle];
+      const existing = Array.isArray(settings.payrollCycles) ? settings.payrollCycles : [];
+      if (cycle.id && existing.some((c: any) => c.id === cycle.id)) {
+        settings.payrollCycles = existing.map((c: any) => (c.id === cycle.id ? { ...c, ...cycle } : c));
+      } else {
+        const newCycle = { id: cycle.id || `pay-${Date.now()}`, ...cycle };
+        settings.payrollCycles = [...existing, newCycle];
+      }
     } else {
-      const existing = settings.performanceCycles || [];
-      const newCycle = { id: `perf-${Date.now()}`, ...cycle };
-      settings.performanceCycles = [...existing, newCycle];
+      const existing = Array.isArray(settings.performanceCycles) ? settings.performanceCycles : [];
+      if (cycle.id && existing.some((c: any) => c.id === cycle.id)) {
+        settings.performanceCycles = existing.map((c: any) => (c.id === cycle.id ? { ...c, ...cycle } : c));
+      } else {
+        const newCycle = { id: cycle.id || `perf-${Date.now()}`, ...cycle };
+        settings.performanceCycles = [...existing, newCycle];
+      }
     }
     await prisma.company.update({
       where: { id: companyId },
       data: { settings },
     });
     return res.status(201).json({ success: true, settings });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// DELETE /company/cycles/:id
+router.delete('/cycles/:id', roleGuard('COMPANY_ADMIN', 'HR'), async (req, res, next) => {
+  try {
+    const companyId = req.user!.companyId!;
+    const cycleId = req.params.id;
+    const type = req.query.type as string; // 'performance' | 'payroll'
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { settings: true },
+    });
+    const settings = (company?.settings as any) || {};
+
+    const currentPerf = Array.isArray(settings.performanceCycles) ? settings.performanceCycles : [];
+    const currentPay = Array.isArray(settings.payrollCycles) ? settings.payrollCycles : [];
+
+    if (type === 'payroll' || (!type && currentPay.some((c: any) => c.id === cycleId))) {
+      settings.payrollCycles = currentPay.filter((c: any) => c.id !== cycleId);
+    } else {
+      settings.performanceCycles = currentPerf.filter((c: any) => c.id !== cycleId);
+    }
+
+    await prisma.company.update({
+      where: { id: companyId },
+      data: { settings },
+    });
+    return res.json({ success: true, message: 'Cycle deleted successfully' });
   } catch (error) {
     next(error);
   }

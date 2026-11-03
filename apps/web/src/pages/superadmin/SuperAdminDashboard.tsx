@@ -271,7 +271,7 @@ export const SuperAdminDashboard: React.FC = () => {
             onChange={(e) => setStartDate(e.target.value)}
             className="px-2.5 py-1.5 text-xs border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-slate-50/70"
           />
-          <span className="text-xs text-slate-400">to</span>
+          <span className="text-xs text-slate-500 font-medium">to</span>
           <input
             type="date"
             value={endDate}
@@ -298,7 +298,7 @@ export const SuperAdminDashboard: React.FC = () => {
             </div>
           </div>
           <div className="text-2xl font-black text-slate-900">{kpis.totalCompanies}</div>
-          <div className="text-[11px] text-slate-500 mt-1">
+          <div className="text-[11px] text-slate-500 font-medium mt-1">
             <span className="font-semibold text-emerald-600">+{kpis.newCompaniesInRange}</span> in period
           </div>
         </div>
@@ -312,7 +312,7 @@ export const SuperAdminDashboard: React.FC = () => {
             </div>
           </div>
           <div className="text-2xl font-black text-slate-900">{kpis.activeCompanies}</div>
-          <div className="text-[11px] text-slate-500 mt-1">
+          <div className="text-[11px] text-slate-500 font-medium mt-1">
             {kpis.inactiveCompanies} inactive / suspended
           </div>
         </div>
@@ -342,7 +342,7 @@ export const SuperAdminDashboard: React.FC = () => {
           <div className="text-2xl font-black text-slate-900">
             ₹{Number(kpis.totalRevenue).toLocaleString()}
           </div>
-          <div className="text-[11px] text-slate-500 mt-1">All paid subscriptions</div>
+          <div className="text-[11px] text-slate-500 font-medium mt-1">All paid subscriptions</div>
         </div>
 
         {/* Range Revenue */}
@@ -356,7 +356,7 @@ export const SuperAdminDashboard: React.FC = () => {
           <div className="text-2xl font-black text-emerald-600">
             ₹{Number(kpis.rangeRevenue || 0).toLocaleString()}
           </div>
-          <div className="text-[11px] text-slate-500 mt-1">Selected period revenue</div>
+          <div className="text-[11px] text-slate-500 font-medium mt-1">Selected period revenue</div>
         </div>
 
         {/* Overuse Alerts */}
@@ -378,7 +378,7 @@ export const SuperAdminDashboard: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-bold text-slate-900 text-sm">Tenant Growth Velocity</h3>
-              <p className="text-xs text-slate-400">Monthly companies onboarded within selected range</p>
+              <p className="text-xs text-slate-500 font-medium">Monthly companies onboarded within selected range</p>
             </div>
             <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-brand-700">
               {kpis.newCompaniesInRange} Total
@@ -391,7 +391,7 @@ export const SuperAdminDashboard: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-bold text-slate-900 text-sm">Monthly Platform SaaS Revenue</h3>
-              <p className="text-xs text-slate-400">Aggregated payments collected across tenants</p>
+              <p className="text-xs text-slate-500 font-medium">Aggregated payments collected across tenants</p>
             </div>
             <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">
               ₹{Number(kpis.rangeRevenue || 0).toLocaleString()}
@@ -408,7 +408,7 @@ export const SuperAdminDashboard: React.FC = () => {
             <IconReceipt2 className="w-5 h-5 text-indigo-600" />
             <div>
               <span className="text-xs font-bold text-slate-900">Billing & Invoice Health Snapshot</span>
-              <p className="text-[11px] text-slate-500">Live reconciliation of tenant subscription billing</p>
+              <p className="text-[11px] text-slate-500 font-medium">Live reconciliation of tenant subscription billing</p>
             </div>
           </div>
           <div className="flex items-center gap-4 text-xs font-semibold">
@@ -484,7 +484,7 @@ export const SuperAdminDashboard: React.FC = () => {
             </button>
           </div>
 
-          <div className="text-xs text-slate-400">
+          <div className="text-xs text-slate-500 font-medium">
             {activeTab === 'companies' && (
               <Link to="/super-admin/companies" className="text-brand-600 font-bold hover:underline">
                 View All Companies &rarr;
@@ -525,7 +525,7 @@ export const SuperAdminDashboard: React.FC = () => {
                 <tbody className="divide-y divide-slate-100">
                   {(!data?.latestCompanies || data.latestCompanies.length === 0) ? (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-slate-400">
+                      <td colSpan={6} className="py-8 text-center text-slate-500 font-medium">
                         No companies registered yet.
                       </td>
                     </tr>
@@ -553,7 +553,7 @@ export const SuperAdminDashboard: React.FC = () => {
                         </td>
                         <td className="py-3.5 font-semibold text-slate-700">{c.package?.name || 'Standard'}</td>
                         <td className="py-3.5 text-slate-600">{c.planType || 'MONTHLY'}</td>
-                        <td className="py-3.5 pr-2 text-right text-slate-500">
+                        <td className="py-3.5 pr-2 text-right text-slate-500 font-medium">
                           {new Date(c.createdAt).toLocaleDateString()}
                         </td>
                       </tr>
@@ -580,7 +580,7 @@ export const SuperAdminDashboard: React.FC = () => {
                 <tbody className="divide-y divide-slate-100">
                   {(!data?.renewals || data.renewals.length === 0) ? (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-slate-400">
+                      <td colSpan={5} className="py-8 text-center text-slate-500 font-medium">
                         <IconCheck className="w-8 h-8 text-emerald-500 mx-auto mb-1" />
                         No expiring or overdue subscriptions found.
                       </td>
@@ -675,7 +675,7 @@ export const SuperAdminDashboard: React.FC = () => {
                 <tbody className="divide-y divide-slate-100">
                   {(!data?.recentSubscriptions || data.recentSubscriptions.length === 0) ? (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-slate-400">
+                      <td colSpan={5} className="py-8 text-center text-slate-500 font-medium">
                         No active subscriptions on record.
                       </td>
                     </tr>
@@ -710,12 +710,12 @@ export const SuperAdminDashboard: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-900 text-base">Provision New Super Admin</h3>
-                  <p className="text-xs text-slate-500">Add platform-level operator with full tenant oversight</p>
+                  <p className="text-xs text-slate-500 font-medium">Add platform-level operator with full tenant oversight</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center"
+                className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 font-medium hover:text-slate-700 flex items-center justify-center"
               >
                 <IconX className="w-5 h-5" />
               </button>
@@ -744,7 +744,7 @@ export const SuperAdminDashboard: React.FC = () => {
                         {copiedPass ? 'Copied' : 'Copy'}
                       </button>
                     </div>
-                    <p className="text-[11px] text-slate-500">
+                    <p className="text-[11px] text-slate-500 font-medium">
                       User must change this temporary password within 5 days on their initial login.
                     </p>
                   </div>

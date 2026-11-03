@@ -369,7 +369,7 @@ export const LeaveTypesPage: React.FC = () => {
             <IconFileCertificate className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>Leave Types</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Configure leave types, annual quotas, carry-forward rules, and approval policies.
           </p>
         </div>
@@ -396,7 +396,7 @@ export const LeaveTypesPage: React.FC = () => {
             </div>
             <div>
               <h2 className="text-sm font-bold text-slate-900">All Leave Types</h2>
-              <p className="text-xs text-slate-400 mt-0.5">View and manage leave types, annual quotas, and approval rules.</p>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">View and manage leave types, annual quotas, and approval rules.</p>
             </div>
           </div>
 
@@ -404,7 +404,7 @@ export const LeaveTypesPage: React.FC = () => {
           <div className="flex items-center gap-3 w-full sm:w-auto">
             {/* Search Input */}
             <div className="relative flex-1 sm:w-64">
-              <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search leave types by name or code..."
@@ -428,8 +428,8 @@ export const LeaveTypesPage: React.FC = () => {
                   <option value="UNPAID">Unpaid (LOP)</option>
                   <option value="CARRY">Carry Forward Allowed</option>
                 </select>
-                <IconFilter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <IconFilter className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
           </div>
         </div>
@@ -451,7 +451,7 @@ export const LeaveTypesPage: React.FC = () => {
             <tbody className="divide-y divide-slate-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
+                  <td colSpan={7} className="py-12 text-center text-slate-500 font-medium">
                     <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-indigo-600 border-t-transparent mb-2" />
                     <p className="text-xs">Loading leave types...</p>
                   </td>
@@ -463,7 +463,7 @@ export const LeaveTypesPage: React.FC = () => {
                       <IconFileCertificate className="w-6 h-6" />
                     </div>
                     <h4 className="text-sm font-bold text-slate-800">No leave types found</h4>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-slate-500 font-medium mt-1">
                       {search ? 'Try modifying your search or filter.' : 'Click "Create Leave" to configure your first leave type.'}
                     </p>
                   </td>
@@ -494,7 +494,7 @@ export const LeaveTypesPage: React.FC = () => {
                       <td className="px-4 py-3.5">
                         <div className="flex items-baseline gap-1">
                           <span className="font-extrabold text-sm text-slate-900">{quota}</span>
-                          <span className="text-slate-400 text-[11px] font-medium">Days / yr</span>
+                          <span className="text-slate-500 text-[11px] font-medium">Days / yr</span>
                         </div>
                       </td>
 
@@ -542,7 +542,7 @@ export const LeaveTypesPage: React.FC = () => {
                             Allowed
                           </span>
                         ) : (
-                          <span className="text-slate-400 text-xs font-normal">
+                          <span className="text-slate-500 text-xs font-normal">
                             No Carry
                           </span>
                         )}
@@ -737,13 +737,13 @@ export const LeaveTypesPage: React.FC = () => {
                                 <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${cur.colorDot} shadow-2xs`} />
                                 <span className="truncate text-left text-xs">
                                   <span className="font-semibold text-slate-800">{cur.label}</span>
-                                  <span className="text-slate-400 text-[11px] ml-1">({cur.desc})</span>
+                                  <span className="text-slate-500 font-medium text-[11px] ml-1">({cur.desc})</span>
                                 </span>
                               </>
                             );
                           })()}
                         </div>
-                        <IconChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200 ${isColorDropdownOpen ? 'rotate-180 text-indigo-600' : ''}`} />
+                        <IconChevronDown className={`w-3.5 h-3.5 text-slate-500 shrink-0 transition-transform duration-200 ${isColorDropdownOpen ? 'rotate-180 text-indigo-600' : ''}`} />
                       </button>
 
                       {isColorDropdownOpen && (
@@ -766,7 +766,7 @@ export const LeaveTypesPage: React.FC = () => {
                                   <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${opt.colorDot} shadow-2xs`} />
                                   <span className="truncate">
                                     <span>{opt.label}</span>{' '}
-                                    <span className="text-slate-400 text-[11px]">({opt.desc})</span>
+                                    <span className="text-slate-500 font-medium text-[11px]">({opt.desc})</span>
                                   </span>
                                 </div>
                                 {isSelected && <IconCheck className="w-3.5 h-3.5 text-indigo-600 shrink-0" />}
@@ -880,7 +880,7 @@ export const LeaveTypesPage: React.FC = () => {
                     onClick={() => {
                       if (!isDeleting) setDeletingPolicy(null);
                     }}
-                    className="p-1 -mr-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                    className="p-1 -mr-1 text-slate-500 font-medium hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                     title="Dismiss"
                   >
                     <IconX className="w-4 h-4" />
@@ -956,7 +956,7 @@ export const LeaveTypesPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setToast(null)}
-              className="p-1 -mr-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-black/5 transition-colors cursor-pointer shrink-0"
+              className="p-1 -mr-1 text-slate-500 font-medium hover:text-slate-600 rounded-lg hover:bg-black/5 transition-colors cursor-pointer shrink-0"
               title="Dismiss"
             >
               <IconX className="w-4 h-4" />

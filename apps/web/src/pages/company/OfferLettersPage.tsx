@@ -326,7 +326,7 @@ export const OfferLettersPage: React.FC = () => {
             <IconFileCertificate className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>Offer Letters</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Generate, customize, and issue formal employment offer letters with automated CTC salary breakdowns.
           </p>
         </div>
@@ -374,7 +374,7 @@ export const OfferLettersPage: React.FC = () => {
             </div>
             <div>
               <h2 className="text-sm font-bold text-slate-900">All Offer Letters</h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
                 View and manage issued employment contracts and offer letters.
               </p>
             </div>
@@ -384,7 +384,7 @@ export const OfferLettersPage: React.FC = () => {
           <div className="flex items-center gap-3 w-full sm:w-auto">
             {/* Search Input */}
             <div className="relative flex-1 sm:w-64">
-              <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search candidate, role, or department..."
@@ -408,8 +408,8 @@ export const OfferLettersPage: React.FC = () => {
                 <option value="JOINED">Joined</option>
                 <option value="DECLINED">Declined</option>
               </select>
-              <IconFilter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconFilter className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
         </div>
@@ -435,7 +435,7 @@ export const OfferLettersPage: React.FC = () => {
                       <IconFileCertificate className="w-6 h-6" />
                     </div>
                     <h4 className="text-sm font-bold text-slate-800">No offer letters found</h4>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-slate-500 font-medium mt-1">
                       {search ? 'Try modifying your search filter.' : 'Click "Generate New Offer Letter" to issue your first offer.'}
                     </p>
                   </td>
@@ -446,7 +446,7 @@ export const OfferLettersPage: React.FC = () => {
                     {/* Candidate */}
                     <td className="px-5 py-3.5">
                       <div className="font-bold text-slate-900 text-xs">{item.candidateName}</div>
-                      <div className="text-[11px] text-slate-400 font-normal">{item.candidateEmail}</div>
+                      <div className="text-[11px] text-slate-500 font-normal">{item.candidateEmail}</div>
                     </td>
 
                     {/* Role & Department */}
@@ -507,7 +507,7 @@ export const OfferLettersPage: React.FC = () => {
                             ? 'bg-rose-600'
                             : 'bg-slate-500'
                         }`} />
-                        <IconChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        <IconChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 font-medium pointer-events-none" />
                       </div>
                     </td>
 
@@ -567,14 +567,14 @@ export const OfferLettersPage: React.FC = () => {
                     </div>
                     Employment Offer Letter
                   </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
                     Enter candidate details and CTC salary. The compensation components will be calculated automatically.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 cursor-pointer transition-colors"
+                  className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500 font-medium hover:text-slate-700 cursor-pointer transition-colors"
                   title="Close"
                 >
                   <IconX className="w-5 h-5" />
@@ -691,7 +691,7 @@ export const OfferLettersPage: React.FC = () => {
                         Annual CTC (₹ INR) *
                       </label>
                       <div className="relative">
-                        <span className="absolute left-3 top-2 text-slate-400 font-bold text-xs">₹</span>
+                        <span className="absolute left-3 top-2 text-slate-500 font-bold text-xs">₹</span>
                         <input
                           type="number"
                           required
@@ -785,7 +785,7 @@ export const OfferLettersPage: React.FC = () => {
                           <div className="bg-white p-2.5 rounded-xl border border-indigo-100/60 shadow-2xs">
                             <span className="text-[10px] text-slate-500 font-semibold block mb-1">Basic Salary</span>
                             <div className="relative">
-                              <span className="absolute left-2 top-1.5 text-slate-400 text-xs font-bold">₹</span>
+                              <span className="absolute left-2 top-1.5 text-slate-500 text-xs font-bold">₹</span>
                               <input
                                 type="number"
                                 min="0"
@@ -794,7 +794,7 @@ export const OfferLettersPage: React.FC = () => {
                                 className="w-full pl-5 pr-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
                               />
                             </div>
-                            <span className="text-[10px] text-slate-400 font-medium block mt-1">
+                            <span className="text-[10px] text-slate-500 font-medium block mt-1">
                               ₹{((Number(form.basicMonthly) || 0) * 12).toLocaleString('en-IN')}/yr
                             </span>
                           </div>
@@ -803,7 +803,7 @@ export const OfferLettersPage: React.FC = () => {
                           <div className="bg-white p-2.5 rounded-xl border border-indigo-100/60 shadow-2xs">
                             <span className="text-[10px] text-slate-500 font-semibold block mb-1">House Rent (HRA)</span>
                             <div className="relative">
-                              <span className="absolute left-2 top-1.5 text-slate-400 text-xs font-bold">₹</span>
+                              <span className="absolute left-2 top-1.5 text-slate-500 text-xs font-bold">₹</span>
                               <input
                                 type="number"
                                 min="0"
@@ -812,7 +812,7 @@ export const OfferLettersPage: React.FC = () => {
                                 className="w-full pl-5 pr-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
                               />
                             </div>
-                            <span className="text-[10px] text-slate-400 font-medium block mt-1">
+                            <span className="text-[10px] text-slate-500 font-medium block mt-1">
                               ₹{((Number(form.hraMonthly) || 0) * 12).toLocaleString('en-IN')}/yr
                             </span>
                           </div>
@@ -821,7 +821,7 @@ export const OfferLettersPage: React.FC = () => {
                           <div className="bg-white p-2.5 rounded-xl border border-indigo-100/60 shadow-2xs">
                             <span className="text-[10px] text-slate-500 font-semibold block mb-1">Special Allowance</span>
                             <div className="relative">
-                              <span className="absolute left-2 top-1.5 text-slate-400 text-xs font-bold">₹</span>
+                              <span className="absolute left-2 top-1.5 text-slate-500 text-xs font-bold">₹</span>
                               <input
                                 type="number"
                                 min="0"
@@ -830,7 +830,7 @@ export const OfferLettersPage: React.FC = () => {
                                 className="w-full pl-5 pr-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
                               />
                             </div>
-                            <span className="text-[10px] text-slate-400 font-medium block mt-1">
+                            <span className="text-[10px] text-slate-500 font-medium block mt-1">
                               ₹{((Number(form.specialAllowanceMonthly) || 0) * 12).toLocaleString('en-IN')}/yr
                             </span>
                           </div>
@@ -868,7 +868,7 @@ export const OfferLettersPage: React.FC = () => {
                                   className="flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
                                 />
                                 <div className="relative w-36">
-                                  <span className="absolute left-2.5 top-1.5 text-slate-400 text-xs font-bold">₹</span>
+                                  <span className="absolute left-2.5 top-1.5 text-slate-500 text-xs font-bold">₹</span>
                                   <input
                                     type="number"
                                     min="0"
@@ -880,13 +880,13 @@ export const OfferLettersPage: React.FC = () => {
                                     className="w-full pl-6 pr-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:bg-white focus:outline-hidden focus:border-[#5E4BE2]"
                                   />
                                 </div>
-                                <span className="text-[11px] text-slate-400 font-medium w-24 text-right">
+                                <span className="text-[11px] text-slate-500 font-medium w-24 text-right">
                                   ₹{((Number(comp.monthly) || 0) * 12).toLocaleString('en-IN')}/yr
                                 </span>
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveCustomField(comp.id)}
-                                  className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                                  className="p-1.5 text-slate-500 font-medium hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
                                   title="Remove component"
                                 >
                                   <IconTrash className="w-4 h-4" />
@@ -907,13 +907,13 @@ export const OfferLettersPage: React.FC = () => {
                             <span>+ Add Salary Field / Component</span>
                           </button>
 
-                          <div className="text-right text-[11px] text-slate-500">
+                          <div className="text-right text-[11px] text-slate-500 font-medium">
                             Total Annual CTC: <strong className="text-slate-900">₹{ctcAnnual.toLocaleString('en-IN')}</strong>
                           </div>
                         </div>
                       </div>
                     ) : (
-                      <div className="text-xs text-slate-500 bg-white/70 p-2.5 rounded-xl border border-slate-200/60 flex items-center justify-between">
+                      <div className="text-xs text-slate-500 font-medium bg-white/70 p-2.5 rounded-xl border border-slate-200/60 flex items-center justify-between">
                         <span>
                           Breakdown table <strong>will not be included</strong> in the offer letter. The letter will state the total CTC (<strong>₹{ctcAnnual.toLocaleString('en-IN')}/yr</strong>).
                         </span>
@@ -929,10 +929,10 @@ export const OfferLettersPage: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                          <IconPaperclip className="w-4 h-4 text-slate-500" />
+                          <IconPaperclip className="w-4 h-4 text-slate-500 font-medium" />
                           <span>Enclosed Files &amp; Attachments</span>
                         </div>
-                        <div className="text-[11px] text-slate-500 mt-0.5">
+                        <div className="text-[11px] text-slate-500 font-medium mt-0.5">
                           Attach signed offer letters, NDAs, company handbook, or joining policies.
                         </div>
                       </div>
@@ -966,11 +966,11 @@ export const OfferLettersPage: React.FC = () => {
                             <span className="font-medium max-w-[180px] truncate" title={f.name}>
                               {f.name}
                             </span>
-                            <span className="text-[10px] text-slate-400">({f.size})</span>
+                            <span className="text-[10px] text-slate-500 font-medium">({f.size})</span>
                             <button
                               type="button"
                               onClick={() => handleRemoveFile(f.id)}
-                              className="text-slate-400 hover:text-red-500 p-0.5 ml-1 transition-colors cursor-pointer"
+                              className="text-slate-500 font-medium hover:text-red-500 p-0.5 ml-1 transition-colors cursor-pointer"
                             >
                               <IconX className="w-3 h-3" />
                             </button>
@@ -986,7 +986,7 @@ export const OfferLettersPage: React.FC = () => {
                       <div className="text-xs font-bold text-slate-800">
                         Include Standard Terms &amp; Conditions (Annexure B)
                       </div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">
+                      <div className="text-[11px] text-slate-500 font-medium mt-0.5">
                         Attaches legal clauses (code of conduct, working hours, probation, notice period, confidentiality, IP, BGV).
                       </div>
                     </div>

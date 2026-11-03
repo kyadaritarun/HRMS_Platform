@@ -151,7 +151,7 @@ export const SuperAdminHelplinePage: React.FC = () => {
           <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/40">
             <div>
               <h2 className="text-base font-bold text-slate-900">Contact Details &amp; Escalation Channels</h2>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
                 Saved changes take effect immediately across all company sidebars.
               </p>
             </div>
@@ -382,7 +382,7 @@ export const SuperAdminHelplinePage: React.FC = () => {
 
             {/* Form Submit Footer */}
             <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-500 font-medium">
                 Changes apply instantly across all tenant portals
               </span>
               <button
@@ -417,7 +417,7 @@ export const SuperAdminHelplinePage: React.FC = () => {
               </div>
               <div>
                 <h4 className="text-sm font-bold text-slate-900">Helpline &amp; Support Desk</h4>
-                <p className="text-[11px] text-slate-400">Company HR &amp; IT contacts</p>
+                <p className="text-[11px] text-slate-500 font-medium">Company HR &amp; IT contacts</p>
               </div>
             </div>
 
@@ -491,13 +491,13 @@ export const SuperAdminHelplinePage: React.FC = () => {
               <div className="p-3 rounded-xl bg-slate-50/60 border border-slate-200 text-[11px] space-y-1.5 text-slate-600">
                 {(config.supportHours || config.supportDays) && (
                   <div className="flex items-start gap-1.5">
-                    <IconClock className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                    <IconClock className="w-3.5 h-3.5 text-slate-500 font-medium shrink-0 mt-0.5" />
                     <span>{config.supportHours} {config.supportDays ? `(${config.supportDays})` : ''}</span>
                   </div>
                 )}
                 {config.workplaceAddress && (
                   <div className="flex items-start gap-1.5">
-                    <IconMapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                    <IconMapPin className="w-3.5 h-3.5 text-slate-500 font-medium shrink-0 mt-0.5" />
                     <span className="truncate">{config.workplaceAddress}</span>
                   </div>
                 )}
@@ -505,7 +505,7 @@ export const SuperAdminHelplinePage: React.FC = () => {
             ) : null}
 
             {!config.emergencyNumber && !config.hrPhone && !config.hrEmail && !config.itEmail && !config.workplaceAddress && (
-              <div className="py-8 text-center text-xs text-slate-400">
+              <div className="py-8 text-center text-xs text-slate-500 font-medium">
                 Enter contact details on the left to see the live preview.
               </div>
             )}

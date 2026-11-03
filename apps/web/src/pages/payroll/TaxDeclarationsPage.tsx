@@ -191,7 +191,7 @@ export const TaxDeclarationsPage: React.FC = () => {
             <IconFileCertificate className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>Tax Proofs & Form 16 Desk</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Review employee investment declarations (80C, 80D, HRA), audit proof attachments, and generate Form 16.
           </p>
         </div>
@@ -228,7 +228,7 @@ export const TaxDeclarationsPage: React.FC = () => {
             </span>
           </div>
           <div className="text-xl font-black text-slate-900">{metrics.total}</div>
-          <p className="text-[11px] text-slate-400 mt-1">Across Old & New Tax Regimes</p>
+          <p className="text-[11px] text-slate-500 font-medium mt-1">Across Old & New Tax Regimes</p>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
@@ -239,7 +239,7 @@ export const TaxDeclarationsPage: React.FC = () => {
             </span>
           </div>
           <div className="text-xl font-black text-amber-600">{metrics.pending}</div>
-          <p className="text-[11px] text-slate-400 mt-1">Require Finance proof audit</p>
+          <p className="text-[11px] text-slate-500 font-medium mt-1">Require Finance proof audit</p>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
@@ -252,7 +252,7 @@ export const TaxDeclarationsPage: React.FC = () => {
           <div className="text-xl font-black text-emerald-700">
             {metrics.verified + metrics.locked}
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">TDS adjusted in monthly payroll</p>
+          <p className="text-[11px] text-slate-500 font-medium mt-1">TDS adjusted in monthly payroll</p>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
@@ -265,7 +265,7 @@ export const TaxDeclarationsPage: React.FC = () => {
           <div className="text-xl font-black text-teal-700">
             ₹{metrics.totalTaxSaved.toLocaleString('en-IN')}
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">Total tax rebate passed to employees</p>
+          <p className="text-[11px] text-slate-500 font-medium mt-1">Total tax rebate passed to employees</p>
         </div>
       </div>
 
@@ -296,7 +296,7 @@ export const TaxDeclarationsPage: React.FC = () => {
         </div>
 
         <div className="relative flex-1 max-w-md">
-          <IconSearch className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             placeholder="Search by employee name, PAN, or department..."
@@ -328,7 +328,7 @@ export const TaxDeclarationsPage: React.FC = () => {
                 <tr key={emp.id} className="hover:bg-slate-50/60 transition-colors">
                   <td className="px-5 py-3.5">
                     <div className="font-bold text-slate-900">{emp.name}</div>
-                    <div className="text-[11px] text-slate-400">{emp.email}</div>
+                    <div className="text-[11px] text-slate-500 font-medium">{emp.email}</div>
                   </td>
                   <td className="px-5 py-3.5">
                     <div className="font-mono font-bold text-slate-800">{emp.pan}</div>
@@ -415,12 +415,12 @@ export const TaxDeclarationsPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-black text-slate-900 text-base">FORM NO. 16 (Part A & B)</h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500 font-medium">
                     Certificate under section 203 of the Income-tax Act, 1961 for tax deducted at source
                   </p>
                 </div>
               </div>
-              <button onClick={() => setIsForm16ModalOpen(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+              <button onClick={() => setIsForm16ModalOpen(false)} className="text-slate-500 font-medium hover:text-slate-600 cursor-pointer">
                 <IconX className="w-5 h-5" />
               </button>
             </div>
@@ -429,13 +429,13 @@ export const TaxDeclarationsPage: React.FC = () => {
             <div className="border border-slate-200 rounded-2xl p-5 space-y-4 text-xs font-mono bg-slate-50/40">
               <div className="grid grid-cols-2 gap-4 pb-4 border-b border-slate-200">
                 <div>
-                  <span className="text-slate-400 block font-sans">Name and Address of the Employer:</span>
+                  <span className="text-slate-500 block font-sans">Name and Address of the Employer:</span>
                   <span className="font-bold text-slate-900 font-sans">KYADARI TECHNOLOGIES PVT LTD</span>
                   <span className="block text-slate-500 font-sans">Tech Park, Hyderabad, India</span>
                   <span className="block font-bold mt-1">TAN: HYDK12891A</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block font-sans">Name and Designation of the Employee:</span>
+                  <span className="text-slate-500 block font-sans">Name and Designation of the Employee:</span>
                   <span className="font-bold text-slate-900 font-sans">{form16Target.name}</span>
                   <span className="block text-slate-500 font-sans">{form16Target.department}</span>
                   <span className="block font-bold mt-1">PAN: {form16Target.pan}</span>

@@ -103,7 +103,7 @@ export const PayrollDashboardPage: React.FC = () => {
             <IconCash className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>Payroll Calculation Engine</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Automated salary calculations with Loss of Pay (LOP), statutory deductions (PF/ESI/TDS), and payslip generation.
           </p>
         </div>
@@ -153,24 +153,24 @@ export const PayrollDashboardPage: React.FC = () => {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Gross CTC</span>
+          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Gross CTC</span>
           <p className="text-2xl font-black text-slate-900 mt-1">₹{totalGross.toLocaleString()}</p>
-          <span className="text-xs text-slate-500 mt-1 block">Scheduled earnings</span>
+          <span className="text-xs text-slate-500 font-medium mt-1 block">Scheduled earnings</span>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Statutory Deductions</span>
+          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Statutory Deductions</span>
           <p className="text-2xl font-black text-rose-600 mt-1">₹{totalDeductions.toLocaleString()}</p>
-          <span className="text-xs text-slate-500 mt-1 block">PF, ESI, TDS & LOP</span>
+          <span className="text-xs text-slate-500 font-medium mt-1 block">PF, ESI, TDS & LOP</span>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Net Payout Disbursed</span>
+          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Net Payout Disbursed</span>
           <p className="text-2xl font-black text-emerald-600 mt-1">₹{totalNet.toLocaleString()}</p>
-          <span className="text-xs text-slate-500 mt-1 block">Bank transfer liability</span>
+          <span className="text-xs text-slate-500 font-medium mt-1 block">Bank transfer liability</span>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Employees Processed</span>
+          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Employees Processed</span>
           <p className="text-2xl font-black text-slate-900 mt-1">{employees.length}</p>
-          <span className="text-xs text-slate-500 mt-1 block">Active on payroll</span>
+          <span className="text-xs text-slate-500 font-medium mt-1 block">Active on payroll</span>
         </div>
       </div>
 
@@ -204,7 +204,7 @@ export const PayrollDashboardPage: React.FC = () => {
                 ))
               ) : employees.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500 font-medium">
                     <IconCash className="w-10 h-10 mx-auto mb-2 text-slate-300" />
                     No employees found for this payroll run.
                   </td>
@@ -216,7 +216,7 @@ export const PayrollDashboardPage: React.FC = () => {
                       <div className="font-semibold text-slate-900">
                         {item.employee.firstName} {item.employee.lastName}
                       </div>
-                      <div className="text-xs text-slate-400">{item.employee.jobTitle}</div>
+                      <div className="text-xs text-slate-500 font-medium">{item.employee.jobTitle}</div>
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-xs font-medium text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md">

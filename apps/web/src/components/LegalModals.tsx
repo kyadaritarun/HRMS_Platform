@@ -38,13 +38,13 @@ export const TermsAndConditionsModal: React.FC<LegalModalProps> = ({ isOpen, onC
                   Version 2.4 • Oct 2026
                 </span>
               </div>
-              <p className="text-xs text-slate-500">Uptrix Enterprise HRMS Master Services &amp; Platform Agreement</p>
+              <p className="text-xs text-slate-500 font-medium">Uptrix Enterprise HRMS Master Services &amp; Platform Agreement</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center shadow-2xs transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-500 font-medium hover:text-slate-700 flex items-center justify-center shadow-2xs transition-colors cursor-pointer"
           >
             <IconX className="w-4 h-4" />
           </button>
@@ -105,7 +105,7 @@ export const TermsAndConditionsModal: React.FC<LegalModalProps> = ({ isOpen, onC
         {/* Footer */}
         <div className="p-4 bg-slate-50/70 border-t border-slate-100 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-            <IconScale className="w-4 h-4 text-slate-400" />
+            <IconScale className="w-4 h-4 text-slate-500 font-medium" />
             <span>Governed under enterprise subscription terms.</span>
           </div>
           
@@ -138,13 +138,13 @@ export const PrivacyPolicyModal: React.FC<LegalModalProps> = ({ isOpen, onClose 
                   DPDP &amp; GDPR Compliant
                 </span>
               </div>
-              <p className="text-xs text-slate-500">Employee data confidentiality, storage protocols, and security practices</p>
+              <p className="text-xs text-slate-500 font-medium">Employee data confidentiality, storage protocols, and security practices</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center shadow-2xs transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-500 font-medium hover:text-slate-700 flex items-center justify-center shadow-2xs transition-colors cursor-pointer"
           >
             <IconX className="w-4 h-4" />
           </button>

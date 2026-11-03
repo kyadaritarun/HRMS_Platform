@@ -105,7 +105,7 @@ export const InfrastructurePage: React.FC = () => {
             <IconServer className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>Infrastructure &amp; VPS Clusters</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Manage production host nodes, database instances, and SSH connectivity status.
           </p>
         </div>
@@ -129,7 +129,7 @@ export const InfrastructurePage: React.FC = () => {
             </div>
           ))
         ) : servers.length === 0 ? (
-          <div className="col-span-full py-16 text-center text-slate-400 bg-white rounded-3xl border border-slate-200/80">
+          <div className="col-span-full py-16 text-center text-slate-500 font-medium bg-white rounded-3xl border border-slate-200/80">
             <IconServer className="w-12 h-12 mx-auto mb-2 text-slate-300" />
             No external infrastructure nodes provisioned yet.
           </div>
@@ -189,7 +189,7 @@ export const InfrastructurePage: React.FC = () => {
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100"
+                className="p-1 rounded-lg text-slate-500 font-medium hover:bg-slate-100"
               >
                 <IconX className="w-5 h-5" />
               </button>

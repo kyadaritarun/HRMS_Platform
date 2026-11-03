@@ -66,10 +66,10 @@ const FlowchartNode: React.FC<FlowchartNodeProps> = ({ node, searchQuery = '' })
                   {node.role}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 truncate mt-0.5 leading-snug">
+              <p className="text-xs text-slate-500 font-medium truncate mt-0.5 leading-snug">
                 {node.jobTitle || 'Team Member'}
               </p>
-              <p className="text-[11px] text-slate-400 truncate mt-0.5">{node.email}</p>
+              <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">{node.email}</p>
             </div>
           </div>
 
@@ -244,7 +244,7 @@ export const OrgStructurePage: React.FC = () => {
           <IconNetwork className="w-5 h-5 text-indigo-600 shrink-0" />
           <span>Org Structure</span>
         </h1>
-        <p className="text-xs text-slate-500 mt-0.5">
+        <p className="text-xs text-slate-500 font-medium mt-0.5">
           Interactive reporting structure from executive leadership down to functional squad teams.
         </p>
       </div>
@@ -252,7 +252,7 @@ export const OrgStructurePage: React.FC = () => {
       {/* Toolbar: Search & Zoom Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-200/80 shadow-2xs">
         <div className="relative w-full sm:w-72">
-          <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search employee in org chart..."
@@ -264,7 +264,7 @@ export const OrgStructurePage: React.FC = () => {
 
         {/* Zoom Controls */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400 font-medium">
+          <span className="text-xs text-slate-500 font-medium">
             Zoom: {Math.round(zoomLevel * 100)}%
           </span>
           <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl p-0.5">
@@ -304,7 +304,7 @@ export const OrgStructurePage: React.FC = () => {
             </div>
           </div>
         ) : hierarchy.length === 0 ? (
-          <div className="py-24 text-center text-slate-400">
+          <div className="py-24 text-center text-slate-500 font-medium">
             <IconNetwork className="w-12 h-12 mx-auto mb-2 text-slate-300" />
             <p className="text-sm font-semibold text-slate-600">No organization hierarchy nodes found.</p>
           </div>

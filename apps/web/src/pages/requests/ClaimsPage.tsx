@@ -331,7 +331,7 @@ export const ClaimsPage: React.FC = () => {
               <IconReceipt2 className="w-5 h-5 text-indigo-600 shrink-0" />
               <span>Claims</span>
             </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
               Submit out-of-pocket expenses, travel allowances, and track disbursement status.
             </p>
           </div>
@@ -367,18 +367,18 @@ export const ClaimsPage: React.FC = () => {
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
           {/* 1. Search Input */}
           <div className="relative flex-1">
-            <IconSearch className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="Search by title, employee, or category..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-10 py-2.5 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all placeholder:text-slate-400 text-slate-800"
+              className="w-full pl-10 pr-10 py-2.5 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all placeholder:text-slate-500 text-slate-800"
             />
             {search && (
               <button
                 onClick={() => setSearch('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium hover:text-slate-600 p-1 cursor-pointer"
               >
                 <IconX className="w-3.5 h-3.5" />
               </button>
@@ -409,7 +409,7 @@ export const ClaimsPage: React.FC = () => {
                   </>
                 )}
               </select>
-              <IconChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChevronDown className="w-4 h-4 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
             {/* 3. Scope Dropdown */}
@@ -427,7 +427,7 @@ export const ClaimsPage: React.FC = () => {
                   <option value="assigned">Scope: {isManager ? 'Team Claims' : 'Assigned to Me'}</option>
                   {canPay && <option value="company">Scope: All Company</option>}
                 </select>
-                <IconChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <IconChevronDown className="w-4 h-4 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             )}
 
@@ -444,7 +444,7 @@ export const ClaimsPage: React.FC = () => {
                 <option value="PAID">Status: Paid</option>
                 <option value="REJECTED">Status: Rejected</option>
               </select>
-              <IconChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChevronDown className="w-4 h-4 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
         </div>
@@ -502,7 +502,7 @@ export const ClaimsPage: React.FC = () => {
                         <IconReceipt2 className="w-6 h-6" />
                       </div>
                       <h4 className="text-sm font-bold text-slate-800">No expense claims found</h4>
-                      <p className="text-xs text-slate-400 mt-1">
+                      <p className="text-xs text-slate-500 font-medium mt-1">
                         {search
                           ? 'Try modifying your search or filter.'
                           : 'Click "New Claim" to submit your first claim.'}
@@ -527,7 +527,7 @@ export const ClaimsPage: React.FC = () => {
                           )}
                         </div>
                         {claim.reason && claim.reason.trim() !== claim.title.trim() && (
-                          <div className="text-[11px] text-slate-400 max-w-xs truncate mt-0.5">
+                          <div className="text-[11px] text-slate-500 font-medium max-w-xs truncate mt-0.5">
                             {claim.reason}
                           </div>
                         )}
@@ -545,7 +545,7 @@ export const ClaimsPage: React.FC = () => {
                               <div className="font-semibold text-slate-900 text-xs">
                                 {claim.user?.firstName} {claim.user?.lastName}
                               </div>
-                              <div className="text-[11px] text-slate-400 font-normal">
+                              <div className="text-[11px] text-slate-500 font-normal">
                                 {claim.user?.email}
                               </div>
                             </div>
@@ -572,7 +572,7 @@ export const ClaimsPage: React.FC = () => {
                         {claim.meta?.claimDate &&
                           new Date(claim.meta.claimDate).toDateString() !==
                             new Date(claim.createdAt).toDateString() && (
-                            <div className="text-[10px] text-slate-400 mt-0.5">
+                            <div className="text-[10px] text-slate-500 font-medium mt-0.5">
                               Submitted{' '}
                               {new Date(claim.createdAt).toLocaleDateString('en-US', {
                                 month: 'short',
@@ -625,7 +625,7 @@ export const ClaimsPage: React.FC = () => {
                                 type="button"
                                 onClick={() => handleCancelClaim(claim.id)}
                                 title="Cancel Claim"
-                                className="w-8 h-8 rounded-xl border border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50/50 shadow-2xs transition-all flex items-center justify-center cursor-pointer"
+                                className="w-8 h-8 rounded-xl border border-slate-200 text-slate-500 font-medium hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50/50 shadow-2xs transition-all flex items-center justify-center cursor-pointer"
                               >
                                 <IconX className="w-4 h-4" />
                               </button>
@@ -685,7 +685,7 @@ export const ClaimsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedClaim(null)}
-                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-xl text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                   title="Close"
                 >
                   <IconX className="w-5 h-5" />
@@ -727,7 +727,7 @@ export const ClaimsPage: React.FC = () => {
                       <div className="text-sm font-bold text-slate-900">
                         {selectedClaim.user?.firstName} {selectedClaim.user?.lastName}
                       </div>
-                      <div className="text-xs text-slate-500">
+                      <div className="text-xs text-slate-500 font-medium">
                         {selectedClaim.user?.email}{' '}
                         {selectedClaim.user?.jobTitle ? `• ${selectedClaim.user.jobTitle}` : ''}
                       </div>
@@ -738,13 +738,13 @@ export const ClaimsPage: React.FC = () => {
                 {/* Dates Breakdown */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/50">
-                    <div className="text-[11px] font-bold text-slate-400">Expense Date</div>
+                    <div className="text-[11px] font-bold text-slate-500">Expense Date</div>
                     <div className="text-xs font-bold text-slate-800 mt-1">
                       {formatExpenseDate(selectedClaim.meta?.claimDate, selectedClaim.createdAt)}
                     </div>
                   </div>
                   <div className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/50">
-                    <div className="text-[11px] font-bold text-slate-400">Submitted On</div>
+                    <div className="text-[11px] font-bold text-slate-500">Submitted On</div>
                     <div className="text-xs font-bold text-slate-800 mt-1">
                       {new Date(selectedClaim.createdAt).toLocaleDateString('en-US', {
                         month: 'short',
@@ -779,7 +779,7 @@ export const ClaimsPage: React.FC = () => {
                           <div className="text-xs font-bold text-slate-800 truncate">
                             {selectedClaim.meta.receiptFileName}
                           </div>
-                          <div className="text-[10px] text-slate-400">Attached Expense Proof</div>
+                          <div className="text-[10px] text-slate-500 font-medium">Attached Expense Proof</div>
                         </div>
                       </div>
                       <span className="px-2.5 py-1 rounded-md bg-slate-100 text-[11px] font-semibold text-slate-600">
@@ -787,7 +787,7 @@ export const ClaimsPage: React.FC = () => {
                       </span>
                     </div>
                   ) : (
-                    <div className="p-3 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-center text-xs text-slate-400">
+                    <div className="p-3 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-center text-xs text-slate-500 font-medium">
                       No receipt or invoice was attached with this claim.
                     </div>
                   )}
@@ -888,7 +888,7 @@ export const ClaimsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsCreating(false)}
-                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-xl text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                   title="Close Drawer"
                 >
                   <IconX className="w-5 h-5" />
@@ -932,7 +932,7 @@ export const ClaimsPage: React.FC = () => {
                           </>
                         )}
                       </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400">
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-500 font-medium">
                         <IconChevronDown className="w-4 h-4" />
                       </div>
                     </div>
@@ -1009,7 +1009,7 @@ export const ClaimsPage: React.FC = () => {
                       <p className="text-xs font-bold text-slate-700">
                         {selectedFile ? selectedFile.name : 'Click to upload proof (PDF or Image)'}
                       </p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Max size: 5MB</p>
+                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">Max size: 5MB</p>
                       <input
                         ref={fileInputRef}
                         type="file"

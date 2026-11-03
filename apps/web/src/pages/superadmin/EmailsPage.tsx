@@ -222,9 +222,9 @@ export const EmailsPage: React.FC = () => {
             <IconMail className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>Email Notifications</span>
           </h1>
-          <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-1 font-medium">
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1 font-medium">
             <Link to="/super-admin/dashboard" className="hover:text-brand-600 flex items-center gap-1">
-              <IconHome className="w-3.5 h-3.5 text-slate-400" />
+              <IconHome className="w-3.5 h-3.5 text-slate-500 font-medium" />
             </Link>
             <span className="text-slate-500 font-medium">Super Admin</span>
             <span className="text-slate-300">&gt;</span>
@@ -273,7 +273,7 @@ export const EmailsPage: React.FC = () => {
             )}
             <span>{actionNotice.text}</span>
           </div>
-          <button onClick={() => setActionNotice(null)} className="text-slate-400 hover:text-slate-600">
+          <button onClick={() => setActionNotice(null)} className="text-slate-500 font-medium hover:text-slate-600">
             <IconX className="w-4 h-4" />
           </button>
         </div>
@@ -293,7 +293,7 @@ export const EmailsPage: React.FC = () => {
               <IconMail className="w-5 h-5 stroke-[2]" />
             </div>
           </div>
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-medium">
             <span>Retention Period</span>
             <span className="font-semibold text-slate-700">Permanent</span>
           </div>
@@ -314,7 +314,7 @@ export const EmailsPage: React.FC = () => {
               <IconCheck className="w-5 h-5 stroke-[2]" />
             </div>
           </div>
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-medium">
             <span>Delivery State</span>
             <span className="font-semibold text-emerald-600">Optimal</span>
           </div>
@@ -334,7 +334,7 @@ export const EmailsPage: React.FC = () => {
               <IconAlertCircle className="w-5 h-5 stroke-[2]" />
             </div>
           </div>
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-medium">
             <span>Fail Rate</span>
             <span className="font-semibold text-rose-600">
               {totalEmails > 0 ? ((failedCount / totalEmails) * 100).toFixed(1) : '0'}%
@@ -370,7 +370,7 @@ export const EmailsPage: React.FC = () => {
       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
         {/* Search */}
         <div className="relative w-full md:max-w-md">
-          <IconSearch className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search by recipient email, subject, company, or message..."
@@ -379,7 +379,7 @@ export const EmailsPage: React.FC = () => {
               setSearch(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full pl-10 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-brand-500 text-slate-900 placeholder:text-slate-400 transition-colors"
+            className="w-full pl-10 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-brand-500 text-slate-900 placeholder:text-slate-500 font-medium transition-colors"
           />
           {search && (
             <button
@@ -387,7 +387,7 @@ export const EmailsPage: React.FC = () => {
                 setSearch('');
                 setCurrentPage(1);
               }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium hover:text-slate-600"
             >
               <IconX className="w-3.5 h-3.5" />
             </button>
@@ -398,7 +398,7 @@ export const EmailsPage: React.FC = () => {
         <div className="flex items-center gap-2.5 w-full md:w-auto">
           {/* Status Filter */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider hidden sm:inline">
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider hidden sm:inline">
               Status:
             </span>
             <select
@@ -418,7 +418,7 @@ export const EmailsPage: React.FC = () => {
 
           {/* Category Filter */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider hidden sm:inline">
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider hidden sm:inline">
               Category:
             </span>
             <select
@@ -482,12 +482,12 @@ export const EmailsPage: React.FC = () => {
                 ))
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center text-slate-400">
-                    <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3 text-slate-400">
+                  <td colSpan={6} className="px-6 py-16 text-center text-slate-500 font-medium">
+                    <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3 text-slate-500 font-medium">
                       <IconMail className="w-6 h-6" />
                     </div>
                     <p className="text-base font-semibold text-slate-700">No email notification logs found</p>
-                    <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                    <p className="text-xs text-slate-500 font-medium mt-1 max-w-sm mx-auto">
                       {search || statusFilter !== 'ALL' || categoryFilter !== 'ALL'
                         ? 'Try clearing your search filters to view recorded emails.'
                         : 'No email messages have been sent yet. Click "Send Test Email" to dispatch your first notification.'}
@@ -533,12 +533,12 @@ export const EmailsPage: React.FC = () => {
                           </button>
                         </div>
                         {log.company?.name ? (
-                          <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-0.5 font-medium">
-                            <IconBuilding className="w-3 h-3 text-slate-400" />
+                          <div className="flex items-center gap-1 text-[11px] text-slate-500 mt-0.5 font-medium">
+                            <IconBuilding className="w-3 h-3 text-slate-500 font-medium" />
                             <span>{log.company.name}</span>
                           </div>
                         ) : (
-                          <span className="text-[10px] text-slate-400 uppercase tracking-wider block mt-0.5">
+                          <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider block mt-0.5">
                             System Notification
                           </span>
                         )}
@@ -553,7 +553,7 @@ export const EmailsPage: React.FC = () => {
                           {log.subject || '(No Subject)'}
                         </p>
                         {/* Body snippet */}
-                        <p className="text-[11px] text-slate-400 truncate mt-0.5 font-sans">
+                        <p className="text-[11px] text-slate-500 truncate mt-0.5 font-sans">
                           {(log.bodyHtml || (log as any).body || '')
                             .replace(/<[^>]*>/g, '')
                             .slice(0, 70)}
@@ -607,7 +607,7 @@ export const EmailsPage: React.FC = () => {
                             year: 'numeric',
                           })}
                         </div>
-                        <div className="text-[11px] text-slate-400 font-mono">
+                        <div className="text-[11px] text-slate-500 font-mono">
                           {new Date(log.sentAt || log.createdAt).toLocaleTimeString('en-US', {
                             hour: '2-digit',
                             minute: '2-digit',
@@ -623,7 +623,7 @@ export const EmailsPage: React.FC = () => {
                               setSelectedEmail(log);
                               setPreviewTab('rendered');
                             }}
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                            className="p-1.5 rounded-lg text-slate-500 font-medium hover:text-brand-600 hover:bg-brand-50 transition-colors"
                             title="Preview Message Content"
                           >
                             <IconEye className="w-4 h-4" />
@@ -631,7 +631,7 @@ export const EmailsPage: React.FC = () => {
                           <button
                             onClick={() => handleResend(log)}
                             disabled={resendingId === log.id}
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-brand-600 hover:bg-brand-50 transition-colors disabled:opacity-50"
+                            className="p-1.5 rounded-lg text-slate-500 font-medium hover:text-brand-600 hover:bg-brand-50 transition-colors disabled:opacity-50"
                             title="Resend this email via Office 365"
                           >
                             <IconRefresh
@@ -649,7 +649,7 @@ export const EmailsPage: React.FC = () => {
         </div>
 
         {/* Pagination & Count */}
-        <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+        <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 font-medium">
           <div>
             Showing <span className="font-semibold text-slate-800">{filtered.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</span> to{' '}
             <span className="font-semibold text-slate-800">
@@ -705,14 +705,14 @@ export const EmailsPage: React.FC = () => {
                   <h3 className="text-base font-bold text-slate-900 leading-tight">
                     {selectedEmail.subject || 'Email Preview'}
                   </h3>
-                  <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                  <p className="text-[11px] text-slate-500 font-medium mt-0.5">
                     Category: {selectedEmail.category || (selectedEmail as any).templateType || 'SYSTEM'}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedEmail(null)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition-colors"
+                className="p-1.5 rounded-xl text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-200/60 transition-colors"
               >
                 <IconX className="w-5 h-5" />
               </button>
@@ -737,7 +737,7 @@ export const EmailsPage: React.FC = () => {
               <div className="bg-slate-50/80 rounded-2xl p-4 border border-slate-200/70 space-y-2 text-xs">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
-                    <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
                       From:
                     </span>
                     <span className="text-slate-900 font-semibold flex items-center gap-1.5">
@@ -748,7 +748,7 @@ export const EmailsPage: React.FC = () => {
                     </span>
                   </div>
                   <div>
-                    <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
                       To:
                     </span>
                     <span className="font-mono text-slate-900 font-bold text-xs">
@@ -759,7 +759,7 @@ export const EmailsPage: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-200/60">
                   <div>
-                    <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
                       Dispatched At:
                     </span>
                     <span className="text-slate-700 font-medium">
@@ -767,7 +767,7 @@ export const EmailsPage: React.FC = () => {
                     </span>
                   </div>
                   <div>
-                    <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
                       Status:
                     </span>
                     <span
@@ -798,7 +798,7 @@ export const EmailsPage: React.FC = () => {
 
                 {selectedEmail.company && (
                   <div className="pt-1 border-t border-slate-200/60 text-slate-600">
-                    <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
                       Company Workspace:
                     </span>
                     <span>
@@ -848,7 +848,7 @@ export const EmailsPage: React.FC = () => {
                       }}
                     />
                   ) : (
-                    <p className="text-slate-400 text-center italic py-6">
+                    <p className="text-slate-500 font-medium text-center italic py-6">
                       No HTML body recorded for this email.
                     </p>
                   )}
@@ -910,14 +910,14 @@ export const EmailsPage: React.FC = () => {
                   <h3 className="text-base font-bold text-slate-900 leading-tight">
                     Send Live Test Notification
                   </h3>
-                  <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                  <p className="text-[11px] text-slate-500 font-medium mt-0.5">
                     Relayed via Microsoft Office 365 (alerts@uptrix.io)
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setIsTestModalOpen(false)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition-colors"
+                className="p-1.5 rounded-xl text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-200/60 transition-colors"
               >
                 <IconX className="w-5 h-5" />
               </button>
@@ -953,7 +953,7 @@ export const EmailsPage: React.FC = () => {
                   onChange={(e) => setTestTo(e.target.value)}
                   className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-brand-500 text-slate-900"
                 />
-                <p className="text-[11px] text-slate-400 mt-1">
+                <p className="text-[11px] text-slate-500 font-medium mt-1">
                   You can specify your own email address to check delivery in your inbox.
                 </p>
               </div>

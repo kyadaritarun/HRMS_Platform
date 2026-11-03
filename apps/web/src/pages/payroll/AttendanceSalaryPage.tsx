@@ -456,7 +456,7 @@ export const AttendanceSalaryPage: React.FC = () => {
             <IconClock className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>Attendance & Salary</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Real-time payroll computed from attendance, approved leaves, LOP, and overtime.
           </p>
         </div>
@@ -491,7 +491,7 @@ export const AttendanceSalaryPage: React.FC = () => {
             title="Export CSV"
             className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold shadow-2xs transition-colors shrink-0"
           >
-            <IconDownload className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+            <IconDownload className="w-3.5 h-3.5 text-slate-500 font-medium shrink-0" />
             <span className="hidden sm:inline">Export </span>
             <span>CSV</span>
           </button>
@@ -537,7 +537,7 @@ export const AttendanceSalaryPage: React.FC = () => {
         {/* Table Filter Bar */}
         <div className="p-3 sm:p-4 border-b border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
           <div className="relative w-full sm:w-72">
-            <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3 top-2.5" />
             <input
               type="text"
               placeholder="Search staff, department, title..."
@@ -546,7 +546,7 @@ export const AttendanceSalaryPage: React.FC = () => {
               className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             />
           </div>
-          <div className="text-[11px] font-medium text-slate-400 sm:text-right">
+          <div className="text-[11px] font-medium text-slate-500 sm:text-right">
             {filteredEmployees.length} employee{filteredEmployees.length === 1 ? '' : 's'} on record
           </div>
         </div>
@@ -580,7 +580,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                 ))
               ) : filteredEmployees.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="px-5 py-12 text-center text-slate-400">
+                  <td colSpan={11} className="px-5 py-12 text-center text-slate-500 font-medium">
                     <IconClock className="w-10 h-10 mx-auto mb-2 text-slate-300" />
                     No employees found matching the filter for this month.
                   </td>
@@ -608,7 +608,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                         >
                           {item.employee.firstName} {item.employee.lastName}
                         </div>
-                        <div className="text-[11px] text-slate-400">
+                        <div className="text-[11px] text-slate-500 font-medium">
                           {item.employee.department} • {item.employee.jobTitle}
                         </div>
                       </td>
@@ -640,7 +640,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                             {lop} d
                           </span>
                         ) : (
-                          <span className="text-slate-400">0 d</span>
+                          <span className="text-slate-500 font-medium">0 d</span>
                         )}
                       </td>
 
@@ -651,7 +651,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                             +{otHours}h (+₹{otPay.toLocaleString()})
                           </span>
                         ) : (
-                          <span className="text-slate-400">-</span>
+                          <span className="text-slate-500 font-medium">-</span>
                         )}
                       </td>
 
@@ -771,14 +771,14 @@ export const AttendanceSalaryPage: React.FC = () => {
                     {selectedEmp.employee.firstName} {selectedEmp.employee.lastName}
                   </h2>
                 </div>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
                   {selectedEmp.employee.jobTitle} • {selectedEmp.employee.department}
                 </p>
               </div>
 
               <button
                 onClick={() => setSelectedEmp(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+                className="p-1.5 text-slate-500 font-medium hover:text-slate-600 rounded-lg hover:bg-slate-100"
               >
                 <IconX className="w-5 h-5" />
               </button>
@@ -824,7 +824,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                 {/* Attendance Days Summary Cards */}
                 <div className="grid grid-cols-3 gap-2.5 text-center">
                   <div className="p-2.5 sm:p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Workable Days</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase block">Workable Days</span>
                     <span className="text-base sm:text-lg font-black text-slate-900">
                       {selectedEmp.calculation.workingDaysCount || 22} d
                     </span>
@@ -997,13 +997,13 @@ export const AttendanceSalaryPage: React.FC = () => {
                 {/* Bank Details */}
                 <div className="p-3 bg-white rounded-xl border border-slate-200 text-xs flex justify-between items-center">
                   <div>
-                    <span className="text-slate-400 block text-[10px]">Payment Mode</span>
+                    <span className="text-slate-500 font-medium block text-[10px]">Payment Mode</span>
                     <span className="font-bold text-slate-800">
                       {selectedEmp.calculation.paymentMode || 'BANK_TRANSFER'}
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-slate-400 block text-[10px]">Bank & Account</span>
+                    <span className="text-slate-500 font-medium block text-[10px]">Bank & Account</span>
                     <span className="font-bold text-slate-800">
                       {selectedEmp.calculation.bankName || 'HDFC Bank'} ({selectedEmp.calculation.accountNumberMasked || '••••'})
                     </span>
@@ -1028,7 +1028,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                           Monthly Base: ₹{Number(selectedEmp.calculation.baseSalary || 0).toLocaleString()}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
+                      <p className="text-[11px] text-slate-500 font-medium mt-0.5">
                         Configure statutory PF, PT, TDS, allowances, and custom components for this month's payroll.
                       </p>
                     </div>
@@ -1070,7 +1070,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                         <tr className="hover:bg-slate-50/40 transition-colors">
                           <td className="px-4 py-2.5">
                             <div className="font-semibold text-slate-900">Basic Salary</div>
-                            <div className="text-[10px] text-slate-400">Core wage component (typically 50% of monthly CTC)</div>
+                            <div className="text-[10px] text-slate-500 font-medium">Core wage component (typically 50% of monthly CTC)</div>
                           </td>
                           <td className="px-3 py-2.5">
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -1080,7 +1080,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                           </td>
                           <td className="px-4 py-2.5 text-right">
                             <div className="relative w-32 ml-auto">
-                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 select-none">₹</span>
                               <input
                                 type="number"
                                 min="0"
@@ -1097,7 +1097,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                         <tr className="hover:bg-slate-50/40 transition-colors">
                           <td className="px-4 py-2.5">
                             <div className="font-semibold text-slate-900">House Rent Allowance (HRA)</div>
-                            <div className="text-[10px] text-slate-400">Tax-exempt housing benefit (typically 20% of monthly CTC)</div>
+                            <div className="text-[10px] text-slate-500 font-medium">Tax-exempt housing benefit (typically 20% of monthly CTC)</div>
                           </td>
                           <td className="px-3 py-2.5">
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -1107,7 +1107,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                           </td>
                           <td className="px-4 py-2.5 text-right">
                             <div className="relative w-32 ml-auto">
-                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 select-none">₹</span>
                               <input
                                 type="number"
                                 min="0"
@@ -1124,7 +1124,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                         <tr className="hover:bg-slate-50/40 transition-colors">
                           <td className="px-4 py-2.5">
                             <div className="font-semibold text-slate-900">Special Allowance</div>
-                            <div className="text-[10px] text-slate-400">Balancing allowance figure for gross salary</div>
+                            <div className="text-[10px] text-slate-500 font-medium">Balancing allowance figure for gross salary</div>
                           </td>
                           <td className="px-3 py-2.5">
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -1134,7 +1134,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                           </td>
                           <td className="px-4 py-2.5 text-right">
                             <div className="relative w-32 ml-auto">
-                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 select-none">₹</span>
                               <input
                                 type="number"
                                 min="0"
@@ -1151,7 +1151,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                         <tr className="hover:bg-slate-50/40 transition-colors">
                           <td className="px-4 py-2.5">
                             <div className="font-semibold text-slate-900">Bonus / Performance Incentives</div>
-                            <div className="text-[10px] text-slate-400">Monthly or quarterly performance-based incentive</div>
+                            <div className="text-[10px] text-slate-500 font-medium">Monthly or quarterly performance-based incentive</div>
                           </td>
                           <td className="px-3 py-2.5">
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -1161,7 +1161,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                           </td>
                           <td className="px-4 py-2.5 text-right">
                             <div className="relative w-32 ml-auto">
-                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 select-none">₹</span>
                               <input
                                 type="number"
                                 min="0"
@@ -1200,7 +1200,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                               </td>
                               <td className="px-4 py-2 text-right">
                                 <div className="relative w-32 ml-auto">
-                                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 select-none">₹</span>
                                   <input
                                     type="number"
                                     min="0"
@@ -1214,7 +1214,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveCustomComponent(item.id)}
-                                  className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
+                                  className="p-1 text-slate-500 font-medium hover:text-rose-600 rounded transition-colors"
                                   title="Remove component"
                                 >
                                   <IconTrash className="w-3.5 h-3.5" />
@@ -1237,7 +1237,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                         <tr className="hover:bg-slate-50/40 transition-colors">
                           <td className="px-4 py-2.5">
                             <div className="font-semibold text-slate-900">Provident Fund (PF)</div>
-                            <div className="text-[10px] text-slate-400">Employee retirement contribution (12% of basic, capped at ₹1,800)</div>
+                            <div className="text-[10px] text-slate-500 font-medium">Employee retirement contribution (12% of basic, capped at ₹1,800)</div>
                           </td>
                           <td className="px-3 py-2.5">
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
@@ -1247,7 +1247,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                           </td>
                           <td className="px-4 py-2.5 text-right">
                             <div className="relative w-32 ml-auto">
-                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 select-none">₹</span>
                               <input
                                 type="number"
                                 min="0"
@@ -1265,7 +1265,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                         <tr className="hover:bg-slate-50/40 transition-colors">
                           <td className="px-4 py-2.5">
                             <div className="font-semibold text-slate-900">Professional Tax (PT)</div>
-                            <div className="text-[10px] text-slate-400">State statutory professional tax (standard ₹200)</div>
+                            <div className="text-[10px] text-slate-500 font-medium">State statutory professional tax (standard ₹200)</div>
                           </td>
                           <td className="px-3 py-2.5">
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
@@ -1275,7 +1275,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                           </td>
                           <td className="px-4 py-2.5 text-right">
                             <div className="relative w-32 ml-auto">
-                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 select-none">₹</span>
                               <input
                                 type="number"
                                 min="0"
@@ -1293,7 +1293,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                         <tr className="hover:bg-slate-50/40 transition-colors">
                           <td className="px-4 py-2.5">
                             <div className="font-semibold text-slate-900">Income Tax (TDS)</div>
-                            <div className="text-[10px] text-slate-400">Estimated monthly tax deducted at source under IT rules</div>
+                            <div className="text-[10px] text-slate-500 font-medium">Estimated monthly tax deducted at source under IT rules</div>
                           </td>
                           <td className="px-3 py-2.5">
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
@@ -1303,7 +1303,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                           </td>
                           <td className="px-4 py-2.5 text-right">
                             <div className="relative w-32 ml-auto">
-                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 select-none">₹</span>
                               <input
                                 type="number"
                                 min="0"
@@ -1321,7 +1321,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                         <tr className="hover:bg-slate-50/40 transition-colors">
                           <td className="px-4 py-2.5">
                             <div className="font-semibold text-slate-900">Other Deductions</div>
-                            <div className="text-[10px] text-slate-400">Ad-hoc adjustments or payroll deductions</div>
+                            <div className="text-[10px] text-slate-500 font-medium">Ad-hoc adjustments or payroll deductions</div>
                           </td>
                           <td className="px-3 py-2.5">
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
@@ -1331,7 +1331,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                           </td>
                           <td className="px-4 py-2.5 text-right">
                             <div className="relative w-32 ml-auto">
-                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 select-none">₹</span>
                               <input
                                 type="number"
                                 min="0"
@@ -1371,7 +1371,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                               </td>
                               <td className="px-4 py-2 text-right">
                                 <div className="relative w-32 ml-auto">
-                                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 select-none">₹</span>
+                                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 select-none">₹</span>
                                   <input
                                     type="number"
                                     min="0"
@@ -1385,7 +1385,7 @@ export const AttendanceSalaryPage: React.FC = () => {
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveCustomComponent(item.id)}
-                                  className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
+                                  className="p-1 text-slate-500 font-medium hover:text-rose-600 rounded transition-colors"
                                   title="Remove deduction"
                                 >
                                   <IconTrash className="w-3.5 h-3.5" />

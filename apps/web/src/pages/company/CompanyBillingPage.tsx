@@ -475,7 +475,7 @@ export const CompanyBillingPage: React.FC = () => {
               {currentStatus}
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Manage your company account tier, verified email domains, resource quotas, and official GST tax invoices.
           </p>
         </div>
@@ -493,7 +493,7 @@ export const CompanyBillingPage: React.FC = () => {
           </div>
           <div className="text-xl font-black text-slate-900">{currentAccountType} Tier</div>
           <div className="flex items-center justify-between mt-1">
-            <span className="text-[11px] text-slate-400">All features unlocked</span>
+            <span className="text-[11px] text-slate-500 font-medium">All features unlocked</span>
           </div>
         </div>
 
@@ -509,7 +509,7 @@ export const CompanyBillingPage: React.FC = () => {
             ₹{subAmountNum.toLocaleString('en-IN')}
           </div>
           <div className="flex items-center justify-between mt-1">
-            <span className="text-[11px] text-slate-400">{contractTermText} • Next: {nextInvoiceDateFormatted}</span>
+            <span className="text-[11px] text-slate-500 font-medium">{contractTermText} • Next: {nextInvoiceDateFormatted}</span>
           </div>
         </div>
 
@@ -546,10 +546,10 @@ export const CompanyBillingPage: React.FC = () => {
             </span>
           </div>
           <div className="text-xl font-black text-slate-900 font-mono">
-            {usage.storage} <span className="text-xs font-normal text-slate-400">/ {usage.storageLimit}</span>
+            {usage.storage} <span className="text-xs font-normal text-slate-500">/ {usage.storageLimit}</span>
           </div>
           <div className="flex items-center justify-between mt-1">
-            <span className="text-[11px] text-slate-400">{usage.totalBandwidth} bandwidth</span>
+            <span className="text-[11px] text-slate-500 font-medium">{usage.totalBandwidth} bandwidth</span>
             <span className="text-[11px] font-bold text-teal-700">{usage.documentsCount || 1} Docs</span>
           </div>
         </div>
@@ -617,7 +617,7 @@ export const CompanyBillingPage: React.FC = () => {
                 </div>
                 <div>
                   <h2 className="text-sm font-bold text-slate-900">Allowed Corporate Domains</h2>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
                     Configure company email domains. Employees signing up with these domains will auto-enroll into your workspace.
                   </p>
                 </div>
@@ -635,7 +635,7 @@ export const CompanyBillingPage: React.FC = () => {
             {/* Domains Pills */}
             <div className="flex flex-wrap items-center gap-2 pt-1">
               {domainList.length === 0 ? (
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500 w-full flex items-center justify-between">
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500 font-medium w-full flex items-center justify-between">
                   <span>No custom email domain configured yet. Defaults to <strong>@{compInfo?.subdomain || 'company'}.com</strong></span>
                   <button
                     onClick={() => setIsDomainModalOpen(true)}
@@ -657,7 +657,7 @@ export const CompanyBillingPage: React.FC = () => {
                     </span>
                     <button
                       onClick={() => handleRemoveDomain(dom)}
-                      className="text-slate-400 hover:text-rose-600 p-0.5 cursor-pointer ml-1"
+                      className="text-slate-500 font-medium hover:text-rose-600 p-0.5 cursor-pointer ml-1"
                       title="Remove domain"
                     >
                       <IconX className="w-3.5 h-3.5" />
@@ -686,7 +686,7 @@ export const CompanyBillingPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">Enterprise Security & Compliance</h3>
-                  <p className="text-[11px] text-slate-400">HIPAA BAA & Indian DPDP Data Protection</p>
+                  <p className="text-[11px] text-slate-500 font-medium">HIPAA BAA & Indian DPDP Data Protection</p>
                 </div>
               </div>
 
@@ -704,7 +704,7 @@ export const CompanyBillingPage: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-slate-500 font-medium">
                     Business Associate Agreement for health/medical records privacy and encrypted storage.
                   </p>
                   <button
@@ -712,7 +712,7 @@ export const CompanyBillingPage: React.FC = () => {
                     onClick={() => setIsHipaaModalOpen(true)}
                     className={`mt-2 px-3 py-1.5 rounded-lg font-bold text-xs cursor-pointer ${
                       isHipaaRequested
-                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
                         : 'bg-emerald-600 text-white hover:bg-emerald-700'
                     }`}
                   >
@@ -722,7 +722,7 @@ export const CompanyBillingPage: React.FC = () => {
 
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
                   <span className="font-bold text-slate-900 block">DPDP Act & ISO 27001 Data Residency</span>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-slate-500 font-medium">
                     Employee records, attendance timestamps, and bank account details are encrypted at rest with AES-256 within Indian server infrastructure.
                   </p>
                 </div>
@@ -737,13 +737,13 @@ export const CompanyBillingPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">Workspace Status & Controls</h3>
-                  <p className="text-[11px] text-slate-400">Subscription lifecycle & renewals</p>
+                  <p className="text-[11px] text-slate-500 font-medium">Subscription lifecycle & renewals</p>
                 </div>
               </div>
 
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Status:</span>
+                  <span className="text-slate-500 font-medium">Status:</span>
                   <span
                     className={`px-2 py-0.5 rounded-full font-bold ${
                       isAccountActive ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
@@ -753,19 +753,19 @@ export const CompanyBillingPage: React.FC = () => {
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Active Tier:</span>
+                  <span className="text-slate-500 font-medium">Active Tier:</span>
                   <span className="font-bold text-slate-900">{currentAccountType}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Billing Cycle:</span>
+                  <span className="text-slate-500 font-medium">Billing Cycle:</span>
                   <span className="font-bold text-slate-900">{contractTermText}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Next Scheduled Charge:</span>
+                  <span className="text-slate-500 font-medium">Next Scheduled Charge:</span>
                   <span className="font-bold text-slate-900">{nextInvoiceDateFormatted}</span>
                 </div>
                 <div className="flex items-center justify-between pt-1 border-t border-slate-200/60">
-                  <span className="text-slate-500">Payment Gateway:</span>
+                  <span className="text-slate-500 font-medium">Payment Gateway:</span>
                   <button
                     type="button"
                     onClick={() => setActiveTab('CONTACT_PAYMENT')}
@@ -806,7 +806,7 @@ export const CompanyBillingPage: React.FC = () => {
                 </div>
                 <div>
                   <h2 className="text-sm font-bold text-slate-900">Tax Invoices & Payment History</h2>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
                     Official GST receipts (SAC 998313). Click "View Tax Invoice" to preview or print.
                   </p>
                 </div>
@@ -826,7 +826,7 @@ export const CompanyBillingPage: React.FC = () => {
                 </label>
 
                 <div className="relative">
-                  <IconSearch className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <IconSearch className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     placeholder="Search invoice number..."
@@ -871,7 +871,7 @@ export const CompanyBillingPage: React.FC = () => {
                       ))
                     ) : paginatedInvoices.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="px-5 py-12 text-center text-slate-400">
+                        <td colSpan={7} className="px-5 py-12 text-center text-slate-500 font-medium">
                           No invoices found matching your filter criteria.
                         </td>
                       </tr>
@@ -893,7 +893,7 @@ export const CompanyBillingPage: React.FC = () => {
                           </td>
                           <td className="px-5 py-4 whitespace-nowrap">
                             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                              <IconBuildingBank className="w-3 h-3 text-slate-500" />
+                              <IconBuildingBank className="w-3 h-3 text-slate-500 font-medium" />
                               {inv.payment?.method || inv.payment?.provider || 'Razorpay / UPI'}
                             </span>
                           </td>
@@ -955,9 +955,9 @@ export const CompanyBillingPage: React.FC = () => {
                     >
                       <span>{faq.q}</span>
                       {isOpen ? (
-                        <IconChevronUp className="w-4 h-4 text-slate-400 shrink-0" />
+                        <IconChevronUp className="w-4 h-4 text-slate-500 font-medium shrink-0" />
                       ) : (
-                        <IconChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+                        <IconChevronDown className="w-4 h-4 text-slate-500 font-medium shrink-0" />
                       )}
                     </button>
                     {isOpen && (
@@ -990,7 +990,7 @@ export const CompanyBillingPage: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="text-sm font-bold text-slate-900">Primary Billing Contact</h3>
-                      <p className="text-[11px] text-slate-400">Statement notices & receipt emails</p>
+                      <p className="text-[11px] text-slate-500 font-medium">Statement notices & receipt emails</p>
                     </div>
                   </div>
 
@@ -1009,19 +1009,19 @@ export const CompanyBillingPage: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-2 text-slate-600">
-                    <IconMail className="w-4 h-4 text-slate-400 shrink-0" />
+                    <IconMail className="w-4 h-4 text-slate-500 font-medium shrink-0" />
                     <span>{billingContact.email || 'kyadarit@gmail.com'}</span>
                   </div>
 
                   {billingContact.phone && (
                     <div className="flex items-center gap-2 text-slate-600">
-                      <IconPhone className="w-4 h-4 text-slate-400 shrink-0" />
+                      <IconPhone className="w-4 h-4 text-slate-500 font-medium shrink-0" />
                       <span>{billingContact.phone}</span>
                     </div>
                   )}
 
                   <div className="flex items-start gap-2 text-slate-600 pt-1">
-                    <IconMapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                    <IconMapPin className="w-4 h-4 text-slate-500 font-medium shrink-0 mt-0.5" />
                     <span>
                       {billingContact.addressLine1 || '#14, Tech Park'}, {billingContact.city || 'Bengaluru'},{' '}
                       {billingContact.state || 'Karnataka'} {billingContact.postalCode || '560103'},{' '}
@@ -1040,7 +1040,7 @@ export const CompanyBillingPage: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="text-sm font-bold text-slate-900">Subscription & Mandate Schedule</h3>
-                      <p className="text-[11px] text-slate-400">Prepaid validity and next scheduled run</p>
+                      <p className="text-[11px] text-slate-500 font-medium">Prepaid validity and next scheduled run</p>
                     </div>
                   </div>
 
@@ -1051,23 +1051,23 @@ export const CompanyBillingPage: React.FC = () => {
 
                 <div className="space-y-2.5 text-xs">
                   <div className="flex items-center justify-between py-1.5 border-b border-slate-100">
-                    <span className="text-slate-500">Plan Tier:</span>
+                    <span className="text-slate-500 font-medium">Plan Tier:</span>
                     <span className="font-bold text-slate-900">{currentAccountType} Tier</span>
                   </div>
                   <div className="flex items-center justify-between py-1.5 border-b border-slate-100">
-                    <span className="text-slate-500">Billing Frequency:</span>
+                    <span className="text-slate-500 font-medium">Billing Frequency:</span>
                     <span className="font-bold text-slate-900">{contractTermText} (Prepaid)</span>
                   </div>
                   <div className="flex items-center justify-between py-1.5 border-b border-slate-100">
-                    <span className="text-slate-500">Next Scheduled Charge:</span>
+                    <span className="text-slate-500 font-medium">Next Scheduled Charge:</span>
                     <span className="font-mono font-bold text-indigo-700">{nextInvoiceDateFormatted}</span>
                   </div>
                   <div className="flex items-center justify-between py-1.5 border-b border-slate-100">
-                    <span className="text-slate-500">Mandate Channel:</span>
+                    <span className="text-slate-500 font-medium">Mandate Channel:</span>
                     <span className="font-bold text-slate-900">Razorpay RBI E-Mandate</span>
                   </div>
                   <div className="flex items-center justify-between py-1.5">
-                    <span className="text-slate-500">Cancellation Policy:</span>
+                    <span className="text-slate-500 font-medium">Cancellation Policy:</span>
                     <span className="font-medium text-emerald-700">Cancel anytime (0 penalty)</span>
                   </div>
                 </div>
@@ -1085,7 +1085,7 @@ export const CompanyBillingPage: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="text-sm font-bold text-slate-900">Payment Gateway on File</h3>
-                      <p className="text-[11px] text-slate-400">Verified Razorpay recurring mandate & settlement record</p>
+                      <p className="text-[11px] text-slate-500 font-medium">Verified Razorpay recurring mandate & settlement record</p>
                     </div>
                   </div>
 
@@ -1108,7 +1108,7 @@ export const CompanyBillingPage: React.FC = () => {
                           {paymentMethod.method || 'Razorpay UPI / Cards'}
                         </span>
                       </div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">
+                      <div className="text-[11px] text-slate-500 font-medium mt-0.5">
                         Mandate Reference: <span className="font-mono text-slate-700 font-semibold">{paymentMethod.paymentId || '—'}</span>
                       </div>
                     </div>
@@ -1150,7 +1150,7 @@ export const CompanyBillingPage: React.FC = () => {
                       <div className="text-xs font-bold text-slate-900 truncate font-mono" title={paymentMethod.orderId || '—'}>
                         {paymentMethod.orderId || '—'}
                       </div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">Enterprise Plan Proposal</div>
+                      <div className="text-[10px] text-slate-500 font-medium mt-0.5">Enterprise Plan Proposal</div>
                     </div>
 
                     <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-2xs">
@@ -1161,7 +1161,7 @@ export const CompanyBillingPage: React.FC = () => {
                       <div className="text-xs font-bold text-slate-900 truncate" title={paymentMethod.payerEmail || user?.email || '—'}>
                         {paymentMethod.payerEmail || user?.email || '—'}
                       </div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">3D Secure / OTP Verified</div>
+                      <div className="text-[10px] text-slate-500 font-medium mt-0.5">3D Secure / OTP Verified</div>
                     </div>
 
                     <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-2xs">
@@ -1172,7 +1172,7 @@ export const CompanyBillingPage: React.FC = () => {
                       <div className="text-xs font-bold text-slate-900 truncate font-mono" title={paymentMethod.paymentId || '—'}>
                         {paymentMethod.paymentId || '—'}
                       </div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">Instant Settlement</div>
+                      <div className="text-[10px] text-slate-500 font-medium mt-0.5">Instant Settlement</div>
                     </div>
 
                     <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-2xs">
@@ -1183,7 +1183,7 @@ export const CompanyBillingPage: React.FC = () => {
                       <div className="text-xs font-bold text-emerald-700">
                         Annual Auto-Debit
                       </div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">Renews {nextInvoiceDateFormatted}</div>
+                      <div className="text-[10px] text-slate-500 font-medium mt-0.5">Renews {nextInvoiceDateFormatted}</div>
                     </div>
                   </div>
 
@@ -1192,21 +1192,21 @@ export const CompanyBillingPage: React.FC = () => {
                     {/* Row 1: Payment Channel & Method */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
                       <div className="p-3 space-y-0.5">
-                        <span className="text-[11px] text-slate-400 font-medium">Payment Gateway & Channel</span>
+                        <span className="text-[11px] text-slate-500 font-medium">Payment Gateway & Channel</span>
                         <div className="font-bold text-slate-900 flex items-center gap-1.5">
                           <IconBuildingBank className="w-3.5 h-3.5 text-indigo-600" />
                           <span>{paymentMethod.channel || 'Razorpay Payment Gateway (Instant Checkout)'}</span>
                         </div>
-                        <div className="text-[10px] text-slate-500">Direct integration via Razorpay India Node</div>
+                        <div className="text-[10px] text-slate-500 font-medium">Direct integration via Razorpay India Node</div>
                       </div>
 
                       <div className="p-3 space-y-0.5">
-                        <span className="text-[11px] text-slate-400 font-medium">Payment Instrument Used</span>
+                        <span className="text-[11px] text-slate-500 font-medium">Payment Instrument Used</span>
                         <div className="font-bold text-slate-900 flex items-center gap-1.5">
                           <IconCreditCard className="w-3.5 h-3.5 text-[#5E4BE2]" />
                           <span>{paymentMethod.method || 'Razorpay UPI / Cards'}</span>
                         </div>
-                        <div className="text-[10px] text-slate-500">Authorized via Razorpay 3D Secure / UPI Mandate</div>
+                        <div className="text-[10px] text-slate-500 font-medium">Authorized via Razorpay 3D Secure / UPI Mandate</div>
                       </div>
                     </div>
 
@@ -1214,7 +1214,7 @@ export const CompanyBillingPage: React.FC = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
                       <div className="p-3 space-y-1">
                         <div className="flex items-center justify-between">
-                          <span className="text-[11px] text-slate-400 font-medium">Transaction / Payment ID</span>
+                          <span className="text-[11px] text-slate-500 font-medium">Transaction / Payment ID</span>
                           <button
                             type="button"
                             onClick={() => handleCopyText(paymentMethod.paymentId || '', 'paymentId')}
@@ -1240,7 +1240,7 @@ export const CompanyBillingPage: React.FC = () => {
 
                       <div className="p-3 space-y-1">
                         <div className="flex items-center justify-between">
-                          <span className="text-[11px] text-slate-400 font-medium">Gateway Order Reference</span>
+                          <span className="text-[11px] text-slate-500 font-medium">Gateway Order Reference</span>
                           <button
                             type="button"
                             onClick={() => handleCopyText(paymentMethod.orderId || '', 'orderId')}
@@ -1268,9 +1268,9 @@ export const CompanyBillingPage: React.FC = () => {
                     {/* Row 3: Payment Timestamp & Authorized Payer */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
                       <div className="p-3 space-y-0.5">
-                        <span className="text-[11px] text-slate-400 font-medium">Payment Timestamp</span>
+                        <span className="text-[11px] text-slate-500 font-medium">Payment Timestamp</span>
                         <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                          <IconClock className="w-3.5 h-3.5 text-slate-500" />
+                          <IconClock className="w-3.5 h-3.5 text-slate-500 font-medium" />
                           <span>
                             {paymentMethod.paidAt
                               ? new Date(paymentMethod.paidAt).toLocaleString('en-IN', {
@@ -1280,16 +1280,16 @@ export const CompanyBillingPage: React.FC = () => {
                               : '16 Oct 2026, 05:12 PM'}
                           </span>
                         </div>
-                        <div className="text-[10px] text-slate-500">Auto-cleared and settled into Uptrix Escrow</div>
+                        <div className="text-[10px] text-slate-500 font-medium">Auto-cleared and settled into Uptrix Escrow</div>
                       </div>
 
                       <div className="p-3 space-y-0.5">
-                        <span className="text-[11px] text-slate-400 font-medium">Authorized Account</span>
+                        <span className="text-[11px] text-slate-500 font-medium">Authorized Account</span>
                         <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                          <IconMail className="w-3.5 h-3.5 text-slate-500" />
+                          <IconMail className="w-3.5 h-3.5 text-slate-500 font-medium" />
                           <span>{paymentMethod.payerEmail || billingContact.email || 'kyadarit@gmail.com'}</span>
                         </div>
-                        <div className="text-[10px] text-slate-500">
+                        <div className="text-[10px] text-slate-500 font-medium">
                           {paymentMethod.payerName || billingContact.name || 'Kyadari Tarun'} (Workspace Owner)
                         </div>
                       </div>
@@ -1298,7 +1298,7 @@ export const CompanyBillingPage: React.FC = () => {
                     {/* Row 4: Official Tax Invoice Action */}
                     <div className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-indigo-50/20">
                       <div>
-                        <span className="text-[11px] text-slate-400 font-medium">Associated Tax Invoice</span>
+                        <span className="text-[11px] text-slate-500 font-medium">Associated Tax Invoice</span>
                         <div className="font-mono font-bold text-slate-900 text-xs flex items-center gap-1.5 mt-0.5">
                           <IconReceipt className="w-3.5 h-3.5 text-indigo-600" />
                           <span>{paymentMethod.invoiceNumber || 'INV-2026-445491'}</span>
@@ -1323,7 +1323,7 @@ export const CompanyBillingPage: React.FC = () => {
                   <div className="p-3.5 rounded-xl bg-white border border-slate-200 space-y-2">
                     <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
                       <span>Payment Amount Breakdown (Indian GST Compliant)</span>
-                      <span className="font-mono text-slate-400">SAC Code: 998313</span>
+                      <span className="font-mono text-slate-500">SAC Code: 998313</span>
                     </div>
 
                     <div className="space-y-1.5 text-xs pt-1">
@@ -1352,8 +1352,8 @@ export const CompanyBillingPage: React.FC = () => {
                 </div>
 
                 {/* SECURITY & RBI COMPLIANCE GUARANTEE */}
-                <div className="rounded-xl p-3 bg-slate-50 border border-slate-200 flex items-start gap-2.5 text-xs text-slate-500">
-                  <IconLock className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                <div className="rounded-xl p-3 bg-slate-50 border border-slate-200 flex items-start gap-2.5 text-xs text-slate-500 font-medium">
+                  <IconLock className="w-4 h-4 text-slate-500 font-medium shrink-0 mt-0.5" />
                   <div className="space-y-0.5">
                     <span className="font-bold text-slate-700 block">
                       RBI Compliant Card-on-File Tokenization (COFT) & E-Mandate
@@ -1394,12 +1394,12 @@ export const CompanyBillingPage: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-slate-900">Allowed Corporate Domains</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">Route new employee sign-ups directly into this company.</p>
+                    <p className="text-xs text-slate-500 font-medium mt-0.5">Route new employee sign-ups directly into this company.</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setIsDomainModalOpen(false)}
-                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-xl text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                   title="Close"
                 >
                   <IconX className="w-5 h-5" />
@@ -1415,7 +1415,7 @@ export const CompanyBillingPage: React.FC = () => {
                   </label>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-xs">@</span>
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-semibold text-xs">@</span>
                       <input
                         type="text"
                         placeholder="kyadari.com"
@@ -1434,7 +1434,7 @@ export const CompanyBillingPage: React.FC = () => {
                       Add Domain
                     </button>
                   </div>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-500 font-medium">
                     Enter the domain name without '@' (e.g. kyadari.com). Personal email domains are blocked.
                   </p>
                 </div>
@@ -1450,7 +1450,7 @@ export const CompanyBillingPage: React.FC = () => {
                   {domainList.length === 0 ? (
                     <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-1">
                       <p className="text-xs text-slate-500 font-medium">No custom domains added yet.</p>
-                      <p className="text-[11px] text-slate-400">
+                      <p className="text-[11px] text-slate-500 font-medium">
                         Defaults to @{compInfo?.subdomain || 'company'}.com
                       </p>
                     </div>
@@ -1472,7 +1472,7 @@ export const CompanyBillingPage: React.FC = () => {
                             type="button"
                             onClick={() => handleRemoveDomain(d)}
                             disabled={isActionLoading}
-                            className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer disabled:opacity-50 shrink-0"
+                            className="text-slate-500 font-medium hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer disabled:opacity-50 shrink-0"
                             title="Remove domain"
                           >
                             <IconTrash className="w-4 h-4" />
@@ -1520,11 +1520,11 @@ export const CompanyBillingPage: React.FC = () => {
                   <IconCrown className="w-4 h-4 text-[#5E4BE2]" />
                   <span>Choose Subscription Tier</span>
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">Scale employee seat limits and feature modules.</p>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">Scale employee seat limits and feature modules.</p>
               </div>
               <button
                 onClick={() => setIsAccountTypeModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+                className="p-1 rounded-lg text-slate-500 font-medium hover:bg-slate-100 cursor-pointer"
               >
                 <IconX className="w-4 h-4" />
               </button>
@@ -1549,9 +1549,9 @@ export const CompanyBillingPage: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-500">Core HRMS tools for growing teams.</p>
+                  <p className="text-[11px] text-slate-500 font-medium">Core HRMS tools for growing teams.</p>
                   <div className="text-lg font-bold font-mono text-slate-900">
-                    ₹1,999<span className="text-xs font-normal text-slate-400"> / month</span>
+                    ₹1,999<span className="text-xs font-normal text-slate-500"> / month</span>
                   </div>
                   <ul className="text-xs text-slate-600 space-y-1.5 pt-2 border-t border-slate-100">
                     <li className="flex items-center gap-1.5">
@@ -1599,9 +1599,9 @@ export const CompanyBillingPage: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-500">Comprehensive payroll, AI & multi-entity suite.</p>
+                  <p className="text-[11px] text-slate-500 font-medium">Comprehensive payroll, AI & multi-entity suite.</p>
                   <div className="text-lg font-bold font-mono text-slate-900">
-                    ₹4,999<span className="text-xs font-normal text-slate-400"> / month</span>
+                    ₹4,999<span className="text-xs font-normal text-slate-500"> / month</span>
                   </div>
                   <ul className="text-xs text-slate-600 space-y-1.5 pt-2 border-t border-slate-100">
                     <li className="flex items-center gap-1.5">
@@ -1646,7 +1646,7 @@ export const CompanyBillingPage: React.FC = () => {
               <h3 className="text-sm font-bold text-slate-900">Change Billing Cycle</h3>
               <button
                 onClick={() => setIsCycleModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+                className="p-1 rounded-lg text-slate-500 font-medium hover:bg-slate-100 cursor-pointer"
               >
                 <IconX className="w-4 h-4" />
               </button>
@@ -1663,7 +1663,7 @@ export const CompanyBillingPage: React.FC = () => {
                   <span className="font-bold text-slate-900 text-xs">Monthly Billing</span>
                   <span className="font-mono font-bold text-slate-900 text-xs">₹4,999 / mo</span>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-0.5">Recurring charge on monthly renewal date.</p>
+                <p className="text-[11px] text-slate-500 font-medium mt-0.5">Recurring charge on monthly renewal date.</p>
               </div>
 
               <div
@@ -1681,7 +1681,7 @@ export const CompanyBillingPage: React.FC = () => {
                   </div>
                   <span className="font-mono font-bold text-slate-900 text-xs">₹49,999 / yr</span>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-0.5">Billed once a year with discounted corporate pricing.</p>
+                <p className="text-[11px] text-slate-500 font-medium mt-0.5">Billed once a year with discounted corporate pricing.</p>
               </div>
             </div>
 
@@ -1721,7 +1721,7 @@ export const CompanyBillingPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsContactModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+                className="p-1 rounded-lg text-slate-500 font-medium hover:bg-slate-100 cursor-pointer"
               >
                 <IconX className="w-4 h-4" />
               </button>
@@ -1855,7 +1855,7 @@ export const CompanyBillingPage: React.FC = () => {
               </div>
               <button
                 onClick={() => setIsHipaaModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+                className="p-1 rounded-lg text-slate-500 font-medium hover:bg-slate-100 cursor-pointer"
               >
                 <IconX className="w-4 h-4" />
               </button>
@@ -1910,7 +1910,7 @@ export const CompanyBillingPage: React.FC = () => {
               </div>
               <button
                 onClick={() => setIsCancelModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+                className="p-1 rounded-lg text-slate-500 font-medium hover:bg-slate-100 cursor-pointer"
               >
                 <IconX className="w-4 h-4" />
               </button>

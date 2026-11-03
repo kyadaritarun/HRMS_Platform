@@ -112,7 +112,7 @@ export const HelplineDrawer: React.FC<HelplineDrawerProps> = ({ isOpen, onClose 
                 <h3 className="text-base font-bold text-slate-900 leading-tight">
                   Helpline &amp; Support Desk
                 </h3>
-                <p className="text-xs text-slate-400 font-medium mt-0.5">
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
                   Direct contact details for {companyName} HR &amp; IT teams
                 </p>
               </div>
@@ -120,7 +120,7 @@ export const HelplineDrawer: React.FC<HelplineDrawerProps> = ({ isOpen, onClose 
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              className="p-2 rounded-xl text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
               title="Close panel"
             >
               <IconX className="w-5 h-5" />
@@ -143,7 +143,7 @@ export const HelplineDrawer: React.FC<HelplineDrawerProps> = ({ isOpen, onClose 
             {isLoading ? (
               <div className="py-16 text-center space-y-3">
                 <div className="w-8 h-8 mx-auto border-3 border-indigo-500/20 border-t-[#5E4BE2] rounded-full animate-spin" />
-                <p className="text-xs text-slate-400 font-medium">Loading helpline information...</p>
+                <p className="text-xs text-slate-500 font-medium">Loading helpline information...</p>
               </div>
             ) : (
               <>
@@ -185,7 +185,7 @@ export const HelplineDrawer: React.FC<HelplineDrawerProps> = ({ isOpen, onClose 
                     {data.emergencyNumber && (
                       <div className="flex items-center justify-between bg-white/90 p-3 rounded-xl border border-rose-200/60">
                         <div>
-                          <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                          <span className="text-[10px] uppercase font-bold text-slate-500 block tracking-wider">
                             Emergency Hotline
                           </span>
                           <span className="text-sm font-bold text-slate-900 tracking-tight">
@@ -224,7 +224,7 @@ export const HelplineDrawer: React.FC<HelplineDrawerProps> = ({ isOpen, onClose 
                         </div>
                         <div>
                           <h4 className="text-xs font-bold text-slate-900">HR &amp; People Operations</h4>
-                          <p className="text-[11px] text-slate-500">Leaves, payroll queries, attendance &amp; policies</p>
+                          <p className="text-[11px] text-slate-500 font-medium">Leaves, payroll queries, attendance &amp; policies</p>
                         </div>
                       </div>
                       {data.supportDays && (
@@ -238,9 +238,9 @@ export const HelplineDrawer: React.FC<HelplineDrawerProps> = ({ isOpen, onClose 
                     {data.hrPhone && (
                       <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
                         <div className="flex items-center gap-2.5">
-                          <IconPhoneCall className="w-4 h-4 text-slate-400 shrink-0" />
+                          <IconPhoneCall className="w-4 h-4 text-slate-500 font-medium shrink-0" />
                           <div>
-                            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                            <span className="text-[10px] uppercase font-bold text-slate-500 block tracking-wider">
                               Toll-Free Phone
                             </span>
                             <span className="text-xs font-bold text-slate-900">
@@ -271,9 +271,9 @@ export const HelplineDrawer: React.FC<HelplineDrawerProps> = ({ isOpen, onClose 
                     {data.hrEmail && (
                       <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
                         <div className="flex items-center gap-2.5">
-                          <IconMail className="w-4 h-4 text-slate-400 shrink-0" />
+                          <IconMail className="w-4 h-4 text-slate-500 font-medium shrink-0" />
                           <div>
-                            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                            <span className="text-[10px] uppercase font-bold text-slate-500 block tracking-wider">
                               Support Email
                             </span>
                             <span className="text-xs font-bold text-slate-900">
@@ -312,7 +312,7 @@ export const HelplineDrawer: React.FC<HelplineDrawerProps> = ({ isOpen, onClose 
                         </div>
                         <div>
                           <h4 className="text-xs font-bold text-slate-900">IT &amp; Technical Support</h4>
-                          <p className="text-[11px] text-slate-500">VPN, system credentials, hardware &amp; equipment</p>
+                          <p className="text-[11px] text-slate-500 font-medium">VPN, system credentials, hardware &amp; equipment</p>
                         </div>
                       </div>
                       {data.itExtension && (
@@ -325,9 +325,9 @@ export const HelplineDrawer: React.FC<HelplineDrawerProps> = ({ isOpen, onClose 
                     {data.itEmail && (
                       <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
                         <div className="flex items-center gap-2.5">
-                          <IconMail className="w-4 h-4 text-slate-400 shrink-0" />
+                          <IconMail className="w-4 h-4 text-slate-500 font-medium shrink-0" />
                           <div>
-                            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                            <span className="text-[10px] uppercase font-bold text-slate-500 block tracking-wider">
                               IT Desk Email
                             </span>
                             <span className="text-xs font-bold text-slate-900">
@@ -353,10 +353,10 @@ export const HelplineDrawer: React.FC<HelplineDrawerProps> = ({ isOpen, onClose 
                   <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 space-y-2 text-xs text-slate-600">
                     {(data.supportHours || data.supportDays) && (
                       <div className="flex items-start gap-2.5">
-                        <IconClock className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                        <IconClock className="w-4 h-4 text-slate-500 font-medium shrink-0 mt-0.5" />
                         <div>
                           <span className="font-semibold text-slate-800">Support Working Hours:</span>
-                          <p className="text-slate-500 text-[11px] mt-0.5">
+                          <p className="text-slate-500 font-medium text-[11px] mt-0.5">
                             {data.supportHours} {data.supportDays ? `(${data.supportDays})` : ''}
                           </p>
                         </div>
@@ -365,10 +365,10 @@ export const HelplineDrawer: React.FC<HelplineDrawerProps> = ({ isOpen, onClose 
 
                     {data.workplaceAddress && (
                       <div className="flex items-start gap-2.5 pt-2 border-t border-slate-100">
-                        <IconMapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                        <IconMapPin className="w-4 h-4 text-slate-500 font-medium shrink-0 mt-0.5" />
                         <div>
                           <span className="font-semibold text-slate-800">Corporate Workplace:</span>
-                          <p className="text-slate-500 text-[11px] mt-0.5 leading-relaxed">
+                          <p className="text-slate-500 font-medium text-[11px] mt-0.5 leading-relaxed">
                             {data.workplaceAddress}
                           </p>
                         </div>
@@ -378,7 +378,7 @@ export const HelplineDrawer: React.FC<HelplineDrawerProps> = ({ isOpen, onClose 
                 )}
 
                 {!hasEmergency && !hasHr && !hasIt && !hasHoursOrAddress && (
-                  <div className="py-12 text-center p-6 rounded-2xl bg-slate-50 border border-slate-200 text-slate-500 text-xs">
+                  <div className="py-12 text-center p-6 rounded-2xl bg-slate-50 border border-slate-200 text-slate-500 font-medium text-xs">
                     No helpline information has been published yet. Please check back later.
                   </div>
                 )}
@@ -388,7 +388,7 @@ export const HelplineDrawer: React.FC<HelplineDrawerProps> = ({ isOpen, onClose 
 
           {/* Drawer Footer */}
           <div className="p-4 px-6 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between shrink-0">
-            <span className="text-[11px] text-slate-400 font-medium">
+            <span className="text-[11px] text-slate-500 font-medium">
               Response time within 2 business hours
             </span>
             <button

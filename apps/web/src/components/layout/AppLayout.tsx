@@ -21,8 +21,10 @@ import {
   IconAlertTriangle,
   IconSettings,
   IconFileText,
+  IconGift,
 } from '@tabler/icons-react';
 import { SettingsModal } from '../SettingsModal';
+import { ReferLeadModal } from '../referrals/ReferLeadModal';
 import { TermsAndConditionsModal, PrivacyPolicyModal } from '../LegalModals';
 import { getAvatarColor } from '../../utils/avatarColors';
 
@@ -41,6 +43,7 @@ export const AppLayout: React.FC = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [referModalOpen, setReferModalOpen] = useState(false);
 
   // Live notifications
   interface NotificationItem {
@@ -235,7 +238,7 @@ export const AppLayout: React.FC = () => {
           <div className="flex items-center gap-3 sm:gap-4 flex-1 max-w-xl">
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="p-2 -ml-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+              className="p-2 -ml-2 rounded-xl text-slate-500 font-medium hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
               title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               <IconMenu2 className="w-5 h-5" />
@@ -243,7 +246,7 @@ export const AppLayout: React.FC = () => {
 
             {/* Global Search Input */}
             <div className="relative w-full max-w-md">
-              <IconSearch className="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5 pointer-events-none" />
+              <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-2.5 pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
@@ -257,7 +260,7 @@ export const AppLayout: React.FC = () => {
               {/* Autocomplete Dropdown */}
               {searchFocused && searchQuery.trim().length > 0 && (
                 <div className="absolute left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in">
-                  <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  <div className="px-3 py-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                     Quick Results
                   </div>
                   {quickLinks.length > 0 ? (
@@ -276,14 +279,14 @@ export const AppLayout: React.FC = () => {
                             <Icon className="w-4 h-4 text-indigo-600" />
                             <span className="font-medium">{ql.label}</span>
                           </div>
-                          <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] text-slate-500 font-medium bg-slate-100 px-1.5 py-0.5 rounded">
                             {ql.category}
                           </span>
                         </button>
                       );
                     })
                   ) : (
-                    <div className="px-3 py-2 text-xs text-slate-400">No matching results found</div>
+                    <div className="px-3 py-2 text-xs text-slate-500 font-medium">No matching results found</div>
                   )}
                 </div>
               )}
@@ -292,6 +295,20 @@ export const AppLayout: React.FC = () => {
 
           {/* Right: AI Assistant, Notifications, Settings & User Profile */}
           <div className="flex items-center gap-2 sm:gap-2.5">
+            {/* Quick Refer a Lead Button */}
+            {user?.role !== 'PRODUCT_SUPER_ADMIN' && (
+              <button
+                type="button"
+                onClick={() => setReferModalOpen(true)}
+                title="Refer a Lead & Earn ₹3,000"
+                className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 border border-amber-200/90 text-amber-900 text-xs font-bold transition-all shadow-2xs hover:shadow-xs group cursor-pointer"
+              >
+                <IconGift className="w-3.5 h-3.5 text-amber-600 group-hover:scale-110 transition-transform" />
+                <span>Refer a Lead</span>
+                <span className="bg-amber-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">₹3K</span>
+              </button>
+            )}
+
             {/* AI Assistant Robot Icon */}
             <button
               type="button"
@@ -335,7 +352,7 @@ export const AppLayout: React.FC = () => {
                   </div>
                   <div className="divide-y divide-slate-50 max-h-72 overflow-y-auto">
                     {notifications.length === 0 ? (
-                      <div className="py-8 text-center text-slate-400 text-xs">
+                      <div className="py-8 text-center text-slate-500 font-medium text-xs">
                         No notifications yet
                       </div>
                     ) : (
@@ -359,8 +376,8 @@ export const AppLayout: React.FC = () => {
                                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 shrink-0 ml-1.5"></span>
                               )}
                             </div>
-                            <div className="text-[11px] text-slate-500 line-clamp-2 mt-0.5">{n.message}</div>
-                            <div className="text-[10px] text-slate-400 mt-1">{formatNotificationTime(n.createdAt)}</div>
+                            <div className="text-[11px] text-slate-500 font-medium line-clamp-2 mt-0.5">{n.message}</div>
+                            <div className="text-[10px] text-slate-500 font-medium mt-1">{formatNotificationTime(n.createdAt)}</div>
                           </div>
                         </div>
                       ))
@@ -437,7 +454,7 @@ export const AppLayout: React.FC = () => {
                   <div className="text-xs font-bold text-slate-900 leading-tight">
                     {user?.firstName || 'Apex'} {user?.lastName || 'Superadmin'}
                   </div>
-                  <div className="text-[11px] text-slate-400 font-medium leading-tight">
+                  <div className="text-[11px] text-slate-500 font-medium leading-tight">
                     {user?.role === 'PRODUCT_SUPER_ADMIN'
                       ? 'Product Super Admin'
                       : user?.role?.replace(/_/g, ' ')}
@@ -454,7 +471,7 @@ export const AppLayout: React.FC = () => {
                   />
                   <div className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-50 animate-in fade-in">
                   <div className="px-3.5 py-2.5 border-b border-slate-100">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Signed in as</p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Signed in as</p>
                     <p className="text-xs font-bold text-slate-800 truncate">{user?.email}</p>
                   </div>
 
@@ -465,7 +482,7 @@ export const AppLayout: React.FC = () => {
                     }}
                     className="w-full px-3.5 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-medium"
                   >
-                    <IconUser className="w-4 h-4 text-slate-400" />
+                    <IconUser className="w-4 h-4 text-slate-500 font-medium" />
                     <span>My Profile</span>
                   </button>
 
@@ -476,7 +493,7 @@ export const AppLayout: React.FC = () => {
                     }}
                     className="w-full px-3.5 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-medium"
                   >
-                    <IconSettings className="w-4 h-4 text-slate-400" />
+                    <IconSettings className="w-4 h-4 text-slate-500 font-medium" />
                     <span>Settings</span>
                   </button>
 
@@ -490,7 +507,7 @@ export const AppLayout: React.FC = () => {
                     }}
                     className="w-full px-3.5 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-medium"
                   >
-                    <IconFileText className="w-4 h-4 text-slate-400" />
+                    <IconFileText className="w-4 h-4 text-slate-500 font-medium" />
                     <span>Terms &amp; Conditions</span>
                   </button>
 
@@ -501,7 +518,7 @@ export const AppLayout: React.FC = () => {
                     }}
                     className="w-full px-3.5 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-medium"
                   >
-                    <IconShieldLock className="w-4 h-4 text-slate-400" />
+                    <IconShieldLock className="w-4 h-4 text-slate-500 font-medium" />
                     <span>Privacy Policy</span>
                   </button>
 
@@ -535,6 +552,9 @@ export const AppLayout: React.FC = () => {
 
       {/* Privacy Policy Modal */}
       <PrivacyPolicyModal isOpen={privacyOpen} onClose={() => setPrivacyOpen(false)} />
+
+      {/* Refer a Lead Quick Modal */}
+      <ReferLeadModal isOpen={referModalOpen} onClose={() => setReferModalOpen(false)} />
     </div>
   );
 };

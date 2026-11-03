@@ -429,7 +429,7 @@ export const MyLeavesPage: React.FC = () => {
             <IconCalendarEvent className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>Leaves</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Apply for leave, check available balances, and track manager approval status.
           </p>
         </div>
@@ -485,7 +485,7 @@ export const MyLeavesPage: React.FC = () => {
                     <span className="text-xl font-black text-slate-900 leading-none">
                       {quota.remaining}
                     </span>
-                    <span className="text-xs font-medium text-slate-400 ml-1">
+                    <span className="text-xs font-medium text-slate-500 ml-1">
                       left
                     </span>
                   </div>
@@ -500,7 +500,7 @@ export const MyLeavesPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-400 font-medium">
+              <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-500 font-medium">
                 <span>{quota.used} used</span>
                 <span>{quota.allowed} total</span>
               </div>
@@ -536,7 +536,7 @@ export const MyLeavesPage: React.FC = () => {
                     : mappedQuotas.find((q) => q.code === selectedTypeFilter)?.name ||
                     selectedTypeFilter}
                 </span>
-                <IconChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium" />
               </button>
 
               {isTypeDropdownOpen && (
@@ -574,7 +574,7 @@ export const MyLeavesPage: React.FC = () => {
 
             {/* Date range display badge */}
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-600 shadow-2xs">
-              <IconCalendar className="w-3.5 h-3.5 text-slate-400" />
+              <IconCalendar className="w-3.5 h-3.5 text-slate-500 font-medium" />
               <span>
                 {new Date(Date.now() - 30 * 86400000).toLocaleDateString([], {
                   month: 'numeric',
@@ -632,7 +632,7 @@ export const MyLeavesPage: React.FC = () => {
                       <IconFileText className="w-6 h-6" />
                     </div>
                     <p className="text-sm font-bold text-slate-800">No leave requests applied yet.</p>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-slate-500 font-medium mt-1">
                       Start by applying for a leave using the button above.
                     </p>
                   </td>
@@ -668,24 +668,30 @@ export const MyLeavesPage: React.FC = () => {
                         {req.status === 'PENDING' && (
                           <>
                             <button
+                              type="button"
                               onClick={() => handleOpenEdit(req)}
-                              className="px-2.5 py-1 text-xs font-bold text-[#5E4BE2] hover:bg-indigo-50 border border-indigo-200/80 rounded-lg transition-colors cursor-pointer"
+                              title="Edit Leave Request"
+                              className="w-8 h-8 rounded-lg border border-indigo-200/80 bg-white hover:bg-indigo-50 text-[#5E4BE2] flex items-center justify-center shadow-2xs transition-all cursor-pointer"
                             >
-                              Edit
+                              <IconEdit className="w-4 h-4 stroke-[1.8]" />
                             </button>
                             <button
+                              type="button"
                               onClick={() => handleCancel(req.id)}
-                              className="px-2.5 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200/80 rounded-lg transition-colors cursor-pointer"
+                              title="Cancel Leave Request"
+                              className="w-8 h-8 rounded-lg border border-rose-200/80 bg-white hover:bg-rose-50 text-rose-600 flex items-center justify-center shadow-2xs transition-all cursor-pointer"
                             >
-                              Cancel
+                              <IconX className="w-4 h-4 stroke-[2]" />
                             </button>
                           </>
                         )}
                         <button
+                          type="button"
                           onClick={() => setViewReq(req)}
-                          className="px-2.5 py-1 text-xs font-bold text-slate-600 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors cursor-pointer"
+                          title="View Details"
+                          className="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 flex items-center justify-center shadow-2xs transition-all cursor-pointer"
                         >
-                          View
+                          <IconEye className="w-4 h-4 stroke-[1.8]" />
                         </button>
                       </div>
                     </td>
@@ -732,14 +738,14 @@ export const MyLeavesPage: React.FC = () => {
                     <h2 className="text-base font-bold text-slate-900">
                       {editingReqId ? 'Edit Leave Application' : 'Apply for Leave'}
                     </h2>
-                    <p className="text-xs text-slate-400 font-medium">
+                    <p className="text-xs text-slate-500 font-medium">
                       {editingReqId ? 'Update your pending request details' : 'Submit leave application to your manager'}
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-xl text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <IconX className="w-5 h-5" />
                 </button>
@@ -788,7 +794,7 @@ export const MyLeavesPage: React.FC = () => {
                             </div>
                             <div className="text-sm font-black text-[#5E4BE2] mt-1">
                               {q.remaining}{' '}
-                              <span className="text-[11px] font-semibold text-slate-400 font-sans">left</span>
+                              <span className="text-[11px] font-semibold text-slate-500 font-sans">left</span>
                             </div>
                           </div>
                         );
@@ -936,12 +942,12 @@ export const MyLeavesPage: React.FC = () => {
                   </div>
                   <div>
                     <h2 className="text-base font-bold text-slate-900">Leave Details</h2>
-                    <p className="text-xs text-slate-400 font-medium">Application review &amp; history</p>
+                    <p className="text-xs text-slate-500 font-medium">Application review &amp; history</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setViewReq(null)}
-                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-xl text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <IconX className="w-5 h-5" />
                 </button>
@@ -956,28 +962,28 @@ export const MyLeavesPage: React.FC = () => {
 
                 <div className="space-y-3 p-4 rounded-2xl border border-slate-200 text-xs">
                   <div>
-                    <span className="text-slate-400 block font-medium">Leave Category</span>
+                    <span className="text-slate-500 block font-medium">Leave Category</span>
                     <span className="font-bold text-slate-900 text-sm mt-0.5 block">
                       {viewReq.leaveType?.name || 'Casual Leave'}
                     </span>
                   </div>
 
                   <div>
-                    <span className="text-slate-400 block font-medium">Leave Dates</span>
+                    <span className="text-slate-500 block font-medium">Leave Dates</span>
                     <span className="font-semibold text-slate-800 mt-0.5 block">
                       {formatDateRange(viewReq.startDate, viewReq.endDate)}
                     </span>
                   </div>
 
                   <div>
-                    <span className="text-slate-400 block font-medium">Duration</span>
+                    <span className="text-slate-500 block font-medium">Duration</span>
                     <span className="font-semibold text-slate-800 mt-0.5 block">
                       {viewReq.days ? `${viewReq.days} day(s)` : '1 day'}
                     </span>
                   </div>
 
                   <div>
-                    <span className="text-slate-400 block font-medium">Approver Name</span>
+                    <span className="text-slate-500 block font-medium">Approver Name</span>
                     <span className="font-semibold text-slate-800 mt-0.5 block">
                       {viewReq.approver
                         ? `${viewReq.approver.firstName} ${viewReq.approver.lastName}`
@@ -986,7 +992,7 @@ export const MyLeavesPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <span className="text-slate-400 block font-medium">Reason</span>
+                    <span className="text-slate-500 block font-medium">Reason</span>
                     <p className="mt-1 p-2.5 rounded-xl bg-slate-50 border border-slate-200/60 text-slate-700 leading-relaxed font-medium">
                       {viewReq.reason}
                     </p>
@@ -994,7 +1000,7 @@ export const MyLeavesPage: React.FC = () => {
 
                   {viewReq.meta?.attachmentUrl && (
                     <div className="pt-2 border-t border-slate-100">
-                      <span className="text-slate-400 block font-medium mb-1">Attached Document</span>
+                      <span className="text-slate-500 block font-medium mb-1">Attached Document</span>
                       <a
                         href={viewReq.meta.attachmentUrl}
                         target="_blank"
@@ -1009,7 +1015,7 @@ export const MyLeavesPage: React.FC = () => {
 
                   {viewReq.decisionNote && (
                     <div className="pt-2 border-t border-slate-100">
-                      <span className="text-slate-400 block font-medium mb-1">Manager Note</span>
+                      <span className="text-slate-500 block font-medium mb-1">Manager Note</span>
                       <p className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200 text-amber-900 leading-relaxed font-medium">
                         {viewReq.decisionNote}
                       </p>

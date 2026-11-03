@@ -603,7 +603,7 @@ export const BackgroundVerificationPage: React.FC = () => {
             </div>
             <span>Background Verification (BGV)</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Audit and verify employee statutory credentials: Aadhaar, PAN card, residential address, and UAN / PF records.
           </p>
         </div>
@@ -614,7 +614,7 @@ export const BackgroundVerificationPage: React.FC = () => {
             onClick={handleExportCsv}
             className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
           >
-            <IconDownload className="w-3.5 h-3.5 text-slate-500" />
+            <IconDownload className="w-3.5 h-3.5 text-slate-500 font-medium" />
             <span>Export CSV</span>
           </button>
 
@@ -632,12 +632,12 @@ export const BackgroundVerificationPage: React.FC = () => {
       {/* Metric Cards Row */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
         <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-400 mb-1.5">
+          <div className="flex items-center justify-between text-slate-500 font-medium mb-1.5">
             <span className="text-[11px] font-bold uppercase tracking-wider">Total Audited</span>
             <IconUser className="w-4 h-4 text-indigo-500" />
           </div>
           <div className="text-xl font-black text-slate-900">{metrics.total}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">100% active workforce</div>
+          <div className="text-[10px] text-slate-500 font-medium mt-0.5">100% active workforce</div>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-emerald-200/80 shadow-2xs bg-emerald-50/20">
@@ -684,7 +684,7 @@ export const BackgroundVerificationPage: React.FC = () => {
         {/* Controls Toolbar: Search, Filters & Quick Check filter */}
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
           <div className="relative flex-1 max-w-md">
-            <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="Search by Employee, ID, Aadhaar, PAN, UAN..."
@@ -714,8 +714,8 @@ export const BackgroundVerificationPage: React.FC = () => {
                 <option value="PENDING">Pending Review</option>
                 <option value="ACTION_REQUIRED">Action Required</option>
               </select>
-              <IconFilter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconFilter className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
             {/* Department Filter */}
@@ -735,8 +735,8 @@ export const BackgroundVerificationPage: React.FC = () => {
                   </option>
                 ))}
               </select>
-              <IconFilter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconFilter className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
             {(search || statusFilter !== 'ALL' || departmentFilter !== 'ALL' || activeCheckFilter !== 'ALL') && (
@@ -759,7 +759,7 @@ export const BackgroundVerificationPage: React.FC = () => {
 
         {/* Verification Status Quick Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] font-bold">
-          <span className="text-slate-400 text-xs font-medium mr-1">Quick Filter:</span>
+          <span className="text-slate-500 text-xs font-medium mr-1">Quick Filter:</span>
           {[
             { id: 'ALL', label: 'All Employees' },
             { id: 'MISSING_AADHAAR', label: 'Missing / Rejected Aadhaar' },
@@ -802,12 +802,12 @@ export const BackgroundVerificationPage: React.FC = () => {
             <tbody className="divide-y divide-slate-100">
               {paginatedRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500 font-medium">
                     <div className="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-2">
                       <IconShieldCheck className="w-6 h-6" />
                     </div>
                     <h4 className="text-sm font-bold text-slate-800">No verification records found</h4>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-slate-500 font-medium mt-1">
                       Try adjusting your search criteria or filter options.
                     </p>
                   </td>
@@ -833,7 +833,7 @@ export const BackgroundVerificationPage: React.FC = () => {
                         )}
                         <div className="min-w-0">
                           <span className="font-bold text-slate-900 block truncate">{r.name}</span>
-                          <span className="text-[11px] text-slate-400 block truncate">
+                          <span className="text-[11px] text-slate-500 font-medium block truncate">
                             {r.employeeNumber} • {r.department}
                           </span>
                         </div>
@@ -931,7 +931,7 @@ export const BackgroundVerificationPage: React.FC = () => {
                       <span>{selectedRecord.name}</span>
                       {getStatusBadge(editFormData?.overallStatus || selectedRecord.overallStatus)}
                     </h3>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-slate-500 font-medium">
                       {selectedRecord.employeeNumber} • {selectedRecord.department} • {selectedRecord.jobTitle}
                     </p>
                   </div>
@@ -951,7 +951,7 @@ export const BackgroundVerificationPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setSelectedRecord(null)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                    className="p-1.5 rounded-lg text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                   >
                     <IconX className="w-5 h-5" />
                   </button>
@@ -991,7 +991,7 @@ export const BackgroundVerificationPage: React.FC = () => {
 
                   <div className="grid grid-cols-2 gap-3 text-[11px]">
                     <div>
-                      <span className="text-slate-400 block font-medium">Aadhaar Number</span>
+                      <span className="text-slate-500 block font-medium">Aadhaar Number</span>
                       {isEditing ? (
                         <input
                           type="text"
@@ -1017,7 +1017,7 @@ export const BackgroundVerificationPage: React.FC = () => {
                     </div>
 
                     <div>
-                      <span className="text-slate-400 block font-medium">Name on Card</span>
+                      <span className="text-slate-500 block font-medium">Name on Card</span>
                       {isEditing ? (
                         <input
                           type="text"
@@ -1036,7 +1036,7 @@ export const BackgroundVerificationPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="pt-2 text-[11px] text-slate-500 bg-white p-2.5 rounded-xl border border-slate-100 flex items-center justify-between">
+                  <div className="pt-2 text-[11px] text-slate-500 font-medium bg-white p-2.5 rounded-xl border border-slate-100 flex items-center justify-between">
                     <span>
                       Verification Note: {selectedRecord.aadhaar.notes || 'Verified through official UIDAI e-KYC.'}
                     </span>
@@ -1081,7 +1081,7 @@ export const BackgroundVerificationPage: React.FC = () => {
 
                   <div className="grid grid-cols-2 gap-3 text-[11px]">
                     <div>
-                      <span className="text-slate-400 block font-medium">PAN Number</span>
+                      <span className="text-slate-500 block font-medium">PAN Number</span>
                       {isEditing ? (
                         <input
                           type="text"
@@ -1107,14 +1107,14 @@ export const BackgroundVerificationPage: React.FC = () => {
                     </div>
 
                     <div>
-                      <span className="text-slate-400 block font-medium">DOB Match &amp; Name</span>
+                      <span className="text-slate-500 block font-medium">DOB Match &amp; Name</span>
                       <span className="font-bold text-slate-800 block mt-1">
                         {selectedRecord.pan.fullName || selectedRecord.name.toUpperCase()} (DOB Matched)
                       </span>
                     </div>
                   </div>
 
-                  <div className="pt-2 text-[11px] text-slate-500 bg-white p-2.5 rounded-xl border border-slate-100 flex items-center justify-between">
+                  <div className="pt-2 text-[11px] text-slate-500 font-medium bg-white p-2.5 rounded-xl border border-slate-100 flex items-center justify-between">
                     <span>Income Tax Department NSDL record matched.</span>
                     <button
                       type="button"
@@ -1156,7 +1156,7 @@ export const BackgroundVerificationPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <span className="text-slate-400 block font-medium text-[11px]">Registered Address</span>
+                    <span className="text-slate-500 block font-medium text-[11px]">Registered Address</span>
                     {isEditing ? (
                       <textarea
                         value={editFormData.address.currentAddress}
@@ -1178,11 +1178,11 @@ export const BackgroundVerificationPage: React.FC = () => {
 
                   <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
                     <div>
-                      <span className="text-slate-400 block">Verification Method:</span>
+                      <span className="text-slate-500 font-medium block">Verification Method:</span>
                       <span className="font-bold text-slate-700">{selectedRecord.address.method.replace('_', ' ')}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block">Status Note:</span>
+                      <span className="text-slate-500 font-medium block">Status Note:</span>
                       <span className="font-medium text-slate-600">
                         {selectedRecord.address.notes || 'Utility bill proof verified.'}
                       </span>
@@ -1220,7 +1220,7 @@ export const BackgroundVerificationPage: React.FC = () => {
 
                   <div className="grid grid-cols-2 gap-3 text-[11px]">
                     <div>
-                      <span className="text-slate-400 block font-medium">Universal Account Number (UAN)</span>
+                      <span className="text-slate-500 block font-medium">Universal Account Number (UAN)</span>
                       {isEditing ? (
                         <input
                           type="text"
@@ -1246,7 +1246,7 @@ export const BackgroundVerificationPage: React.FC = () => {
                     </div>
 
                     <div>
-                      <span className="text-slate-400 block font-medium">EPFO Member ID Match</span>
+                      <span className="text-slate-500 block font-medium">EPFO Member ID Match</span>
                       <span className="font-bold text-slate-800 block mt-1">
                         {selectedRecord.uan.previousEmployerMemberId || 'Verified / Clean Service'}
                       </span>
@@ -1338,13 +1338,13 @@ export const BackgroundVerificationPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">Initiate Background Check</h3>
-                  <p className="text-xs text-slate-400">Send statutory document verification request to employee</p>
+                  <p className="text-xs text-slate-500 font-medium">Send statutory document verification request to employee</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowInitiateModal(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                className="p-1.5 rounded-lg text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100"
               >
                 <IconX className="w-4 h-4" />
               </button>

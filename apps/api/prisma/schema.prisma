@@ -78,6 +78,8 @@ model Company {
 
   users               User[]
   departments         Department[]
+  leadReferrals       LeadReferral[]
+  referralWithdrawals ReferralWithdrawal[]
   holidays            Holiday[]
   leaveTypes          LeaveType[]
   attendance          Attendance[]
@@ -181,6 +183,8 @@ model User {
   ticketsAssigned       Ticket[]       @relation("TicketAssignee")
   notifications         Notification[]
   payslips              Payslip[]
+  leadReferrals         LeadReferral[]
+  referralWithdrawals   ReferralWithdrawal[]
 
   @@index([companyId, role])
   @@index([companyId, managerId])
@@ -796,4 +800,56 @@ model GlobalHelpline {
   updatedBy         String   @default("")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+}
+
+// ------------------------------------------------------------------
+// LeadReferral: Employee / Manager / HR lead referral
+// ------------------------------------------------------------------
+model LeadReferral {
+  id              Int       @id @default(autoincrement())
+  companyId       Int
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId          Int
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName    String
+  ownerName       String
+  mobileNumber    String
+  email           String
+  city            String
+  zipCode         String?
+  address         String?
+  status          String    @default("NEW_LEAD") // NEW_LEAD | CONTACTED | DEMO_SCHEDULED | CONVERTED | REJECTED
+  rewardAmount    Decimal   @default(3000.00) @db.Decimal(10, 2)
+  rewardStatus    String    @default("PENDING") // PENDING | CREDITED | WITHDRAWN | VOID
+  notes           String?
+  convertedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([companyId, userId])
+  @@index([status])
+}
+
+// ------------------------------------------------------------------
+// ReferralWithdrawal: Payout request to employee bank account
+// ------------------------------------------------------------------
+model ReferralWithdrawal {
+  id              Int       @id @default(autoincrement())
+  companyId       Int
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId          Int
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount          Decimal   @db.Decimal(10, 2)
+  bankName        String
+  accountNumber   String
+  ifscCode        String
+  accountHolder   String
+  status          String    @default("REQUESTED") // REQUESTED | PROCESSED | REJECTED
+  remarks         String?
+  processedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([companyId, userId])
+  @@index([status])
 }

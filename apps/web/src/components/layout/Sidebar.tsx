@@ -45,6 +45,7 @@ import {
   IconHeadset,
   IconShieldCheck,
   IconSchool,
+  IconGift,
 } from '@tabler/icons-react';
 import { HelplineDrawer } from '../HelplineDrawer';
 
@@ -183,6 +184,50 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           path: '/employee/dashboard',
         },
         {
+          id: 'self_service',
+          label: 'Self Service',
+          icon: IconUser,
+          roles: ['COMPANY_ADMIN', 'HR', 'FINANCE', 'IT'],
+          subItems: [
+            // Daily Routine & Time Management
+            { label: 'Attendance', path: '/attendance', icon: IconClock, feature: 'time_attendance_management' },
+            { label: 'Leaves', path: '/leaves', icon: IconCalendarEvent, feature: 'leave_management' },
+            { label: 'Comp Off', path: '/comp-off', icon: IconCalendarEvent, feature: 'comp_off_management' },
+
+            // Compensation, Claims & Financials
+            { label: 'Payslips', path: '/payroll/my-payslips', icon: IconReceipt2, feature: 'payroll' },
+            { label: 'Claims', path: '/claims', icon: IconCash, feature: 'claim_process_management' },
+            { label: 'Loans & Advances', path: '/loans-advances', icon: IconPigMoney, feature: 'payroll' },
+            { label: 'Tax Declarations', path: '/tax-declarations', icon: IconFileCertificate, feature: 'payroll' },
+
+            // Performance & Recognition
+            { label: 'Performance Goals', path: '/performance/my-goals', icon: IconTarget, feature: 'performance_management' },
+            { label: 'Appreciations', path: '/appreciations', icon: IconHeartHandshake, feature: 'employee_appreciation' },
+
+            // Organization & Policies
+            { label: 'Roles & Hierarchy', path: '/company/roles-hierarchy', icon: IconNetwork },
+            { label: 'Policies', path: '/policies', icon: IconFileText, feature: 'policy_documents_management' },
+            { label: 'My Documents', path: '/my-documents', icon: IconFolderCheck, feature: 'employee_document_management' },
+
+            // Support & AI Assistant
+            { label: 'Tickets', path: '/tickets', icon: IconHelpCircle, feature: 'support_ticket_management' },
+            { label: 'AI Assistant', path: '/assistant', icon: IconCpu, feature: 'ai_assistance' },
+            { label: 'Refer & Earn', path: '/referrals', icon: IconGift },
+          ],
+        },
+        {
+          id: 'assigned_to_me',
+          label: 'Assigned To Me',
+          icon: IconChecklist,
+          roles: ['COMPANY_ADMIN', 'HR', 'FINANCE', 'IT'],
+          subItems: [
+            { label: 'Approval Requests', path: '/company/approvals', icon: IconChecklist },
+            { label: 'Claims Review', path: '/company/claims/manage', icon: IconCash, feature: 'claim_process_management', roles: ['COMPANY_ADMIN', 'HR', 'FINANCE'] },
+            { label: 'Tickets', path: '/tickets/assigned', icon: IconHelpCircle, feature: 'support_ticket_management' },
+            { label: 'Document Review', path: '/company/documents/review', icon: IconFolderCheck, feature: 'employee_document_management' },
+          ],
+        },
+        {
           id: 'company',
           label: 'Company',
           icon: IconBuildingSkyscraper,
@@ -245,49 +290,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
             { label: 'Exit & F&F Settlement', path: '/company/exits', icon: IconDoorExit },
           ],
         },
-        {
-          id: 'assigned_to_me',
-          label: 'Assigned To Me',
-          icon: IconChecklist,
-          roles: ['COMPANY_ADMIN', 'HR', 'FINANCE', 'IT'],
-          subItems: [
-            { label: 'Approval Requests', path: '/company/approvals', icon: IconChecklist },
-            { label: 'Claims Review', path: '/company/claims/manage', icon: IconCash, feature: 'claim_process_management', roles: ['COMPANY_ADMIN', 'HR', 'FINANCE'] },
-            { label: 'Tickets', path: '/tickets/assigned', icon: IconHelpCircle, feature: 'support_ticket_management' },
-            { label: 'Document Review', path: '/company/documents/review', icon: IconFolderCheck, feature: 'employee_document_management' },
-          ],
-        },
-        {
-          id: 'self_service',
-          label: 'Self Service',
-          icon: IconUser,
-          roles: ['COMPANY_ADMIN', 'HR', 'FINANCE', 'IT'],
-          subItems: [
-            // Daily Routine & Time Management
-            { label: 'Attendance', path: '/attendance', icon: IconClock, feature: 'time_attendance_management' },
-            { label: 'Leaves', path: '/leaves', icon: IconCalendarEvent, feature: 'leave_management' },
-            { label: 'Comp Off', path: '/comp-off', icon: IconCalendarEvent, feature: 'comp_off_management' },
-
-            // Compensation, Claims & Financials
-            { label: 'Payslips', path: '/payroll/my-payslips', icon: IconReceipt2, feature: 'payroll' },
-            { label: 'Claims', path: '/claims', icon: IconCash, feature: 'claim_process_management' },
-            { label: 'Loans & Advances', path: '/loans-advances', icon: IconPigMoney, feature: 'payroll' },
-            { label: 'Tax Declarations', path: '/tax-declarations', icon: IconFileCertificate, feature: 'payroll' },
-
-            // Performance & Recognition
-            { label: 'Performance Goals', path: '/performance/my-goals', icon: IconTarget, feature: 'performance_management' },
-            { label: 'Appreciations', path: '/appreciations', icon: IconHeartHandshake, feature: 'employee_appreciation' },
-
-            // Organization & Policies
-            { label: 'Roles & Hierarchy', path: '/company/roles-hierarchy', icon: IconNetwork },
-            { label: 'Policies', path: '/policies', icon: IconFileText, feature: 'policy_documents_management' },
-            { label: 'My Documents', path: '/my-documents', icon: IconFolderCheck, feature: 'employee_document_management' },
-
-            // Support & AI Assistant
-            { label: 'Tickets', path: '/tickets', icon: IconHelpCircle, feature: 'support_ticket_management' },
-            { label: 'AI Assistant', path: '/assistant', icon: IconCpu, feature: 'ai_assistance' },
-          ],
-        },
       ];
     }
 
@@ -304,22 +306,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
         roles: ['EMPLOYEE'],
         path: '/employee/dashboard',
       },
-      ...(isManagerUser
-        ? [
-          {
-            id: 'team_management',
-            label: 'Team Management',
-            icon: IconChecklist,
-            roles: ['EMPLOYEE'] as UserRole[],
-            subItems: [
-              { label: 'Approvals Desk', path: '/company/approvals', icon: IconChecklist, requiresManager: true },
-              { label: 'Expense Claims Review', path: '/company/claims/manage', icon: IconCash, requiresManager: true, feature: 'claim_process_management' },
-              { label: 'Assigned Tickets', path: '/tickets/assigned', icon: IconHelpCircle, requiresManager: true, feature: 'support_ticket_management' },
-              { label: 'Document Verification', path: '/company/documents/review', icon: IconFolderCheck, requiresManager: true, feature: 'employee_document_management' },
-            ],
-          },
-        ]
-        : []),
       {
         id: 'self_service',
         label: 'Self Service',
@@ -349,8 +335,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           // Support & AI Assistant
           { label: 'Tickets', path: '/tickets', icon: IconHelpCircle, feature: 'support_ticket_management' },
           { label: 'AI Assistant', path: '/assistant', icon: IconCpu, feature: 'ai_assistance' },
+          { label: 'Refer & Earn', path: '/referrals', icon: IconGift },
         ],
       },
+      ...(isManagerUser
+        ? [
+          {
+            id: 'assigned_to_me',
+            label: 'Assigned To Me',
+            icon: IconChecklist,
+            roles: ['EMPLOYEE'] as UserRole[],
+            subItems: [
+              { label: 'Approvals Desk', path: '/company/approvals', icon: IconChecklist, requiresManager: true },
+              { label: 'Expense Claims Review', path: '/company/claims/manage', icon: IconCash, requiresManager: true, feature: 'claim_process_management' },
+              { label: 'Assigned Tickets', path: '/tickets/assigned', icon: IconHelpCircle, requiresManager: true, feature: 'support_ticket_management' },
+              { label: 'Document Verification', path: '/company/documents/review', icon: IconFolderCheck, requiresManager: true, feature: 'employee_document_management' },
+            ],
+          },
+        ]
+        : []),
     ];
 
   }, [user]);
@@ -592,7 +595,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
                           <IconChevronRight
                             className={`w-4 h-4 shrink-0 transition-colors ${isHighlighted
                               ? 'text-[#5E4BE2]'
-                              : 'text-slate-400 group-hover:text-slate-600'
+                              : 'text-slate-500 group-hover:text-slate-600'
                               }`}
                           />
                         )
@@ -619,10 +622,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
                             <button
                               key={subItem.path}
                               onClick={() => setLockedModal({ open: true, featureName: subItem.label })}
-                              className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50/50 text-xs font-semibold cursor-pointer text-left"
+                              className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50/50 text-xs font-semibold cursor-pointer text-left"
                             >
                               <div className="flex items-center gap-2 truncate">
-                                <SubIcon className="w-3.5 h-3.5 text-slate-400" />
+                                <SubIcon className="w-3.5 h-3.5 text-slate-500 font-medium" />
                                 <span className="truncate">{subItem.label}</span>
                               </div>
                               <IconCrown className="w-3 h-3 text-amber-500 shrink-0 ml-1" />
@@ -658,10 +661,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
                           <button
                             key={subItem.path}
                             onClick={() => setLockedModal({ open: true, featureName: subItem.label })}
-                            className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50/50 transition-all text-xs font-semibold group cursor-pointer text-left"
+                            className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50/50 transition-all text-xs font-semibold group cursor-pointer text-left"
                           >
                             <div className="flex items-center gap-2 min-w-0">
-                              <SubIcon className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-500 shrink-0" />
+                              <SubIcon className="w-3.5 h-3.5 text-slate-500 font-medium group-hover:text-amber-500 shrink-0" />
                               <span className="truncate">{subItem.label}</span>
                             </div>
                             <div className="flex items-center text-amber-500 bg-amber-50 px-1 py-0.5 rounded text-[9px] font-bold gap-0.5 shrink-0">
@@ -685,7 +688,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
                         >
                           <div className="flex items-center gap-2 min-w-0">
                             <SubIcon
-                              className={`w-3.5 h-3.5 shrink-0 transition-colors ${active ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'
+                              className={`w-3.5 h-3.5 shrink-0 transition-colors ${active ? 'text-white' : 'text-slate-500 group-hover:text-slate-600'
                                 }`}
                             />
                             <span className="truncate">{subItem.label}</span>
@@ -734,7 +737,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
                       Support
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                  <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
                     Contact us &amp; emergency info
                   </p>
                 </div>

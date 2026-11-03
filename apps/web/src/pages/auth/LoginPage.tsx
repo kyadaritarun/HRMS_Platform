@@ -265,7 +265,7 @@ export const LoginPage: React.FC = () => {
               <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
                 Welcome Back
               </h3>
-              <p className="text-[11px] sm:text-xs text-slate-400 font-normal mt-0.5">
+              <p className="text-[11px] sm:text-xs text-slate-500 font-normal mt-0.5">
                 Login to your account to continue
               </p>
             </div>
@@ -282,32 +282,32 @@ export const LoginPage: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-3">
               {/* Username or Email Input */}
               <div className="relative">
-                <IconMail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <IconMail className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
                   required
                   value={form.login}
                   onChange={(e) => setForm({ ...form, login: e.target.value })}
                   placeholder="Username or Email"
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50/70 border border-slate-200/80 rounded-xl text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-hidden focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 transition-all"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50/70 border border-slate-200/80 rounded-xl text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-500 focus:bg-white focus:outline-hidden focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 transition-all"
                 />
               </div>
 
               {/* Password Input */}
               <div className="relative">
-                <IconLock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <IconLock className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   placeholder="Password"
-                  className="w-full pl-10 pr-10 py-2.5 bg-slate-50/70 border border-slate-200/80 rounded-xl text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-hidden focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 transition-all"
+                  className="w-full pl-10 pr-10 py-2.5 bg-slate-50/70 border border-slate-200/80 rounded-xl text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-500 focus:bg-white focus:outline-hidden focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-medium hover:text-slate-600 transition-colors cursor-pointer"
                   title={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
@@ -359,7 +359,7 @@ export const LoginPage: React.FC = () => {
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-slate-200/70" />
               </div>
-              <span className="relative px-2.5 bg-white text-[10px] sm:text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
+              <span className="relative px-2.5 bg-white text-[10px] sm:text-[11px] text-slate-500 uppercase tracking-wider font-semibold">
                 or
               </span>
             </div>
@@ -426,7 +426,7 @@ export const LoginPage: React.FC = () => {
                       <span className="text-base">{persona.icon}</span>
                       <span className="text-xs font-bold text-slate-800 truncate">{persona.name}</span>
                     </div>
-                    <div className="text-[10px] text-slate-400 mt-0.5 truncate">{persona.login}</div>
+                    <div className="text-[10px] text-slate-500 font-medium mt-0.5 truncate">{persona.login}</div>
                   </button>
                 ))}
               </div>
@@ -443,7 +443,7 @@ export const LoginPage: React.FC = () => {
               <h3 className="text-lg font-bold text-slate-900">Reset Your Password</h3>
               <button
                 onClick={() => setShowForgotModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100"
+                className="p-1 rounded-lg text-slate-500 font-medium hover:bg-slate-100"
               >
                 <IconX className="w-5 h-5" />
               </button>
@@ -455,19 +455,19 @@ export const LoginPage: React.FC = () => {
                   <IconCheck className="w-6 h-6 stroke-[2.5]" />
                 </div>
                 <h4 className="text-base font-bold text-slate-900">Reset Link Dispatched!</h4>
-                <p className="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
+                <p className="text-xs text-slate-500 font-medium max-w-xs mx-auto leading-relaxed">
                   If an account exists for <strong className="text-slate-800">{forgotEmail}</strong>, we
                   have sent recovery instructions via email.
                 </p>
               </div>
             ) : (
               <form onSubmit={handleForgotSubmit} className="space-y-4">
-                <p className="text-xs text-slate-500 leading-relaxed">
+                <p className="text-xs text-slate-500 font-medium leading-relaxed">
                   Enter your registered work email address below and we will dispatch a password recovery link.
                 </p>
 
                 <div className="relative">
-                  <IconMail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5 pointer-events-none" />
+                  <IconMail className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-3.5 pointer-events-none" />
                   <input
                     type="email"
                     required

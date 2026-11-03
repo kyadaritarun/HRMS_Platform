@@ -229,7 +229,7 @@ export const AppreciationsPage: React.FC = () => {
             <IconHeartHandshake className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>Appreciations</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Celebrate colleagues, foster positive company culture, and recognize outstanding contributions.
           </p>
         </div>
@@ -252,7 +252,7 @@ export const AppreciationsPage: React.FC = () => {
         {/* Search & Filter Toolbar */}
         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
           <div className="relative flex-1 max-w-md">
-            <IconSearch className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <IconSearch className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium" />
             <input
               type="text"
               placeholder="Search by colleague, sender or message..."
@@ -264,7 +264,7 @@ export const AppreciationsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 font-medium hover:text-slate-600 p-0.5 cursor-pointer"
               >
                 <IconX className="w-3.5 h-3.5" />
               </button>
@@ -273,7 +273,7 @@ export const AppreciationsPage: React.FC = () => {
 
           <div className="flex items-center gap-2.5 shrink-0">
             <label htmlFor="badge-filter" className="text-xs font-semibold text-slate-500 flex items-center gap-1.5 shrink-0">
-              <IconFilter className="w-3.5 h-3.5 text-slate-400" />
+              <IconFilter className="w-3.5 h-3.5 text-slate-500 font-medium" />
               <span>Filter:</span>
             </label>
             <div className="relative min-w-[200px]">
@@ -290,7 +290,7 @@ export const AppreciationsPage: React.FC = () => {
                   </option>
                 ))}
               </select>
-              <IconChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChevronDown className="w-4 h-4 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
         </div>
@@ -336,14 +336,14 @@ export const AppreciationsPage: React.FC = () => {
                 ))
               ) : filteredAppreciations.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-16 text-center text-slate-400">
+                  <td colSpan={5} className="py-16 text-center text-slate-500 font-medium">
                     <IconHeartHandshake className="w-12 h-12 mx-auto mb-3 text-slate-300" />
                     <p className="text-sm font-semibold text-slate-700">
                       {searchQuery || badgeFilter !== 'ALL'
                         ? 'No matching appreciations found.'
                         : 'No kudos sent yet. Be the first to recognize a teammate!'}
                     </p>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-slate-500 font-medium mt-1">
                       Click the "Give Kudos" button above to send instant recognition.
                     </p>
                   </td>
@@ -442,7 +442,7 @@ export const AppreciationsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <IconX className="w-5 h-5" />
                 </button>
@@ -582,7 +582,7 @@ export const AppreciationsPage: React.FC = () => {
                         {/* Live Pill Preview */}
                         {form.badge.trim() && (
                           <div className="flex items-center gap-2 pt-1">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Preview:</span>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Preview:</span>
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border text-indigo-700 bg-indigo-50 border-indigo-200">
                               <IconSparkles className="w-3.5 h-3.5" />
                               {form.badge.trim()}
@@ -592,7 +592,7 @@ export const AppreciationsPage: React.FC = () => {
 
                         {/* Quick Suggestions */}
                         <div className="space-y-1.5 pt-1">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
                             Quick suggestions:
                           </span>
                           <div className="flex flex-wrap gap-1.5">

@@ -372,7 +372,7 @@ export const MyCompOffPage: React.FC = () => {
             <IconCalendar className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>Comp Off</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Claim compensatory off days for working on weekends or recognized holidays.
           </p>
         </div>
@@ -415,10 +415,10 @@ export const MyCompOffPage: React.FC = () => {
             </div>
             <span className="text-xl font-black text-indigo-700 leading-none">
               {compOffBalance}
-              <span className="text-xs font-semibold text-slate-400 ml-1">days</span>
+              <span className="text-xs font-semibold text-slate-500 ml-1">days</span>
             </span>
           </div>
-          <div className="mt-3 text-[11px] text-slate-400 font-medium">
+          <div className="mt-3 text-[11px] text-slate-500 font-medium">
             Ready to be redeemed in My Leaves
           </div>
         </div>
@@ -434,10 +434,10 @@ export const MyCompOffPage: React.FC = () => {
             </div>
             <span className="text-xl font-black text-emerald-700 leading-none">
               {approvedTotalDays}
-              <span className="text-xs font-semibold text-slate-400 ml-1">days</span>
+              <span className="text-xs font-semibold text-slate-500 ml-1">days</span>
             </span>
           </div>
-          <div className="mt-3 text-[11px] text-slate-400 font-medium">
+          <div className="mt-3 text-[11px] text-slate-500 font-medium">
             Approved by manager/HR
           </div>
         </div>
@@ -453,10 +453,10 @@ export const MyCompOffPage: React.FC = () => {
             </div>
             <span className="text-xl font-black text-amber-700 leading-none">
               {pendingCount}
-              <span className="text-xs font-semibold text-slate-400 ml-1">req</span>
+              <span className="text-xs font-semibold text-slate-500 ml-1">req</span>
             </span>
           </div>
-          <div className="mt-3 text-[11px] text-slate-400 font-medium">
+          <div className="mt-3 text-[11px] text-slate-500 font-medium">
             Awaiting manager action
           </div>
         </div>
@@ -472,10 +472,10 @@ export const MyCompOffPage: React.FC = () => {
             </div>
             <span className="text-xl font-black text-blue-700 leading-none">
               {weekendCount}
-              <span className="text-xs font-semibold text-slate-400 ml-1">req</span>
+              <span className="text-xs font-semibold text-slate-500 ml-1">req</span>
             </span>
           </div>
-          <div className="mt-3 text-[11px] text-slate-400 font-medium">
+          <div className="mt-3 text-[11px] text-slate-500 font-medium">
             Saturday / Sunday shifts
           </div>
         </div>
@@ -487,7 +487,7 @@ export const MyCompOffPage: React.FC = () => {
         <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
           {/* Search Input */}
           <div className="relative flex-1">
-            <IconSearch className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <IconSearch className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium pointer-events-none" />
             <input
               type="text"
               placeholder="Search by occasion, reason, or approver..."
@@ -505,7 +505,7 @@ export const MyCompOffPage: React.FC = () => {
                   setSearch('');
                   setCurrentPage(1);
                 }}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 font-medium hover:text-slate-600 p-0.5 cursor-pointer"
               >
                 <IconX className="w-3.5 h-3.5" />
               </button>
@@ -528,8 +528,8 @@ export const MyCompOffPage: React.FC = () => {
                 <option value="WEEKEND">Weekend</option>
                 <option value="HOLIDAY">Holiday</option>
               </select>
-              <IconCalendar className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconCalendar className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
             {/* Status Filter Dropdown */}
@@ -547,8 +547,8 @@ export const MyCompOffPage: React.FC = () => {
                 <option value="APPROVED">Approved</option>
                 <option value="REJECTED">Rejected</option>
               </select>
-              <IconFilter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconFilter className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
         </div>
@@ -582,12 +582,12 @@ export const MyCompOffPage: React.FC = () => {
                 ))
               ) : filteredRequests.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-16 text-center text-slate-400">
+                  <td colSpan={7} className="py-16 text-center text-slate-500 font-medium">
                     <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-[#5E4BE2] flex items-center justify-center mx-auto mb-3">
                       <IconCalendar className="w-6 h-6" />
                     </div>
                     <p className="text-sm font-semibold text-slate-700">No comp off requests found</p>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-slate-500 font-medium mt-1">
                       {search || statusFilter !== 'ALL' || typeFilter !== 'ALL'
                         ? 'Try adjusting your search query or filters.'
                         : 'Click "Request Comp Off" above to submit hours worked on a weekend or holiday.'}
@@ -636,7 +636,7 @@ export const MyCompOffPage: React.FC = () => {
                                 </span>
                               )}
                             </div>
-                            <span className="text-[11px] text-slate-400 font-medium block mt-0.5">
+                            <span className="text-[11px] text-slate-500 font-medium block mt-0.5">
                               {isWeekend ? (r.meta?.dayOfWeek || 'Saturday/Sunday') : 'Company Holiday'}
                             </span>
                           </div>
@@ -692,17 +692,19 @@ export const MyCompOffPage: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => handleCancel(r.id)}
-                              className="px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200/80 rounded-xl shadow-2xs transition-colors cursor-pointer"
+                              title="Cancel Request"
+                              className="w-8 h-8 rounded-lg border border-rose-200/80 bg-white hover:bg-rose-50 text-rose-600 flex items-center justify-center shadow-2xs transition-all cursor-pointer"
                             >
-                              Cancel
+                              <IconX className="w-4 h-4 stroke-[2]" />
                             </button>
                           )}
                           <button
                             type="button"
                             onClick={() => setViewReq(r)}
-                            className="px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 border border-slate-200 rounded-xl shadow-2xs transition-colors cursor-pointer"
+                            title="View Details"
+                            className="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 flex items-center justify-center shadow-2xs transition-all cursor-pointer"
                           >
-                            View
+                            <IconEye className="w-4 h-4 stroke-[1.8]" />
                           </button>
                         </div>
                       </td>
@@ -750,7 +752,7 @@ export const MyCompOffPage: React.FC = () => {
                     <h2 className="text-base font-bold text-slate-900">
                       Request Comp Off
                     </h2>
-                    <p className="text-xs text-slate-400 font-medium">
+                    <p className="text-xs text-slate-500 font-medium">
                       Claim compensatory credit for weekend or holiday work
                     </p>
                   </div>
@@ -758,7 +760,7 @@ export const MyCompOffPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <IconX className="w-5 h-5" />
                 </button>
@@ -802,7 +804,7 @@ export const MyCompOffPage: React.FC = () => {
                             Weekend Work
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-500 mt-1">
+                        <p className="text-[11px] text-slate-500 font-medium mt-1">
                           Saturday, Sunday, or rostered weekly off
                         </p>
                       </div>
@@ -829,7 +831,7 @@ export const MyCompOffPage: React.FC = () => {
                             Holiday Work
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-500 mt-1">
+                        <p className="text-[11px] text-slate-500 font-medium mt-1">
                           Public, national, or company holiday
                         </p>
                       </div>
@@ -906,7 +908,7 @@ export const MyCompOffPage: React.FC = () => {
                               </option>
                             ))}
                           </select>
-                          <IconChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          <IconChevronDown className="w-4 h-4 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                         </div>
                       ) : (
                         <div className="space-y-3">
@@ -1052,12 +1054,12 @@ export const MyCompOffPage: React.FC = () => {
                   </div>
                   <div>
                     <h2 className="text-base font-bold text-slate-900">Comp Off Details</h2>
-                    <p className="text-xs text-slate-400 font-medium">Request specifications &amp; status</p>
+                    <p className="text-xs text-slate-500 font-medium">Request specifications &amp; status</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setViewReq(null)}
-                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-xl text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <IconX className="w-5 h-5" />
                 </button>
@@ -1072,28 +1074,28 @@ export const MyCompOffPage: React.FC = () => {
 
                 <div className="space-y-3 p-4 rounded-2xl border border-slate-200 text-xs">
                   <div>
-                    <span className="text-slate-400 block font-medium">Work Occasion</span>
+                    <span className="text-slate-500 block font-medium">Work Occasion</span>
                     <span className="font-bold text-slate-900 text-sm mt-0.5 block">
                       {viewReq.meta?.workType === 'WEEKEND' ? 'Weekend Work' : (viewReq.meta?.holidayName || 'Holiday Work')}
                     </span>
                   </div>
 
                   <div>
-                    <span className="text-slate-400 block font-medium">Date Worked</span>
+                    <span className="text-slate-500 block font-medium">Date Worked</span>
                     <span className="font-semibold text-slate-800 mt-0.5 block">
                       {formatDateDisplay(viewReq.startDate || viewReq.createdAt)}
                     </span>
                   </div>
 
                   <div>
-                    <span className="text-slate-400 block font-medium">Credit Claimed</span>
+                    <span className="text-slate-500 block font-medium">Credit Claimed</span>
                     <span className="font-semibold text-slate-800 mt-0.5 block">
                       {viewReq.days || 1} Day{Number(viewReq.days || 1) > 1 ? 's' : ''}
                     </span>
                   </div>
 
                   <div>
-                    <span className="text-slate-400 block font-medium">Approver Name</span>
+                    <span className="text-slate-500 block font-medium">Approver Name</span>
                     <span className="font-semibold text-slate-800 mt-0.5 block">
                       {viewReq.approver
                         ? `${viewReq.approver.firstName} ${viewReq.approver.lastName}`
@@ -1102,7 +1104,7 @@ export const MyCompOffPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <span className="text-slate-400 block font-medium">Work Delivered / Justification</span>
+                    <span className="text-slate-500 block font-medium">Work Delivered / Justification</span>
                     <p className="mt-1 p-2.5 rounded-xl bg-slate-50 border border-slate-200/60 text-slate-700 leading-relaxed font-medium">
                       {viewReq.reason || '—'}
                     </p>
@@ -1110,7 +1112,7 @@ export const MyCompOffPage: React.FC = () => {
 
                   {viewReq.meta?.attachmentUrl && (
                     <div className="pt-2 border-t border-slate-100 space-y-2">
-                      <span className="text-slate-400 block text-[11px] font-semibold">Attached Document</span>
+                      <span className="text-slate-500 block text-[11px] font-semibold">Attached Document</span>
                       {viewReq.meta.attachmentUrl.startsWith('data:image') && (
                         <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 p-1.5 max-w-sm">
                           <img
@@ -1136,7 +1138,7 @@ export const MyCompOffPage: React.FC = () => {
                           className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs transition-colors cursor-pointer"
                           title="Download attachment"
                         >
-                          <IconDownload className="w-3.5 h-3.5 text-slate-500" />
+                          <IconDownload className="w-3.5 h-3.5 text-slate-500 font-medium" />
                           <span>Download</span>
                         </a>
                       </div>
@@ -1145,7 +1147,7 @@ export const MyCompOffPage: React.FC = () => {
 
                   {viewReq.decisionNote && (
                     <div className="pt-2 border-t border-slate-100">
-                      <span className="text-slate-400 block font-medium mb-1">Manager Note</span>
+                      <span className="text-slate-500 block font-medium mb-1">Manager Note</span>
                       <p className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200 text-amber-900 leading-relaxed font-medium">
                         {viewReq.decisionNote}
                       </p>

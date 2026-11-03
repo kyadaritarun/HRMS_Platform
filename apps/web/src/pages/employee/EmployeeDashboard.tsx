@@ -1157,7 +1157,7 @@ export const EmployeeDashboard: React.FC = () => {
     let punctuality: { status: 'ON_TIME' | 'LATE' | 'PENDING'; label: string; textClass: string } = {
       status: 'PENDING',
       label: 'Shift Not Started',
-      textClass: 'text-slate-400',
+      textClass: 'text-slate-500',
     };
 
     const punchInRaw = activeSession?.checkIn || todaySession?.checkIn;
@@ -1194,7 +1194,7 @@ export const EmployeeDashboard: React.FC = () => {
     let dayStatus: { code: string; label: string; textClass: string } = {
       code: 'NOT_RECORDED',
       label: 'Not Started',
-      textClass: 'text-slate-400',
+      textClass: 'text-slate-500',
     };
 
     if (activeSession) {
@@ -1322,7 +1322,7 @@ export const EmployeeDashboard: React.FC = () => {
               <span className="text-2xl font-black text-slate-900 font-mono tracking-tight">
                 {shiftCalculator.loggedHours.toFixed(1)}h
               </span>
-              <span className="text-xs text-slate-400 font-medium">/ {shiftCalculator.targetHours}h target</span>
+              <span className="text-xs text-slate-500 font-medium">/ {shiftCalculator.targetHours}h target</span>
             </div>
           </div>
 
@@ -1363,7 +1363,7 @@ export const EmployeeDashboard: React.FC = () => {
               <span className="text-2xl font-black text-slate-900 font-mono tracking-tight">
                 {calendarCounts.present} Days
               </span>
-              <span className="text-xs text-slate-400 font-medium">Present in {calMonth.toLocaleDateString('en-US', { month: 'short' })}</span>
+              <span className="text-xs text-slate-500 font-medium">Present in {calMonth.toLocaleDateString('en-US', { month: 'short' })}</span>
             </div>
           </div>
 
@@ -1401,7 +1401,7 @@ export const EmployeeDashboard: React.FC = () => {
               <span className="text-2xl font-black text-slate-900 font-mono tracking-tight">
                 {totalAvailableLeaves} Days
               </span>
-              <span className="text-xs text-slate-400 font-medium">Annual Quota Balance</span>
+              <span className="text-xs text-slate-500 font-medium">Annual Quota Balance</span>
             </div>
           </div>
 
@@ -1470,7 +1470,7 @@ export const EmployeeDashboard: React.FC = () => {
                   <h3 className="text-base font-bold text-slate-900 leading-tight">
                     Time & Attendance
                   </h3>
-                  <p className="text-xs text-slate-400 font-medium mt-0.5">
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
                     {userShift?.shiftName ? (
                       <>
                         {userShift.shiftName.replace(/\(IST\)/i, '').trim()}
@@ -1521,7 +1521,7 @@ export const EmployeeDashboard: React.FC = () => {
                     ? formatTimer(shiftCalculator.loggedSeconds)
                     : '00:00:00'}
               </div>
-              <div className="flex items-center justify-center gap-1.5 text-xs text-slate-400 mt-2.5 font-medium">
+              <div className="flex items-center justify-center gap-1.5 text-xs text-slate-500 mt-2.5 font-medium">
                 {activeSession ? (
                   <>
                     <IconMapPin className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
@@ -1538,7 +1538,7 @@ export const EmployeeDashboard: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <IconClock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <IconClock className="w-3.5 h-3.5 text-slate-500 font-medium shrink-0" />
                     <span>Expected Shift: {userShift?.targetHours || 9} hrs</span>
                   </>
                 )}
@@ -1577,10 +1577,10 @@ export const EmployeeDashboard: React.FC = () => {
             {/* Clean Single Progress Bar */}
             <div className="space-y-1.5 px-0.5">
               <div className="flex items-center justify-between text-[11px] font-semibold">
-                <span className="text-slate-500">Shift Progress</span>
+                <span className="text-slate-500 font-medium">Shift Progress</span>
                 <span className="text-slate-800 font-mono text-xs">
                   {shiftCalculator.progressPercent}%{' '}
-                  <span className="text-slate-400 font-normal">
+                  <span className="text-slate-500 font-medium">
                     {shiftCalculator.diffHours >= 0
                       ? `(+${shiftCalculator.diffHours.toFixed(1)}h OT)`
                       : `(${Math.abs(shiftCalculator.diffHours).toFixed(1)}h left)`}
@@ -1691,7 +1691,7 @@ export const EmployeeDashboard: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5">
+                  <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
                     {calMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                   </p>
                 </div>
@@ -1760,7 +1760,7 @@ export const EmployeeDashboard: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setStatusFilter(null)}
-                  className="text-[9px] text-slate-400 hover:text-slate-700 underline font-medium cursor-pointer shrink-0 ml-auto"
+                  className="text-[9px] text-slate-500 hover:text-slate-700 underline font-medium cursor-pointer shrink-0 ml-auto"
                 >
                   Clear
                 </button>
@@ -1773,7 +1773,7 @@ export const EmployeeDashboard: React.FC = () => {
                 <div
                   key={dw}
                   className={`text-[9.5px] sm:text-[10px] font-extrabold uppercase tracking-wider py-0.5 ${
-                    idx === 0 || idx === 6 ? 'text-rose-400/80' : 'text-slate-400'
+                    idx === 0 || idx === 6 ? 'text-rose-400/80' : 'text-slate-500'
                   }`}
                 >
                   {dw}
@@ -1842,7 +1842,7 @@ export const EmployeeDashboard: React.FC = () => {
                   cellTheme = 'bg-amber-50/50 border-amber-300 border-dashed text-amber-900 font-bold animate-pulse';
                   dotTheme = 'bg-amber-400';
                 } else if (isRosterOff || isWeekend) {
-                  cellTheme = 'bg-slate-50/70 border-slate-100 text-slate-400 font-medium hover:bg-slate-100';
+                  cellTheme = 'bg-slate-50/70 border-slate-100 text-slate-500 font-medium hover:bg-slate-100';
                   dotTheme = 'bg-slate-300';
                 } else {
                   // Scheduled / Future
@@ -1910,7 +1910,7 @@ export const EmployeeDashboard: React.FC = () => {
                             : 'bg-white text-slate-800 border-slate-200'
                 }`}
               >
-                <span className="text-[8px] font-extrabold uppercase tracking-tight text-slate-400">
+                <span className="text-[8px] font-extrabold uppercase tracking-tight text-slate-500">
                   {selectedDayInfo?.date.toLocaleDateString('en-US', { month: 'short' })}
                 </span>
                 <span className="text-xs font-black font-mono mt-0.5">
@@ -2055,7 +2055,7 @@ export const EmployeeDashboard: React.FC = () => {
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-slate-900 leading-tight">On Leave Today</h4>
-                  <p className="text-[11px] text-slate-400 font-medium">Team availability</p>
+                  <p className="text-[11px] text-slate-500 font-medium">Team availability</p>
                 </div>
               </div>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70">
@@ -2070,7 +2070,7 @@ export const EmployeeDashboard: React.FC = () => {
                 </div>
                 <div>
                   <div className="text-xs font-bold text-slate-900">All team members are present</div>
-                  <div className="text-[11px] text-slate-500">100% team availability today 🎉</div>
+                  <div className="text-[11px] text-slate-500 font-medium">100% team availability today 🎉</div>
                 </div>
               </div>
             ) : (
@@ -2089,7 +2089,7 @@ export const EmployeeDashboard: React.FC = () => {
                         <div className="text-xs font-bold text-slate-800">
                           {item.user?.firstName} {item.user?.lastName}
                         </div>
-                        <div className="text-[10px] text-slate-400 font-medium">
+                        <div className="text-[10px] text-slate-500 font-medium">
                           {item.user?.jobTitle || item.user?.department?.name || 'On Leave'}
                         </div>
                       </div>
@@ -2114,7 +2114,7 @@ export const EmployeeDashboard: React.FC = () => {
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-slate-900 leading-tight">Upcoming Birthdays</h4>
-                  <p className="text-[11px] text-slate-400 font-medium">Team celebrations</p>
+                  <p className="text-[11px] text-slate-500 font-medium">Team celebrations</p>
                 </div>
               </div>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-50 text-pink-700 border border-pink-200/70">
@@ -2124,7 +2124,7 @@ export const EmployeeDashboard: React.FC = () => {
 
             <div className="divide-y divide-slate-100 max-h-56 overflow-y-auto pr-1">
               {upcomingBirthdays.length === 0 ? (
-                <div className="py-6 text-center text-xs text-slate-400 font-medium">
+                <div className="py-6 text-center text-xs text-slate-500 font-medium">
                   No upcoming birthdays in next 30 days
                 </div>
               ) : (
@@ -2144,7 +2144,7 @@ export const EmployeeDashboard: React.FC = () => {
                       <div>
                         <div className="text-xs font-bold text-slate-800">{bday.name}</div>
                         {bday.jobTitle && (
-                          <div className="text-[10px] text-slate-400 font-medium">{bday.jobTitle}</div>
+                          <div className="text-[10px] text-slate-500 font-medium">{bday.jobTitle}</div>
                         )}
                       </div>
                     </div>
@@ -2176,7 +2176,7 @@ export const EmployeeDashboard: React.FC = () => {
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-slate-900 leading-tight">Leave Quota Balances</h4>
-                  <p className="text-[11px] text-slate-400 font-medium">Annual entitlement</p>
+                  <p className="text-[11px] text-slate-500 font-medium">Annual entitlement</p>
                 </div>
               </div>
               <button
@@ -2191,7 +2191,7 @@ export const EmployeeDashboard: React.FC = () => {
 
             <div className="divide-y divide-slate-100 max-h-56 overflow-y-auto pr-1">
               {leaveBalances.length === 0 ? (
-                <div className="py-6 text-center text-xs text-slate-400 font-medium">
+                <div className="py-6 text-center text-xs text-slate-500 font-medium">
                   No leave quotas assigned
                 </div>
               ) : (
@@ -2211,16 +2211,16 @@ export const EmployeeDashboard: React.FC = () => {
                         </div>
                         <div>
                           <div className="text-xs font-bold text-slate-800">{lb.name}</div>
-                          <div className="text-[10px] text-slate-400 font-medium">
+                          <div className="text-[10px] text-slate-500 font-medium">
                             {lb.code} • Max {lb.max || lb.balance} Days
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5 text-slate-400">
+                      <div className="flex items-center gap-1.5 text-slate-500 font-medium">
                         <span className="text-[11px] font-bold text-slate-700 bg-slate-50 border border-slate-200/60 px-2 py-0.5 rounded-md font-mono">
                           {lb.balance} Days
                         </span>
-                        <IconChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                        <IconChevronRight className="w-3.5 h-3.5 text-slate-500 font-medium group-hover:translate-x-0.5 transition-transform" />
                       </div>
                     </div>
                   );

@@ -11,6 +11,9 @@ export default {
         sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
       },
       colors: {
+        slate: {
+          400: '#64748b',
+        },
         brand: {
           50: '#eef2ff',
           100: '#e0e7ff',

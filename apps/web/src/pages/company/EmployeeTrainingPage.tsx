@@ -531,7 +531,7 @@ export const EmployeeTrainingPage: React.FC = () => {
             </div>
             <span>Employee Training &amp; Upskilling</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Administer statutory compliance courses, technical certifications, and track workforce training completion rates.
           </p>
         </div>
@@ -542,7 +542,7 @@ export const EmployeeTrainingPage: React.FC = () => {
             onClick={() => setShowAssignModal(true)}
             className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
           >
-            <IconSend className="w-3.5 h-3.5 text-slate-500" />
+            <IconSend className="w-3.5 h-3.5 text-slate-500 font-medium" />
             <span>Assign Training</span>
           </button>
 
@@ -560,12 +560,12 @@ export const EmployeeTrainingPage: React.FC = () => {
       {/* Metrics Row */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
         <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-400 mb-1.5">
+          <div className="flex items-center justify-between text-slate-500 font-medium mb-1.5">
             <span className="text-[11px] font-bold uppercase tracking-wider">Active Courses</span>
             <IconBook className="w-4 h-4 text-indigo-500" />
           </div>
           <div className="text-xl font-black text-slate-900">{metrics.totalPrograms}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">{metrics.mandatoryCount} mandatory compliance</div>
+          <div className="text-[10px] text-slate-500 font-medium mt-0.5">{metrics.mandatoryCount} mandatory compliance</div>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-indigo-200/80 shadow-2xs bg-indigo-50/20">
@@ -642,7 +642,7 @@ export const EmployeeTrainingPage: React.FC = () => {
           {/* Search & Category Filter */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="relative flex-1 max-w-md">
-              <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search training programs or keywords..."
@@ -667,8 +667,8 @@ export const EmployeeTrainingPage: React.FC = () => {
                   <option value="LEADERSHIP">Leadership</option>
                   <option value="TECHNICAL">Technical Skills</option>
                 </select>
-                <IconFilter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <IconFilter className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
           </div>
@@ -700,16 +700,16 @@ export const EmployeeTrainingPage: React.FC = () => {
 
                     <div>
                       <h3 className="font-bold text-slate-900 text-sm leading-snug">{p.title}</h3>
-                      <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">{p.description}</p>
+                      <p className="text-xs text-slate-500 font-medium mt-1 line-clamp-2 leading-relaxed">{p.description}</p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+                    <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-500 font-medium pt-1 border-t border-slate-100">
                       <div>
-                        <span className="text-slate-400 block">Duration:</span>
+                        <span className="text-slate-500 font-medium block">Duration:</span>
                         <span className="font-bold text-slate-700">{p.duration}</span>
                       </div>
                       <div>
-                        <span className="text-slate-400 block">Format:</span>
+                        <span className="text-slate-500 font-medium block">Format:</span>
                         <span className="font-bold text-slate-700">{p.format}</span>
                       </div>
                     </div>
@@ -772,7 +772,7 @@ export const EmployeeTrainingPage: React.FC = () => {
           {/* Tracker Filters */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="relative flex-1 max-w-md">
-              <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search by Employee or Course name..."
@@ -801,8 +801,8 @@ export const EmployeeTrainingPage: React.FC = () => {
                   <option value="NOT_STARTED">Not Started</option>
                   <option value="OVERDUE">Overdue</option>
                 </select>
-                <IconFilter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <IconFilter className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
           </div>
@@ -824,12 +824,12 @@ export const EmployeeTrainingPage: React.FC = () => {
               <tbody className="divide-y divide-slate-100">
                 {paginatedEnrollments.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500 font-medium">
                       <div className="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-2">
                         <IconSchool className="w-6 h-6" />
                       </div>
                       <h4 className="text-sm font-bold text-slate-800">No training enrollments found</h4>
-                      <p className="text-xs text-slate-400 mt-1">Assign courses to employees to begin tracking progress.</p>
+                      <p className="text-xs text-slate-500 font-medium mt-1">Assign courses to employees to begin tracking progress.</p>
                     </td>
                   </tr>
                 ) : (
@@ -845,7 +845,7 @@ export const EmployeeTrainingPage: React.FC = () => {
                           </div>
                           <div className="min-w-0">
                             <span className="font-bold text-slate-900 block truncate">{enr.employeeName}</span>
-                            <span className="text-[11px] text-slate-400 block truncate">
+                            <span className="text-[11px] text-slate-500 font-medium block truncate">
                               {enr.employeeNumber} • {enr.department}
                             </span>
                           </div>
@@ -857,7 +857,7 @@ export const EmployeeTrainingPage: React.FC = () => {
                         <span className="font-bold text-slate-900 block truncate" title={enr.programTitle}>
                           {enr.programTitle}
                         </span>
-                        <span className="text-[10px] text-slate-400">Assigned: {enr.assignedDate}</span>
+                        <span className="text-[10px] text-slate-500 font-medium">Assigned: {enr.assignedDate}</span>
                       </td>
 
                       {/* Due Date */}
@@ -896,7 +896,7 @@ export const EmployeeTrainingPage: React.FC = () => {
                             <span>Certificate</span>
                           </button>
                         ) : (
-                          <span className="text-slate-400 text-[11px]">—</span>
+                          <span className="text-slate-500 font-medium text-[11px]">—</span>
                         )}
                       </td>
 
@@ -953,13 +953,13 @@ export const EmployeeTrainingPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">Create New Training Program</h3>
-                  <p className="text-xs text-slate-400">Configure a course curriculum and requirements</p>
+                  <p className="text-xs text-slate-500 font-medium">Configure a course curriculum and requirements</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowCreateModal(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                className="p-1.5 rounded-lg text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100"
               >
                 <IconX className="w-5 h-5" />
               </button>
@@ -1114,13 +1114,13 @@ export const EmployeeTrainingPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">Assign Training to Employee</h3>
-                  <p className="text-xs text-slate-400">Enroll workforce in required learning programs</p>
+                  <p className="text-xs text-slate-500 font-medium">Enroll workforce in required learning programs</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowAssignModal(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                className="p-1.5 rounded-lg text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100"
               >
                 <IconX className="w-4 h-4" />
               </button>
@@ -1208,7 +1208,7 @@ export const EmployeeTrainingPage: React.FC = () => {
             <div className="uppercase tracking-widest text-xs font-extrabold text-amber-700 mb-1">
               Certificate of Completion
             </div>
-            <p className="text-xs text-slate-400">This verifies that</p>
+            <p className="text-xs text-slate-500 font-medium">This verifies that</p>
 
             <h2 className="text-2xl font-black text-slate-900 my-2 tracking-tight">
               {viewingCertificate.employeeName}
@@ -1222,13 +1222,13 @@ export const EmployeeTrainingPage: React.FC = () => {
               {viewingCertificate.programTitle}
             </div>
 
-            <div className="flex items-center justify-between pt-6 border-t border-slate-200 max-w-md mx-auto text-[11px] text-slate-500">
+            <div className="flex items-center justify-between pt-6 border-t border-slate-200 max-w-md mx-auto text-[11px] text-slate-500 font-medium">
               <div className="text-left">
-                <span className="text-slate-400 block font-semibold">Date Completed:</span>
+                <span className="text-slate-500 block font-semibold">Date Completed:</span>
                 <span className="font-bold text-slate-800">{viewingCertificate.completedDate || '2026-10-15'}</span>
               </div>
               <div className="text-right">
-                <span className="text-slate-400 block font-semibold">Credential ID:</span>
+                <span className="text-slate-500 block font-semibold">Credential ID:</span>
                 <span className="font-mono font-bold text-slate-800">{viewingCertificate.certificateId}</span>
               </div>
             </div>

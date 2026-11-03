@@ -50,6 +50,7 @@ import { ManagePoliciesPage } from './pages/policies/ManagePoliciesPage';
 import { AppreciationsPage } from './pages/appreciations/AppreciationsPage';
 import { OrgStructurePage } from './pages/org/OrgStructurePage';
 import { AssistantPage } from './pages/assistant/AssistantPage';
+import { ReferEarnPage } from './pages/referrals/ReferEarnPage';
 import { ProfilePage } from './pages/profile/ProfilePage';
 import { DocumentReviewPage } from './pages/company/DocumentReviewPage';
 import { MyDocumentsPage } from './pages/documents/MyDocumentsPage';
@@ -74,7 +75,7 @@ const SystemNoticePage: React.FC<{ title: string; subtitle?: string }> = ({ titl
       ✓
     </div>
     <h2 className="text-xl font-bold text-slate-900 mb-2">{title}</h2>
-    <p className="text-xs text-slate-500 mb-6">
+    <p className="text-xs text-slate-500 font-medium mb-6">
       {subtitle || 'This module is connected and operational.'}
     </p>
   </div>
@@ -501,6 +502,8 @@ export const App: React.FC = () => {
             <Route path="/policies" element={<PoliciesPage />} />
             <Route path="/appreciations" element={<AppreciationsPage />} />
             <Route path="/assistant" element={<AssistantPage />} />
+            <Route path="/referrals" element={<ReferEarnPage />} />
+            <Route path="/refer-earn" element={<Navigate to="/referrals" replace />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/my-documents" element={<MyDocumentsPage />} />
           </Route>

@@ -107,7 +107,7 @@ export const ClaimCategoriesPage: React.FC = () => {
             <IconReceipt2 className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>Claim Categories</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Define corporate reimbursement categories, max claim caps, and mandatory invoice proof requirements.
           </p>
         </div>
@@ -192,7 +192,7 @@ export const ClaimCategoriesPage: React.FC = () => {
         {/* Search & Filter Toolbar */}
         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
           <div className="relative flex-1 max-w-md">
-            <IconSearch className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <IconSearch className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium" />
             <input
               type="text"
               placeholder="Search claim categories by name or description..."
@@ -204,7 +204,7 @@ export const ClaimCategoriesPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSearch('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 font-medium hover:text-slate-600 p-0.5 cursor-pointer"
               >
                 <IconX className="w-3.5 h-3.5" />
               </button>
@@ -271,12 +271,12 @@ export const ClaimCategoriesPage: React.FC = () => {
                 ))
               ) : filteredCategories.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-16 text-center text-slate-400">
+                  <td colSpan={5} className="py-16 text-center text-slate-500 font-medium">
                     <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-[#5E4BE2] flex items-center justify-center mx-auto mb-3">
                       <IconReceipt2 className="w-6 h-6" />
                     </div>
                     <p className="text-sm font-semibold text-slate-700">No Claim Categories Found</p>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-slate-500 font-medium mt-1">
                       {search
                         ? 'Try adjusting your search query or filter.'
                         : 'Add your first company expense category to let employees submit claims.'}
@@ -368,7 +368,7 @@ export const ClaimCategoriesPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <IconX className="w-5 h-5" />
                 </button>
@@ -410,7 +410,7 @@ export const ClaimCategoriesPage: React.FC = () => {
                       onChange={(e) => setForm({ ...form, maxLimit: Number(e.target.value) || 0 })}
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] transition-colors"
                     />
-                    <span className="text-[11px] text-slate-400 mt-1 block">Set 0 for unlimited / custom claim amount</span>
+                    <span className="text-[11px] text-slate-500 font-medium mt-1 block">Set 0 for unlimited / custom claim amount</span>
                   </div>
 
                   <div>
@@ -437,7 +437,7 @@ export const ClaimCategoriesPage: React.FC = () => {
                       />
                       <div className="text-xs">
                         <span className="font-bold text-slate-800 block">Require invoice receipt proof</span>
-                        <span className="text-[11px] text-slate-500">Employees must upload bill attachment before submitting.</span>
+                        <span className="text-[11px] text-slate-500 font-medium">Employees must upload bill attachment before submitting.</span>
                       </div>
                     </label>
                   </div>

@@ -250,7 +250,7 @@ export const CompanyAttendancePage: React.FC = () => {
             <IconClock className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>Employee Attendance</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Real-time biometric & GPS tracking records across all company departments.
           </p>
         </div>
@@ -282,13 +282,13 @@ export const CompanyAttendancePage: React.FC = () => {
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-slate-900">Export Attendance</h4>
-                    <p className="text-[11px] text-slate-400">Download formatted records</p>
+                    <p className="text-[11px] text-slate-500 font-medium">Download formatted records</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsExportDropdownOpen(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="p-1 rounded-lg text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <IconX className="w-4 h-4" />
                 </button>
@@ -296,7 +296,7 @@ export const CompanyAttendancePage: React.FC = () => {
 
               {/* 1. Format Selection */}
               <div className="mt-3.5 space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
                   Select Download Format
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -318,7 +318,7 @@ export const CompanyAttendancePage: React.FC = () => {
                     </div>
                     <div className="text-left min-w-0">
                       <div className="leading-tight text-xs">Excel (.xlsx)</div>
-                      <div className="text-[10px] font-normal text-slate-400 truncate">Spreadsheet</div>
+                      <div className="text-[10px] font-normal text-slate-500 truncate">Spreadsheet</div>
                     </div>
                   </button>
 
@@ -340,7 +340,7 @@ export const CompanyAttendancePage: React.FC = () => {
                     </div>
                     <div className="text-left min-w-0">
                       <div className="leading-tight text-xs">CSV (.csv)</div>
-                      <div className="text-[10px] font-normal text-slate-400 truncate">Plain text table</div>
+                      <div className="text-[10px] font-normal text-slate-500 truncate">Plain text table</div>
                     </div>
                   </button>
                 </div>
@@ -349,7 +349,7 @@ export const CompanyAttendancePage: React.FC = () => {
               {/* 2. Date Range (From Date - To Date) */}
               <div className="mt-4 space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
                     Date Range (From - To)
                   </label>
                   <span className="text-[10px] font-semibold text-indigo-600">
@@ -490,7 +490,7 @@ export const CompanyAttendancePage: React.FC = () => {
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
         {/* Search Input */}
         <div className="relative flex-1">
-          <IconSearch className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             placeholder="Search employee by name or email..."
@@ -499,7 +499,7 @@ export const CompanyAttendancePage: React.FC = () => {
               setSearch(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full pl-10 pr-10 py-2.5 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all placeholder:text-slate-400 text-slate-800"
+            className="w-full pl-10 pr-10 py-2.5 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all placeholder:text-slate-500 text-slate-800"
           />
           {search && (
             <button
@@ -507,7 +507,7 @@ export const CompanyAttendancePage: React.FC = () => {
                 setSearch('');
                 setCurrentPage(1);
               }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium hover:text-slate-600 p-1"
             >
               <IconX className="w-3.5 h-3.5" />
             </button>
@@ -629,7 +629,7 @@ export const CompanyAttendancePage: React.FC = () => {
                       <IconClock className="w-6 h-6" />
                     </div>
                     <p className="text-sm font-bold text-slate-800">No attendance records logged</p>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-slate-500 font-medium mt-1">
                       No check-ins found for {date}. Try choosing another date or clearing filters.
                     </p>
                     {(search || selectedDept || selectedWorkMode !== 'ALL') && (
@@ -678,7 +678,7 @@ export const CompanyAttendancePage: React.FC = () => {
                             <div className="font-bold text-xs text-slate-900 group-hover:text-[#5E4BE2] transition-colors leading-tight truncate">
                               {log.user?.firstName} {log.user?.lastName}
                             </div>
-                            <div className="text-[11px] text-slate-400 font-medium truncate mt-0.5">
+                            <div className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
                               {log.user?.email}
                             </div>
                           </div>
@@ -693,7 +693,7 @@ export const CompanyAttendancePage: React.FC = () => {
                             {log.user.department.name}
                           </span>
                         ) : (
-                          <span className="text-slate-400 text-xs italic">Unassigned</span>
+                          <span className="text-slate-500 font-medium text-xs italic">Unassigned</span>
                         )}
                       </td>
 

@@ -226,7 +226,7 @@ export const ActivityLogsPage: React.FC = () => {
             </div>
             <button
               onClick={() => setToast(null)}
-              className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+              className="text-slate-500 font-medium hover:text-slate-600 p-0.5 cursor-pointer"
             >
               <IconX className="w-3.5 h-3.5" />
             </button>
@@ -241,7 +241,7 @@ export const ActivityLogsPage: React.FC = () => {
             <IconMail className="w-5 h-5 text-[#5E4BE2] shrink-0" />
             <span>Account Emails</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             When employee accounts are created, their login ID and password are sent to their email. If not received, click "Resend Email" below to dispatch their login credentials.
           </p>
         </div>
@@ -267,11 +267,11 @@ export const ActivityLogsPage: React.FC = () => {
             <IconUsers className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">
+            <span className="text-[11px] font-bold text-slate-500 block uppercase tracking-wider">
               Accounts Created
             </span>
             <div className="text-lg font-black text-slate-900 font-mono">
-              {accountStats.total} <span className="text-xs font-normal text-slate-400">Employees</span>
+              {accountStats.total} <span className="text-xs font-normal text-slate-500">Employees</span>
             </div>
           </div>
         </div>
@@ -281,7 +281,7 @@ export const ActivityLogsPage: React.FC = () => {
             <IconSend className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">
+            <span className="text-[11px] font-bold text-slate-500 block uppercase tracking-wider">
               Credentials Dispatched
             </span>
             <div className="text-lg font-black text-slate-900 font-mono">
@@ -295,7 +295,7 @@ export const ActivityLogsPage: React.FC = () => {
             <IconKey className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">
+            <span className="text-[11px] font-bold text-slate-500 block uppercase tracking-wider">
               Login ID & Password
             </span>
             <div className="text-xs font-bold text-slate-700 mt-1">
@@ -309,7 +309,7 @@ export const ActivityLogsPage: React.FC = () => {
             <IconMailForward className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">
+            <span className="text-[11px] font-bold text-slate-500 block uppercase tracking-wider">
               Resend Action
             </span>
             <div className="text-xs font-bold text-teal-700 mt-1">
@@ -323,13 +323,13 @@ export const ActivityLogsPage: React.FC = () => {
       <div className="bg-white p-4 rounded-2xl border border-slate-200/70 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         {/* Search Bar */}
         <form onSubmit={handleSearchSubmit} className="relative flex-1">
-          <IconSearch className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by employee email (e.g. ganesh@kyadari.com), name, or ID..."
-            className="w-full pl-10 pr-10 py-2.5 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all placeholder:text-slate-400 text-slate-800"
+            className="w-full pl-10 pr-10 py-2.5 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all placeholder:text-slate-500 text-slate-800"
           />
           {search && (
             <button
@@ -339,7 +339,7 @@ export const ActivityLogsPage: React.FC = () => {
                 setPage(1);
                 fetchAccountLogs();
               }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium hover:text-slate-600 p-1 cursor-pointer"
             >
               <IconX className="w-3.5 h-3.5" />
             </button>
@@ -349,7 +349,7 @@ export const ActivityLogsPage: React.FC = () => {
         {/* Filters & Count */}
         <div className="flex flex-wrap items-center gap-2.5">
           <div className="flex items-center gap-2 min-w-[200px]">
-            <IconFilter className="w-4 h-4 text-slate-400 shrink-0" />
+            <IconFilter className="w-4 h-4 text-slate-500 font-medium shrink-0" />
             <select
               value={emailStatusFilter}
               onChange={(e) => {
@@ -393,12 +393,12 @@ export const ActivityLogsPage: React.FC = () => {
             ))}
           </div>
         ) : accountLogs.length === 0 ? (
-          <div className="p-16 text-center text-slate-400">
+          <div className="p-16 text-center text-slate-500 font-medium">
             <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-[#5E4BE2] flex items-center justify-center mx-auto mb-3 shadow-2xs">
               <IconMail className="w-6 h-6" />
             </div>
             <h3 className="text-base font-bold text-slate-800">No Employee Accounts Found</h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+            <p className="text-xs text-slate-500 font-medium mt-1 max-w-md mx-auto">
               {search || emailStatusFilter
                 ? 'Try adjusting your search query or clearing the status filter.'
                 : 'Employee accounts created by HR or Administrators will appear here with credential email dispatch status.'}
@@ -452,7 +452,7 @@ export const ActivityLogsPage: React.FC = () => {
                           {account.role}
                         </span>
                         {account.jobTitle && (
-                          <span className="text-[11px] text-slate-400 hidden sm:inline">
+                          <span className="text-[11px] text-slate-500 font-medium hidden sm:inline">
                             • {account.jobTitle}
                           </span>
                         )}
@@ -465,7 +465,7 @@ export const ActivityLogsPage: React.FC = () => {
                           <span>{account.email}</span>
                           <button
                             onClick={() => handleCopyEmail(account.email)}
-                            className="text-slate-400 hover:text-[#5E4BE2] p-0.5 ml-1 cursor-pointer transition-colors"
+                            className="text-slate-500 font-medium hover:text-[#5E4BE2] p-0.5 ml-1 cursor-pointer transition-colors"
                             title="Copy email address"
                           >
                             {copiedEmail === account.email ? (
@@ -476,15 +476,15 @@ export const ActivityLogsPage: React.FC = () => {
                           </button>
                         </div>
                         {account.personalEmail && (
-                          <span className="text-[11px] text-slate-400 truncate hidden lg:inline">
+                          <span className="text-[11px] text-slate-500 font-medium truncate hidden lg:inline">
                             Personal: {account.personalEmail}
                           </span>
                         )}
                       </div>
 
                       {/* Creation Time */}
-                      <div className="flex items-center gap-2 text-[11px] text-slate-400 pt-0.5">
-                        <IconClock className="w-3 h-3 text-slate-400" />
+                      <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium pt-0.5">
+                        <IconClock className="w-3 h-3 text-slate-500 font-medium" />
                         <span>
                           Account Created: {new Date(account.createdAt).toLocaleDateString([], {
                             month: 'short',
@@ -523,7 +523,7 @@ export const ActivityLogsPage: React.FC = () => {
                         </div>
                       )}
                       {account.lastEmailSentAt && (
-                        <span className="block text-[10px] text-slate-400 mt-0.5">
+                        <span className="block text-[10px] text-slate-500 font-medium mt-0.5">
                           Sent {formatRelativeTime(account.lastEmailSentAt)}
                         </span>
                       )}
@@ -574,13 +574,13 @@ export const ActivityLogsPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">Credentials Resent Successfully</h3>
-                  <p className="text-[11px] text-slate-500">Official onboarding email dispatched</p>
+                  <p className="text-[11px] text-slate-500 font-medium">Official onboarding email dispatched</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setResentModal(null)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+                className="p-1 rounded-lg text-slate-500 font-medium hover:bg-slate-100 cursor-pointer"
               >
                 <IconX className="w-4 h-4" />
               </button>
@@ -596,7 +596,7 @@ export const ActivityLogsPage: React.FC = () => {
               {/* Account Credentials Box */}
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
                 <div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                     Work Email / Login ID
                   </span>
                   <div className="flex items-center justify-between bg-white px-3 py-2 rounded-lg border border-slate-200">
@@ -616,7 +616,7 @@ export const ActivityLogsPage: React.FC = () => {
 
                 {resentModal.tempPassword && (
                   <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                       New Generated Temporary Password
                     </span>
                     <div className="flex items-center justify-between bg-purple-50/60 px-3 py-2 rounded-lg border border-purple-200">

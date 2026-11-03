@@ -384,7 +384,7 @@ export const NewEmployeePage: React.FC = () => {
     return `w-full ${basePadding} py-2.5 text-xs font-semibold text-slate-900 rounded-xl transition-all shadow-2xs ${hasError
         ? 'bg-rose-50/40 border border-rose-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-rose-500/15 focus:border-rose-500'
         : 'bg-[#f1f5f9] border border-slate-200 focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] hover:bg-slate-100 hover:border-slate-300'
-      } placeholder:text-slate-400`;
+      } placeholder:text-slate-500`;
   };
 
   const renderFieldError = (fieldName: string) => {
@@ -715,7 +715,7 @@ export const NewEmployeePage: React.FC = () => {
             <button
               type="button"
               onClick={() => setToast(null)}
-              className="p-1 -mr-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-black/5 transition-colors cursor-pointer shrink-0"
+              className="p-1 -mr-1 text-slate-500 font-medium hover:text-slate-600 rounded-lg hover:bg-black/5 transition-colors cursor-pointer shrink-0"
               title="Dismiss"
             >
               <IconX className="w-4 h-4" />
@@ -864,7 +864,7 @@ export const NewEmployeePage: React.FC = () => {
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block text-xs font-bold text-slate-700">Date of Birth *</label>
-                      <span className="text-[10px] text-slate-400 font-medium">Min 18 years</span>
+                      <span className="text-[10px] text-slate-500 font-medium">Min 18 years</span>
                     </div>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-rose-500">
@@ -961,7 +961,7 @@ export const NewEmployeePage: React.FC = () => {
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block text-xs font-bold text-slate-700">Phone Number *</label>
-                      <span className={`text-[10px] font-mono font-bold ${form.phone.length === 10 ? 'text-emerald-600' : 'text-slate-400'
+                      <span className={`text-[10px] font-mono font-bold ${form.phone.length === 10 ? 'text-emerald-600' : 'text-slate-500'
                         }`}>
                         {form.phone.length}/10 digits
                       </span>
@@ -1083,7 +1083,7 @@ export const NewEmployeePage: React.FC = () => {
                         onChange={handleChange}
                         onBlur={handleBlur}
                         disabled={companyShifts.length === 0}
-                        className={`${getInputClass('shiftTiming')} ${companyShifts.length === 0 ? 'bg-slate-100 cursor-not-allowed text-slate-400' : ''}`}
+                        className={`${getInputClass('shiftTiming')} ${companyShifts.length === 0 ? 'bg-slate-100 cursor-not-allowed text-slate-500' : ''}`}
                       >
                         <option value="">
                           {loadingShifts
@@ -1118,7 +1118,7 @@ export const NewEmployeePage: React.FC = () => {
                         </div>
                       </div>
                     ) : (
-                      <p className="text-[11px] text-slate-500 mt-1">
+                      <p className="text-[11px] text-slate-500 font-medium mt-1">
                         Loaded {companyShifts.length} shift(s) directly from database.
                       </p>
                     )}
@@ -1255,7 +1255,7 @@ export const NewEmployeePage: React.FC = () => {
                     <h2 className="text-xs font-bold text-slate-900">
                       Emergency Contact
                     </h2>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
+                    <p className="text-[11px] text-slate-500 font-medium mt-0.5">
                       Contact details of the person to reach out to in case of an emergency
                     </p>
                   </div>
@@ -1305,7 +1305,7 @@ export const NewEmployeePage: React.FC = () => {
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block text-xs font-bold text-slate-700">Contact *</label>
-                      <span className={`text-[10px] font-mono font-bold ${form.emergencyContactPhone.length === 10 ? 'text-emerald-600' : 'text-slate-400'
+                      <span className={`text-[10px] font-mono font-bold ${form.emergencyContactPhone.length === 10 ? 'text-emerald-600' : 'text-slate-500'
                         }`}>
                         {form.emergencyContactPhone.length}/10 digits
                       </span>
@@ -1378,7 +1378,7 @@ export const NewEmployeePage: React.FC = () => {
                         className={`flex-1 min-w-0 !rounded-l-none pl-3.5 pr-4 py-2.5 text-xs font-semibold text-slate-900 rounded-r-xl transition-all z-0 focus:z-10 ${touched.monthlySalary && errors.monthlySalary
                             ? 'bg-rose-50/40 border border-rose-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-rose-500/15 focus:border-rose-500'
                             : 'bg-[#f1f5f9] border border-slate-200 focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] hover:bg-slate-100 hover:border-slate-300'
-                          } placeholder:text-slate-400`}
+                          } placeholder:text-slate-500`}
                       />
                     </div>
                     {renderFieldError('monthlySalary')}
@@ -1401,7 +1401,7 @@ export const NewEmployeePage: React.FC = () => {
                       <h2 className="text-xs font-bold text-slate-900">
                         Offer Letter / Agreement
                       </h2>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
+                      <p className="text-[11px] text-slate-500 font-medium mt-0.5">
                         Upload signed appointment letter or employment agreement contract
                       </p>
                     </div>
@@ -1434,13 +1434,13 @@ export const NewEmployeePage: React.FC = () => {
                           </div>
                           <div className="min-w-0">
                             <p className="text-xs font-bold text-slate-800 truncate">{uploadedFiles.offerLetter.name}</p>
-                            <p className="text-[10px] text-slate-400">{uploadedFiles.offerLetter.size}</p>
+                            <p className="text-[10px] text-slate-500 font-medium">{uploadedFiles.offerLetter.size}</p>
                           </div>
                         </div>
                         <button
                           type="button"
                           onClick={() => handleFileUpload('offerLetter', null)}
-                          className="p-1 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                          className="p-1 text-slate-500 font-medium hover:text-rose-500 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
                           title="Remove file"
                         >
                           <IconX className="w-4 h-4" />
@@ -1448,11 +1448,11 @@ export const NewEmployeePage: React.FC = () => {
                       </div>
                     ) : (
                       <label className="flex flex-col items-center justify-center p-3.5 border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-white rounded-xl cursor-pointer group transition-all">
-                        <IconUpload className="w-5 h-5 text-slate-400 group-hover:text-emerald-600 transition-colors mb-1" />
+                        <IconUpload className="w-5 h-5 text-slate-500 font-medium group-hover:text-emerald-600 transition-colors mb-1" />
                         <span className="text-xs font-bold text-slate-700 group-hover:text-emerald-600 transition-colors">
                           Click to upload Offer Letter
                         </span>
-                        <span className="text-[10px] text-slate-400 mt-0.5">PDF or DOCX (max 10MB)</span>
+                        <span className="text-[10px] text-slate-500 font-medium mt-0.5">PDF or DOCX (max 10MB)</span>
                         <input
                           type="file"
                           accept=".pdf,.doc,.docx"

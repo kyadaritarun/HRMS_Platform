@@ -161,7 +161,7 @@ export const HrMilestonesWidget: React.FC<HrMilestonesWidgetProps> = ({ employee
         {activeCategory === 'BIRTHDAY' && (
           <div className="divide-y divide-slate-100 pt-1">
             {birthdays.length === 0 ? (
-              <div className="py-8 text-center text-slate-400 text-xs">
+              <div className="py-8 text-center text-slate-500 font-medium text-xs">
                 No upcoming birthdays in the next 30 days.
               </div>
             ) : (
@@ -177,7 +177,7 @@ export const HrMilestonesWidget: React.FC<HrMilestonesWidgetProps> = ({ employee
                         <span className="font-bold text-slate-900 text-xs block">
                           {b.firstName} {b.lastName}
                         </span>
-                        <span className="text-[11px] text-slate-400 block">
+                        <span className="text-[11px] text-slate-500 font-medium block">
                           {b.department?.name || 'Staff'} • {b.dateLabel} (
                           {b.diffDays === 0 ? 'Today!' : `in ${b.diffDays} days`})
                         </span>
@@ -216,7 +216,7 @@ export const HrMilestonesWidget: React.FC<HrMilestonesWidgetProps> = ({ employee
         {activeCategory === 'ANNIVERSARY' && (
           <div className="divide-y divide-slate-100 pt-1">
             {anniversaries.length === 0 ? (
-              <div className="py-8 text-center text-slate-400 text-xs">
+              <div className="py-8 text-center text-slate-500 font-medium text-xs">
                 No upcoming work anniversaries this month.
               </div>
             ) : (
@@ -271,7 +271,7 @@ export const HrMilestonesWidget: React.FC<HrMilestonesWidgetProps> = ({ employee
         {activeCategory === 'PROBATION' && (
           <div className="divide-y divide-slate-100 pt-1">
             {probations.length === 0 ? (
-              <div className="py-8 text-center text-slate-400 text-xs">
+              <div className="py-8 text-center text-slate-500 font-medium text-xs">
                 No employee probations due for confirmation.
               </div>
             ) : (
@@ -285,7 +285,7 @@ export const HrMilestonesWidget: React.FC<HrMilestonesWidgetProps> = ({ employee
                       <span className="font-bold text-slate-900 text-xs block">
                         {p.firstName} {p.lastName}
                       </span>
-                      <span className="text-[11px] text-slate-400 block">
+                      <span className="text-[11px] text-slate-500 font-medium block">
                         Probation Ends: {p.dateLabel} ({p.diffDays <= 0 ? 'Due Today' : `in ${p.diffDays} days`})
                       </span>
                     </div>
@@ -301,7 +301,7 @@ export const HrMilestonesWidget: React.FC<HrMilestonesWidgetProps> = ({ employee
         )}
       </div>
 
-      <div className="pt-3 border-t border-slate-100 mt-2 text-center text-slate-400 text-[11px]">
+      <div className="pt-3 border-t border-slate-100 mt-2 text-center text-slate-500 font-medium text-[11px]">
         Automated calendar detection powered by Uptrix HR Intelligence
       </div>
     </div>

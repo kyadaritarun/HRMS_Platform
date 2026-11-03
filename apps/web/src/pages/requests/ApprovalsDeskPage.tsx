@@ -261,7 +261,7 @@ export const ApprovalsDeskPage: React.FC = () => {
             <IconChecklist className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>Approval Requests</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             {isManager && !isAdminOrHr
               ? 'Review, authorize, or return leave, attendance, and expense requests submitted by your team members.'
               : 'Review, authorize, or return leave requests, attendance regularizations, and performance goals.'}
@@ -286,7 +286,7 @@ export const ApprovalsDeskPage: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           {/* Search Input */}
           <div className="relative flex-1">
-            <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="Search employee, title, reason..."
@@ -298,7 +298,7 @@ export const ApprovalsDeskPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSearch('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 font-medium hover:text-slate-600 p-0.5 cursor-pointer"
               >
                 <IconX className="w-3.5 h-3.5" />
               </button>
@@ -321,8 +321,8 @@ export const ApprovalsDeskPage: React.FC = () => {
                   <option value="company">All Company</option>
                   <option value="assigned">Assigned to Me</option>
                 </select>
-                <IconBuildingSkyscraper className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <IconBuildingSkyscraper className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             )}
 
@@ -340,8 +340,8 @@ export const ApprovalsDeskPage: React.FC = () => {
                 <option value="COMP_OFF">Comp-Off</option>
                 <option value="GOAL">Performance Goals</option>
               </select>
-              <IconFilter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconFilter className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
             {/* Status Dropdown */}
@@ -356,8 +356,8 @@ export const ApprovalsDeskPage: React.FC = () => {
                 <option value="REJECTED">Rejected</option>
                 <option value="ALL">All</option>
               </select>
-              <IconChecklist className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChecklist className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
         </div>
@@ -391,14 +391,14 @@ export const ApprovalsDeskPage: React.FC = () => {
                 ))
               ) : filteredRequests.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
+                  <td colSpan={7} className="py-12 text-center text-slate-500 font-medium">
                     <div className="w-12 h-12 rounded-full bg-indigo-50 text-[#5E4BE2] flex items-center justify-center mx-auto mb-2">
                       <IconCheck className="w-6 h-6" />
                     </div>
                     <h4 className="text-sm font-bold text-slate-800">
                       {selectedStatus === 'PENDING' ? 'Inbox Zero!' : 'No approval requests found'}
                     </h4>
-                    <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                    <p className="text-xs text-slate-500 font-medium mt-1 max-w-sm mx-auto">
                       {selectedStatus === 'PENDING'
                         ? 'There are no pending requests requiring your action in this queue.'
                         : 'No records matched your selected filters or search keyword.'}
@@ -418,7 +418,7 @@ export const ApprovalsDeskPage: React.FC = () => {
                           <div className="font-bold text-slate-900 text-xs">
                             {req.user?.firstName} {req.user?.lastName}
                           </div>
-                          <div className="text-[11px] text-slate-400 font-normal">
+                          <div className="text-[11px] text-slate-500 font-normal">
                             {req.user?.email}
                           </div>
                         </div>
@@ -450,7 +450,7 @@ export const ApprovalsDeskPage: React.FC = () => {
                         )}
                       </div>
                       {req.startDate && (
-                        <div className="text-[11px] text-slate-400 font-normal mt-0.5">
+                        <div className="text-[11px] text-slate-500 font-normal mt-0.5">
                           {new Date(req.startDate).toLocaleDateString()} — {new Date(req.endDate || req.startDate).toLocaleDateString()}
                           {req.days && <span className="font-semibold text-slate-600 ml-1">({req.days} days)</span>}
                         </div>
@@ -510,7 +510,7 @@ export const ApprovalsDeskPage: React.FC = () => {
                           onClick={() => handleOpenReview(req)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs shadow-2xs transition-all cursor-pointer whitespace-nowrap"
                         >
-                          <IconEye className="w-3.5 h-3.5 text-slate-400" />
+                          <IconEye className="w-3.5 h-3.5 text-slate-500 font-medium" />
                           <span>View Details</span>
                         </button>
                       )}
@@ -580,7 +580,7 @@ export const ApprovalsDeskPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setReviewModal({ open: false, decision: '', note: '' })}
-                    className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors"
+                    className="p-2 text-slate-500 font-medium hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors"
                   >
                     <IconX className="w-5 h-5" />
                   </button>
@@ -597,10 +597,10 @@ export const ApprovalsDeskPage: React.FC = () => {
                       <h4 className="text-sm font-bold text-slate-900 truncate">
                         {reviewModal.req.user?.firstName} {reviewModal.req.user?.lastName}
                       </h4>
-                      <p className="text-xs text-slate-500 truncate mt-0.5">
+                      <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
                         {reviewModal.req.user?.email} {reviewModal.req.user?.jobTitle ? `• ${reviewModal.req.user.jobTitle}` : ''}
                       </p>
-                      <span className="text-[10px] text-slate-400 block mt-1">
+                      <span className="text-[10px] text-slate-500 font-medium block mt-1">
                         Submitted on {new Date(reviewModal.req.createdAt).toLocaleString('en-IN', {
                           day: 'numeric',
                           month: 'short',
@@ -615,14 +615,14 @@ export const ApprovalsDeskPage: React.FC = () => {
                   {/* Request Key Metrics & Details Card */}
                   <div className="p-4 bg-white rounded-2xl border border-slate-200 space-y-3 shadow-2xs">
                     <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5 border-b border-slate-100 pb-2">
-                      <IconCalendar className="w-4 h-4 text-slate-500" />
+                      <IconCalendar className="w-4 h-4 text-slate-500 font-medium" />
                       Request Specifications
                     </span>
 
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       {reviewModal.req.startDate && (
                         <div>
-                          <span className="text-slate-400 block text-[11px]">Start Date</span>
+                          <span className="text-slate-500 font-medium block text-[11px]">Start Date</span>
                           <span className="font-bold text-slate-800">
                             {new Date(reviewModal.req.startDate).toLocaleDateString('en-IN', {
                               day: 'numeric',
@@ -634,7 +634,7 @@ export const ApprovalsDeskPage: React.FC = () => {
                       )}
                       {reviewModal.req.endDate && (
                         <div>
-                          <span className="text-slate-400 block text-[11px]">End Date</span>
+                          <span className="text-slate-500 font-medium block text-[11px]">End Date</span>
                           <span className="font-bold text-slate-800">
                             {new Date(reviewModal.req.endDate).toLocaleDateString('en-IN', {
                               day: 'numeric',
@@ -646,13 +646,13 @@ export const ApprovalsDeskPage: React.FC = () => {
                       )}
                       {reviewModal.req.days !== undefined && reviewModal.req.days !== null && (
                         <div>
-                          <span className="text-slate-400 block text-[11px]">Duration</span>
+                          <span className="text-slate-500 font-medium block text-[11px]">Duration</span>
                           <span className="font-bold text-slate-800">{reviewModal.req.days} Day(s)</span>
                         </div>
                       )}
                       {reviewModal.req.amount !== undefined && reviewModal.req.amount !== null && (
                         <div>
-                          <span className="text-slate-400 block text-[11px]">Total Claim Amount</span>
+                          <span className="text-slate-500 font-medium block text-[11px]">Total Claim Amount</span>
                           <span className="font-mono font-bold text-emerald-700 text-sm">
                             ₹{Number(reviewModal.req.amount).toLocaleString('en-IN')}
                           </span>
@@ -660,14 +660,14 @@ export const ApprovalsDeskPage: React.FC = () => {
                       )}
                       {reviewModal.req.leaveType?.name && (
                         <div>
-                          <span className="text-slate-400 block text-[11px]">Leave Category</span>
+                          <span className="text-slate-500 font-medium block text-[11px]">Leave Category</span>
                           <span className="font-bold text-slate-800">{reviewModal.req.leaveType.name}</span>
                         </div>
                       )}
                       {reviewModal.req.type === 'REGULARIZATION' && (
                         <>
                           <div>
-                            <span className="text-slate-400 block text-[11px]">Correction Scope</span>
+                            <span className="text-slate-500 font-medium block text-[11px]">Correction Scope</span>
                             <span className="font-bold text-[#5E4BE2]">
                               {reviewModal.req.meta?.regularizeType === 'CHECK_IN_ONLY'
                                 ? 'Check-in Time Only'
@@ -678,14 +678,14 @@ export const ApprovalsDeskPage: React.FC = () => {
                           </div>
                           {reviewModal.req.meta?.requestedCheckIn && (
                             <div>
-                              <span className="text-slate-400 block text-[11px]">Requested Check-in</span>
+                              <span className="text-slate-500 font-medium block text-[11px]">Requested Check-in</span>
                               <span className="font-mono font-bold text-slate-800">
                                 {reviewModal.req.meta.requestedCheckIn}
                               </span>
                             </div>
                           )}
                           <div>
-                            <span className="text-slate-400 block text-[11px]">Requested Check-out</span>
+                            <span className="text-slate-500 font-medium block text-[11px]">Requested Check-out</span>
                             <span className="font-mono font-bold text-slate-800">
                               {reviewModal.req.meta?.requestedCheckOut
                                 ? reviewModal.req.meta.requestedCheckOut
@@ -697,7 +697,7 @@ export const ApprovalsDeskPage: React.FC = () => {
                       {reviewModal.req.type === 'COMP_OFF' && (
                         <>
                           <div>
-                            <span className="text-slate-400 block text-[11px]">Work Occasion</span>
+                            <span className="text-slate-500 font-medium block text-[11px]">Work Occasion</span>
                             <span className="font-bold text-slate-800">
                               {reviewModal.req.meta?.workType === 'WEEKEND' ? 'Weekend Work' : 'Holiday Work'}
                               {reviewModal.req.meta?.dayOfWeek ? ` (${reviewModal.req.meta.dayOfWeek})` : ''}
@@ -705,7 +705,7 @@ export const ApprovalsDeskPage: React.FC = () => {
                           </div>
                           {reviewModal.req.meta?.holidayName && (
                             <div>
-                              <span className="text-slate-400 block text-[11px]">Holiday Name</span>
+                              <span className="text-slate-500 font-medium block text-[11px]">Holiday Name</span>
                               <span className="font-bold text-slate-800">
                                 {reviewModal.req.meta.holidayName}
                               </span>
@@ -718,7 +718,7 @@ export const ApprovalsDeskPage: React.FC = () => {
                     {/* Attachment preview if submitted */}
                     {reviewModal.req.meta?.attachmentUrl && (
                       <div className="pt-2 border-t border-slate-100 space-y-2">
-                        <span className="text-slate-400 block text-[11px] font-semibold">Supporting Attachment</span>
+                        <span className="text-slate-500 block text-[11px] font-semibold">Supporting Attachment</span>
                         
                         {/* Inline Image Thumbnail if image (logs screenshot, email approval, receipt) */}
                         {reviewModal.req.meta.attachmentUrl.startsWith('data:image') && (
@@ -746,7 +746,7 @@ export const ApprovalsDeskPage: React.FC = () => {
                             className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs transition-colors cursor-pointer"
                             title="Download attachment file"
                           >
-                            <IconDownload className="w-3.5 h-3.5 text-slate-500" />
+                            <IconDownload className="w-3.5 h-3.5 text-slate-500 font-medium" />
                             <span>Download</span>
                           </a>
                         </div>
@@ -755,7 +755,7 @@ export const ApprovalsDeskPage: React.FC = () => {
 
                     {/* Reason / Statement Box */}
                     <div className="pt-2 border-t border-slate-100">
-                      <span className="text-slate-400 block text-[11px] mb-1 font-semibold">Employee Stated Reason / Note</span>
+                      <span className="text-slate-500 block text-[11px] mb-1 font-semibold">Employee Stated Reason / Note</span>
                       <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-700 leading-relaxed font-medium italic">
                         "{reviewModal.req.reason || 'No specific reason entered by employee.'}"
                       </div>
@@ -770,7 +770,7 @@ export const ApprovalsDeskPage: React.FC = () => {
                           <IconChecklist className="w-4 h-4 text-[#5E4BE2]" />
                           Reviewer Decision &amp; Feedback
                         </h4>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
+                        <p className="text-[11px] text-slate-500 font-medium mt-0.5">
                           Review the details above, then select your decision action and add your comments below.
                         </p>
                       </div>
@@ -817,7 +817,7 @@ export const ApprovalsDeskPage: React.FC = () => {
                               ? 'Enter justification or feedback for the employee...'
                               : 'Add approval note or instructions for the employee (optional)...'
                           }
-                          className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:border-[#5E4BE2] focus:ring-2 focus:ring-[#5E4BE2]/20 transition-all placeholder:text-slate-400 font-medium text-slate-800"
+                          className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:border-[#5E4BE2] focus:ring-2 focus:ring-[#5E4BE2]/20 transition-all placeholder:text-slate-500 font-medium text-slate-800"
                         />
                       </div>
                     </div>

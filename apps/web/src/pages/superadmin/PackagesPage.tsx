@@ -390,9 +390,9 @@ export const PackagesPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">Packages &amp; Pricing</h1>
-          <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5 font-medium">
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5 font-medium">
             <Link to="/super-admin/dashboard" className="hover:text-blue-600 flex items-center gap-1">
-              <IconHome className="w-3.5 h-3.5 text-slate-400" />
+              <IconHome className="w-3.5 h-3.5 text-slate-500 font-medium" />
             </Link>
             <span className="text-slate-500 font-medium">Super Admin</span>
             <span className="text-slate-300">&gt;</span>
@@ -429,31 +429,31 @@ export const PackagesPage: React.FC = () => {
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 Basic Tier
               </span>
-              <span className="text-xs text-slate-400 font-medium">{basicCount} Plans</span>
+              <span className="text-xs text-slate-500 font-medium">{basicCount} Plans</span>
             </div>
             <h3 className="text-lg font-bold text-slate-900">Basic Plan</h3>
-            <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+            <p className="text-xs text-slate-500 font-medium mt-1 line-clamp-2">
               Essential HR foundation: Attendance, Leave Management, and Employee Directory.
             </p>
 
             <div className="mt-4 pt-3 border-t border-slate-100 grid grid-cols-3 gap-2 text-center">
               <div className="bg-slate-50 p-2 rounded-xl">
-                <div className="text-[10px] text-slate-400 uppercase font-semibold">Monthly</div>
+                <div className="text-[10px] text-slate-500 uppercase font-semibold">Monthly</div>
                 <div className="text-xs font-bold text-slate-800 mt-0.5">₹999</div>
               </div>
               <div className="bg-slate-50 p-2 rounded-xl">
-                <div className="text-[10px] text-slate-400 uppercase font-semibold">Quarterly</div>
+                <div className="text-[10px] text-slate-500 uppercase font-semibold">Quarterly</div>
                 <div className="text-xs font-bold text-slate-800 mt-0.5">₹2,799</div>
               </div>
               <div className="bg-slate-50 p-2 rounded-xl">
-                <div className="text-[10px] text-slate-400 uppercase font-semibold">Yearly</div>
+                <div className="text-[10px] text-slate-500 uppercase font-semibold">Yearly</div>
                 <div className="text-xs font-bold text-emerald-600 mt-0.5">₹9,999</div>
               </div>
             </div>
           </div>
 
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-[11px] text-slate-500">Up to 25 Employees</span>
+            <span className="text-[11px] text-slate-500 font-medium">Up to 25 Employees</span>
             <button
               onClick={() => handleOpenCreate('BASIC')}
               className="text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:underline"
@@ -471,31 +471,31 @@ export const PackagesPage: React.FC = () => {
                 <span className="w-2 h-2 rounded-full bg-blue-500" />
                 Medium Tier
               </span>
-              <span className="text-xs text-slate-400 font-medium">{mediumCount} Plans</span>
+              <span className="text-xs text-slate-500 font-medium">{mediumCount} Plans</span>
             </div>
             <h3 className="text-lg font-bold text-slate-900">Medium Plan</h3>
-            <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+            <p className="text-xs text-slate-500 font-medium mt-1 line-clamp-2">
               Workforce suite: Attendance, Leaves, Expense Claims, Tickets, and Appreciations.
             </p>
 
             <div className="mt-4 pt-3 border-t border-slate-100 grid grid-cols-3 gap-2 text-center">
               <div className="bg-slate-50 p-2 rounded-xl">
-                <div className="text-[10px] text-slate-400 uppercase font-semibold">Monthly</div>
+                <div className="text-[10px] text-slate-500 uppercase font-semibold">Monthly</div>
                 <div className="text-xs font-bold text-slate-800 mt-0.5">₹2,499</div>
               </div>
               <div className="bg-slate-50 p-2 rounded-xl">
-                <div className="text-[10px] text-slate-400 uppercase font-semibold">Quarterly</div>
+                <div className="text-[10px] text-slate-500 uppercase font-semibold">Quarterly</div>
                 <div className="text-xs font-bold text-slate-800 mt-0.5">₹6,999</div>
               </div>
               <div className="bg-slate-50 p-2 rounded-xl">
-                <div className="text-[10px] text-slate-400 uppercase font-semibold">Yearly</div>
+                <div className="text-[10px] text-slate-500 uppercase font-semibold">Yearly</div>
                 <div className="text-xs font-bold text-blue-600 mt-0.5">₹24,999</div>
               </div>
             </div>
           </div>
 
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-[11px] text-slate-500">Up to 50 Employees</span>
+            <span className="text-[11px] text-slate-500 font-medium">Up to 50 Employees</span>
             <button
               onClick={() => handleOpenCreate('MEDIUM')}
               className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline"
@@ -513,31 +513,31 @@ export const PackagesPage: React.FC = () => {
                 <IconSparkles className="w-3 h-3 text-amber-500" />
                 Custom Company Tier
               </span>
-              <span className="text-xs text-slate-400 font-medium">{customCount} Custom Plans</span>
+              <span className="text-xs text-slate-500 font-medium">{customCount} Custom Plans</span>
             </div>
             <h3 className="text-lg font-bold text-slate-900">Custom Plan</h3>
-            <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+            <p className="text-xs text-slate-500 font-medium mt-1 line-clamp-2">
               Enterprise suite tailored for a specific company with custom pricing, seats, and AI.
             </p>
 
             <div className="mt-4 pt-3 border-t border-slate-100 grid grid-cols-3 gap-2 text-center">
               <div className="bg-amber-50/50 p-2 rounded-xl border border-amber-100/60">
-                <div className="text-[10px] text-slate-400 uppercase font-semibold">Monthly</div>
+                <div className="text-[10px] text-slate-500 uppercase font-semibold">Monthly</div>
                 <div className="text-xs font-bold text-slate-800 mt-0.5">₹4,999</div>
               </div>
               <div className="bg-amber-50/50 p-2 rounded-xl border border-amber-100/60">
-                <div className="text-[10px] text-slate-400 uppercase font-semibold">Quarterly</div>
+                <div className="text-[10px] text-slate-500 uppercase font-semibold">Quarterly</div>
                 <div className="text-xs font-bold text-slate-800 mt-0.5">₹13,999</div>
               </div>
               <div className="bg-amber-50/50 p-2 rounded-xl border border-amber-100/60">
-                <div className="text-[10px] text-slate-400 uppercase font-semibold">Yearly</div>
+                <div className="text-[10px] text-slate-500 uppercase font-semibold">Yearly</div>
                 <div className="text-xs font-bold text-amber-600 mt-0.5">₹49,999</div>
               </div>
             </div>
           </div>
 
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-[11px] text-slate-500">Custom Seats &amp; Title</span>
+            <span className="text-[11px] text-slate-500 font-medium">Custom Seats &amp; Title</span>
             <button
               onClick={() => handleOpenCreate('CUSTOM')}
               className="text-xs font-bold text-amber-600 hover:text-amber-700 hover:underline"
@@ -608,7 +608,7 @@ export const PackagesPage: React.FC = () => {
           </div>
 
           <div className="relative w-full md:w-80">
-            <IconSearch className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="Search plan or company name..."
@@ -617,7 +617,7 @@ export const PackagesPage: React.FC = () => {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="pl-10 pr-4 py-2 text-xs bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-blue-600 w-full placeholder:text-slate-400 text-slate-800 shadow-2xs"
+              className="pl-10 pr-4 py-2 text-xs bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-blue-600 w-full placeholder:text-slate-500 font-medium text-slate-800 shadow-2xs"
             />
           </div>
         </div>
@@ -640,13 +640,13 @@ export const PackagesPage: React.FC = () => {
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-10 text-center text-slate-400">
+                  <td colSpan={8} className="px-5 py-10 text-center text-slate-500 font-medium">
                     <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600" />
                   </td>
                 </tr>
               ) : displayedPackages.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-12 text-center text-slate-400 font-medium">
+                  <td colSpan={8} className="px-5 py-12 text-center text-slate-500 font-medium">
                     No packages match the current filters.
                   </td>
                 </tr>
@@ -680,7 +680,7 @@ export const PackagesPage: React.FC = () => {
                             <span className="font-bold text-slate-900 leading-snug block">
                               {pkg.name}
                             </span>
-                            <span className="text-[11px] text-slate-400 line-clamp-1 max-w-[200px]">
+                            <span className="text-[11px] text-slate-500 font-medium line-clamp-1 max-w-[200px]">
                               {pkg.description || 'Full HR workspace plan'}
                             </span>
                           </div>
@@ -707,19 +707,19 @@ export const PackagesPage: React.FC = () => {
                       {/* Monthly Price */}
                       <td className="px-5 py-4 whitespace-nowrap">
                         <span className="font-bold text-slate-900">{monthlyFormatted}</span>
-                        <span className="text-[10px] text-slate-400 block">/ month</span>
+                        <span className="text-[10px] text-slate-500 font-medium block">/ month</span>
                       </td>
 
                       {/* Quarterly Price */}
                       <td className="px-5 py-4 whitespace-nowrap">
                         <span className="font-bold text-slate-900">{quarterlyFormatted}</span>
-                        <span className="text-[10px] text-slate-400 block">/ quarter</span>
+                        <span className="text-[10px] text-slate-500 font-medium block">/ quarter</span>
                       </td>
 
                       {/* Yearly Price */}
                       <td className="px-5 py-4 whitespace-nowrap">
                         <span className="font-bold text-emerald-700">{yearlyFormatted}</span>
-                        <span className="text-[10px] text-slate-400 block">/ year</span>
+                        <span className="text-[10px] text-slate-500 font-medium block">/ year</span>
                       </td>
 
                       {/* Limit */}
@@ -764,7 +764,7 @@ export const PackagesPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleDelete(pkg)}
-                            className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center shadow-2xs transition-colors cursor-pointer"
+                            className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-rose-50 text-slate-500 font-medium hover:text-rose-600 flex items-center justify-center shadow-2xs transition-colors cursor-pointer"
                             title="Delete Package"
                           >
                             <IconTrash className="w-4 h-4" />
@@ -780,7 +780,7 @@ export const PackagesPage: React.FC = () => {
         </div>
 
         {/* Pagination Bar */}
-        <div className="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+        <div className="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 font-medium">
           <span>
             {filteredPackages.length === 0
               ? 'Showing 0 to 0 entries'
@@ -833,14 +833,14 @@ export const PackagesPage: React.FC = () => {
                 <h2 className="text-base font-bold text-slate-900">
                   {form.id ? 'Edit Package Plan' : 'Create Package Plan'}
                 </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
                   Configure Monthly, Quarterly, and Yearly prices and company assignments.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-lg text-slate-500 font-medium hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
               >
                 <IconX className="w-5 h-5" />
               </button>
@@ -874,7 +874,7 @@ export const PackagesPage: React.FC = () => {
                       <span>Basic Plan</span>
                       {form.tier === 'BASIC' && <IconCheck className="w-4 h-4 text-emerald-600" />}
                     </div>
-                    <div className="text-[11px] text-slate-500 mt-1">Starter Tier</div>
+                    <div className="text-[11px] text-slate-500 font-medium mt-1">Starter Tier</div>
                   </button>
 
                   <button
@@ -890,7 +890,7 @@ export const PackagesPage: React.FC = () => {
                       <span>Medium Plan</span>
                       {form.tier === 'MEDIUM' && <IconCheck className="w-4 h-4 text-blue-600" />}
                     </div>
-                    <div className="text-[11px] text-slate-500 mt-1">Professional Tier</div>
+                    <div className="text-[11px] text-slate-500 font-medium mt-1">Professional Tier</div>
                   </button>
 
                   <button
@@ -906,7 +906,7 @@ export const PackagesPage: React.FC = () => {
                       <span>Custom Plan</span>
                       {form.tier === 'CUSTOM' && <IconCheck className="w-4 h-4 text-amber-600" />}
                     </div>
-                    <div className="text-[11px] text-slate-500 mt-1">For Specific Company</div>
+                    <div className="text-[11px] text-slate-500 font-medium mt-1">For Specific Company</div>
                   </button>
                 </div>
               </div>
@@ -923,7 +923,7 @@ export const PackagesPage: React.FC = () => {
                     placeholder="e.g. Acme Corporation, TechNova Inc"
                     value={form.companyName}
                     onChange={(e) => handleCompanyNameChange(e.target.value)}
-                    className="w-full px-3.5 py-2 text-xs bg-white border border-amber-300 rounded-xl focus:border-amber-600 focus:outline-hidden text-slate-900 font-medium placeholder:text-slate-400"
+                    className="w-full px-3.5 py-2 text-xs bg-white border border-amber-300 rounded-xl focus:border-amber-600 focus:outline-hidden text-slate-900 font-medium placeholder:text-slate-500"
                   />
                   <p className="text-[11px] text-amber-800">
                     Entering a company name automatically formats the title as{' '}
@@ -945,7 +945,7 @@ export const PackagesPage: React.FC = () => {
                     placeholder="e.g. Basic Plan or Acme Corp - Custom Plan"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-200 rounded-xl focus:border-blue-600 focus:outline-hidden text-slate-800 placeholder:text-slate-400 shadow-2xs font-medium"
+                    className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-200 rounded-xl focus:border-blue-600 focus:outline-hidden text-slate-800 placeholder:text-slate-500 shadow-2xs font-medium"
                   />
                 </div>
 
@@ -956,7 +956,7 @@ export const PackagesPage: React.FC = () => {
                     placeholder="INR"
                     value={form.currency}
                     onChange={(e) => setForm({ ...form, currency: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-200 rounded-xl focus:border-blue-600 focus:outline-hidden text-slate-800 placeholder:text-slate-400 shadow-2xs"
+                    className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-200 rounded-xl focus:border-blue-600 focus:outline-hidden text-slate-800 placeholder:text-slate-500 font-medium shadow-2xs"
                   />
                 </div>
               </div>
@@ -976,7 +976,7 @@ export const PackagesPage: React.FC = () => {
                     onChange={(e) => setForm({ ...form, priceMonthly: e.target.value })}
                     className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:border-blue-600 focus:outline-hidden text-slate-900 font-bold"
                   />
-                  <span className="text-[10px] text-slate-400 mt-0.5 block">Billed every month</span>
+                  <span className="text-[10px] text-slate-500 font-medium mt-0.5 block">Billed every month</span>
                 </div>
 
                 <div>
@@ -992,7 +992,7 @@ export const PackagesPage: React.FC = () => {
                     onChange={(e) => setForm({ ...form, priceQuarterly: e.target.value })}
                     className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:border-blue-600 focus:outline-hidden text-slate-900 font-bold"
                   />
-                  <span className="text-[10px] text-slate-400 mt-0.5 block">Billed every 3 months</span>
+                  <span className="text-[10px] text-slate-500 font-medium mt-0.5 block">Billed every 3 months</span>
                 </div>
 
                 <div>
@@ -1024,7 +1024,7 @@ export const PackagesPage: React.FC = () => {
                     placeholder="25"
                     value={form.employeeLimit}
                     onChange={(e) => setForm({ ...form, employeeLimit: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-200 rounded-xl focus:border-blue-600 focus:outline-hidden text-slate-800 placeholder:text-slate-400 shadow-2xs"
+                    className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-200 rounded-xl focus:border-blue-600 focus:outline-hidden text-slate-800 placeholder:text-slate-500 font-medium shadow-2xs"
                   />
                 </div>
 
@@ -1057,14 +1057,14 @@ export const PackagesPage: React.FC = () => {
                   placeholder="Plan summary and purpose..."
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-200 rounded-xl focus:border-blue-600 focus:outline-hidden text-slate-800 placeholder:text-slate-400 shadow-2xs"
+                  className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-200 rounded-xl focus:border-blue-600 focus:outline-hidden text-slate-800 placeholder:text-slate-500 font-medium shadow-2xs"
                 />
               </div>
 
               {/* Included Modules / Features Checklist */}
               <div>
                 <label className="block text-xs font-bold text-slate-900 mb-1">Included Modules</label>
-                <p className="text-[11px] text-slate-500 mb-3">
+                <p className="text-[11px] text-slate-500 font-medium mb-3">
                   Check modules available to companies on this package plan:
                 </p>
 
@@ -1088,7 +1088,7 @@ export const PackagesPage: React.FC = () => {
                         />
                         <div className="leading-tight">
                           <div className="font-semibold">{feat.name}</div>
-                          <div className="text-[10px] text-slate-400 mt-0.5 leading-snug">
+                          <div className="text-[10px] text-slate-500 font-medium mt-0.5 leading-snug">
                             {feat.description}
                           </div>
                         </div>

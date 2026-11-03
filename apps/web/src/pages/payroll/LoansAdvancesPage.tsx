@@ -257,7 +257,7 @@ export const LoansAdvancesPage: React.FC = () => {
             <IconPigMoney className="w-5 h-5 text-emerald-600 shrink-0" />
             <span>Loans & Salary Advances</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Manage employee emergency advances, interest-free loans, and monthly EMI payroll deductions.
           </p>
         </div>
@@ -283,7 +283,7 @@ export const LoansAdvancesPage: React.FC = () => {
           <div className="text-xl font-black text-slate-900">
             ₹{metrics.totalOutstanding.toLocaleString('en-IN')}
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">
+          <p className="text-[11px] text-slate-500 font-medium mt-1">
             {metrics.activeCount} employee loans currently active
           </p>
         </div>
@@ -298,7 +298,7 @@ export const LoansAdvancesPage: React.FC = () => {
           <div className="text-xl font-black text-slate-900">
             ₹{metrics.monthlyRecovery.toLocaleString('en-IN')}
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">
+          <p className="text-[11px] text-slate-500 font-medium mt-1">
             Auto-deducted from upcoming monthly payslips
           </p>
         </div>
@@ -313,7 +313,7 @@ export const LoansAdvancesPage: React.FC = () => {
           <div className="text-xl font-black text-slate-900">
             ₹{metrics.totalDisbursed.toLocaleString('en-IN')}
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">
+          <p className="text-[11px] text-slate-500 font-medium mt-1">
             Cumulative financial assistance this year
           </p>
         </div>
@@ -328,7 +328,7 @@ export const LoansAdvancesPage: React.FC = () => {
           <div className="text-xl font-black text-slate-900">
             {metrics.pendingCount}
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">
+          <p className="text-[11px] text-slate-500 font-medium mt-1">
             Awaiting Finance approval & UTR disbursement
           </p>
         </div>
@@ -361,7 +361,7 @@ export const LoansAdvancesPage: React.FC = () => {
         </div>
 
         <div className="relative flex-1 max-w-md">
-          <IconSearch className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             placeholder="Search by employee name, loan ID, or department..."
@@ -392,10 +392,10 @@ export const LoansAdvancesPage: React.FC = () => {
             <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
               {paginatedLoans.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-5 py-12 text-center text-slate-400">
+                  <td colSpan={9} className="px-5 py-12 text-center text-slate-500 font-medium">
                     <IconPigMoney className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                     <p className="font-bold text-slate-700">No loan records found</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
+                    <p className="text-[11px] text-slate-500 font-medium mt-0.5">
                       Submit a new salary advance request using the button above.
                     </p>
                   </td>
@@ -408,7 +408,7 @@ export const LoansAdvancesPage: React.FC = () => {
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="font-bold text-slate-900">{loan.employeeName}</div>
-                      <div className="text-[11px] text-slate-400">{loan.department}</div>
+                      <div className="text-[11px] text-slate-500 font-medium">{loan.department}</div>
                     </td>
                     <td className="px-5 py-3.5">
                       <span className="font-semibold text-slate-700">
@@ -458,7 +458,7 @@ export const LoansAdvancesPage: React.FC = () => {
                           )}
                           {loan.status === 'DISBURSED' && loan.utrNumber && (
                             <span
-                              className="text-[10px] font-mono text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md"
+                              className="text-[10px] font-mono text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md"
                               title={`UTR: ${loan.utrNumber}`}
                             >
                               UTR: {loan.utrNumber.slice(-6)}
@@ -493,11 +493,11 @@ export const LoansAdvancesPage: React.FC = () => {
           <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-bold text-slate-900 text-sm">Record Bank Disbursement</h3>
-              <button onClick={() => setIsDisburseModalOpen(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+              <button onClick={() => setIsDisburseModalOpen(false)} className="text-slate-500 font-medium hover:text-slate-600 cursor-pointer">
                 <IconX className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-xs text-slate-500 mb-3">
+            <p className="text-xs text-slate-500 font-medium mb-3">
               Disbursing <strong>₹{selectedLoan.principalAmount.toLocaleString('en-IN')}</strong> to{' '}
               <strong>{selectedLoan.employeeName}</strong>.
             </p>
@@ -553,13 +553,13 @@ export const LoansAdvancesPage: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-slate-900">Request Salary Advance</h3>
-                    <p className="text-xs text-slate-500">Apply for emergency loans or salary advances</p>
+                    <p className="text-xs text-slate-500 font-medium">Apply for emergency loans or salary advances</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsApplyModalOpen(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <IconX className="w-5 h-5" />
                 </button>

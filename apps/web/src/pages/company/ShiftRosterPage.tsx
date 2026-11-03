@@ -475,7 +475,7 @@ export const ShiftRosterPage: React.FC = () => {
                 <IconClock className="w-5 h-5 text-indigo-600 shrink-0" />
                 <span>Shift Management</span>
               </h1>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
                 Configure rotational shifts, morning/night hours, grace periods, and weekly employee roster planning.
               </p>
             </div>
@@ -505,7 +505,7 @@ export const ShiftRosterPage: React.FC = () => {
                   <IconSettings className="w-5 h-5 text-indigo-600 shrink-0" />
                   <span>Shift Configuration</span>
                 </h1>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
                   Configure standardized work timings, automated grace periods for check-in delays, and overtime multipliers.
                 </p>
               </div>
@@ -585,7 +585,7 @@ export const ShiftRosterPage: React.FC = () => {
             <div className="flex flex-wrap items-center gap-2.5">
               {/* Search input */}
               <div className="relative min-w-[180px] sm:w-56">
-                <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Search employee, dept..."
@@ -603,7 +603,7 @@ export const ShiftRosterPage: React.FC = () => {
                       setSearchQuery('');
                       setCurrentPage(1);
                     }}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 font-medium hover:text-slate-600 p-0.5 cursor-pointer"
                     title="Clear search"
                   >
                     <IconX className="w-3.5 h-3.5" />
@@ -628,8 +628,8 @@ export const ShiftRosterPage: React.FC = () => {
                     </option>
                   ))}
                 </select>
-                <IconFilter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <IconFilter className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
 
               {/* Shift Legend & Filter Dropdown */}
@@ -651,7 +651,7 @@ export const ShiftRosterPage: React.FC = () => {
                       : `Shift: ${shiftFilter}`}
                   </span>
                   <IconChevronDown
-                    className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                    className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
                       showLegendDropdown ? 'rotate-180' : ''
                     }`}
                   />
@@ -669,7 +669,7 @@ export const ShiftRosterPage: React.FC = () => {
                       </span>
                     </div>
 
-                    <p className="text-[11px] text-slate-400 mb-2 px-1">
+                    <p className="text-[11px] text-slate-500 font-medium mb-2 px-1">
                       Click any shift to filter the roster, or view timing rules:
                     </p>
 
@@ -717,7 +717,7 @@ export const ShiftRosterPage: React.FC = () => {
                               </span>
                               <div className="min-w-0">
                                 <div className="text-xs font-bold text-slate-800 truncate">{s.name}</div>
-                                <div className="text-[10px] text-slate-400 font-medium">
+                                <div className="text-[10px] text-slate-500 font-medium">
                                   {s.startTime === '-' && s.endTime === '-' ? 'Weekly Off / Non-working' : `${s.startTime} – ${s.endTime}`}
                                   {s.startTime !== '-' && s.breakDurationMinutes > 0 && ` • ${s.breakDurationMinutes}m break`}
                                 </div>
@@ -731,7 +731,7 @@ export const ShiftRosterPage: React.FC = () => {
 
                     {/* Footer Link to Shift Rules */}
                     <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] px-1">
-                      <span className="text-slate-400">Configure hours or rules:</span>
+                      <span className="text-slate-500 font-medium">Configure hours or rules:</span>
                       <button
                         type="button"
                         onClick={() => {
@@ -801,12 +801,12 @@ export const ShiftRosterPage: React.FC = () => {
               <tbody className="divide-y divide-slate-100">
                 {paginatedEmployees.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
+                    <td colSpan={8} className="px-6 py-12 text-center text-slate-500 font-medium">
                       <div className="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-2">
                         <IconClock className="w-6 h-6" />
                       </div>
                       <h4 className="text-sm font-bold text-slate-800">No employees found</h4>
-                      <p className="text-xs text-slate-400 mt-1">
+                      <p className="text-xs text-slate-500 font-medium mt-1">
                         {employees.length === 0
                           ? 'No employees registered yet. Add employees first to plan shifts.'
                           : `No employees match "${searchQuery || departmentFilter}".`}
@@ -839,7 +839,7 @@ export const ShiftRosterPage: React.FC = () => {
                               <span className="font-bold text-slate-900 block truncate">
                                 {emp.firstName} {emp.lastName}
                               </span>
-                              <span className="text-[11px] text-slate-400 block truncate">
+                              <span className="text-[11px] text-slate-500 font-medium block truncate">
                                 {emp.department?.name || 'General'} • {emp.jobTitle || 'Team Member'}
                               </span>
                             </div>
@@ -916,18 +916,18 @@ export const ShiftRosterPage: React.FC = () => {
         /* Shifts Master View */
         <div className="space-y-4">
           {loadingShifts ? (
-            <div className="p-16 text-center text-slate-400 flex flex-col items-center justify-center gap-2 bg-white rounded-3xl border border-slate-200">
+            <div className="p-16 text-center text-slate-500 font-medium flex flex-col items-center justify-center gap-2 bg-white rounded-3xl border border-slate-200">
               <IconLoader2 className="w-6 h-6 animate-spin text-indigo-600" />
               <span className="text-xs font-semibold text-slate-600">Loading shift rules from database...</span>
             </div>
           ) : shifts.length === 0 ? (
-            <div className="p-16 text-center text-slate-400 flex flex-col items-center justify-center gap-3 bg-white rounded-3xl border border-slate-200">
+            <div className="p-16 text-center text-slate-500 font-medium flex flex-col items-center justify-center gap-3 bg-white rounded-3xl border border-slate-200">
               <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
                 <IconClock className="w-6 h-6" />
               </div>
               <div>
                 <h4 className="text-sm font-bold text-slate-900">No shifts configured in database</h4>
-                <p className="text-xs text-slate-500 mt-0.5">Create your company's standard shifts to get started</p>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">Create your company's standard shifts to get started</p>
               </div>
               <button
                 type="button"
@@ -962,7 +962,7 @@ export const ShiftRosterPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleOpenEditShift(s)}
-                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 text-slate-500 font-medium hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
                           title={`Edit ${s.name}`}
                         >
                           <IconPencil className="w-4 h-4" />
@@ -972,28 +972,28 @@ export const ShiftRosterPage: React.FC = () => {
 
                     <div className="pt-3 space-y-2 text-xs">
                       <div className="flex justify-between">
-                        <span className="text-slate-500">Working Hours:</span>
+                        <span className="text-slate-500 font-medium">Working Hours:</span>
                         <span className="font-bold text-slate-900">
                           {s.startTime === '-' && s.endTime === '-' ? '---' : `${s.startTime} - ${s.endTime}`}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-500">Break Duration:</span>
+                        <span className="text-slate-500 font-medium">Break Duration:</span>
                         <span className="font-semibold text-slate-700">{s.breakDurationMinutes} mins</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-500">Late Check-in Grace:</span>
+                        <span className="text-slate-500 font-medium">Late Check-in Grace:</span>
                         <span className="font-semibold text-emerald-600">{s.gracePeriodMinutes} mins</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-slate-400 text-[11px]">
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-slate-500 font-medium text-[11px]">
                     <span>Applied automatically to geo-fenced attendance checks</span>
                     <button
                       type="button"
                       onClick={() => handleDeleteShift(s.id, s.name)}
-                      className="text-slate-400 hover:text-rose-600 p-1 hover:bg-rose-50 rounded transition-colors cursor-pointer"
+                      className="text-slate-500 font-medium hover:text-rose-600 p-1 hover:bg-rose-50 rounded transition-colors cursor-pointer"
                       title={`Delete ${s.name}`}
                     >
                       <IconTrash className="w-3.5 h-3.5" />
@@ -1112,13 +1112,13 @@ export const ShiftRosterPage: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-slate-900">Bulk Assign Shift</h3>
-                    <p className="text-xs text-slate-500">Apply a shift timing to all employees in the current week</p>
+                    <p className="text-xs text-slate-500 font-medium">Apply a shift timing to all employees in the current week</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowBulkModal(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <IconX className="w-5 h-5" />
                 </button>
@@ -1210,7 +1210,7 @@ export const ShiftRosterPage: React.FC = () => {
                     <h3 className="text-base font-bold text-slate-900">
                       {editingShift ? `Edit Shift: ${editingShift.name}` : 'Create Shift'}
                     </h3>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 font-medium">
                       {editingShift
                         ? 'Update timing rules and check-in grace. Saved directly to database.'
                         : 'Configure new work timings and check-in grace rules in database.'}
@@ -1221,7 +1221,7 @@ export const ShiftRosterPage: React.FC = () => {
                   type="button"
                   disabled={isSavingShift}
                   onClick={() => setShowShiftDrawer(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <IconX className="w-5 h-5" />
                 </button>
@@ -1266,7 +1266,7 @@ export const ShiftRosterPage: React.FC = () => {
                       />
                       <span className="font-semibold text-slate-800 text-xs">Weekly Off / Non-working Day</span>
                     </label>
-                    <p className="text-[11px] text-slate-500">
+                    <p className="text-[11px] text-slate-500 font-medium">
                       When enabled, this shift marks the day as an off-day with no mandatory working hours.
                     </p>
                   </div>

@@ -243,6 +243,38 @@ export async function createRequest(opts: {
     if (!opts.amount || opts.amount <= 0) {
       throw new AppError(400, 'AMOUNT_REQUIRED', 'Claim amount must be greater than zero');
     }
+  } else if (opts.type === 'GOAL') {
+    const cycleId = opts.meta?.cycleId;
+    const requestedWeight = Number(opts.meta?.weight) || 0;
+    if (cycleId) {
+      const existingGoals = await prisma.request.findMany({
+        where: {
+          companyId: opts.companyId,
+          userId: opts.userId,
+          type: 'GOAL',
+          status: { in: ['PENDING', 'APPROVED'] },
+        },
+        select: { meta: true },
+      });
+      const currentCycleWeight = existingGoals.reduce((sum, g) => {
+        const m = (g.meta as any) || {};
+        if (m.cycleId === cycleId || (opts.meta?.cycleName && m.cycleName === opts.meta.cycleName)) {
+          return sum + (Number(m.weight) || 0);
+        }
+        return sum;
+      }, 0);
+
+      if (currentCycleWeight >= 100) {
+        throw new AppError(400, 'CYCLE_WEIGHT_LIMIT_REACHED', 'This appraisal cycle has already reached 100% allocated weightage.');
+      }
+      if (currentCycleWeight + requestedWeight > 100) {
+        throw new AppError(
+          400,
+          'CYCLE_WEIGHT_EXCEEDED',
+          `Total weight for this appraisal cycle cannot exceed 100%. Remaining available: ${100 - currentCycleWeight}%.`
+        );
+      }
+    }
   }
 
   // 3. Create request row

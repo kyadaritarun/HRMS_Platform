@@ -91,14 +91,14 @@ export const EventEmailsModal: React.FC<EventEmailsModalProps> = ({ isOpen, onCl
               <h3 className="text-base font-bold text-slate-900">
                 Automated Birthday & Event Emails
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
                 Automatically send celebratory emails from the server once dates and events are configured.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+            className="p-1.5 rounded-xl text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
           >
             <IconX className="w-5 h-5" />
           </button>
@@ -149,7 +149,7 @@ export const EventEmailsModal: React.FC<EventEmailsModalProps> = ({ isOpen, onCl
         {/* Body */}
         <div className="flex-1 p-6 overflow-y-auto space-y-6">
           {isLoading ? (
-            <div className="py-12 flex flex-col items-center justify-center text-slate-400">
+            <div className="py-12 flex flex-col items-center justify-center text-slate-500 font-medium">
               <IconLoader2 className="w-8 h-8 animate-spin text-[#5E4BE2] mb-2" />
               <p className="text-xs">Loading email configuration...</p>
             </div>
@@ -164,7 +164,7 @@ export const EventEmailsModal: React.FC<EventEmailsModalProps> = ({ isOpen, onCl
                     </div>
                     <div>
                       <h4 className="text-sm font-bold text-slate-900">Automated Birthday Greetings</h4>
-                      <p className="text-[11px] text-slate-500">
+                      <p className="text-[11px] text-slate-500 font-medium">
                         Automatically emails employees on their birthday with personalized wishes.
                       </p>
                     </div>
@@ -209,7 +209,7 @@ export const EventEmailsModal: React.FC<EventEmailsModalProps> = ({ isOpen, onCl
                     </div>
                     <div>
                       <h4 className="text-sm font-bold text-slate-900">Automated Holiday Announcements</h4>
-                      <p className="text-[11px] text-slate-500">
+                      <p className="text-[11px] text-slate-500 font-medium">
                         Dispatches festival & holiday announcement emails to all active team members.
                       </p>
                     </div>
@@ -280,10 +280,10 @@ export const EventEmailsModal: React.FC<EventEmailsModalProps> = ({ isOpen, onCl
                     <p className="text-slate-600">
                       On this very special day, everyone at [Company Name] wants to wish you a tremendous Happy Birthday! 🥳
                     </p>
-                    <p className="text-slate-500 italic">
+                    <p className="text-slate-500 font-medium italic">
                       "Count your life by smiles, not tears. Count your age by friends, not years."
                     </p>
-                    <div className="pt-2 text-slate-400 font-medium">With Warmest Wishes, The Entire Team</div>
+                    <div className="pt-2 text-slate-500 font-medium">With Warmest Wishes, The Entire Team</div>
                   </div>
                 </div>
               </div>
@@ -302,7 +302,7 @@ export const EventEmailsModal: React.FC<EventEmailsModalProps> = ({ isOpen, onCl
                     <div className="p-2 bg-slate-50 rounded-lg border border-slate-100 text-[11px] text-slate-600">
                       <strong>Office Status:</strong> Closed (Full Day Holiday)
                     </div>
-                    <div className="pt-2 text-slate-400 font-medium">Warm Regards, People Operations & Management</div>
+                    <div className="pt-2 text-slate-500 font-medium">Warm Regards, People Operations & Management</div>
                   </div>
                 </div>
               </div>

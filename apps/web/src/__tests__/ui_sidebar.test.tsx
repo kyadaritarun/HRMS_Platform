@@ -45,7 +45,6 @@ describe('Frontend UI Tests: Sidebar and LockedFeatureModal', () => {
     expect(screen.getByText('UPTRIX HRMS')).toBeInTheDocument();
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Self Service')).toBeInTheDocument();
-    expect(screen.getByText('Account')).toBeInTheDocument();
   });
 
   it('2. Locked features display crown icon and open LockedFeatureModal on click', () => {
@@ -160,18 +159,20 @@ describe('Frontend UI Tests: Sidebar and LockedFeatureModal', () => {
     );
 
     // Verify uptrix_hrms company admin categories
-    expect(screen.getByText('Company Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Company')).toBeInTheDocument();
-    expect(screen.getByText('Assigned To Me')).toBeInTheDocument();
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Self Service')).toBeInTheDocument();
+    expect(screen.getByText('Assigned To Me')).toBeInTheDocument();
+    expect(screen.getByText('Company')).toBeInTheDocument();
     expect(screen.getByText('HR Operations')).toBeInTheDocument();
-    expect(screen.getByText('Account')).toBeInTheDocument();
+    expect(screen.getByText('IT Operations')).toBeInTheDocument();
+    expect(screen.getByText('Finance Operations')).toBeInTheDocument();
 
     // Clicking Company expands downward
     const compCategory = screen.getByText('Company');
     fireEvent.click(compCategory);
 
     // Verify Company sub-items appear
+    expect(screen.getByText('Company Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Create Employee')).toBeInTheDocument();
     expect(screen.getByText('Billing')).toBeInTheDocument();
     expect(screen.getByText('Activity Logs')).toBeInTheDocument();

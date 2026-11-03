@@ -125,7 +125,7 @@ export const InvoicesPage: React.FC = () => {
         label: p.cardLast4 ? `Card •••• ${p.cardLast4}` : 'Card',
         ref: p.reference || '',
         badgeClass: 'bg-slate-100 text-slate-700 border-slate-200',
-        icon: <IconCreditCard className="w-3.5 h-3.5 text-slate-500 shrink-0" />,
+        icon: <IconCreditCard className="w-3.5 h-3.5 text-slate-500 font-medium shrink-0" />,
       };
     }
     return {
@@ -265,7 +265,7 @@ export const InvoicesPage: React.FC = () => {
             <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
               Invoices
             </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
               Issue and audit tenant subscription invoices with payment tracking (Cash, Cheque, UPI, Bank Transfer).
             </p>
           </div>
@@ -288,7 +288,7 @@ export const InvoicesPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2.5">
             {/* Date Range Pill */}
             <div className="flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 shadow-2xs font-medium">
-              <IconCalendar className="w-4 h-4 text-slate-400 shrink-0" />
+              <IconCalendar className="w-4 h-4 text-slate-500 font-medium shrink-0" />
               <span>{dateRangeStr || 'Last 30 Days'}</span>
             </div>
 
@@ -309,7 +309,7 @@ export const InvoicesPage: React.FC = () => {
                   </option>
                 ))}
               </select>
-              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 pointer-events-none" />
             </div>
 
             {/* Status Dropdown */}
@@ -327,7 +327,7 @@ export const InvoicesPage: React.FC = () => {
                 <option value="PAID">Paid &amp; Settled</option>
                 <option value="VOID">Voided (Hidden)</option>
               </select>
-              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 pointer-events-none" />
             </div>
 
             {/* Payment Method Dropdown */}
@@ -347,13 +347,13 @@ export const InvoicesPage: React.FC = () => {
                 <option value="CASH">Cash</option>
                 <option value="CARD">Card</option>
               </select>
-              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 pointer-events-none" />
             </div>
           </div>
 
           {/* Right Search Input */}
           <div className="relative w-full lg:w-80">
-            <IconSearch className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="Search by invoice # or company..."
@@ -362,7 +362,7 @@ export const InvoicesPage: React.FC = () => {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="pl-10 pr-4 py-2 text-xs bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-brand-600 w-full placeholder:text-slate-400 text-slate-800 shadow-2xs"
+              className="pl-10 pr-4 py-2 text-xs bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-brand-600 w-full placeholder:text-slate-500 font-medium text-slate-800 shadow-2xs"
             />
           </div>
         </div>
@@ -385,13 +385,13 @@ export const InvoicesPage: React.FC = () => {
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-10 text-center text-slate-400">
+                  <td colSpan={8} className="px-6 py-10 text-center text-slate-500 font-medium">
                     <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-brand-600" />
                   </td>
                 </tr>
               ) : displayedInvoices.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-16 text-center text-slate-400 font-medium">
+                  <td colSpan={8} className="px-6 py-16 text-center text-slate-500 font-medium">
                     <IconReceipt2 className="w-10 h-10 mx-auto mb-2 text-slate-300 stroke-[1.5]" />
                     No SaaS invoices found.
                   </td>
@@ -438,7 +438,7 @@ export const InvoicesPage: React.FC = () => {
                         <div className="font-bold text-slate-900 leading-snug">
                           {inv.company?.name || 'Company'}
                         </div>
-                        <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                        <div className="text-[11px] text-slate-500 font-mono mt-0.5">
                           {inv.company?.subdomain
                             ? `${inv.company.subdomain}.uptrix.io`
                             : 'tenant.uptrix.io'}
@@ -465,7 +465,7 @@ export const InvoicesPage: React.FC = () => {
                             {methodInfo.label}
                           </span>
                           {methodInfo.ref && (
-                            <span className="text-[10px] text-slate-400 font-mono pl-0.5">
+                            <span className="text-[10px] text-slate-500 font-mono pl-0.5">
                               Ref: {methodInfo.ref}
                             </span>
                           )}
@@ -484,7 +484,7 @@ export const InvoicesPage: React.FC = () => {
                             className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200"
                             title="Hidden from company billing portal"
                           >
-                            <IconBan className="w-3.5 h-3.5 text-slate-500" />
+                            <IconBan className="w-3.5 h-3.5 text-slate-500 font-medium" />
                             Voided (Hidden)
                           </span>
                         ) : (
@@ -523,7 +523,7 @@ export const InvoicesPage: React.FC = () => {
                             </button>
                           )}
                           {isVoided && (
-                            <span className="text-[11px] text-slate-400 font-medium italic">
+                            <span className="text-[11px] text-slate-500 font-medium italic">
                               Hidden
                             </span>
                           )}
@@ -538,7 +538,7 @@ export const InvoicesPage: React.FC = () => {
         </div>
 
         {/* Pagination Bar */}
-        <div className="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+        <div className="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 font-medium">
           <span>
             {filteredInvoices.length === 0
               ? 'Showing 0 to 0 of 0 entries'
@@ -593,7 +593,7 @@ export const InvoicesPage: React.FC = () => {
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-lg text-slate-500 font-medium hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
               >
                 <IconX className="w-5 h-5" />
               </button>
@@ -721,7 +721,7 @@ export const InvoicesPage: React.FC = () => {
                   <IconSend className="w-4 h-4 text-indigo-600 shrink-0" />
                   <div>
                     <span className="text-xs font-bold text-slate-800 block">Send Invoice to Company</span>
-                    <span className="text-[11px] text-slate-500 block">Deliver official invoice notification to tenant admin</span>
+                    <span className="text-[11px] text-slate-500 font-medium block">Deliver official invoice notification to tenant admin</span>
                   </div>
                 </div>
                 <input

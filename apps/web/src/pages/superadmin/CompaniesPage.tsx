@@ -504,7 +504,7 @@ export const CompaniesPage: React.FC = () => {
                 <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
                   {contactsCompany.name}
                 </h1>
-                <p className="text-xs text-slate-400 font-normal mt-0.5">
+                <p className="text-xs text-slate-500 font-normal mt-0.5">
                   Contacts added by Product Super Admin
                 </p>
               </div>
@@ -528,7 +528,7 @@ export const CompaniesPage: React.FC = () => {
             {/* Card Header */}
             <div className="flex items-center justify-between pb-1">
               <h2 className="text-base font-bold text-slate-900">Contacts</h2>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-500 font-medium">
                 Only contacts added by super admin are shown.
               </span>
             </div>
@@ -561,7 +561,7 @@ export const CompaniesPage: React.FC = () => {
                     setContactsSearch(e.target.value);
                     setContactsPage(1);
                   }}
-                  className="border border-slate-200 rounded-md px-3 py-1.5 text-xs w-48 sm:w-64 placeholder:text-slate-400 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+                  className="border border-slate-200 rounded-md px-3 py-1.5 text-xs w-48 sm:w-64 placeholder:text-slate-500 font-medium focus:outline-hidden focus:ring-1 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -582,14 +582,14 @@ export const CompaniesPage: React.FC = () => {
                 <tbody className="divide-y divide-slate-100">
                   {contactsLoading ? (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-slate-400">
+                      <td colSpan={6} className="py-12 text-center text-slate-500 font-medium">
                         <div className="inline-block w-5 h-5 border-2 border-slate-300 border-t-blue-600 rounded-full animate-spin mb-2" />
                         <div>Loading contacts...</div>
                       </td>
                     </tr>
                   ) : paginatedContacts.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-10 text-center text-slate-400">
+                      <td colSpan={6} className="py-10 text-center text-slate-500 font-medium">
                         No company admin contacts found.
                       </td>
                     </tr>
@@ -607,7 +607,7 @@ export const CompaniesPage: React.FC = () => {
                           <td className="py-3.5 px-4 text-slate-600">
                             {admin.email}
                           </td>
-                          <td className="py-3.5 px-4 text-slate-500">
+                          <td className="py-3.5 px-4 text-slate-500 font-medium">
                             Company Admin
                           </td>
                           <td className="py-3.5 px-4">
@@ -635,7 +635,7 @@ export const CompaniesPage: React.FC = () => {
             </div>
 
             {/* Pagination Bar */}
-            <div className="flex items-center justify-between pt-3 text-xs text-slate-500">
+            <div className="flex items-center justify-between pt-3 text-xs text-slate-500 font-medium">
               <div>
                 Showing {filteredContacts.length === 0 ? '0 - 0 of 0' : `${contactsStartIndex + 1} - ${contactsEndIndex} of ${filteredContacts.length}`} entries
               </div>
@@ -677,8 +677,8 @@ export const CompaniesPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">Tenants &amp; Companies</h1>
-          <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5 font-medium">
-            <span className="text-slate-400">Application</span>
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5 font-medium">
+            <span className="text-slate-500 font-medium">Application</span>
             <span className="text-slate-300">&gt;</span>
             <span className="text-slate-600 font-medium">Companies List</span>
           </div>
@@ -904,7 +904,7 @@ export const CompaniesPage: React.FC = () => {
 
           {/* Search Input */}
           <div className="relative w-full md:w-72">
-            <IconSearch className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search by company or email..."
@@ -913,7 +913,7 @@ export const CompaniesPage: React.FC = () => {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="pl-9 pr-3.5 py-1.5 text-xs bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-blue-600 w-full placeholder:text-slate-400 text-slate-800 shadow-2xs"
+              className="pl-9 pr-3.5 py-1.5 text-xs bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-blue-600 w-full placeholder:text-slate-500 font-medium text-slate-800 shadow-2xs"
             />
           </div>
         </div>
@@ -936,13 +936,13 @@ export const CompaniesPage: React.FC = () => {
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-10 text-center text-slate-400">
+                  <td colSpan={8} className="px-5 py-10 text-center text-slate-500 font-medium">
                     <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-brand-600" />
                   </td>
                 </tr>
               ) : displayedCompanies.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-12 text-center text-slate-400 font-medium">
+                  <td colSpan={8} className="px-5 py-12 text-center text-slate-500 font-medium">
                     No companies found matching current filters.
                   </td>
                 </tr>
@@ -994,7 +994,7 @@ export const CompaniesPage: React.FC = () => {
                             >
                               {c.name}
                             </button>
-                            <div className="text-[11px] text-slate-400">
+                            <div className="text-[11px] text-slate-500 font-medium">
                               Code: <span className="font-normal">{c.code.toLowerCase()}</span>
                             </div>
                           </div>
@@ -1019,7 +1019,7 @@ export const CompaniesPage: React.FC = () => {
                       {/* PLAN */}
                       <td className="px-5 py-4">
                         <div className="font-medium text-slate-900 leading-snug">{planName}</div>
-                        <div className="text-[11px] text-slate-400 capitalize mt-0.5">{planType}</div>
+                        <div className="text-[11px] text-slate-500 font-medium capitalize mt-0.5">{planType}</div>
                       </td>
 
                       {/* ADMIN COLUMN: Gated by Payment Status */}
@@ -1041,7 +1041,7 @@ export const CompaniesPage: React.FC = () => {
                             >
                               {primaryAdmin.firstName ? `${primaryAdmin.firstName} ${primaryAdmin.lastName || ''}`.trim() : primaryAdmin.email}
                             </button>
-                            <span className="text-[11px] text-slate-400 truncate block font-mono">
+                            <span className="text-[11px] text-slate-500 truncate block font-mono">
                               {primaryAdmin.email}
                             </span>
                           </div>
@@ -1128,7 +1128,7 @@ export const CompaniesPage: React.FC = () => {
                                     }}
                                     className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium"
                                   >
-                                    <IconCopy className="w-4 h-4 text-slate-500" />
+                                    <IconCopy className="w-4 h-4 text-slate-500 font-medium" />
                                     Copy Payment Link
                                   </button>
                                 )}
@@ -1139,7 +1139,7 @@ export const CompaniesPage: React.FC = () => {
                                   }}
                                   className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium"
                                 >
-                                  <IconMail className="w-4 h-4 text-slate-500" />
+                                  <IconMail className="w-4 h-4 text-slate-500 font-medium" />
                                   Resend Payment Link
                                 </button>
                                 <button
@@ -1166,7 +1166,7 @@ export const CompaniesPage: React.FC = () => {
                                   }}
                                   className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium"
                                 >
-                                  <IconMail className="w-4 h-4 text-slate-500" />
+                                  <IconMail className="w-4 h-4 text-slate-500 font-medium" />
                                   Resend Payment Link
                                 </button>
                                 <button
@@ -1191,7 +1191,7 @@ export const CompaniesPage: React.FC = () => {
                               }}
                               className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium"
                             >
-                              <IconEye className="w-4 h-4 text-slate-400" />
+                              <IconEye className="w-4 h-4 text-slate-500 font-medium" />
                               View Details
                             </button>
 
@@ -1203,7 +1203,7 @@ export const CompaniesPage: React.FC = () => {
                                 }}
                                 className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium"
                               >
-                                <IconUsers className="w-4 h-4 text-slate-400" />
+                                <IconUsers className="w-4 h-4 text-slate-500 font-medium" />
                                 Admin Contacts
                               </button>
                             )}
@@ -1218,7 +1218,7 @@ export const CompaniesPage: React.FC = () => {
                               }}
                               className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium"
                             >
-                              <IconCloudUpload className="w-4 h-4 text-slate-400" />
+                              <IconCloudUpload className="w-4 h-4 text-slate-500 font-medium" />
                               Deploy Domain
                             </button>
 
@@ -1229,7 +1229,7 @@ export const CompaniesPage: React.FC = () => {
                               }}
                               className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium"
                             >
-                              <IconEdit className="w-4 h-4 text-slate-400" />
+                              <IconEdit className="w-4 h-4 text-slate-500 font-medium" />
                               Edit Company
                             </button>
 
@@ -1257,7 +1257,7 @@ export const CompaniesPage: React.FC = () => {
         </div>
 
         {/* Pagination Bar */}
-        <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
           <span>
             {totalEntries === 0
               ? 'Showing 0 - 0 of 0 entries'
@@ -1489,12 +1489,12 @@ export const CompaniesPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">Add Company Admin</h3>
-                  <p className="text-[11px] text-slate-400">{selectedCompany.name}</p>
+                  <p className="text-[11px] text-slate-500 font-medium">{selectedCompany.name}</p>
                 </div>
               </div>
               <button
                 onClick={() => setAdminModalOpen(false)}
-                className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center"
+                className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 font-medium hover:text-slate-700 flex items-center justify-center"
               >
                 <IconX className="w-5 h-5" />
               </button>
@@ -1580,7 +1580,7 @@ export const CompaniesPage: React.FC = () => {
 
               <div>
                 <label className="block font-medium text-slate-700 mb-1">
-                  Password <span className="text-slate-400 font-normal">(Optional, auto-generated if blank)</span>
+                  Password <span className="text-slate-500 font-normal">(Optional, auto-generated if blank)</span>
                 </label>
                 <input
                   type="password"
@@ -1623,12 +1623,12 @@ export const CompaniesPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">Deploy Domain</h3>
-                  <p className="text-[11px] text-slate-400">{selectedCompany.name}</p>
+                  <p className="text-[11px] text-slate-500 font-medium">{selectedCompany.name}</p>
                 </div>
               </div>
               <button
                 onClick={() => setDomainModalOpen(false)}
-                className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center"
+                className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 font-medium hover:text-slate-700 flex items-center justify-center"
               >
                 <IconX className="w-5 h-5" />
               </button>
@@ -1657,7 +1657,7 @@ export const CompaniesPage: React.FC = () => {
                   onChange={(e) => setCustomDomainInput(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-brand-600 font-mono"
                 />
-                <p className="text-[11px] text-slate-400 mt-1">
+                <p className="text-[11px] text-slate-500 font-medium mt-1">
                   Point your DNS CNAME record to <code className="bg-slate-100 px-1 py-0.5 rounded">cname.uptrix.io</code>
                 </p>
               </div>
@@ -1696,7 +1696,7 @@ export const CompaniesPage: React.FC = () => {
               </div>
               <button
                 onClick={() => setEditModalOpen(false)}
-                className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center"
+                className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 font-medium hover:text-slate-700 flex items-center justify-center"
               >
                 <IconX className="w-5 h-5" />
               </button>
@@ -1805,12 +1805,12 @@ export const CompaniesPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">Reset Admin Password</h3>
-                  <p className="text-[11px] text-slate-400">{resetModalAdmin.email}</p>
+                  <p className="text-[11px] text-slate-500 font-medium">{resetModalAdmin.email}</p>
                 </div>
               </div>
               <button
                 onClick={() => setResetModalAdmin(null)}
-                className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center cursor-pointer"
+                className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 font-medium hover:text-slate-700 flex items-center justify-center cursor-pointer"
               >
                 <IconX className="w-5 h-5" />
               </button>
@@ -1845,7 +1845,7 @@ export const CompaniesPage: React.FC = () => {
                     <span>Copy</span>
                   </button>
                 </div>
-                <div className="text-[10px] text-slate-500 pt-1">
+                <div className="text-[10px] text-slate-500 font-medium pt-1">
                   Share this password with the company administrator.
                 </div>
               </div>

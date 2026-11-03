@@ -410,7 +410,7 @@ export const HrLettersPage: React.FC = () => {
             <IconFileCertificate className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>HR Letters & Certificates Hub</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Generate, customize, and issue verified corporate letters on company letterhead with direct in-place editing.
           </p>
         </div>
@@ -503,7 +503,7 @@ export const HrLettersPage: React.FC = () => {
                       </div>
                       <div>
                         <span className="text-sm font-bold text-slate-900 block">{item.name}</span>
-                        <span className="text-xs text-slate-500 block leading-tight">{item.desc}</span>
+                        <span className="text-xs text-slate-500 font-medium block leading-tight">{item.desc}</span>
                       </div>
                     </button>
                   );
@@ -816,7 +816,7 @@ export const HrLettersPage: React.FC = () => {
                   <p className="text-xs font-sans text-slate-500 mt-0.5">
                     Corporate Identity: HR-OPS • Human Capital & People Success Desk
                   </p>
-                  <p className="text-[11px] font-sans text-slate-400">
+                  <p className="text-[11px] font-sans text-slate-500">
                     Registered Office: Tech Hub Phase II, Hyderabad, Telangana 500081
                   </p>
                 </div>
@@ -831,11 +831,11 @@ export const HrLettersPage: React.FC = () => {
               {/* Reference & Date */}
               <div className="flex justify-between items-center font-sans text-xs text-slate-600">
                 <div>
-                  <span className="font-semibold text-slate-400">Ref: </span>
+                  <span className="font-semibold text-slate-500">Ref: </span>
                   <span className="font-bold text-slate-900">{formData.referenceNumber}</span>
                 </div>
                 <div>
-                  <span className="font-semibold text-slate-400">Date: </span>
+                  <span className="font-semibold text-slate-500">Date: </span>
                   <span className="font-bold text-slate-900">
                     {new Date(formData.issueDate).toLocaleDateString('en-US', {
                       year: 'numeric',
@@ -896,15 +896,15 @@ export const HrLettersPage: React.FC = () => {
                 {selectedLetterType === 'INCREMENT_APPRAISAL' && (
                   <div className="my-3 p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2 font-sans text-xs">
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Designation:</span>
+                      <span className="text-slate-500 font-medium">Designation:</span>
                       <span className="font-bold text-slate-900">{formData.designation}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Effective Date:</span>
+                      <span className="text-slate-500 font-medium">Effective Date:</span>
                       <span className="font-bold text-slate-900">{formData.effectiveDate}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Previous Annual CTC:</span>
+                      <span className="text-slate-500 font-medium">Previous Annual CTC:</span>
                       <span className="font-bold text-slate-600">
                         ₹{Number(formData.previousCtc || 0).toLocaleString('en-IN')}
                       </span>
@@ -928,7 +928,7 @@ export const HrLettersPage: React.FC = () => {
                     <IconPlus className="w-3.5 h-3.5" />
                     <span>Add New Paragraph</span>
                   </button>
-                  <span className="text-[11px] text-slate-400 italic">
+                  <span className="text-[11px] text-slate-500 font-medium italic">
                     💡 Click anywhere to edit text. Highlight words and press <kbd className="px-1 py-0.5 bg-slate-100 rounded border border-slate-300 font-mono text-[10px]">Ctrl+B</kbd> to bold.
                   </span>
                 </div>
@@ -940,7 +940,7 @@ export const HrLettersPage: React.FC = () => {
                   <div className="inline-block px-3 py-1 bg-slate-100 rounded-lg text-[10px] font-bold text-slate-500 uppercase tracking-widest border border-slate-200 mb-2">
                     OFFICIAL HR SEAL
                   </div>
-                  <p className="text-slate-400 text-[10px]">Issued via Uptrix Enterprise HRMS Core</p>
+                  <p className="text-slate-500 font-medium text-[10px]">Issued via Uptrix Enterprise HRMS Core</p>
                 </div>
 
                 <div className="text-right space-y-0.5">
@@ -955,10 +955,10 @@ export const HrLettersPage: React.FC = () => {
                     type="text"
                     value={formData.signatoryDesignation}
                     onChange={(e) => setFormData({ ...formData, signatoryDesignation: e.target.value })}
-                    className="text-slate-500 text-xs bg-transparent border-b border-transparent hover:border-indigo-300 focus:border-indigo-500 outline-none text-right w-56 block ml-auto rounded px-1 transition-all print:border-none print:p-0"
+                    className="text-slate-500 font-medium text-xs bg-transparent border-b border-transparent hover:border-indigo-300 focus:border-indigo-500 outline-none text-right w-56 block ml-auto rounded px-1 transition-all print:border-none print:p-0"
                     placeholder="Signatory Title"
                   />
-                  <div className="text-slate-400 text-[11px] pr-1">
+                  <div className="text-slate-500 font-medium text-[11px] pr-1">
                     {company?.name || 'Kyadari Technologies Pvt Ltd'}
                   </div>
                 </div>
@@ -971,7 +971,7 @@ export const HrLettersPage: React.FC = () => {
         <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
           <div className="p-4 border-b border-slate-100 flex items-center justify-between">
             <div className="relative w-80">
-              <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3 top-3" />
               <input
                 type="text"
                 placeholder="Search issued letters..."
@@ -1007,7 +1007,7 @@ export const HrLettersPage: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 font-semibold text-slate-900">{letter.employeeName}</td>
                       <td className="px-6 py-4">{letter.department}</td>
-                      <td className="px-6 py-4 text-slate-500">{letter.issueDate}</td>
+                      <td className="px-6 py-4 text-slate-500 font-medium">{letter.issueDate}</td>
                       <td className="px-6 py-4 text-right">
                         <button
                           onClick={() => {

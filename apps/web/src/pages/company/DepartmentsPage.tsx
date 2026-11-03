@@ -312,7 +312,7 @@ export const DepartmentsPage: React.FC = () => {
             <IconBuilding className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>Departments</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Organize functional business units, configure team reporting, and manage departmental headcount.
           </p>
         </div>
@@ -337,7 +337,7 @@ export const DepartmentsPage: React.FC = () => {
             </div>
             <div>
               <h2 className="text-sm font-bold text-slate-900">Department Directory</h2>
-              <p className="text-xs text-slate-400 mt-0.5">View and manage all departments in your organization.</p>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">View and manage all departments in your organization.</p>
             </div>
           </div>
 
@@ -345,7 +345,7 @@ export const DepartmentsPage: React.FC = () => {
           <div className="flex items-center gap-3 w-full sm:w-auto">
             {/* Search Input */}
             <div className="relative flex-1 sm:w-64">
-              <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search departments..."
@@ -368,8 +368,8 @@ export const DepartmentsPage: React.FC = () => {
                 <option value="WITH_MEMBERS">With Members</option>
                 <option value="TOP_LEVEL">Top-level Units</option>
               </select>
-              <IconFilter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconFilter className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
            
@@ -396,7 +396,7 @@ export const DepartmentsPage: React.FC = () => {
                       <IconBuilding className="w-6 h-6" />
                     </div>
                     <h4 className="text-sm font-bold text-slate-800">No departments found</h4>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-slate-500 font-medium mt-1">
                       {search ? 'Try modifying your search filter.' : 'Click "Add Department" to create your first department.'}
                     </p>
                     {!search && (
@@ -428,7 +428,7 @@ export const DepartmentsPage: React.FC = () => {
                       <td className="px-4 py-3.5 font-bold text-slate-900 flex items-center gap-2.5">
                         <div
                           className={`w-7 h-7 rounded-lg ${
-                            isDeactivated ? 'bg-slate-100 text-slate-400' : meta.iconBg
+                            isDeactivated ? 'bg-slate-100 text-slate-500' : meta.iconBg
                           } flex items-center justify-center shrink-0`}
                         >
                           <Icon className="w-3.5 h-3.5" />
@@ -445,13 +445,13 @@ export const DepartmentsPage: React.FC = () => {
                             )}
                           </div>
                           {dept.parent && (
-                            <span className="text-[10px] text-slate-400 block font-normal">
+                            <span className="text-[10px] text-slate-500 block font-normal">
                               Parent: {dept.parent.name}
                             </span>
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3.5 text-slate-500 max-w-xs truncate">
+                      <td className="px-4 py-3.5 text-slate-500 font-medium max-w-xs truncate">
                         {meta.description}
                       </td>
                       <td className="px-4 py-3.5">
@@ -618,14 +618,14 @@ export const DepartmentsPage: React.FC = () => {
                       onChange={(e) => setName(e.target.value)}
                       className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-indigo-500 font-medium text-slate-800 transition-colors"
                     />
-                    <p className="text-[11px] text-slate-400 mt-1">
+                    <p className="text-[11px] text-slate-500 font-medium mt-1">
                       Give this department a clear, recognizable functional name.
                     </p>
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      Parent Department <span className="text-slate-400 font-normal">(Optional)</span>
+                      Parent Department <span className="text-slate-500 font-normal">(Optional)</span>
                     </label>
                     <select
                       value={parentId}
@@ -641,7 +641,7 @@ export const DepartmentsPage: React.FC = () => {
                           </option>
                         ))}
                     </select>
-                    <p className="text-[11px] text-slate-400 mt-1">
+                    <p className="text-[11px] text-slate-500 font-medium mt-1">
                       Nest this department under an existing parent unit to build an org hierarchy.
                     </p>
                   </div>
@@ -676,7 +676,7 @@ export const DepartmentsPage: React.FC = () => {
                         <span>Inactive</span>
                       </button>
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                    <p className="text-[11px] text-slate-500 font-medium mt-1.5 leading-relaxed">
                       Departments cannot be permanently deleted. Select Inactive to deactivate this department.
                     </p>
                   </div>
@@ -783,7 +783,7 @@ export const DepartmentsPage: React.FC = () => {
                 {/* Sub-bar: Search & Directory Shortcut */}
                 <div className="px-6 py-3.5 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between gap-3 shrink-0">
                   <div className="relative flex-1">
-                    <IconSearch className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       placeholder="Search members by name, role or email..."
@@ -805,13 +805,13 @@ export const DepartmentsPage: React.FC = () => {
                 <div className="p-6 overflow-y-auto space-y-2.5 divide-y divide-slate-100/80 flex-1">
                   {filteredMembers.length === 0 ? (
                     <div className="py-14 text-center">
-                      <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-500 font-medium flex items-center justify-center mx-auto mb-3">
                         <IconUsers className="w-6 h-6" />
                       </div>
                       {allMembers.length === 0 ? (
                         <>
                           <h4 className="text-sm font-bold text-slate-800">No members assigned yet</h4>
-                          <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+                          <p className="text-xs text-slate-500 font-medium mt-1 max-w-xs mx-auto">
                             Employees can be assigned to {viewingMembersDept.name} from the Employee Directory.
                           </p>
                           <Link
@@ -825,7 +825,7 @@ export const DepartmentsPage: React.FC = () => {
                       ) : (
                         <>
                           <h4 className="text-sm font-bold text-slate-800">No matching members found</h4>
-                          <p className="text-xs text-slate-400 mt-1">Try clearing your search query.</p>
+                          <p className="text-xs text-slate-500 font-medium mt-1">Try clearing your search query.</p>
                         </>
                       )}
                     </div>
@@ -858,11 +858,11 @@ export const DepartmentsPage: React.FC = () => {
                                 </h4>
                                 {getRoleBadge(member.role)}
                               </div>
-                              <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                              <div className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
                                 {member.jobTitle || 'Team Member'}
                               </div>
                               {member.email && (
-                                <div className="flex items-center gap-1 text-[10px] text-slate-400 truncate mt-0.5">
+                                <div className="flex items-center gap-1 text-[10px] text-slate-500 font-medium truncate mt-0.5">
                                   <IconMail className="w-3 h-3 shrink-0" />
                                   <span>{member.email}</span>
                                 </div>
@@ -940,7 +940,7 @@ export const DepartmentsPage: React.FC = () => {
                       onClick={() => {
                         if (!isTogglingStatus) setStatusToggleTarget(null);
                       }}
-                      className="p-1 -mr-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                      className="p-1 -mr-1 text-slate-500 font-medium hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                       title="Dismiss"
                     >
                       <IconX className="w-4 h-4" />
@@ -1075,7 +1075,7 @@ export const DepartmentsPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setToast(null)}
-              className="p-1 -mr-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-black/5 transition-colors cursor-pointer shrink-0"
+              className="p-1 -mr-1 text-slate-500 font-medium hover:text-slate-600 rounded-lg hover:bg-black/5 transition-colors cursor-pointer shrink-0"
               title="Dismiss"
             >
               <IconX className="w-4 h-4" />

@@ -425,7 +425,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
               </>
             )}
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             {activeTab === 'ASSETS'
               ? 'Track enterprise hardware inventory (laptops, monitors, SIMs, keycards) and manage employee allocations.'
               : 'Monitor newly joined employee onboarding milestones, IT equipment handover, and document verification.'}
@@ -449,7 +449,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
           <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="relative w-full sm:w-80">
-                <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3 top-3" />
                 <input
                   type="text"
                   placeholder="Search asset tag, brand, employee..."
@@ -480,7 +480,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
                 <tbody className="divide-y divide-slate-100">
                   {filteredAssets.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                      <td colSpan={7} className="px-6 py-12 text-center text-slate-500 font-medium">
                         No assets found matching your search.
                       </td>
                     </tr>
@@ -490,7 +490,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
                         <td className="px-6 py-4 font-mono font-bold text-slate-900">{item.tag}</td>
                         <td className="px-6 py-4">
                           <div className="font-bold text-slate-900">{item.name}</div>
-                          <span className="text-[10px] text-slate-400 font-semibold">{item.category}</span>
+                          <span className="text-[10px] text-slate-500 font-semibold">{item.category}</span>
                         </td>
                         <td className="px-6 py-4 font-mono text-slate-500">{item.serialNumber}</td>
                         <td className="px-6 py-4">
@@ -502,10 +502,10 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
                           {item.assignedToName ? (
                             <div>
                               <span className="font-bold text-slate-900">{item.assignedToName}</span>
-                              <span className="block text-[10px] text-slate-400">Since {item.assignedDate}</span>
+                              <span className="block text-[10px] text-slate-500 font-medium">Since {item.assignedDate}</span>
                             </div>
                           ) : (
-                            <span className="text-slate-400 italic">Unassigned</span>
+                            <span className="text-slate-500 font-medium italic">Unassigned</span>
                           )}
                         </td>
                         <td className="px-6 py-4">
@@ -582,7 +582,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
               </div>
               <div>
                 <h2 className="text-sm font-bold text-slate-900">Onboarding Overview</h2>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
                   Ensure each joined employee completes all {onboardingTasks.length} compliance and orientation milestones.
                 </p>
               </div>
@@ -592,7 +592,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
             <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
               {/* Search Input */}
               <div className="relative flex-1 sm:w-60">
-                <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Search employee, dept, role..."
@@ -614,8 +614,8 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
                   <option value="COMPLETED">Completed (100%)</option>
                   <option value="PENDING">Pending (0%)</option>
                 </select>
-                <IconFilter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <IconFilter className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
 
               {/* Manage Milestones Button */}
@@ -657,7 +657,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
                         <IconChecklist className="w-6 h-6" />
                       </div>
                       <h4 className="text-sm font-bold text-slate-800">No onboarding records found</h4>
-                      <p className="text-xs text-slate-400 mt-1">
+                      <p className="text-xs text-slate-500 font-medium mt-1">
                         {onboardingSearch || onboardingStatusFilter !== 'ALL'
                           ? 'Try modifying your search or filter.'
                           : 'No employees currently in the onboarding pipeline.'}
@@ -698,7 +698,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
                                 <span className="font-bold text-slate-900 block truncate">
                                   {emp.firstName} {emp.lastName}
                                 </span>
-                                <span className="text-[11px] text-slate-400 block truncate">
+                                <span className="text-[11px] text-slate-500 font-medium block truncate">
                                   {emp.email || 'No email registered'}
                                 </span>
                               </div>
@@ -709,7 +709,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
                             <span className="font-semibold text-slate-800 block">
                               {emp.department?.name || 'General'}
                             </span>
-                            <span className="text-[11px] text-slate-400 block">
+                            <span className="text-[11px] text-slate-500 font-medium block">
                               {emp.jobTitle || 'Team Member'}
                             </span>
                           </td>
@@ -791,7 +791,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
                               <div className="space-y-2.5">
                                 <div className="flex items-center justify-between text-xs font-semibold text-slate-600">
                                   <span>Checklist Milestones for {emp.firstName} {emp.lastName}</span>
-                                  <span className="text-[11px] text-slate-400">Click any milestone to toggle status</span>
+                                  <span className="text-[11px] text-slate-500 font-medium">Click any milestone to toggle status</span>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
                                   {onboardingTasks.map((task) => {
@@ -818,7 +818,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
                                         </div>
                                         <div className="min-w-0">
                                           <span className="text-xs font-bold block leading-tight truncate">{task.title}</span>
-                                          <span className="text-[10px] text-slate-400 block mt-0.5 leading-tight truncate">
+                                          <span className="text-[10px] text-slate-500 font-medium block mt-0.5 leading-tight truncate">
                                             {task.description}
                                           </span>
                                         </div>
@@ -875,7 +875,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
                     <h2 className="text-base font-bold text-slate-900 leading-tight">
                       Register New Asset
                     </h2>
-                    <p className="text-xs text-slate-400 font-medium mt-0.5">
+                    <p className="text-xs text-slate-500 font-medium mt-0.5">
                       Add equipment or devices to company inventory
                     </p>
                   </div>
@@ -883,7 +883,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
                 <button
                   type="button"
                   onClick={() => setShowAddAssetModal(false)}
-                  className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="p-2 rounded-xl text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                   title="Close panel"
                 >
                   <IconX className="w-5 h-5" />
@@ -906,7 +906,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
                       placeholder="e.g. AST-101"
                       className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
                     />
-                    <p className="text-[11px] text-slate-400 mt-1">Unique internal identification tag for tracking.</p>
+                    <p className="text-[11px] text-slate-500 font-medium mt-1">Unique internal identification tag for tracking.</p>
                   </div>
 
                   {/* Device Name / Model */}
@@ -974,7 +974,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
                   {/* Assign to Employee */}
                   <div>
                     <label className="text-xs font-semibold text-slate-700 block mb-1">
-                      Assign to Employee <span className="text-[11px] font-normal text-slate-400">(Optional - can be allocated now)</span>
+                      Assign to Employee <span className="text-[11px] font-normal text-slate-500">(Optional - can be allocated now)</span>
                     </label>
                     <select
                       value={newAsset.assignedToEmployeeId}
@@ -994,7 +994,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
                         <span>Device will be automatically marked as Assigned upon registration.</span>
                       </div>
                     ) : (
-                      <p className="text-[11px] text-slate-400 mt-1">
+                      <p className="text-[11px] text-slate-500 font-medium mt-1">
                         Leave unassigned to keep this device available in stock inventory.
                       </p>
                     )}
@@ -1046,7 +1046,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
                     <h2 className="text-base font-bold text-slate-900 leading-tight">
                       Assign Asset to Employee
                     </h2>
-                    <p className="text-xs text-slate-400 font-medium mt-0.5">
+                    <p className="text-xs text-slate-500 font-medium mt-0.5">
                       Allocate equipment to an employee custodian
                     </p>
                   </div>
@@ -1054,7 +1054,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
                 <button
                   type="button"
                   onClick={() => setSelectedAssetForAssign(null)}
-                  className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="p-2 rounded-xl text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                   title="Close panel"
                 >
                   <IconX className="w-5 h-5" />
@@ -1064,7 +1064,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
               {/* Drawer Content */}
               <div className="flex-1 overflow-y-auto p-6 space-y-4">
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 text-xs space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Selected Asset</span>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Selected Asset</span>
                   <span className="font-bold text-slate-900 text-sm block">{selectedAssetForAssign.name}</span>
                   <div className="flex items-center gap-2 text-slate-500 font-mono text-[11px] pt-1">
                     <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200 font-bold text-slate-700">
@@ -1277,7 +1277,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
                               </span>
                             </div>
                             {task.description && (
-                              <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                              <p className="text-[11px] text-slate-500 font-medium mt-1 leading-relaxed">
                                 {task.description}
                               </p>
                             )}
@@ -1290,7 +1290,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
 
                 {/* Drawer Footer */}
                 <div className="p-4 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between">
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-slate-500 font-medium">
                     Auto-saved to employee profile
                   </span>
                   <button
@@ -1364,7 +1364,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
                           setEditingTask(null);
                           setNewTaskForm({ title: '', description: '', category: 'HR' });
                         }}
-                        className="text-[11px] text-slate-500 hover:text-slate-700 underline cursor-pointer"
+                        className="text-[11px] text-slate-500 font-medium hover:text-slate-700 underline cursor-pointer"
                       >
                         Cancel Edit
                       </button>
@@ -1483,7 +1483,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
                               </span>
                             </div>
                             {task.description && (
-                              <p className="text-[11px] text-slate-400 mt-0.5">
+                              <p className="text-[11px] text-slate-500 font-medium mt-0.5">
                                 {task.description}
                               </p>
                             )}
@@ -1524,7 +1524,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
 
               {/* Drawer Footer */}
               <div className="p-4 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between shrink-0">
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-slate-500 font-medium">
                   Saved to organization profile
                 </span>
                 <button

@@ -174,7 +174,7 @@ export const FinanceAnalyticsPage: React.FC = () => {
             <IconChartPie className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>Finance & Payroll Analytics</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Overview of total company wage cost, employee net payouts, statutory contributions, and departmental spend.
           </p>
         </div>
@@ -228,7 +228,7 @@ export const FinanceAnalyticsPage: React.FC = () => {
           <div className="text-xl font-black text-slate-900">
             ₹{summary.monthlyCompanyCost.toLocaleString('en-IN')}
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">
+          <p className="text-[11px] text-slate-500 font-medium mt-1">
             Annualized CTC: <span className="font-bold text-slate-600">₹{(summary.annualizedCtc / 10000000).toFixed(2)} Cr</span>
           </p>
         </div>
@@ -244,7 +244,7 @@ export const FinanceAnalyticsPage: React.FC = () => {
           <div className="text-xl font-black text-emerald-700">
             ₹{summary.monthlyNet.toLocaleString('en-IN')}
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">
+          <p className="text-[11px] text-slate-500 font-medium mt-1">
             Transferred to bank: <span className="font-bold text-slate-600">{summary.netPercent}% of total</span>
           </p>
         </div>
@@ -260,7 +260,7 @@ export const FinanceAnalyticsPage: React.FC = () => {
           <div className="text-xl font-black text-purple-700">
             ₹{summary.employerStatutory.toLocaleString('en-IN')}
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">
+          <p className="text-[11px] text-slate-500 font-medium mt-1">
             PF (12%) + ESIC (3.25%): <span className="font-bold text-slate-600">{summary.statutoryPercent}% of total</span>
           </p>
         </div>
@@ -276,7 +276,7 @@ export const FinanceAnalyticsPage: React.FC = () => {
           <div className="text-xl font-black text-slate-900">
             ₹{summary.avgCostPerEmp.toLocaleString('en-IN')}
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">
+          <p className="text-[11px] text-slate-500 font-medium mt-1">
             Active Headcount: <span className="font-bold text-slate-600">{summary.headcount} Team Members</span>
           </p>
         </div>
@@ -287,10 +287,10 @@ export const FinanceAnalyticsPage: React.FC = () => {
         <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
             <h2 className="text-xs font-bold text-slate-900">Department-Wise Payroll Distribution</h2>
-            <p className="text-[11px] text-slate-400 mt-0.5">Breakdown of monthly and annual wage costs by department.</p>
+            <p className="text-[11px] text-slate-500 font-medium mt-0.5">Breakdown of monthly and annual wage costs by department.</p>
           </div>
           <div className="relative w-full sm:w-64">
-            <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="Filter department..."
@@ -316,7 +316,7 @@ export const FinanceAnalyticsPage: React.FC = () => {
             <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
               {filteredDepts.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-10 text-center text-slate-400">
+                  <td colSpan={6} className="px-5 py-10 text-center text-slate-500 font-medium">
                     No departments found.
                   </td>
                 </tr>
@@ -351,7 +351,7 @@ export const FinanceAnalyticsPage: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="p-4 border-b border-slate-100">
           <h2 className="text-xs font-bold text-slate-900">Statutory Compliance Remittance Schedule</h2>
-          <p className="text-[11px] text-slate-400 mt-0.5">Government contribution liabilities and upcoming payment challan due dates.</p>
+          <p className="text-[11px] text-slate-500 font-medium mt-0.5">Government contribution liabilities and upcoming payment challan due dates.</p>
         </div>
 
         <div className="overflow-x-auto">

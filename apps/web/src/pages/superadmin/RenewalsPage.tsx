@@ -158,9 +158,9 @@ export const RenewalsPage: React.FC = () => {
           <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
             Renewals &amp; Billing
           </h1>
-          <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-1 font-medium">
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1 font-medium">
             <Link to="/super-admin/dashboard" className="hover:text-brand-600 flex items-center gap-1">
-              <IconHome className="w-3.5 h-3.5 text-slate-400" />
+              <IconHome className="w-3.5 h-3.5 text-slate-500 font-medium" />
             </Link>
             <span className="text-slate-500 font-medium">Super Admin</span>
             <span className="text-slate-300">&gt;</span>
@@ -172,7 +172,7 @@ export const RenewalsPage: React.FC = () => {
         <form onSubmit={handleFilter} className="flex flex-wrap items-center gap-2.5 self-start lg:self-center">
           {/* Date Range Display */}
           <div className="flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 shadow-2xs font-medium">
-            <IconCalendar className="w-4 h-4 text-slate-400 shrink-0" />
+            <IconCalendar className="w-4 h-4 text-slate-500 font-medium shrink-0" />
             <span>{dateRangeStr || '9/8/2026 - 10/8/2026'}</span>
           </div>
 
@@ -190,7 +190,7 @@ export const RenewalsPage: React.FC = () => {
                 </option>
               ))}
             </select>
-            <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none" />
+            <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 pointer-events-none" />
           </div>
 
           {/* Filter Button */}
@@ -235,7 +235,7 @@ export const RenewalsPage: React.FC = () => {
               <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
                 {metrics.renewalsCount}
               </p>
-              <p className="text-xs font-normal text-slate-400 mt-1">
+              <p className="text-xs font-normal text-slate-500 mt-1">
                 Companies due for renewal
               </p>
             </div>
@@ -270,7 +270,7 @@ export const RenewalsPage: React.FC = () => {
               <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
                 {metrics.pendingOverdueCount}
               </p>
-              <p className="text-xs font-normal text-slate-400 mt-1">
+              <p className="text-xs font-normal text-slate-500 mt-1">
                 Unpaid or overdue invoices
               </p>
             </div>
@@ -305,7 +305,7 @@ export const RenewalsPage: React.FC = () => {
               <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
                 {metrics.paidCount}
               </p>
-              <p className="text-xs font-normal text-slate-400 mt-1">
+              <p className="text-xs font-normal text-slate-500 mt-1">
                 Invoices paid in selected period
               </p>
             </div>
@@ -362,7 +362,7 @@ export const RenewalsPage: React.FC = () => {
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-10 text-center text-slate-400">
+                  <td colSpan={5} className="px-6 py-10 text-center text-slate-500 font-medium">
                     <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-brand-600" />
                   </td>
                 </tr>
@@ -373,7 +373,7 @@ export const RenewalsPage: React.FC = () => {
                       <IconCalendar className="w-6 h-6 stroke-[1.75]" />
                     </div>
                     <p className="font-bold text-slate-800 text-xs">No upcoming renewals found</p>
-                    <p className="text-slate-400 text-xs mt-1">
+                    <p className="text-slate-500 font-medium text-xs mt-1">
                       There are no companies with upcoming renewals in the selected period.
                     </p>
                   </td>
@@ -385,7 +385,7 @@ export const RenewalsPage: React.FC = () => {
                     <tr key={r.id} className="hover:bg-slate-50/70 transition-colors">
                       <td className="px-6 py-4">
                         <div className="font-semibold text-slate-900">{r.name}</div>
-                        <div className="text-[11px] text-slate-400 font-mono">{r.subdomain}.peopleplus.uptrix.io</div>
+                        <div className="text-[11px] text-slate-500 font-mono">{r.subdomain}.peopleplus.uptrix.io</div>
                       </td>
                       <td className="px-6 py-4">{r.package?.name || r.planType || 'Standard'}</td>
                       <td className="px-6 py-4">{end}</td>
@@ -414,7 +414,7 @@ export const RenewalsPage: React.FC = () => {
         </div>
 
         {/* Pagination Bar */}
-        <div className="px-6 py-3.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <div className="px-6 py-3.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
           <span>
             Page {totalUpcomingPages === 0 ? '0 of 0' : `${pageUpcoming} of ${totalUpcomingPages}`}
           </span>
@@ -472,7 +472,7 @@ export const RenewalsPage: React.FC = () => {
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-10 text-center text-slate-400">
+                  <td colSpan={8} className="px-6 py-10 text-center text-slate-500 font-medium">
                     <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-brand-600" />
                   </td>
                 </tr>
@@ -483,7 +483,7 @@ export const RenewalsPage: React.FC = () => {
                       <IconFileText className="w-6 h-6 stroke-[1.75]" />
                     </div>
                     <p className="font-bold text-slate-800 text-xs">No expired billing records found</p>
-                    <p className="text-slate-400 text-xs mt-1">
+                    <p className="text-slate-500 font-medium text-xs mt-1">
                       There are no expired subscriptions in the selected period.
                     </p>
                   </td>
@@ -554,7 +554,7 @@ export const RenewalsPage: React.FC = () => {
         </div>
 
         {/* Pagination Bar */}
-        <div className="px-6 py-3.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <div className="px-6 py-3.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
           <span>
             Page {totalExpiredPages === 0 ? '0 of 0' : `${pageExpired} of ${totalExpiredPages}`}
           </span>
@@ -610,7 +610,7 @@ export const RenewalsPage: React.FC = () => {
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-slate-400">
+                  <td colSpan={6} className="px-6 py-10 text-center text-slate-500 font-medium">
                     <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-brand-600" />
                   </td>
                 </tr>
@@ -621,7 +621,7 @@ export const RenewalsPage: React.FC = () => {
                       <IconFileText className="w-6 h-6 stroke-[1.75]" />
                     </div>
                     <p className="font-bold text-slate-800 text-xs">No pending or overdue invoices</p>
-                    <p className="text-slate-400 text-xs mt-1">
+                    <p className="text-slate-500 font-medium text-xs mt-1">
                       There are no pending or overdue invoices in the selected period.
                     </p>
                   </td>
@@ -668,7 +668,7 @@ export const RenewalsPage: React.FC = () => {
         </div>
 
         {/* Pagination Bar */}
-        <div className="px-6 py-3.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <div className="px-6 py-3.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
           <span>
             Showing {pendingInvoices.length === 0 ? '0 to 0 of 0 entries' : `${(pageInvoices - 1) * pageSize + 1} to ${Math.min(pageInvoices * pageSize, pendingInvoices.length)} of ${pendingInvoices.length} entries`}
           </span>

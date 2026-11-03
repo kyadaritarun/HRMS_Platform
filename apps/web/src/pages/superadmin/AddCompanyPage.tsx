@@ -237,7 +237,7 @@ export const AddCompanyPage: React.FC = () => {
             <IconBuildingSkyscraper className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>Add Company</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Create tenant, select package &amp; billing cycle, and dispatch Razorpay payment link.
           </p>
         </div>
@@ -246,7 +246,7 @@ export const AddCompanyPage: React.FC = () => {
           to="/super-admin/companies"
           className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-colors self-start sm:self-center"
         >
-          <IconArrowLeft className="w-4 h-4 text-slate-500" />
+          <IconArrowLeft className="w-4 h-4 text-slate-500 font-medium" />
           Back to Tenants &amp; Companies
         </Link>
       </div>
@@ -286,7 +286,7 @@ export const AddCompanyPage: React.FC = () => {
 
           <div className="p-4 rounded-xl bg-white border border-emerald-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
             <div className="truncate max-w-full">
-              <span className="text-slate-400 font-semibold block text-[10px] uppercase">
+              <span className="text-slate-500 font-semibold block text-[10px] uppercase">
                 Payment Link:
               </span>
               <span className="font-mono text-slate-800 truncate block">
@@ -331,7 +331,7 @@ export const AddCompanyPage: React.FC = () => {
               </div>
               <div>
                 <h2 className="text-sm font-bold text-slate-900">Company Information</h2>
-                <p className="text-[11px] text-slate-500">Workspace identity and tenant details</p>
+                <p className="text-[11px] text-slate-500 font-medium">Workspace identity and tenant details</p>
               </div>
             </div>
 
@@ -348,7 +348,7 @@ export const AddCompanyPage: React.FC = () => {
                     value={form.name}
                     onChange={handleNameChange}
                     placeholder="e.g. Acme Corporation"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 placeholder:text-slate-400 focus:outline-blue-600 transition-colors shadow-2xs font-semibold"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 placeholder:text-slate-500 focus:outline-blue-600 transition-colors shadow-2xs font-semibold"
                   />
                 </div>
 
@@ -368,13 +368,13 @@ export const AddCompanyPage: React.FC = () => {
                         })
                       }
                       placeholder="acme"
-                      className="w-full pl-3.5 pr-24 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 placeholder:text-slate-400 focus:outline-blue-600 transition-colors shadow-2xs font-mono font-medium"
+                      className="w-full pl-3.5 pr-24 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 placeholder:text-slate-500 focus:outline-blue-600 transition-colors shadow-2xs font-mono font-medium"
                     />
-                    <span className="absolute right-3 text-xs font-mono text-slate-400 select-none">
+                    <span className="absolute right-3 text-xs font-mono text-slate-500 select-none">
                       .uptrix.io
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-1">Tenant unique URL.</p>
+                  <p className="text-[11px] text-slate-500 font-medium mt-1">Tenant unique URL.</p>
                 </div>
               </div>
 
@@ -387,7 +387,7 @@ export const AddCompanyPage: React.FC = () => {
                     value={form.code}
                     onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
                     placeholder="e.g. ACME"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 placeholder:text-slate-400 focus:outline-blue-600 font-mono shadow-2xs"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 placeholder:text-slate-500 focus:outline-blue-600 font-mono shadow-2xs"
                   />
                 </div>
 
@@ -398,7 +398,7 @@ export const AddCompanyPage: React.FC = () => {
                     value={form.website}
                     onChange={(e) => setForm({ ...form, website: e.target.value })}
                     placeholder="https://acme.com"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 placeholder:text-slate-400 focus:outline-blue-600 shadow-2xs"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 placeholder:text-slate-500 font-medium focus:outline-blue-600 shadow-2xs"
                   />
                 </div>
               </div>
@@ -408,7 +408,7 @@ export const AddCompanyPage: React.FC = () => {
                 <label className="block text-xs font-medium text-slate-700 mb-1.5">Company Logo</label>
                 <div className="flex items-center gap-3">
                   <label className="cursor-pointer inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-medium transition-colors shadow-2xs">
-                    <IconUpload className="w-3.5 h-3.5 text-slate-500" />
+                    <IconUpload className="w-3.5 h-3.5 text-slate-500 font-medium" />
                     <span>Choose File</span>
                     <input
                       type="file"
@@ -417,7 +417,7 @@ export const AddCompanyPage: React.FC = () => {
                       className="hidden"
                     />
                   </label>
-                  <span className="text-xs text-slate-500 truncate max-w-[200px]">
+                  <span className="text-xs text-slate-500 font-medium truncate max-w-[200px]">
                     {selectedFile ? selectedFile.name : 'No file chosen'}
                   </span>
                   {logoPreview && (
@@ -430,7 +430,7 @@ export const AddCompanyPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={handleRemoveLogo}
-                        className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
+                        className="text-slate-500 font-medium hover:text-rose-600 p-1 cursor-pointer"
                         title="Remove logo"
                       >
                         <IconX className="w-3.5 h-3.5" />
@@ -453,7 +453,7 @@ export const AddCompanyPage: React.FC = () => {
                   <h2 className="text-sm font-bold text-slate-900">
                     Company Admin Contact &amp; Payment Recipient
                   </h2>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-slate-500 font-medium">
                     The payment link and plan proposal will be dispatched to this email
                   </p>
                 </div>
@@ -472,13 +472,13 @@ export const AddCompanyPage: React.FC = () => {
                     Admin Contact Name
                   </label>
                   <div className="relative">
-                    <IconUser className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <IconUser className="w-4 h-4 text-slate-500 font-medium absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
                       type="text"
                       value={form.adminName}
                       onChange={(e) => setForm({ ...form, adminName: e.target.value })}
                       placeholder="e.g. John Doe"
-                      className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 placeholder:text-slate-400 focus:outline-blue-600 shadow-2xs font-medium"
+                      className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 placeholder:text-slate-500 focus:outline-blue-600 shadow-2xs font-medium"
                     />
                   </div>
                 </div>
@@ -488,14 +488,14 @@ export const AddCompanyPage: React.FC = () => {
                     Admin Work Email <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
-                    <IconMail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <IconMail className="w-4 h-4 text-slate-500 font-medium absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
                       type="email"
                       required
                       value={form.adminEmail}
                       onChange={(e) => setForm({ ...form, adminEmail: e.target.value })}
                       placeholder="admin@acme.com"
-                      className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-blue-300 bg-white text-xs text-slate-900 placeholder:text-slate-400 focus:outline-blue-600 shadow-2xs font-semibold"
+                      className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-blue-300 bg-white text-xs text-slate-900 placeholder:text-slate-500 focus:outline-blue-600 shadow-2xs font-semibold"
                     />
                   </div>
                   <p className="text-[11px] text-blue-600 mt-1 font-medium">
@@ -506,13 +506,13 @@ export const AddCompanyPage: React.FC = () => {
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1.5">Phone Number</label>
                   <div className="relative">
-                    <IconPhone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <IconPhone className="w-4 h-4 text-slate-500 font-medium absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
                       type="tel"
                       value={form.adminPhone}
                       onChange={(e) => setForm({ ...form, adminPhone: e.target.value })}
                       placeholder="+91 98765 43210"
-                      className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 placeholder:text-slate-400 focus:outline-blue-600 shadow-2xs"
+                      className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 placeholder:text-slate-500 font-medium focus:outline-blue-600 shadow-2xs"
                     />
                   </div>
                 </div>
@@ -529,7 +529,7 @@ export const AddCompanyPage: React.FC = () => {
                 </div>
                 <div>
                   <h2 className="text-sm font-bold text-slate-900">Subscription &amp; Pricing Selection</h2>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-slate-500 font-medium">
                     Select Plan Name and Plan Type (Monthly, Quarterly, Yearly)
                   </p>
                 </div>
@@ -570,7 +570,7 @@ export const AddCompanyPage: React.FC = () => {
                       );
                     })}
                   </select>
-                  <p className="text-[11px] text-slate-400 mt-1">
+                  <p className="text-[11px] text-slate-500 font-medium mt-1">
                     Includes Basic, Medium, and custom company plans created in Packages &amp; Pricing.
                   </p>
                 </div>
@@ -592,7 +592,7 @@ export const AddCompanyPage: React.FC = () => {
                     >
                       <div className="text-xs">Monthly</div>
                       {selectedPackage && (
-                        <div className="text-[11px] text-slate-500 mt-0.5">
+                        <div className="text-[11px] text-slate-500 font-medium mt-0.5">
                           ₹{Number(selectedPackage.priceMonthly || 0).toLocaleString()}
                         </div>
                       )}
@@ -609,7 +609,7 @@ export const AddCompanyPage: React.FC = () => {
                     >
                       <div className="text-xs">Quarterly</div>
                       {selectedPackage && (
-                        <div className="text-[11px] text-slate-500 mt-0.5">
+                        <div className="text-[11px] text-slate-500 font-medium mt-0.5">
                           ₹{Number(selectedPackage.priceQuarterly || 0).toLocaleString()}
                         </div>
                       )}
@@ -646,13 +646,13 @@ export const AddCompanyPage: React.FC = () => {
                           {form.planType}
                         </span>
                       </span>
-                      <span className="text-[11px] text-slate-500 block mt-0.5">
+                      <span className="text-[11px] text-slate-500 font-medium block mt-0.5">
                         Capacity: Up to {selectedPackage.employeeLimit} employee accounts
                       </span>
                     </div>
 
                     <div className="text-right">
-                      <div className="text-xs text-slate-400">Total Billed in Payment Link:</div>
+                      <div className="text-xs text-slate-500 font-medium">Total Billed in Payment Link:</div>
                       <div className="text-xl font-extrabold text-blue-700">
                         ₹{totalPrice.toLocaleString('en-IN')}
                       </div>
@@ -661,7 +661,7 @@ export const AddCompanyPage: React.FC = () => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-slate-600 pt-1">
                     <div>
-                      <span className="text-slate-400 block text-[10px] uppercase font-semibold">
+                      <span className="text-slate-500 block text-[10px] uppercase font-semibold">
                         Plan Base Amount
                       </span>
                       <span className="font-bold text-slate-800">
@@ -669,7 +669,7 @@ export const AddCompanyPage: React.FC = () => {
                       </span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block text-[10px] uppercase font-semibold">
+                      <span className="text-slate-500 block text-[10px] uppercase font-semibold">
                         GST (18%)
                       </span>
                       <span className="font-bold text-slate-800">
@@ -677,7 +677,7 @@ export const AddCompanyPage: React.FC = () => {
                       </span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block text-[10px] uppercase font-semibold">
+                      <span className="text-slate-500 block text-[10px] uppercase font-semibold">
                         Initial Tenant Status
                       </span>
                       <span className="inline-flex items-center gap-1 font-bold text-amber-700">
@@ -693,7 +693,7 @@ export const AddCompanyPage: React.FC = () => {
 
           {/* Form Actions Footer */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 font-medium">
               Submitting registers the company, issues the payment link, and notifies the company admin.
             </p>
 

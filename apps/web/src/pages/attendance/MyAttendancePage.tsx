@@ -331,7 +331,7 @@ export const MyAttendancePage: React.FC = () => {
             <IconClock className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>Attendance</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Real-time workplace check-in, duration calculation, and regularization desk.
           </p>
         </div>
@@ -350,7 +350,7 @@ export const MyAttendancePage: React.FC = () => {
                 }`}
               >
                 <IconBuilding className="w-3.5 h-3.5" />
-                <span>Office (WFO)</span>
+                <span>Office</span>
               </button>
               <button
                 type="button"
@@ -461,7 +461,7 @@ export const MyAttendancePage: React.FC = () => {
         {/* Card 3: Any Regularisations */}
         <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
-            <span className="text-xs font-bold text-slate-500">Any Regularisations</span>
+            <span className="text-xs font-bold text-slate-500">Regularisations</span>
             <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
               {monthlyRegularizations.length} {monthlyRegularizations.length === 1 ? 'Request' : 'Requests'}
             </div>
@@ -512,9 +512,9 @@ export const MyAttendancePage: React.FC = () => {
               onClick={() => setIsFilterOpen(!isFilterOpen)}
               className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer"
             >
-              <IconCalendar className="w-4 h-4 text-slate-400" />
+              <IconCalendar className="w-4 h-4 text-slate-500 font-medium" />
               <span>{filterPeriodLabel[filterPeriod]}</span>
-              <IconChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium" />
             </button>
 
             {isFilterOpen && (
@@ -594,7 +594,7 @@ export const MyAttendancePage: React.FC = () => {
                     <p className="text-sm font-bold text-slate-800">
                       No attendance records found
                     </p>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-slate-500 font-medium mt-1">
                       Your attendance logs for the selected period will appear here.
                     </p>
                   </td>
@@ -769,14 +769,14 @@ export const MyAttendancePage: React.FC = () => {
                     <h2 className="text-base font-bold text-slate-900">
                       Request Regularization
                     </h2>
-                    <p className="text-xs text-slate-400 font-medium">
+                    <p className="text-xs text-slate-500 font-medium">
                       Submit missing check-in/out times to your manager
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setIsRegModalOpen(false)}
-                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-xl text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <IconX className="w-5 h-5" />
                 </button>

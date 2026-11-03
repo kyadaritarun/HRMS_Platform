@@ -169,7 +169,7 @@ export const HostedPaymentPage: React.FC = () => {
         <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-xl max-w-md w-full text-center space-y-4">
           <div className="w-12 h-12 border-4 border-[#5E4BE2] border-t-transparent rounded-full animate-spin mx-auto" />
           <h2 className="text-base font-bold text-slate-900">Loading Secure Checkout...</h2>
-          <p className="text-xs text-slate-500">Retrieving proposal details from Uptrix billing engine.</p>
+          <p className="text-xs text-slate-500 font-medium">Retrieving proposal details from Uptrix billing engine.</p>
         </div>
       </div>
     );
@@ -212,7 +212,7 @@ export const HostedPaymentPage: React.FC = () => {
             </div>
             <div>
               <h1 className="text-xl font-black text-slate-900 tracking-tight">UPTRIX HRMS</h1>
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                 Official Razorpay Checkout
               </p>
             </div>
@@ -261,14 +261,14 @@ export const HostedPaymentPage: React.FC = () => {
 
                 <div className="space-y-2 text-xs">
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Workspace URL</span>
+                    <span className="text-slate-500 block text-[10px] uppercase font-bold">Workspace URL</span>
                     <strong className="text-[#5E4BE2] text-sm">
                       {paymentSuccessData.subdomain}.uptrix.io
                     </strong>
                   </div>
 
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Admin Login Email</span>
+                    <span className="text-slate-500 block text-[10px] uppercase font-bold">Admin Login Email</span>
                     <strong className="text-slate-900 font-mono text-xs">
                       {paymentSuccessData.adminEmail}
                     </strong>
@@ -319,7 +319,7 @@ export const HostedPaymentPage: React.FC = () => {
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">
                   {order.companyName}
                 </h2>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-slate-500 font-medium mt-1">
                   Tenant Subdomain: <strong className="text-slate-800">{order.subdomain}.uptrix.io</strong>
                 </p>
               </div>
@@ -332,7 +332,7 @@ export const HostedPaymentPage: React.FC = () => {
                     {order.planType}
                   </span>
                 </div>
-                <p className="text-xs text-slate-500">{order.package?.description}</p>
+                <p className="text-xs text-slate-500 font-medium">{order.package?.description}</p>
                 <div className="pt-2 border-t border-slate-200 text-xs text-slate-700 flex items-center justify-between font-semibold">
                   <span>Authorized Seat Capacity:</span>
                   <span className="text-[#5E4BE2] font-bold">Up to {employeeLimit} employees</span>
@@ -375,7 +375,7 @@ export const HostedPaymentPage: React.FC = () => {
                     <IconReceipt className="w-5 h-5 text-[#5E4BE2]" />
                     Order Summary
                   </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">SAC Code 998313 • Indian GST</p>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">SAC Code 998313 • Indian GST</p>
                 </div>
 
                 <div className="space-y-3 text-xs">
@@ -406,7 +406,7 @@ export const HostedPaymentPage: React.FC = () => {
                     <IconSparkles className="w-4 h-4 text-[#5E4BE2]" />
                     Instant Cloud Activation
                   </div>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                  <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
                     Upon payment confirmation, your tenant workspace, administrator login credentials, and official GST tax receipt will be issued immediately.
                   </p>
                 </div>
@@ -425,7 +425,7 @@ export const HostedPaymentPage: React.FC = () => {
                   </span>
                 </button>
 
-                <div className="flex items-center justify-center gap-2 text-[11px] text-slate-400 text-center">
+                <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500 font-medium text-center">
                   <IconLock className="w-3.5 h-3.5" />
                   <span>Razorpay Trusted • UPI, GPay, Cards, Netbanking</span>
                 </div>

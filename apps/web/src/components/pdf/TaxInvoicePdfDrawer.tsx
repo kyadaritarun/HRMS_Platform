@@ -152,7 +152,7 @@ export const TaxInvoicePdfDrawer: React.FC<TaxInvoicePdfDrawerProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-xl text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                   title="Close"
                 >
                   <IconX className="w-5 h-5" />
@@ -168,16 +168,16 @@ export const TaxInvoicePdfDrawer: React.FC<TaxInvoicePdfDrawerProps> = ({
               <div className="flex items-start justify-between">
                 <div>
                   <h2 className="text-2xl font-black text-slate-900 tracking-tight">{COMPANY_BRAND_NAME}</h2>
-                  <p className="text-xs text-slate-500 mt-0.5">{COMPANY_LEGAL_NAME}</p>
-                  <p className="text-[11px] text-slate-400">GSTIN: {COMPANY_GSTIN}</p>
-                  <p className="text-[11px] text-slate-400">{COMPANY_ADDRESS}</p>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">{COMPANY_LEGAL_NAME}</p>
+                  <p className="text-[11px] text-slate-500 font-medium">GSTIN: {COMPANY_GSTIN}</p>
+                  <p className="text-[11px] text-slate-500 font-medium">{COMPANY_ADDRESS}</p>
                 </div>
 
                 <div className="text-right">
                   <div className="font-mono font-bold text-slate-900 text-base">
                     {invoice.invoiceNumber}
                   </div>
-                  <span className="text-xs text-slate-500 block">
+                  <span className="text-xs text-slate-500 font-medium block">
                     Issued: {new Date(invoice.issuedAt).toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' })}
                   </span>
                 </div>
@@ -185,7 +185,7 @@ export const TaxInvoicePdfDrawer: React.FC<TaxInvoicePdfDrawerProps> = ({
 
               <div className="grid grid-cols-2 gap-4 sm:gap-6 p-4 rounded-2xl bg-slate-50 border border-slate-100 text-xs">
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">BILLED TO</span>
+                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">BILLED TO</span>
                   <strong className="text-slate-900 block mt-1 text-sm">
                     {company?.name || 'Company Workspace'}
                   </strong>
@@ -195,7 +195,7 @@ export const TaxInvoicePdfDrawer: React.FC<TaxInvoicePdfDrawerProps> = ({
                 </div>
 
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">BILLING PERIOD &amp; TRANSACTION</span>
+                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">BILLING PERIOD &amp; TRANSACTION</span>
                   <span className="text-slate-700 block mt-1">
                     Period: <strong>{new Date(invoice.periodStart).toLocaleDateString()} to {new Date(invoice.periodEnd).toLocaleDateString()}</strong>
                   </span>
@@ -226,7 +226,7 @@ export const TaxInvoicePdfDrawer: React.FC<TaxInvoicePdfDrawerProps> = ({
                         <strong className="text-slate-900 block">
                           {invoice.payment?.itemDescription || 'Enterprise SaaS Platform Annual Subscription'}
                         </strong>
-                        <span className="text-slate-500 text-[11px]">
+                        <span className="text-slate-500 font-medium text-[11px]">
                           Automated Payroll, GPS Geofenced Attendance, KYC Vault &amp; Priority SLA
                         </span>
                       </td>
@@ -237,7 +237,7 @@ export const TaxInvoicePdfDrawer: React.FC<TaxInvoicePdfDrawerProps> = ({
                       </td>
                     </tr>
                     <tr>
-                      <td className="px-4 py-2.5 text-slate-500">Central GST (CGST @ 9%)</td>
+                      <td className="px-4 py-2.5 text-slate-500 font-medium">Central GST (CGST @ 9%)</td>
                       <td className="px-4 py-2.5 text-center font-mono">998313</td>
                       <td className="px-4 py-2.5 text-center">9%</td>
                       <td className="px-4 py-2.5 text-right font-semibold text-slate-700">
@@ -245,7 +245,7 @@ export const TaxInvoicePdfDrawer: React.FC<TaxInvoicePdfDrawerProps> = ({
                       </td>
                     </tr>
                     <tr>
-                      <td className="px-4 py-2.5 text-slate-500">State GST (SGST @ 9%)</td>
+                      <td className="px-4 py-2.5 text-slate-500 font-medium">State GST (SGST @ 9%)</td>
                       <td className="px-4 py-2.5 text-center font-mono">998313</td>
                       <td className="px-4 py-2.5 text-center">9%</td>
                       <td className="px-4 py-2.5 text-right font-semibold text-slate-700">
@@ -264,7 +264,7 @@ export const TaxInvoicePdfDrawer: React.FC<TaxInvoicePdfDrawerProps> = ({
                 </table>
               </div>
 
-              <div className="pt-2 text-[11px] text-slate-400 leading-relaxed border-t border-slate-100 flex items-center justify-between">
+              <div className="pt-2 text-[11px] text-slate-500 font-medium leading-relaxed border-t border-slate-100 flex items-center justify-between">
                 <span>This is a digitally generated tax receipt and requires no physical signature.</span>
                 <span className="font-semibold text-slate-500">{COMPANY_BRAND_NAME} Billing Platform</span>
               </div>

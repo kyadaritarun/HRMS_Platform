@@ -441,7 +441,7 @@ export const ComplianceReportsPage: React.FC = () => {
             <IconBuildingBank className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>Statutory Compliance & Bank Payout Reports</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Automated generation of bank disbursement NEFT sheets, EPFO ECR, ESIC return registers, and PT/TDS deduction summaries.
           </p>
         </div>
@@ -554,7 +554,7 @@ export const ComplianceReportsPage: React.FC = () => {
               </select>
             </div>
             <h3 className="font-bold text-slate-900 text-sm">Bank Disbursement File</h3>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 font-medium mt-1">
               Bulk payment file formatted for {selectedBankFormat} corporate banking portal upload.
             </p>
             <p className="text-lg font-black text-slate-900 mt-2">
@@ -588,7 +588,7 @@ export const ComplianceReportsPage: React.FC = () => {
               <IconShieldCheck className="w-5 h-5" />
             </div>
             <h3 className="font-bold text-slate-900 text-sm">EPFO PF ECR Statement</h3>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 font-medium mt-1">
               Monthly Electronic Challan cum Return (ECR) for Provident Fund submission.
             </p>
             <p className="text-lg font-black text-slate-900 mt-2">
@@ -611,7 +611,7 @@ export const ComplianceReportsPage: React.FC = () => {
               <IconFileSpreadsheet className="w-5 h-5" />
             </div>
             <h3 className="font-bold text-slate-900 text-sm">ESIC Monthly Return</h3>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 font-medium mt-1">
               Employee State Insurance 0.75% + 3.25% contribution report for eligible wages.
             </p>
             <p className="text-lg font-black text-slate-900 mt-2">
@@ -634,7 +634,7 @@ export const ComplianceReportsPage: React.FC = () => {
               <IconReceipt2 className="w-5 h-5" />
             </div>
             <h3 className="font-bold text-slate-900 text-sm">PT & TDS Tax Register</h3>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 font-medium mt-1">
               State Professional Tax (PT) and Section 192 Income Tax TDS withholdings.
             </p>
             <p className="text-lg font-black text-slate-900 mt-2">
@@ -677,7 +677,7 @@ export const ComplianceReportsPage: React.FC = () => {
           </div>
 
           <div className="relative w-full sm:w-72">
-            <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3 top-2.5" />
             <input
               type="text"
               placeholder="Search staff, department..."
@@ -745,7 +745,7 @@ export const ComplianceReportsPage: React.FC = () => {
                 ))
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500 font-medium">
                     No employees found for this period.
                   </td>
                 </tr>
@@ -754,7 +754,7 @@ export const ComplianceReportsPage: React.FC = () => {
                   <tr key={emp.id} className="hover:bg-slate-50/60 transition-colors">
                     <td className="px-6 py-3.5">
                       <div className="font-bold text-slate-900">{emp.firstName} {emp.lastName}</div>
-                      <div className="text-[11px] text-slate-400">{emp.department} • {emp.jobTitle}</div>
+                      <div className="text-[11px] text-slate-500 font-medium">{emp.department} • {emp.jobTitle}</div>
                     </td>
 
                     {activeTab === 'BANK' && (
@@ -828,13 +828,13 @@ export const ComplianceReportsPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-900 text-base">Record Bank Payout & UTR</h3>
-                  <p className="text-xs text-slate-500">Lock pay run for {month}/{year} with banking reference</p>
+                  <p className="text-xs text-slate-500 font-medium">Lock pay run for {month}/{year} with banking reference</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setUtrModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+                className="p-1 rounded-lg text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
               >
                 <IconX className="w-5 h-5" />
               </button>

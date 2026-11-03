@@ -438,7 +438,7 @@ export const OfferLetterPdfDrawer: React.FC<OfferLetterPdfDrawerProps> = ({
                 {/* Status Selector */}
                 {onUpdateStatus && (
                   <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs">
-                    <span className="text-slate-400 font-semibold text-[11px]">Status:</span>
+                    <span className="text-slate-500 font-semibold text-[11px]">Status:</span>
                     <select
                       value={letter.status}
                       onChange={(e) => onUpdateStatus(e.target.value as any)}
@@ -477,7 +477,7 @@ export const OfferLetterPdfDrawer: React.FC<OfferLetterPdfDrawerProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 cursor-pointer transition-colors"
+                  className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500 font-medium hover:text-slate-700 cursor-pointer transition-colors"
                   title="Close"
                 >
                   <IconX className="w-5 h-5" />
@@ -527,12 +527,12 @@ export const OfferLetterPdfDrawer: React.FC<OfferLetterPdfDrawerProps> = ({
                     <h2 className="text-2xl font-black tracking-tight text-slate-900 uppercase">
                       {company?.name || 'Company Name'}
                     </h2>
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p className="text-xs text-slate-500 font-medium mt-1">
                       Registered Corporate Office • Uptrix HRMS Cloud Workspace
                     </p>
                   </div>
                   <div className="text-right">
-                    <span className="text-xs text-slate-500 block">
+                    <span className="text-xs text-slate-500 font-medium block">
                       Date: {new Date(letter.createdAt).toLocaleDateString('en-IN', {
                         day: 'numeric',
                         month: 'long',
@@ -544,7 +544,7 @@ export const OfferLetterPdfDrawer: React.FC<OfferLetterPdfDrawerProps> = ({
 
                 {/* Candidate Address Block */}
                 <div className="mb-6 space-y-1">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">To,</p>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">To,</p>
                   <h3 className="font-bold text-base text-slate-900">{letter.candidateName}</h3>
                   <p className="text-xs text-slate-600">{letter.candidateEmail}</p>
                   {letter.candidatePhone && (
@@ -641,7 +641,7 @@ export const OfferLetterPdfDrawer: React.FC<OfferLetterPdfDrawerProps> = ({
                         </tbody>
                       </table>
                     ) : (
-                      <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs text-slate-500 mb-4 print:border-none print:p-0">
+                      <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs text-slate-500 font-medium mb-4 print:border-none print:p-0">
                         <span className="italic">Detailed itemized salary breakdown annexure is omitted per offer options.</span>
                       </div>
                     )}
@@ -714,7 +714,7 @@ export const OfferLetterPdfDrawer: React.FC<OfferLetterPdfDrawerProps> = ({
                           >
                             <IconPaperclip className="w-3.5 h-3.5 text-indigo-600" />
                             <span>{file.name}</span>
-                            {file.size && <span className="text-[10px] text-slate-400">({file.size})</span>}
+                            {file.size && <span className="text-[10px] text-slate-500 font-medium">({file.size})</span>}
                           </div>
                         ))}
                       </div>

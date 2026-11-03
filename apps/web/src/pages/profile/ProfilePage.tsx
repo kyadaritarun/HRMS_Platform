@@ -243,7 +243,7 @@ export const ProfilePage: React.FC = () => {
           <IconUser className="w-5 h-5 text-indigo-600 shrink-0" />
           <span>My Profile</span>
         </h1>
-        <p className="text-xs text-slate-500 mt-0.5">
+        <p className="text-xs text-slate-500 font-medium mt-0.5">
           Manage your personal information and work details
         </p>
       </div>
@@ -338,11 +338,11 @@ export const ProfilePage: React.FC = () => {
               <p className="text-xs text-slate-500 font-normal">{user?.email || 'Not provided'}</p>
               <div className="flex flex-wrap items-center gap-2 pt-0.5">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white border border-slate-200 text-[11px] font-medium text-slate-600 shadow-2xs">
-                  <IconBuilding className="w-3.5 h-3.5 text-slate-400" />
+                  <IconBuilding className="w-3.5 h-3.5 text-slate-500 font-medium" />
                   {user?.department?.name || 'Department not set'}
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white border border-slate-200 text-[11px] font-medium text-slate-600 shadow-2xs">
-                  <IconBriefcase className="w-3.5 h-3.5 text-slate-400" />
+                  <IconBriefcase className="w-3.5 h-3.5 text-slate-500 font-medium" />
                   {user?.jobTitle || 'Job role not set'}
                 </span>
               </div>
@@ -356,7 +356,7 @@ export const ProfilePage: React.FC = () => {
               onClick={() => setIsEditing(!isEditing)}
               className="px-3.5 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors"
             >
-              <IconEdit className="w-3.5 h-3.5 text-slate-500" />
+              <IconEdit className="w-3.5 h-3.5 text-slate-500 font-medium" />
               {isEditing ? 'Cancel Edit' : 'Edit Profile'}
             </button>
             <button
@@ -592,7 +592,7 @@ export const ProfilePage: React.FC = () => {
               </div>
               <button
                 onClick={() => setShowPasswordModal(false)}
-                className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center"
+                className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 font-medium hover:text-slate-700 flex items-center justify-center"
               >
                 <IconX className="w-5 h-5" />
               </button>

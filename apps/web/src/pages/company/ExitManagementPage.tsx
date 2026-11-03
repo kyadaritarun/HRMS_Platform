@@ -442,7 +442,7 @@ HR Operations Team`,
             <IconDoorExit className="w-5 h-5 text-rose-600 shrink-0" />
             <span>Exit &amp; Full &amp; Final (F&amp;F) Settlement</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Manage employee resignations, cross-departmental NOC clearances, and automated F&amp;F terminal payouts.
           </p>
         </div>
@@ -466,7 +466,7 @@ HR Operations Team`,
             </div>
             <div>
               <h2 className="text-sm font-bold text-slate-900">All Resignations &amp; Settlements</h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
                 Track employee handover, cross-department NOC clearance, and terminal dues.
               </p>
             </div>
@@ -476,7 +476,7 @@ HR Operations Team`,
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
             {/* Search Input */}
             <div className="relative flex-1 sm:w-64">
-              <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search employee, dept, ID..."
@@ -499,8 +499,8 @@ HR Operations Team`,
                 <option value="FF_READY">F&amp;F Ready</option>
                 <option value="SETTLED">Settled</option>
               </select>
-              <IconFilter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconFilter className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
         </div>
@@ -523,12 +523,12 @@ HR Operations Team`,
             <tbody className="divide-y divide-slate-100">
               {filteredRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                  <td colSpan={8} className="py-12 text-center text-slate-500 font-medium">
                     <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-2">
                       <IconDoorExit className="w-6 h-6" />
                     </div>
                     <h4 className="text-sm font-bold text-slate-800">No exit records found</h4>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-slate-500 font-medium mt-1">
                       {search ? 'Try adjusting your search criteria.' : 'Click "Initiate Employee Exit" to create a new exit record.'}
                     </p>
                   </td>
@@ -546,7 +546,7 @@ HR Operations Team`,
                     <tr key={r.id} className="hover:bg-slate-50/60 transition-colors">
                       <td className="px-4 py-3.5 whitespace-nowrap">
                         <div className="font-bold text-slate-900 text-xs">{r.employeeName}</div>
-                        <div className="text-[11px] text-slate-400 font-normal">{r.jobTitle}</div>
+                        <div className="text-[11px] text-slate-500 font-normal">{r.jobTitle}</div>
                       </td>
                       <td className="px-4 py-3.5 whitespace-nowrap">
                         <span className="inline-block text-[10px] font-medium text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200/60">
@@ -558,7 +558,7 @@ HR Operations Team`,
                       </td>
                       <td className="px-4 py-3.5 whitespace-nowrap">
                         <div className="text-xs font-bold text-slate-900">{r.lastWorkingDay}</div>
-                        <span className="block text-[10px] text-slate-400 font-normal">
+                        <span className="block text-[10px] text-slate-500 font-normal">
                           {r.noticePeriodDays} days notice
                         </span>
                       </td>
@@ -661,7 +661,7 @@ HR Operations Team`,
                   </span>
                   <h2 className="text-xl font-bold text-slate-900">{selectedRecord.employeeName}</h2>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-slate-500 font-medium mt-1">
                   {selectedRecord.jobTitle} • {selectedRecord.department} • Last Working Day:{' '}
                   <span className="font-semibold text-slate-800">{selectedRecord.lastWorkingDay}</span>
                 </p>
@@ -686,7 +686,7 @@ HR Operations Team`,
                 )}
                 <button
                   onClick={() => setSelectedRecord(null)}
-                  className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors"
+                  className="p-2 text-slate-500 font-medium hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors"
                 >
                   <IconX className="w-5 h-5" />
                 </button>
@@ -756,7 +756,7 @@ HR Operations Team`,
                         <span className="text-xs font-semibold text-slate-700">Cleared</span>
                       </label>
                     </div>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 font-medium">
                       Laptop, charger, monitor, mouse, and peripheral returns. Google Workspace, Slack, and cloud
                       credentials revoked.
                     </p>
@@ -790,7 +790,7 @@ HR Operations Team`,
                         <span className="text-xs font-semibold text-slate-700">Cleared</span>
                       </label>
                     </div>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 font-medium">
                       Physical ID badge, office keys, parking pass, and locker keys surrender.
                     </p>
                     <input
@@ -823,7 +823,7 @@ HR Operations Team`,
                         <span className="text-xs font-semibold text-slate-700">Cleared</span>
                       </label>
                     </div>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 font-medium">
                       Corporate credit card cancellation, outstanding travel advances, and expense reimbursement claims.
                     </p>
                     <input
@@ -856,7 +856,7 @@ HR Operations Team`,
                         <span className="text-xs font-semibold text-slate-700">Cleared</span>
                       </label>
                     </div>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 font-medium">
                       Exit interview feedback submitted, non-compete/NDA re-affirmed, forward postal address confirmed.
                     </p>
                     <input
@@ -964,7 +964,7 @@ HR Operations Team`,
                       <span className="text-3xl font-black text-slate-900 mt-1 block">
                         ₹{selectedRecord.ffSettlement.netPayout.toLocaleString()}
                       </span>
-                      <span className="text-xs text-slate-500 mt-0.5 block">
+                      <span className="text-xs text-slate-500 font-medium mt-0.5 block">
                         Credited to employee bank account upon final clearance
                       </span>
                     </div>
@@ -977,7 +977,7 @@ HR Operations Team`,
             {activeTab === 'STATEMENT' && (
               <div className="p-6 space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-slate-500 font-medium">
                     Official accounting statement generated for employee F&amp;F terminal settlement.
                   </div>
                   <div className="flex items-center gap-2">
@@ -1005,32 +1005,32 @@ HR Operations Team`,
                   <div className="flex justify-between items-start border-b border-slate-100 pb-4">
                     <div>
                       <h2 className="text-xl font-bold text-slate-900">{company?.name || 'UPTRIX CORP'}</h2>
-                      <p className="text-xs text-slate-500">Human Resources & Payroll Operations</p>
+                      <p className="text-xs text-slate-500 font-medium">Human Resources & Payroll Operations</p>
                     </div>
                     <div className="text-right">
                       <span className="text-xs font-bold text-rose-600 bg-rose-50 px-3 py-1 rounded-full border border-rose-200">
                         FULL & FINAL SETTLEMENT STATEMENT
                       </span>
-                      <p className="text-xs text-slate-400 mt-1">Ref: {selectedRecord.id}</p>
+                      <p className="text-xs text-slate-500 font-medium mt-1">Ref: {selectedRecord.id}</p>
                     </div>
                   </div>
 
                   {/* Employee Details Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs bg-slate-50 p-4 rounded-xl">
                     <div>
-                      <span className="text-slate-400 block">Employee Name</span>
+                      <span className="text-slate-500 font-medium block">Employee Name</span>
                       <span className="font-bold text-slate-900">{selectedRecord.employeeName}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block">Designation</span>
+                      <span className="text-slate-500 font-medium block">Designation</span>
                       <span className="font-bold text-slate-900">{selectedRecord.jobTitle}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block">Date of Joining</span>
+                      <span className="text-slate-500 font-medium block">Date of Joining</span>
                       <span className="font-bold text-slate-900">{selectedRecord.joiningDate}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block">Last Working Date</span>
+                      <span className="text-slate-500 font-medium block">Last Working Date</span>
                       <span className="font-bold text-slate-900">{selectedRecord.lastWorkingDay}</span>
                     </div>
                   </div>
@@ -1101,11 +1101,11 @@ HR Operations Team`,
                   <div className="pt-8 flex justify-between items-end border-t border-slate-100 text-xs">
                     <div>
                       <div className="h-10 border-b border-slate-300 w-40 mb-1" />
-                      <span className="text-slate-500 block">Employee Signature</span>
+                      <span className="text-slate-500 font-medium block">Employee Signature</span>
                     </div>
                     <div className="text-right">
                       <div className="h-10 border-b border-slate-300 w-40 mb-1 ml-auto" />
-                      <span className="text-slate-500 block">Authorized Signatory (HR)</span>
+                      <span className="text-slate-500 font-medium block">Authorized Signatory (HR)</span>
                     </div>
                   </div>
                 </div>
@@ -1143,7 +1143,7 @@ HR Operations Team`,
                 <button
                   type="button"
                   onClick={() => setShowInitiateModal(false)}
-                  className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                  className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500 font-medium hover:text-slate-700 transition-colors cursor-pointer"
                   title="Close"
                 >
                   <IconX className="w-5 h-5" />
@@ -1275,7 +1275,7 @@ HR Operations Team`,
                   </div>
                   <div>
                     <h2 className="text-base font-bold text-slate-900">Send Exit Update to Employee</h2>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 font-medium">
                       To: <span className="font-semibold text-slate-800">{updateTargetRecord.employeeName}</span> ({updateTargetRecord.employeeEmail})
                     </p>
                   </div>
@@ -1283,7 +1283,7 @@ HR Operations Team`,
                 <button
                   type="button"
                   onClick={() => setShowSendUpdateModal(false)}
-                  className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors"
+                  className="p-2 text-slate-500 font-medium hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors"
                 >
                   <IconX className="w-5 h-5" />
                 </button>
@@ -1307,7 +1307,7 @@ HR Operations Team`,
                       }`}
                     >
                       <span className="block font-bold">1. Pending Clearances</span>
-                      <span className="text-[10px] text-slate-500">Handover checklist &amp; remarks</span>
+                      <span className="text-[10px] text-slate-500 font-medium">Handover checklist &amp; remarks</span>
                     </button>
                     <button
                       type="button"
@@ -1319,7 +1319,7 @@ HR Operations Team`,
                       }`}
                     >
                       <span className="block font-bold">2. F&amp;F Settlement</span>
-                      <span className="text-[10px] text-slate-500">Financial dues breakdown</span>
+                      <span className="text-[10px] text-slate-500 font-medium">Financial dues breakdown</span>
                     </button>
                     <button
                       type="button"
@@ -1331,7 +1331,7 @@ HR Operations Team`,
                       }`}
                     >
                       <span className="block font-bold">3. Exit Acceptance</span>
-                      <span className="text-[10px] text-slate-500">Acknowledge LWD &amp; notice</span>
+                      <span className="text-[10px] text-slate-500 font-medium">Acknowledge LWD &amp; notice</span>
                     </button>
                     <button
                       type="button"
@@ -1343,7 +1343,7 @@ HR Operations Team`,
                       }`}
                     >
                       <span className="block font-bold">4. Custom Notice</span>
-                      <span className="text-[10px] text-slate-500">Compose custom message</span>
+                      <span className="text-[10px] text-slate-500 font-medium">Compose custom message</span>
                     </button>
                   </div>
                 </div>
@@ -1408,7 +1408,7 @@ HR Operations Team`,
                     onChange={(e) => setUpdateMessage(e.target.value)}
                     className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-rose-500 font-mono text-slate-800 leading-relaxed resize-y"
                   />
-                  <span className="text-[10px] text-slate-400 mt-1 block">
+                  <span className="text-[10px] text-slate-500 font-medium mt-1 block">
                     You can edit the content above before dispatching. Clearances, F&amp;F numbers, and dates are auto-filled.
                   </span>
                 </div>
@@ -1447,7 +1447,7 @@ HR Operations Team`,
           <span className="text-xs font-medium leading-relaxed">{successToast}</span>
           <button
             onClick={() => setSuccessToast(null)}
-            className="text-slate-400 hover:text-white p-1 ml-auto cursor-pointer"
+            className="text-slate-500 font-medium hover:text-white p-1 ml-auto cursor-pointer"
           >
             <IconX className="w-4 h-4" />
           </button>

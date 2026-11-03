@@ -400,7 +400,7 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
                 <h3 className="text-base font-bold text-slate-900">
                   Bulk Import Completed Successfully!
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
                   <span className="font-bold text-emerald-600">{successInfo.createdCount}</span> employees onboarded,{' '}
                   <span className="font-bold text-slate-700">{successInfo.failedCount}</span> failed.
                 </p>
@@ -449,7 +449,7 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
                     <span>{copiedBulkPassword ? 'Copied' : 'Copy Password'}</span>
                   </button>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-1">
+                <p className="text-[11px] text-slate-500 font-medium mt-1">
                   Onboarding emails containing their user ID and this temporary password have been dispatched. Each employee must set a new password on their first login.
                 </p>
               </div>
@@ -502,7 +502,7 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
               Upload your employee spreadsheet or edit data rows directly in the table below.
             </p>
           </div>
@@ -542,7 +542,7 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
               'Click to upload filled Excel file (.xlsx, .xls, .csv)'
             )}
           </h3>
-          <p className="text-[11px] text-slate-400 mt-1">
+          <p className="text-[11px] text-slate-500 font-medium mt-1">
             Dates and headers are automatically detected and mapped into the grid
           </p>
         </div>
@@ -601,7 +601,7 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
           <div className="flex flex-wrap items-center gap-2.5">
             {/* Search Input */}
             <div className="relative">
-              <IconSearch className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <IconSearch className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-2.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search rows..."
@@ -670,7 +670,7 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
                       !r.isValid ? 'bg-amber-50/20' : ''
                     }`}
                   >
-                    <td className="px-3 py-2 text-center font-bold text-slate-400 text-xs">
+                    <td className="px-3 py-2 text-center font-bold text-slate-500 text-xs">
                       {globalIndex}
                     </td>
                     <td className="px-3 py-2 text-center">
@@ -923,7 +923,7 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
                       <button
                         type="button"
                         onClick={() => handleRemoveRow(r.id)}
-                        className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                        className="p-1 rounded-lg text-slate-500 font-medium hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                         title="Remove Row"
                       >
                         <IconTrash className="w-4 h-4" />

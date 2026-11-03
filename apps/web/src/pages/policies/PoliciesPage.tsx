@@ -104,7 +104,7 @@ export const PoliciesPage: React.FC = () => {
             <IconFileText className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>Policies</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Review mandatory corporate governance, workplace safety guidelines, and statutory compliance documents.
           </p>
         </div>
@@ -118,7 +118,7 @@ export const PoliciesPage: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           {/* Search Input */}
           <div className="relative flex-1">
-            <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="Search policies by title, category, or keywords..."
@@ -130,7 +130,7 @@ export const PoliciesPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSearch('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 font-medium hover:text-slate-600 p-0.5 cursor-pointer"
               >
                 <IconX className="w-3.5 h-3.5" />
               </button>
@@ -189,7 +189,7 @@ export const PoliciesPage: React.FC = () => {
                       <IconFileText className="w-6 h-6" />
                     </div>
                     <p className="text-sm font-bold text-slate-800">No policies found</p>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-slate-500 font-medium mt-1">
                       {search ? 'Try adjusting your search criteria.' : 'Corporate compliance policies will appear here once published.'}
                     </p>
                   </td>
@@ -206,7 +206,7 @@ export const PoliciesPage: React.FC = () => {
                           <span className="font-bold text-slate-900 text-xs block truncate max-w-sm">
                             {pol.title}
                           </span>
-                          <span className="text-[11px] text-slate-400 block truncate max-w-sm mt-0.5">
+                          <span className="text-[11px] text-slate-500 font-medium block truncate max-w-sm mt-0.5">
                             {pol.content}
                           </span>
                         </div>
@@ -294,7 +294,7 @@ export const PoliciesPage: React.FC = () => {
                 </div>
                 <button
                   onClick={() => setViewingPolicy(null)}
-                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-xl text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <IconX className="w-5 h-5" />
                 </button>
@@ -339,13 +339,13 @@ export const PoliciesPage: React.FC = () => {
                     {viewingPolicy.content}
                   </div>
                 ) : !viewingPolicy.documentUrl ? (
-                  <div className="text-slate-400 text-xs">No document or text content available.</div>
+                  <div className="text-slate-500 font-medium text-xs">No document or text content available.</div>
                 ) : null}
               </div>
 
               {/* Drawer Footer */}
               <div className="p-5 px-6 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-3 sticky bottom-0">
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-slate-500 font-medium">
                   {viewingPolicy.acknowledged ? (
                     <span className="text-emerald-700 font-semibold flex items-center gap-1.5">
                       <IconShieldCheck className="w-4 h-4 text-emerald-600" />

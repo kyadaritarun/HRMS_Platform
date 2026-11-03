@@ -8,6 +8,12 @@
   }
 }
 
+@layer utilities {
+  .subtext-slate {
+    @apply text-slate-500 font-medium;
+  }
+}
+
 /* Custom modern glassmorphism & gradients */
 .glass-panel {
   background: rgba(255, 255, 255, 0.85);

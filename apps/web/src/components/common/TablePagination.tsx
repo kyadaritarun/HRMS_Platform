@@ -58,7 +58,7 @@ export const TablePagination: React.FC<TablePaginationProps> = ({
 
         {onPageSizeChange && totalItems > 0 && (
           <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200">
-            <span className="text-[11px] text-slate-400">Per page:</span>
+            <span className="text-[11px] text-slate-500 font-medium">Per page:</span>
             <select
               value={pageSize}
               onChange={(e) => {
@@ -103,7 +103,7 @@ export const TablePagination: React.FC<TablePaginationProps> = ({
             {pages.map((p, idx) => {
               if (p === '...') {
                 return (
-                  <span key={`dots-${idx}`} className="w-6 text-center font-bold text-slate-400 select-none">
+                  <span key={`dots-${idx}`} className="w-6 text-center font-bold text-slate-500 select-none">
                     •••
                   </span>
                 );

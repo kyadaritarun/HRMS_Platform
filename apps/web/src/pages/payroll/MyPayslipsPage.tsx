@@ -188,7 +188,7 @@ export const MyPayslipsPage: React.FC = () => {
           <IconReceipt2 className="w-5 h-5 text-indigo-600 shrink-0" />
           <span>Payslips</span>
         </h1>
-        <p className="text-xs text-slate-500 mt-0.5">
+        <p className="text-xs text-slate-500 font-medium mt-0.5">
           Access and download verified monthly salary statements and statutory tax summaries.
         </p>
       </div>
@@ -205,7 +205,7 @@ export const MyPayslipsPage: React.FC = () => {
               <h3 className="font-bold text-slate-900 text-sm">
                 Published Salary Statements
               </h3>
-              <p className="text-xs text-slate-400 font-medium">
+              <p className="text-xs text-slate-500 font-medium">
                 {filteredPayslips.length} {filteredPayslips.length === 1 ? 'monthly statement' : 'monthly statements'} found
               </p>
             </div>
@@ -227,7 +227,7 @@ export const MyPayslipsPage: React.FC = () => {
                   </option>
                 ))}
               </select>
-              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
             {/* Month Selector */}
@@ -244,7 +244,7 @@ export const MyPayslipsPage: React.FC = () => {
                   </option>
                 ))}
               </select>
-              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
             {/* Clear Filter Button */}
@@ -308,7 +308,7 @@ export const MyPayslipsPage: React.FC = () => {
                       <IconReceipt2 className="w-6 h-6" />
                     </div>
                     <p className="text-sm font-bold text-slate-800">No payslips found</p>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-slate-500 font-medium mt-1">
                       {selectedYear !== 'ALL' || selectedMonth !== 'ALL'
                         ? 'Try adjusting your Year or Month filter criteria.'
                         : 'Your official monthly salary statements will appear here once published by payroll.'}
@@ -342,7 +342,7 @@ export const MyPayslipsPage: React.FC = () => {
                               {MONTH_NAMES[p.month - 1]} {p.year}
                             </span>
                             {p.publishedAt && (
-                              <span className="text-[11px] text-slate-400 block mt-0.5">
+                              <span className="text-[11px] text-slate-500 font-medium block mt-0.5">
                                 Disbursed {new Date(p.publishedAt).toLocaleDateString()}
                               </span>
                             )}

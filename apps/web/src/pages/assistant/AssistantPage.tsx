@@ -191,7 +191,7 @@ export const AssistantPage: React.FC = () => {
             <IconCpu className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>AI Assistant</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Context-aware answers grounded directly in official signed policies & guidelines.
           </p>
         </div>
@@ -207,7 +207,7 @@ export const AssistantPage: React.FC = () => {
             onClick={handleClearChat}
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:text-slate-900 hover:bg-slate-50 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
           >
-            <IconRotateClockwise className="w-3.5 h-3.5 text-slate-500" />
+            <IconRotateClockwise className="w-3.5 h-3.5 text-slate-500 font-medium" />
             <span>New Chat</span>
           </button>
         </div>
@@ -241,7 +241,7 @@ export const AssistantPage: React.FC = () => {
                   {/* Grounding Citations */}
                   {m.citations && m.citations.length > 0 && (
                     <div className="mt-3.5 pt-3 border-t border-slate-100 text-xs">
-                      <div className="flex items-center gap-1.5 text-[10px] uppercase font-bold text-slate-400 mb-2">
+                      <div className="flex items-center gap-1.5 text-[10px] uppercase font-bold text-slate-500 mb-2">
                         <IconShieldCheck className="w-3.5 h-3.5 text-[#5E4BE2]" />
                         <span>Grounded in Official Policies:</span>
                       </div>
@@ -265,7 +265,7 @@ export const AssistantPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleCopy(m.id, m.text)}
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
                       >
                         {copiedId === m.id ? (
                           <>
@@ -284,7 +284,7 @@ export const AssistantPage: React.FC = () => {
                 </div>
 
                 <div
-                  className={`text-[10px] text-slate-400 px-1 font-medium ${
+                  className={`text-[10px] text-slate-500 px-1 font-medium ${
                     m.sender === 'user' ? 'text-right' : 'text-left'
                   }`}
                 >
@@ -297,7 +297,7 @@ export const AssistantPage: React.FC = () => {
           {/* Quick Starter (shown when chat is new) */}
           {messages.length === 1 && (
             <div className="pt-1 pb-3 max-w-xl">
-              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">
+              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-1">
                 Suggested Questions:
               </div>
               <div className="space-y-2">
@@ -318,7 +318,7 @@ export const AssistantPage: React.FC = () => {
                           {card.prompt}
                         </span>
                       </div>
-                      <span className="text-[11px] font-bold text-slate-400 group-hover:text-[#5E4BE2] shrink-0">
+                      <span className="text-[11px] font-bold text-slate-500 group-hover:text-[#5E4BE2] shrink-0">
                         Ask →
                       </span>
                     </button>
@@ -343,7 +343,7 @@ export const AssistantPage: React.FC = () => {
                     <span className="w-1.5 h-1.5 bg-[#5E4BE2] rounded-full animate-bounce" />
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400">Grounding across company policies & quotas...</p>
+                <p className="text-[11px] text-slate-500 font-medium">Grounding across company policies & quotas...</p>
               </div>
             </div>
           )}
@@ -354,7 +354,7 @@ export const AssistantPage: React.FC = () => {
         {/* Suggestion Chips (when chatting) */}
         {messages.length > 1 && (
           <div className="px-4 py-2 bg-white border-t border-slate-100 flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider shrink-0">
               Suggestions:
             </span>
             {QUICK_PROMPTS.map((p, idx) => (

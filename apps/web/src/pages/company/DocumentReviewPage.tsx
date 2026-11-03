@@ -199,7 +199,7 @@ export const DocumentReviewPage: React.FC = () => {
             <IconFolderCheck className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>Document Review</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Review and digitally authenticate identity documents, certificates, and employment paperwork uploaded by staff.
           </p>
         </div>
@@ -312,18 +312,18 @@ export const DocumentReviewPage: React.FC = () => {
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
         {/* Search Input */}
         <div className="relative flex-1">
-          <IconSearch className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             placeholder="Search by employee name, title or ID..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-10 py-2.5 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all placeholder:text-slate-400 text-slate-800"
+            className="w-full pl-10 pr-10 py-2.5 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all placeholder:text-slate-500 text-slate-800"
           />
           {search && (
             <button
               onClick={() => setSearch('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium hover:text-slate-600 p-1"
             >
               <IconX className="w-3.5 h-3.5" />
             </button>
@@ -388,7 +388,7 @@ export const DocumentReviewPage: React.FC = () => {
               <IconFolderCheck className="w-6 h-6" />
             </div>
             <h4 className="text-sm font-bold text-slate-800">No documents found</h4>
-            <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+            <p className="text-xs text-slate-500 font-medium mt-1 max-w-md mx-auto">
               {statusFilter === 'PENDING'
                 ? 'There are no pending documents awaiting compliance verification.'
                 : 'No documents match the selected filter criteria.'}
@@ -428,11 +428,11 @@ export const DocumentReviewPage: React.FC = () => {
 
                 <div>
                   <h4 className="text-sm font-bold text-slate-900 leading-snug">{doc.title}</h4>
-                  {doc.notes && <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{doc.notes}</p>}
+                  {doc.notes && <p className="text-xs text-slate-500 font-medium mt-0.5 leading-relaxed">{doc.notes}</p>}
                 </div>
 
                 {/* Submitter details */}
-                <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-500">
+                <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-500 font-medium">
                   <div className="flex items-center gap-1.5 font-bold text-slate-800">
                     <div className="w-5 h-5 rounded-full bg-indigo-50 text-[#5E4BE2] border border-indigo-100 flex items-center justify-center text-[10px] font-black">
                       {doc.user.firstName?.[0] || 'U'}
@@ -450,7 +450,7 @@ export const DocumentReviewPage: React.FC = () => {
                     </>
                   )}
                   <span>•</span>
-                  <span className="text-slate-400">
+                  <span className="text-slate-500 font-medium">
                     Uploaded on {new Date(doc.createdAt).toLocaleDateString()}
                   </span>
                 </div>
@@ -476,11 +476,11 @@ export const DocumentReviewPage: React.FC = () => {
                     rel="noreferrer"
                     className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-2xs transition-all"
                   >
-                    <IconExternalLink className="w-3.5 h-3.5 text-slate-500" />
+                    <IconExternalLink className="w-3.5 h-3.5 text-slate-500 font-medium" />
                     <span>View File</span>
                   </a>
                 ) : (
-                  <span className="text-xs text-slate-400 italic px-2 py-1">No file attached</span>
+                  <span className="text-xs text-slate-500 font-medium italic px-2 py-1">No file attached</span>
                 )}
 
                 {doc.status === 'PENDING' ? (
@@ -496,7 +496,7 @@ export const DocumentReviewPage: React.FC = () => {
                     onClick={() => handleOpenReview(doc)}
                     className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-2xs transition-all cursor-pointer"
                   >
-                    <IconEye className="w-4 h-4 text-slate-500" />
+                    <IconEye className="w-4 h-4 text-slate-500 font-medium" />
                     <span>View Details</span>
                   </button>
                 )}
@@ -534,7 +534,7 @@ export const DocumentReviewPage: React.FC = () => {
                   </div>
                   <button
                     onClick={() => setReviewModal({ open: false, decision: '', note: '' })}
-                    className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
+                    className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 font-medium hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
                   >
                     <IconX className="w-4 h-4" />
                   </button>
@@ -544,7 +544,7 @@ export const DocumentReviewPage: React.FC = () => {
                 <form onSubmit={handleReviewSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
                   {/* Employee Submitter Info Card */}
                   <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-3">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
                       Submitted By
                     </span>
                     <div className="flex items-center gap-3">
@@ -566,12 +566,12 @@ export const DocumentReviewPage: React.FC = () => {
 
                   {/* Document Details Grid */}
                   <div className="p-4 rounded-2xl border border-slate-200 space-y-3">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
                       Document Specifications
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                       <div>
-                        <span className="text-slate-400 block font-medium">Category</span>
+                        <span className="text-slate-500 block font-medium">Category</span>
                         <span
                           className={`inline-block mt-0.5 px-2.5 py-0.5 rounded-lg text-[10px] font-bold font-mono border ${getCategoryColor(
                             reviewModal.doc.category
@@ -582,21 +582,21 @@ export const DocumentReviewPage: React.FC = () => {
                       </div>
 
                       <div>
-                        <span className="text-slate-400 block font-medium">Document Title</span>
+                        <span className="text-slate-500 block font-medium">Document Title</span>
                         <span className="font-bold text-slate-800 mt-0.5 block">
                           {reviewModal.doc.title}
                         </span>
                       </div>
 
                       <div>
-                        <span className="text-slate-400 block font-medium">Identifier / Reference No.</span>
+                        <span className="text-slate-500 block font-medium">Identifier / Reference No.</span>
                         <span className="font-mono font-bold text-slate-700 mt-0.5 block">
                           {reviewModal.doc.identifier || 'Not Specified'}
                         </span>
                       </div>
 
                       <div>
-                        <span className="text-slate-400 block font-medium">Uploaded Date</span>
+                        <span className="text-slate-500 block font-medium">Uploaded Date</span>
                         <span className="font-semibold text-slate-700 mt-0.5 block">
                           {new Date(reviewModal.doc.createdAt).toLocaleDateString(undefined, {
                             year: 'numeric',
@@ -609,7 +609,7 @@ export const DocumentReviewPage: React.FC = () => {
 
                     {reviewModal.doc.notes && (
                       <div className="pt-2 border-t border-slate-100 text-xs">
-                        <span className="text-slate-400 block font-medium">Employee Notes</span>
+                        <span className="text-slate-500 block font-medium">Employee Notes</span>
                         <p className="text-slate-700 mt-0.5 font-medium leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-slate-200/60">
                           {reviewModal.doc.notes}
                         </p>
@@ -631,7 +631,7 @@ export const DocumentReviewPage: React.FC = () => {
                   {/* Document Attachment Preview Card */}
                   <div className="p-4 rounded-2xl border border-slate-200 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
                         Attached Document File
                       </span>
                       {reviewModal.doc.fileUrl && (
@@ -675,7 +675,7 @@ export const DocumentReviewPage: React.FC = () => {
                               <div className="text-xs font-bold text-slate-800 truncate">
                                 {reviewModal.doc.title}
                               </div>
-                              <div className="text-[11px] text-slate-500">
+                              <div className="text-[11px] text-slate-500 font-medium">
                                 Digital Document Attachment (PDF / Document File)
                               </div>
                             </div>
@@ -692,7 +692,7 @@ export const DocumentReviewPage: React.FC = () => {
                         </div>
                       )
                     ) : (
-                      <div className="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-center text-xs text-slate-400">
+                      <div className="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-center text-xs text-slate-500 font-medium">
                         No digital attachment file was uploaded for this document record.
                       </div>
                     )}
@@ -730,7 +730,7 @@ export const DocumentReviewPage: React.FC = () => {
                             <option value="VERIFIED">Approve & Verify Document</option>
                             <option value="REJECTED">Reject Document & Request Re-upload</option>
                           </select>
-                          <IconChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          <IconChevronDown className="w-4 h-4 text-slate-500 font-medium absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                         </div>
                       </div>
 
@@ -746,7 +746,7 @@ export const DocumentReviewPage: React.FC = () => {
                             </span>
                           )}
                           {reviewModal.decision === 'VERIFIED' && (
-                            <span className="text-[10px] font-semibold text-slate-400">
+                            <span className="text-[10px] font-semibold text-slate-500">
                               Optional
                             </span>
                           )}
@@ -760,7 +760,7 @@ export const DocumentReviewPage: React.FC = () => {
                               ? 'Explain why this document is rejected and specify what the employee needs to correct or re-upload...'
                               : 'Add verification notes or instructions for the employee (optional)...'
                           }
-                          className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:border-[#5E4BE2] focus:ring-2 focus:ring-[#5E4BE2]/20 transition-all placeholder:text-slate-400 font-medium text-slate-800"
+                          className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:border-[#5E4BE2] focus:ring-2 focus:ring-[#5E4BE2]/20 transition-all placeholder:text-slate-500 font-medium text-slate-800"
                         />
                       </div>
                     </div>
