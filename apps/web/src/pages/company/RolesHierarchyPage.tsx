@@ -387,6 +387,18 @@ export const RolesHierarchyPage: React.FC = () => {
             HR Director
           </span>
         );
+      case 'FINANCE':
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/70 shadow-2xs">
+            Finance
+          </span>
+        );
+      case 'IT':
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200/70 shadow-2xs">
+            IT Operations
+          </span>
+        );
       default:
         return (
           <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200/70 shadow-2xs">
@@ -652,6 +664,16 @@ export const RolesHierarchyPage: React.FC = () => {
                                             HR
                                           </span>
                                         )}
+                                        {emp.role === 'FINANCE' && (
+                                          <span className="px-1 py-0.2 rounded text-[9px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-100 shrink-0">
+                                            Finance
+                                          </span>
+                                        )}
+                                        {emp.role === 'IT' && (
+                                          <span className="px-1 py-0.2 rounded text-[9px] font-extrabold bg-blue-50 text-blue-700 border border-blue-100 shrink-0">
+                                            IT
+                                          </span>
+                                        )}
                                       </div>
                                       <div className="text-[10px] text-slate-500 font-medium truncate">
                                         {emp.jobTitle || emp.email}
@@ -710,6 +732,8 @@ export const RolesHierarchyPage: React.FC = () => {
                   <option value="ALL">All Roles</option>
                   <option value="COMPANY_ADMIN">Company Admin</option>
                   <option value="HR">HR Leaders</option>
+                  <option value="FINANCE">Finance</option>
+                  <option value="IT">IT Operations</option>
                   <option value="MANAGER">Team Managers</option>
                   <option value="EMPLOYEE">Employees</option>
                 </select>

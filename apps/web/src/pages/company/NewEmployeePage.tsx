@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
@@ -28,6 +29,8 @@ import {
   IconClock,
   IconMapPin,
   IconExternalLink,
+  IconPlus,
+  IconLoader2,
 } from '@tabler/icons-react';
 import BulkEmployeeImport from './BulkEmployeeImport';
 import { ShiftTiming, formatShiftOption } from '../../utils/shifts';
@@ -133,6 +136,109 @@ export const NewEmployeePage: React.FC = () => {
   // Validation states
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  // In-page Create Shift Drawer state
+  const [showShiftDrawer, setShowShiftDrawer] = useState(false);
+  const [isSavingShift, setIsSavingShift] = useState(false);
+  const [shiftFormError, setShiftFormError] = useState<string | null>(null);
+  const [shiftFormData, setShiftFormData] = useState({
+    name: '',
+    code: '',
+    startTime: '09:00',
+    endTime: '18:00',
+    breakDurationMinutes: 60,
+    gracePeriodMinutes: 15,
+    color: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    isNightShift: false,
+    isWeeklyOff: false,
+  });
+
+  const handleOpenShiftDrawer = () => {
+    setShiftFormData({
+      name: '',
+      code: '',
+      startTime: '09:00',
+      endTime: '18:00',
+      breakDurationMinutes: 60,
+      gracePeriodMinutes: 15,
+      color: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      isNightShift: false,
+      isWeeklyOff: false,
+    });
+    setShiftFormError(null);
+    setShowShiftDrawer(true);
+  };
+
+  const handleSaveShift = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!shiftFormData.name.trim()) {
+      setShiftFormError('Shift name is required.');
+      return;
+    }
+    if (!shiftFormData.code.trim()) {
+      setShiftFormError('Shift code is required.');
+      return;
+    }
+
+    const codeClean = shiftFormData.code.trim().toUpperCase().slice(0, 4);
+    const isOff = shiftFormData.isWeeklyOff;
+
+    if (!isOff && (!shiftFormData.startTime || !shiftFormData.endTime)) {
+      setShiftFormError('Start time and end time are required.');
+      return;
+    }
+
+    if (companyShifts.some((s) => s.code.toUpperCase() === codeClean)) {
+      setShiftFormError(`Shift code "${codeClean}" is already in use.`);
+      return;
+    }
+
+    setIsSavingShift(true);
+    setShiftFormError(null);
+
+    try {
+      const newShift: ShiftTiming = {
+        id: `s-${Date.now()}`,
+        name: shiftFormData.name.trim(),
+        code: codeClean,
+        startTime: isOff ? '-' : shiftFormData.startTime,
+        endTime: isOff ? '-' : shiftFormData.endTime,
+        breakDurationMinutes: isOff ? 0 : Number(shiftFormData.breakDurationMinutes) || 0,
+        gracePeriodMinutes: isOff ? 0 : Number(shiftFormData.gracePeriodMinutes) || 0,
+        color: isOff ? 'bg-slate-100 text-slate-500 border-slate-200' : shiftFormData.color,
+        isNightShift: isOff ? false : Boolean(shiftFormData.isNightShift),
+      };
+
+      const updatedShifts = [...companyShifts, newShift];
+
+      await api.put('/company/shifts', { shifts: updatedShifts });
+
+      setCompanyShifts(updatedShifts);
+      const newShiftOption = formatShiftOption(newShift);
+
+      setForm((prev) => ({
+        ...prev,
+        shiftTiming: newShiftOption,
+      }));
+
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.shiftTiming;
+        return next;
+      });
+
+      setShowShiftDrawer(false);
+      setToast({
+        title: 'Shift Created',
+        message: `"${newShift.name}" was saved and automatically selected.`,
+        type: 'success',
+      });
+    } catch (err: any) {
+      setShiftFormError(err.response?.data?.error || err.response?.data?.message || 'Failed to save shift.');
+    } finally {
+      setIsSavingShift(false);
+    }
+  };
 
   const maxDobDate = useMemo(() => {
     const d = new Date();
@@ -1063,15 +1169,15 @@ export const NewEmployeePage: React.FC = () => {
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block text-xs font-bold text-slate-700">Shift Timing *</label>
-                      <Link
-                        to="/company/shift-roster"
-                        target="_blank"
-                        className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1"
-                        title="Add or configure shifts in Shift Management"
+                      <button
+                        type="button"
+                        onClick={handleOpenShiftDrawer}
+                        className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1 cursor-pointer"
+                        title="Create a new shift directly on this page"
                       >
+                        <IconPlus className="w-3.5 h-3.5" />
                         <span>Create Shift</span>
-                        <IconExternalLink className="w-3 h-3" />
-                      </Link>
+                      </button>
                     </div>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-indigo-600">
@@ -1109,10 +1215,14 @@ export const NewEmployeePage: React.FC = () => {
                         <div>
                           <p className="font-bold">No shifts configured yet</p>
                           <p className="text-[11px] text-amber-700 mt-0.5">
-                            Please configure your shifts (e.g. General Shift, Morning, Evening, Night, Weekly Off) under{' '}
-                            <Link to="/company/shift-roster" className="underline font-bold text-amber-900">
-                              Company &gt; Shift &amp; Roster
-                            </Link>{' '}
+                            Please configure your shifts (e.g. General Shift, Morning, Evening, Night, Weekly Off) by clicking{' '}
+                            <button
+                              type="button"
+                              onClick={handleOpenShiftDrawer}
+                              className="underline font-bold text-amber-900 hover:text-amber-950 cursor-pointer"
+                            >
+                              Create Shift
+                            </button>{' '}
                             before onboarding employees.
                           </p>
                         </div>
@@ -1499,6 +1609,206 @@ export const NewEmployeePage: React.FC = () => {
             </div>
           </form>
         </>
+      )}
+
+      {/* ===================== IN-PAGE CREATE SHIFT DRAWER ===================== */}
+      {showShiftDrawer && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] overflow-hidden bg-slate-900/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+          onClick={() => !isSavingShift && setShowShiftDrawer(false)}
+        >
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+            <div
+              className="w-screen max-w-md bg-white shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-300 border-l border-slate-100"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="p-5 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                    <IconClock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Create Shift</h3>
+                    <p className="text-xs text-slate-500 font-medium">
+                      Configure new work timings and grace rules in database.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={isSavingShift}
+                  onClick={() => setShowShiftDrawer(false)}
+                  className="p-1.5 rounded-lg text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <IconX className="w-5 h-5" />
+                </button>
+              </div>
+
+              {shiftFormError && (
+                <div className="mx-5 mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
+                  <IconAlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+                  <span>{shiftFormError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleSaveShift} className="flex-1 flex flex-col justify-between overflow-y-auto">
+                <div className="p-5 space-y-4 text-xs">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">
+                      Shift Name <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. General Shift"
+                      value={shiftFormData.name}
+                      onChange={(e) => setShiftFormData({ ...shiftFormData, name: e.target.value })}
+                      className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">
+                      Shift Code (2-4 chars) <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={4}
+                      placeholder="e.g. GS"
+                      value={shiftFormData.code}
+                      onChange={(e) => setShiftFormData({ ...shiftFormData, code: e.target.value.toUpperCase() })}
+                      className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl uppercase font-bold focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900"
+                    />
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={shiftFormData.isWeeklyOff}
+                        onChange={(e) =>
+                          setShiftFormData({ ...shiftFormData, isWeeklyOff: e.target.checked })
+                        }
+                        className="rounded text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="font-semibold text-slate-800 text-xs">Weekly Off / Non-working Day</span>
+                    </label>
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      When enabled, this shift marks the day as an off-day with no mandatory working hours.
+                    </p>
+                  </div>
+
+                  {!shiftFormData.isWeeklyOff && (
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs font-semibold text-slate-700 block mb-1">
+                            Start Time <span className="text-rose-500">*</span>
+                          </label>
+                          <input
+                            type="time"
+                            required
+                            value={shiftFormData.startTime}
+                            onChange={(e) => setShiftFormData({ ...shiftFormData, startTime: e.target.value })}
+                            className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-slate-700 block mb-1">
+                            End Time <span className="text-rose-500">*</span>
+                          </label>
+                          <input
+                            type="time"
+                            required
+                            value={shiftFormData.endTime}
+                            onChange={(e) => setShiftFormData({ ...shiftFormData, endTime: e.target.value })}
+                            className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs font-semibold text-slate-700 block mb-1">Break Duration (Mins)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            max={240}
+                            value={shiftFormData.breakDurationMinutes}
+                            onChange={(e) =>
+                              setShiftFormData({ ...shiftFormData, breakDurationMinutes: Number(e.target.value) })
+                            }
+                            className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-slate-700 block mb-1">Late Grace Period (Mins)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            max={120}
+                            value={shiftFormData.gracePeriodMinutes}
+                            onChange={(e) =>
+                              setShiftFormData({ ...shiftFormData, gracePeriodMinutes: Number(e.target.value) })
+                            }
+                            className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <input
+                          id="isNightShiftNewEmp"
+                          type="checkbox"
+                          checked={shiftFormData.isNightShift}
+                          onChange={(e) =>
+                            setShiftFormData({ ...shiftFormData, isNightShift: e.target.checked })
+                          }
+                          className="rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        />
+                        <label htmlFor="isNightShiftNewEmp" className="text-xs font-semibold text-slate-700 cursor-pointer">
+                          Night Shift (crosses midnight)
+                        </label>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Sticky Footer */}
+                <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
+                  <button
+                    type="button"
+                    disabled={isSavingShift}
+                    onClick={() => setShowShiftDrawer(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 text-slate-600 hover:bg-white cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingShift}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
+                  >
+                    {isSavingShift ? (
+                      <>
+                        <IconLoader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <IconCheck className="w-3.5 h-3.5" />
+                        <span>Save Shift</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

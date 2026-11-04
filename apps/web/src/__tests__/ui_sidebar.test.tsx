@@ -223,4 +223,55 @@ describe('Frontend UI Tests: Sidebar and LockedFeatureModal', () => {
     fireEvent.click(hrCategory);
     expect(screen.getByText('Activity Logs')).toBeInTheDocument();
   });
+
+  it('6. Manager role sees Assigned To Me without Document Verification', () => {
+    vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
+      user: {
+        id: 10,
+        email: 'manager@acme.com',
+        username: 'vikram.malhotra',
+        role: 'EMPLOYEE',
+        firstName: 'Vikram',
+        lastName: 'Malhotra',
+        companyId: 1,
+        mustChangePassword: false,
+        isManager: true,
+      },
+      company: { id: 1, name: 'Acme Corp' } as any,
+      features: [
+        'time_attendance_management',
+        'leave_management',
+        'claim_process_management',
+        'support_ticket_management',
+        'employee_document_management',
+      ],
+      token: 'mock-token',
+      isLoading: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+      hasFeature: () => true,
+      hasHrPermission: () => false,
+    });
+
+    render(
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Sidebar />
+      </BrowserRouter>
+    );
+
+    // Expand Assigned To Me
+    const assignedCategory = screen.getByText('Assigned To Me');
+    expect(assignedCategory).toBeInTheDocument();
+    fireEvent.click(assignedCategory);
+
+    // Verify expected sub-items are present
+    expect(screen.getByText('Team Attendance')).toBeInTheDocument();
+    expect(screen.getByText('Approvals Desk')).toBeInTheDocument();
+    expect(screen.getByText('Expense Claims Review')).toBeInTheDocument();
+    expect(screen.getByText('Assigned Tickets')).toBeInTheDocument();
+
+    // Verify Document Verification is REMOVED
+    expect(screen.queryByText('Document Verification')).not.toBeInTheDocument();
+  });
 });

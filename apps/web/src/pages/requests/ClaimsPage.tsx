@@ -61,20 +61,24 @@ export const ClaimsPage: React.FC = () => {
   const location = useLocation();
   const isManager = Boolean(user?.isManager || (user as any)?._count?.reports > 0);
   const canPay = user?.role === 'COMPANY_ADMIN' || user?.role === 'HR' || user?.role === 'FINANCE';
+  const isCompanyAdmin = user?.role === 'COMPANY_ADMIN' || user?.role === 'PRODUCT_SUPER_ADMIN';
+
+  const isManageRoute = location.pathname.includes('/manage');
 
   const getInitialScope = () => {
-    if (canPay) return 'company';
-    if (location.pathname.includes('/manage')) return 'assigned';
+    if (isManageRoute) return 'assigned';
     return 'mine';
   };
 
   const [scope, setScope] = useState<string>(getInitialScope);
 
   useEffect(() => {
-    if (location.pathname.includes('/manage')) {
-      setScope(canPay ? 'company' : 'assigned');
+    if (isManageRoute) {
+      setScope('assigned');
+    } else {
+      setScope('mine');
     }
-  }, [location.pathname, canPay]);
+  }, [location.pathname, isManageRoute]);
 
   const [claims, setClaims] = useState<ClaimItem[]>([]);
   const [categories, setCategories] = useState<ClaimCategory[]>([]);
@@ -109,8 +113,9 @@ export const ClaimsPage: React.FC = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
+      const activeScope = isManageRoute ? (isCompanyAdmin ? scope : 'assigned') : 'mine';
       const [claimsRes, catRes] = await Promise.all([
-        api.get('/requests', { params: { type: 'CLAIM', scope } }),
+        api.get('/requests', { params: { type: 'CLAIM', scope: activeScope } }),
         api.get('/company/claims/categories').catch(() => ({ data: { categories: [] } })),
       ]);
       setClaims(claimsRes.data?.items || []);
@@ -125,7 +130,7 @@ export const ClaimsPage: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, [scope]);
+  }, [scope, isManageRoute]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -329,10 +334,14 @@ export const ClaimsPage: React.FC = () => {
           <div>
             <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
               <IconReceipt2 className="w-5 h-5 text-indigo-600 shrink-0" />
-              <span>Claims</span>
+              <span>{isManageRoute ? 'Claims Review' : 'My Claims'}</span>
             </h1>
             <p className="text-xs text-slate-500 font-medium mt-0.5">
-              Submit out-of-pocket expenses, travel allowances, and track disbursement status.
+              {isManageRoute
+                ? isCompanyAdmin && scope === 'company'
+                  ? 'Review, approve, or disburse out-of-pocket expenses and travel allowances across the company.'
+                  : 'Review, approve, or disburse out-of-pocket expenses and travel allowances assigned to you.'
+                : 'Submit out-of-pocket expenses, travel allowances, and track disbursement status.'}
             </p>
           </div>
 
@@ -412,8 +421,8 @@ export const ClaimsPage: React.FC = () => {
               <IconChevronDown className="w-4 h-4 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
-            {/* 3. Scope Dropdown */}
-            {(isManager || canPay) && (
+            {/* 3. Scope Dropdown: Only shown on Claims Review for Company Admin */}
+            {isManageRoute && isCompanyAdmin && (
               <div className="relative min-w-[175px] shrink-0">
                 <select
                   value={scope}
@@ -423,9 +432,8 @@ export const ClaimsPage: React.FC = () => {
                   }}
                   className="w-full appearance-none pl-3.5 pr-8 py-2.5 text-xs font-semibold bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all text-slate-700 cursor-pointer"
                 >
-                  <option value="mine">Scope: My Claims</option>
-                  <option value="assigned">Scope: {isManager ? 'Team Claims' : 'Assigned to Me'}</option>
-                  {canPay && <option value="company">Scope: All Company</option>}
+                  <option value="assigned">Scope: Assigned to Me</option>
+                  <option value="company">Scope: All Company</option>
                 </select>
                 <IconChevronDown className="w-4 h-4 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
@@ -501,10 +509,14 @@ export const ClaimsPage: React.FC = () => {
                       <div className="w-12 h-12 rounded-full bg-indigo-50 text-[#5E4BE2] flex items-center justify-center mx-auto mb-2">
                         <IconReceipt2 className="w-6 h-6" />
                       </div>
-                      <h4 className="text-sm font-bold text-slate-800">No expense claims found</h4>
+                      <h4 className="text-sm font-bold text-slate-800">
+                        {isManageRoute ? 'No assigned claims found' : 'No expense claims found'}
+                      </h4>
                       <p className="text-xs text-slate-500 font-medium mt-1">
                         {search
                           ? 'Try modifying your search or filter.'
+                          : isManageRoute
+                          ? 'There are no expense reimbursement claims awaiting your review.'
                           : 'Click "New Claim" to submit your first claim.'}
                       </p>
                     </td>
@@ -605,8 +617,8 @@ export const ClaimsPage: React.FC = () => {
                             <IconEye className="w-4 h-4" />
                           </button>
 
-                          {/* Disburse (Finance/Admin on Approved) */}
-                          {canPay && claim.status === 'APPROVED' && (
+                          {/* Disburse (Finance/Admin on Approved in Review desk) */}
+                          {canPay && claim.status === 'APPROVED' && isManageRoute && (
                             <button
                               type="button"
                               onClick={() => handleMarkPaid(claim.id)}
@@ -806,8 +818,8 @@ export const ClaimsPage: React.FC = () => {
 
               {/* Drawer Sticky Footer */}
               <div className="p-4 bg-white border-t border-slate-100 flex items-center justify-end gap-2.5 sticky bottom-0 z-10 shrink-0">
-                {/* Disburse button if approved & canPay */}
-                {canPay && selectedClaim.status === 'APPROVED' && (
+                {/* Disburse button if approved & canPay in review desk */}
+                {canPay && selectedClaim.status === 'APPROVED' && isManageRoute && (
                   <button
                     type="button"
                     onClick={() => handleMarkPaid(selectedClaim.id)}

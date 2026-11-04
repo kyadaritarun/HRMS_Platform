@@ -29,6 +29,7 @@ import { DepartmentsPage } from './pages/company/DepartmentsPage';
 import { HolidaysPage } from './pages/company/HolidaysPage';
 import { LeaveTypesPage } from './pages/company/LeaveTypesPage';
 import { CompanyAttendancePage } from './pages/attendance/CompanyAttendancePage';
+import { TeamAttendancePage } from './pages/attendance/TeamAttendancePage';
 import { CompanyBillingPage } from './pages/company/CompanyBillingPage';
 import { ActivityLogsPage } from './pages/company/ActivityLogsPage';
 import { BackgroundVerificationPage } from './pages/company/BackgroundVerificationPage';
@@ -315,6 +316,14 @@ export const App: React.FC = () => {
               }
             />
             <Route
+              path="/company/team-attendance"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR', 'FINANCE', 'IT', 'EMPLOYEE']}>
+                  <TeamAttendancePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/company/departments"
               element={
                 <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
@@ -373,7 +382,7 @@ export const App: React.FC = () => {
             <Route
               path="/company/roles-hierarchy"
               element={
-                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR', 'EMPLOYEE']}>
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR', 'FINANCE', 'IT', 'EMPLOYEE']}>
                   <RolesHierarchyPage />
                 </ProtectedRoute>
               }
@@ -381,7 +390,7 @@ export const App: React.FC = () => {
             <Route
               path="/roles-hierarchy"
               element={
-                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR', 'EMPLOYEE']}>
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR', 'FINANCE', 'IT', 'EMPLOYEE']}>
                   <RolesHierarchyPage />
                 </ProtectedRoute>
               }
@@ -483,6 +492,7 @@ export const App: React.FC = () => {
             />
 
             {/* Self Service (All roles: Admin, HR, Employee) */}
+            <Route path="/dashboard" element={<Navigate to="/employee/dashboard" replace />} />
             <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
             <Route path="/attendance" element={<MyAttendancePage />} />
             <Route path="/leaves" element={<MyLeavesPage />} />

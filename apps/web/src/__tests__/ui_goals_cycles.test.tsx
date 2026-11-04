@@ -293,4 +293,58 @@ describe('Performance Goals - Cycles Dropdown UI Tests', () => {
       expect(api.patch).toHaveBeenCalledWith('/requests/301/cancel');
     });
   });
+
+  it('7. For APPROVED goals, only View Goal Details is shown in Action column; Advance Progress and Add Progress Note are removed', async () => {
+    const approvedGoals = [
+      {
+        id: 401,
+        userId: 1,
+        type: 'GOAL',
+        title: 'ASIDHUGESU',
+        reason: 'ASEFIUGWEYFGIJKEWIFGITEST',
+        status: 'APPROVED',
+        startDate: '2026-01-01',
+        endDate: '2026-03-31',
+        createdAt: '2026-01-02T10:00:00Z',
+        approver: {
+          id: 5,
+          firstName: 'Vikram',
+          lastName: 'Malhotra',
+          email: 'vikram.malhotra@uptrix.test',
+        },
+        meta: {
+          cycleId: 'cycle-2026-q1',
+          cycleName: 'Q1 2026 Appraisal Cycle',
+          weight: 50,
+          goalStatus: 'IN_PROGRESS',
+        },
+      },
+    ];
+
+    (api.get as any).mockImplementation((url: string) => {
+      if (url === '/company/cycles') {
+        return Promise.resolve({ data: { performanceCycles: mockCycles } });
+      }
+      if (url === '/requests') {
+        return Promise.resolve({ data: { items: approvedGoals } });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    render(<PerformanceGoalsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('ASIDHUGESU')).toBeInTheDocument();
+      expect(screen.getByText('Approved')).toBeInTheDocument();
+    });
+
+    // View Goal Details should be present
+    expect(screen.getByTitle('View Goal Details')).toBeInTheDocument();
+
+    // Advance Progress and Add Progress Note must NOT be present
+    expect(screen.queryByTitle('Advance Progress')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('Mark In Progress')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('Add Progress Note')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('Cancel Pending Goal')).not.toBeInTheDocument();
+  });
 });

@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import api from '../../api/client';
 import {
-  IconCpu,
   IconSend,
   IconSparkles,
   IconFileText,
@@ -188,7 +187,7 @@ export const AssistantPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 shrink-0">
         <div>
           <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
-            <IconCpu className="w-5 h-5 text-indigo-600 shrink-0" />
+            <IconSparkles className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>AI Assistant</span>
           </h1>
           <p className="text-xs text-slate-500 font-medium mt-0.5">

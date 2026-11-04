@@ -216,17 +216,17 @@ export const MyAttendancePage: React.FC = () => {
 
       if (regForm.scope === 'CHECK_IN_ONLY') {
         meta.requestedCheckIn = regForm.checkInTime;
-        meta.checkIn = `${regForm.date}T${regForm.checkInTime}:00Z`;
+        meta.checkIn = `${regForm.date}T${regForm.checkInTime}:00`;
         title = `Regularize Check-In (${regForm.checkInTime}) for ${regForm.date}`;
       } else if (regForm.scope === 'CHECK_OUT_ONLY') {
         meta.requestedCheckOut = regForm.checkOutTime;
-        meta.checkOut = `${regForm.date}T${regForm.checkOutTime}:00Z`;
+        meta.checkOut = `${regForm.date}T${regForm.checkOutTime}:00`;
         title = `Regularize Check-Out (${regForm.checkOutTime}) for ${regForm.date}`;
       } else {
         meta.requestedCheckIn = regForm.checkInTime;
         meta.requestedCheckOut = regForm.checkOutTime;
-        meta.checkIn = `${regForm.date}T${regForm.checkInTime}:00Z`;
-        meta.checkOut = `${regForm.date}T${regForm.checkOutTime}:00Z`;
+        meta.checkIn = `${regForm.date}T${regForm.checkInTime}:00`;
+        meta.checkOut = `${regForm.date}T${regForm.checkOutTime}:00`;
         title = `Regularize Full Day (${regForm.checkInTime} – ${regForm.checkOutTime}) for ${regForm.date}`;
       }
 

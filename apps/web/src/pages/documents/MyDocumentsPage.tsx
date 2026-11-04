@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../../api/client';
 import {
@@ -21,6 +21,7 @@ import {
   IconBriefcase,
   IconShield,
   IconTrash,
+  IconChevronDown,
 } from '@tabler/icons-react';
 
 interface EmployeeDocument {
@@ -43,8 +44,24 @@ export const MyDocumentsPage: React.FC = () => {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [reuploadDocId, setReuploadDocId] = useState<number | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('ALL');
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [actionMenuDocId, setActionMenuDocId] = useState<number | null>(null);
+
+  // Close category dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        categoryDropdownRef.current &&
+        !categoryDropdownRef.current.contains(e.target as Node)
+      ) {
+        setIsCategoryDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Upload Form
   const [form, setForm] = useState({
@@ -164,6 +181,9 @@ export const MyDocumentsPage: React.FC = () => {
     { id: 'OTHER', label: 'Other', icon: IconClock },
   ];
 
+  const activeCategoryTab = categoryTabs.find((t) => t.id === activeCategory) || categoryTabs[0];
+  const ActiveCategoryIcon = activeCategoryTab.icon;
+
   const filteredDocuments = documents.filter((doc) => {
     const matchesCategory =
       activeCategory === 'ALL' ||
@@ -191,26 +211,103 @@ export const MyDocumentsPage: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            setReuploadDocId(null);
-            setForm({
-              category: 'IDENTITY',
-              title: '',
-              identifier: '',
-              notes: '',
-              issueDate: '',
-              expiryDate: '',
-            });
-            setFile(null);
-            setError(null);
-            setIsUploadModalOpen(true);
-          }}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 active:scale-[0.98] transition-all cursor-pointer self-start sm:self-auto shrink-0"
-        >
-          <IconPlus className="w-4 h-4" />
-          <span>Upload New Document</span>
-        </button>
+        {/* Dropdown beside Upload Document Button */}
+        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap shrink-0">
+          {/* Category Dropdown */}
+          <div className="relative" ref={categoryDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+              aria-label="Filter documents by category"
+              aria-expanded={isCategoryDropdownOpen}
+              className="inline-flex items-center justify-between gap-2 px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200/90 rounded-xl text-xs font-bold text-slate-700 shadow-2xs transition-all cursor-pointer min-w-[170px]"
+            >
+              <div className="flex items-center gap-2 truncate">
+                <ActiveCategoryIcon className="w-4 h-4 text-[#5E4BE2] shrink-0" />
+                <span className="truncate">{activeCategoryTab.label}</span>
+              </div>
+              <IconChevronDown
+                className={`w-4 h-4 text-slate-400 transition-transform shrink-0 ${
+                  isCategoryDropdownOpen ? 'rotate-180 text-[#5E4BE2]' : ''
+                }`}
+              />
+            </button>
+
+            {isCategoryDropdownOpen && (
+              <div className="absolute right-0 sm:right-auto sm:left-0 mt-1.5 w-52 bg-white rounded-2xl border border-slate-200/90 shadow-xl py-1.5 z-30 animate-in fade-in zoom-in-95 duration-100">
+                <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                  Document Category
+                </div>
+                {categoryTabs.map((tab) => {
+                  const isSelected = activeCategory === tab.id;
+                  const TabIcon = tab.icon;
+                  const count =
+                    tab.id === 'ALL'
+                      ? documents.length
+                      : documents.filter((d) => d.category.toUpperCase() === tab.id).length;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveCategory(tab.id);
+                        setIsCategoryDropdownOpen(false);
+                      }}
+                      className={`w-full px-3 py-2 text-xs font-semibold flex items-center justify-between gap-2 transition-colors cursor-pointer text-left ${
+                        isSelected
+                          ? 'bg-indigo-50/70 text-[#5E4BE2] font-bold'
+                          : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <TabIcon
+                          className={`w-4 h-4 shrink-0 ${
+                            isSelected ? 'text-[#5E4BE2]' : 'text-slate-400'
+                          }`}
+                        />
+                        <span className="truncate">{tab.label}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span
+                          className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${
+                            isSelected
+                              ? 'bg-indigo-100 text-[#5E4BE2]'
+                              : 'bg-slate-100 text-slate-500'
+                          }`}
+                        >
+                          {count}
+                        </span>
+                        {isSelected && <IconCheck className="w-3.5 h-3.5 text-[#5E4BE2]" />}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Upload Document Button */}
+          <button
+            onClick={() => {
+              setReuploadDocId(null);
+              setForm({
+                category: 'IDENTITY',
+                title: '',
+                identifier: '',
+                notes: '',
+                issueDate: '',
+                expiryDate: '',
+              });
+              setFile(null);
+              setError(null);
+              setIsUploadModalOpen(true);
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 active:scale-[0.98] transition-all cursor-pointer self-start sm:self-auto shrink-0"
+          >
+            <IconPlus className="w-4 h-4" />
+            <span>Upload Document</span>
+          </button>
+        </div>
       </div>
 
       {/* 2. KPI Summary Cards */}
@@ -260,41 +357,41 @@ export const MyDocumentsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. Category Filter Tabs & Search Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
-        {/* Left Tabs */}
-        <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100/80 rounded-xl w-fit">
-          {categoryTabs.map((tab) => {
-            const isSelected = activeCategory === tab.id;
-            const TabIcon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveCategory(tab.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                  isSelected
-                    ? 'bg-white text-[#5E4BE2] shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-                }`}
-              >
-                <TabIcon className={`w-3.5 h-3.5 ${isSelected ? 'text-[#5E4BE2]' : 'text-slate-500'}`} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Right Search Input */}
-        <div className="relative w-full md:w-64">
-          <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3 top-2.5 pointer-events-none" />
+      {/* 3. Search Bar & Count */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-3 sm:p-4 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        {/* Search Input */}
+        <div className="relative flex-1">
+          <IconSearch className="w-4 h-4 text-slate-400 font-medium absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search documents..."
-            className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-[#5E4BE2] focus:bg-white transition-all"
+            placeholder="Search documents by title, number, or category..."
+            className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-slate-50/70 border border-slate-200/80 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] focus:bg-white transition-all"
           />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+            >
+              <IconX className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Counter and quick reset */}
+        <div className="flex items-center gap-2 self-end sm:self-auto text-xs font-semibold text-slate-500 shrink-0">
+          <span className="px-2.5 py-1.5 rounded-xl bg-slate-100/90 text-slate-600 text-[11px] font-bold">
+            Showing {filteredDocuments.length} of {documents.length} document{documents.length !== 1 ? 's' : ''}
+          </span>
+          {activeCategory !== 'ALL' && (
+            <button
+              onClick={() => setActiveCategory('ALL')}
+              className="text-[11px] text-[#5E4BE2] hover:text-[#4B39C3] hover:underline font-bold cursor-pointer"
+            >
+              Reset to All
+            </button>
+          )}
         </div>
       </div>
 
@@ -417,8 +514,8 @@ export const MyDocumentsPage: React.FC = () => {
                     rel="noreferrer"
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition-all"
                   >
-                    <IconEye className="w-3.5 h-3.5 text-slate-500 font-medium" />
-                    <span>View File</span>
+                    <IconEye className="w-4 h-4 text-slate-500 font-medium" />
+                    
                   </a>
                 ) : (
                   <button
@@ -637,7 +734,7 @@ export const MyDocumentsPage: React.FC = () => {
                       disabled={isSubmitting}
                       className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] disabled:opacity-50 transition-all shadow-sm shadow-indigo-600/25 active:scale-[0.98] cursor-pointer"
                     >
-                      {isSubmitting ? 'Uploading...' : reuploadDocId ? 'Submit Update' : 'Upload Document'}
+                      {isSubmitting ? 'Uploading...' : reuploadDocId ? 'Submit Update' : 'Upload'}
                     </button>
                   </div>
                 </form>

@@ -1,7 +1,7 @@
 import prisma from '../lib/prisma.js';
 import { AppError } from '../middlewares/errorHandler.js';
 import { RequestType, RequestStatus } from '@prisma/client';
-import { isWorkableDay, toDateKey } from '../lib/dates.js';
+import { isWorkableDay, toDateKey, parseZonedTimeToUTC } from '../lib/dates.js';
 import { logActivity } from './activityLog.js';
 
 /**
@@ -441,7 +441,14 @@ export async function decideRequest(opts: {
             ? 'CHECK_OUT_ONLY'
             : 'BOTH');
 
+        const company = await tx.company.findUnique({
+          where: { id: opts.companyId },
+          select: { timezone: true },
+        });
+        const companyTz = company?.timezone || 'Asia/Kolkata';
+
         const startDate = new Date(request.startDate);
+        const dateStr = request.startDate instanceof Date ? toDateKey(request.startDate) : String(request.startDate).split('T')[0];
         const startOfDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0, 0);
         const endOfDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 23, 59, 59, 999);
 
@@ -460,15 +467,11 @@ export async function decideRequest(opts: {
           let newCheckOut = existingAtt.checkOut;
 
           if (meta.requestedCheckIn && regularizeType !== 'CHECK_OUT_ONLY') {
-            const [cinH, cinM] = String(meta.requestedCheckIn).split(':').map(Number);
-            newCheckIn = new Date(request.startDate);
-            newCheckIn.setUTCHours(cinH, cinM, 0, 0);
+            newCheckIn = parseZonedTimeToUTC(dateStr, String(meta.requestedCheckIn), companyTz);
           }
 
           if (meta.requestedCheckOut && regularizeType !== 'CHECK_IN_ONLY') {
-            const [coutH, coutM] = String(meta.requestedCheckOut).split(':').map(Number);
-            newCheckOut = new Date(request.startDate);
-            newCheckOut.setUTCHours(coutH, coutM, 0, 0);
+            newCheckOut = parseZonedTimeToUTC(dateStr, String(meta.requestedCheckOut), companyTz);
           }
 
           let newDuration = Number(existingAtt.durationHours);
@@ -497,22 +500,16 @@ export async function decideRequest(opts: {
         } else {
           // No record exists: create a new attendance record
           const checkInTimeStr = meta.requestedCheckIn || '09:00';
-          const [cinH, cinM] = checkInTimeStr.split(':').map(Number);
-          const checkIn = new Date(request.startDate);
-          checkIn.setUTCHours(cinH, cinM, 0, 0);
+          const checkIn = parseZonedTimeToUTC(dateStr, checkInTimeStr, companyTz);
 
           let checkOut: Date | null = null;
           let durationHours = 0;
 
           if (meta.requestedCheckOut && regularizeType !== 'CHECK_IN_ONLY') {
-            const [coutH, coutM] = String(meta.requestedCheckOut).split(':').map(Number);
-            checkOut = new Date(request.startDate);
-            checkOut.setUTCHours(coutH, coutM, 0, 0);
+            checkOut = parseZonedTimeToUTC(dateStr, String(meta.requestedCheckOut), companyTz);
             durationHours = Math.round(((checkOut.getTime() - checkIn.getTime()) / 3600000) * 100) / 100;
           } else if (regularizeType === 'BOTH') {
-            const [coutH, coutM] = '18:00'.split(':').map(Number);
-            checkOut = new Date(request.startDate);
-            checkOut.setUTCHours(coutH, coutM, 0, 0);
+            checkOut = parseZonedTimeToUTC(dateStr, '18:00', companyTz);
             durationHours = Math.round(((checkOut.getTime() - checkIn.getTime()) / 3600000) * 100) / 100;
           }
 

@@ -93,25 +93,21 @@
   }
 }
 
-/* AI Assistant animated robot icon keyframes */
-@keyframes aiFloat {
+/* Modern AI Assistant sparkle pulse keyframes */
+@keyframes aiSparkle {
   0%, 100% {
-    transform: translateY(0px) rotate(0deg);
-  }
-  25% {
-    transform: translateY(-2.5px) rotate(-5deg);
+    transform: scale(1);
+    filter: drop-shadow(0 0 0px rgba(94, 75, 226, 0));
   }
   50% {
-    transform: translateY(0px) rotate(0deg);
-  }
-  75% {
-    transform: translateY(1.5px) rotate(5deg);
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 5px rgba(139, 92, 246, 0.45));
   }
 }
 
-.animate-ai-float {
+.animate-ai-sparkle {
   display: inline-block;
-  animation: aiFloat 2.6s ease-in-out infinite;
-  transform-origin: center bottom;
+  animation: aiSparkle 3s ease-in-out infinite;
+  transform-origin: center center;
 }
 

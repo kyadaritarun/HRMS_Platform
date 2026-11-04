@@ -631,31 +631,6 @@ export const PerformanceGoalsPage: React.FC = () => {
                             <IconEye className="w-4 h-4 stroke-[1.8]" />
                           </button>
 
-                          {/* Advance Progress & Add Note (Approved goals) */}
-                          {goal.status === 'APPROVED' && (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const nextStatus = progress === 'NOT_STARTED' ? 'IN_PROGRESS' : progress === 'IN_PROGRESS' ? 'DONE' : 'IN_PROGRESS';
-                                  handleUpdateProgress(goal.id, nextStatus);
-                                }}
-                                title={progress === 'DONE' ? 'Mark In Progress' : 'Advance Progress'}
-                                className="w-8 h-8 rounded-lg border border-blue-200/80 bg-white hover:bg-blue-50 text-blue-600 flex items-center justify-center shadow-2xs transition-all cursor-pointer"
-                              >
-                                <IconTrendingUp className="w-4 h-4 stroke-[1.8]" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setCommentModal({ open: true, goalId: goal.id, note: '' })}
-                                title="Add Progress Note"
-                                className="w-8 h-8 rounded-lg border border-slate-200/80 bg-white hover:bg-slate-50 text-slate-600 flex items-center justify-center shadow-2xs transition-all cursor-pointer"
-                              >
-                                <IconMessageCircle className="w-4 h-4 stroke-[1.8]" />
-                              </button>
-                            </>
-                          )}
-
                           {/* Cancel Pending Goal */}
                           {goal.status === 'PENDING' && (
                             <button
@@ -1222,7 +1197,7 @@ export const PerformanceGoalsPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setSelectedGoalForView(null)}
-                    className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] transition-all shadow-sm shadow-indigo-600/25 cursor-pointer"
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                   >
                     Close
                   </button>

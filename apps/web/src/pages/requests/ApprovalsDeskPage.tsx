@@ -50,9 +50,9 @@ interface ApprovalRequest {
 export const ApprovalsDeskPage: React.FC = () => {
   const { user } = useAuth();
   const location = useLocation();
-  const isAdminOrHr = user?.role === 'COMPANY_ADMIN' || user?.role === 'HR';
+  const isCompanyAdmin = user?.role === 'COMPANY_ADMIN' || user?.role === 'PRODUCT_SUPER_ADMIN';
   const isManager = Boolean(user?.isManager || (user as any)?._count?.reports > 0);
-  const [scope, setScope] = useState<'assigned' | 'company'>(isAdminOrHr ? 'company' : 'assigned');
+  const [scope, setScope] = useState<'assigned' | 'company'>('assigned');
   const [requests, setRequests] = useState<ApprovalRequest[]>([]);
   const [allMetricsRequests, setAllMetricsRequests] = useState<ApprovalRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -101,7 +101,7 @@ export const ApprovalsDeskPage: React.FC = () => {
 
   const fetchMetricsOverview = async () => {
     try {
-      const activeScope = isAdminOrHr ? scope : 'assigned';
+      const activeScope = isCompanyAdmin ? scope : 'assigned';
       const res = await api.get('/requests', { params: { scope: activeScope, pageSize: 100 } });
       setAllMetricsRequests(res.data?.items || []);
     } catch (err) {
@@ -112,7 +112,7 @@ export const ApprovalsDeskPage: React.FC = () => {
   const fetchRequests = async () => {
     setIsLoading(true);
     try {
-      const activeScope = isAdminOrHr ? scope : 'assigned';
+      const activeScope = isCompanyAdmin ? scope : 'assigned';
       const params: any = { scope: activeScope };
       if (selectedStatus && selectedStatus !== 'ALL') {
         params.status = selectedStatus;
@@ -262,9 +262,9 @@ export const ApprovalsDeskPage: React.FC = () => {
             <span>Approval Requests</span>
           </h1>
           <p className="text-xs text-slate-500 font-medium mt-0.5">
-            {isManager && !isAdminOrHr
-              ? 'Review, authorize, or return leave, attendance, and expense requests submitted by your team members.'
-              : 'Review, authorize, or return leave requests, attendance regularizations, and performance goals.'}
+            {isCompanyAdmin && scope === 'company'
+              ? 'Review, authorize, or return leave requests, attendance regularizations, and performance goals across the company.'
+              : 'Review, authorize, or return leave, attendance, and expense requests assigned to you.'}
           </p>
         </div>
 
@@ -307,8 +307,8 @@ export const ApprovalsDeskPage: React.FC = () => {
 
           {/* Right Controls: Scope, Category & Status */}
           <div className="flex flex-wrap items-center gap-2.5">
-            {/* Scope Dropdown for HR / Admin */}
-            {isAdminOrHr && (
+            {/* Scope Dropdown: Only for Company Admin */}
+            {isCompanyAdmin && (
               <div className="relative shrink-0">
                 <select
                   value={scope}
@@ -318,8 +318,8 @@ export const ApprovalsDeskPage: React.FC = () => {
                   }}
                   className="appearance-none pl-8 pr-7 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-[#5E4BE2] text-slate-700 cursor-pointer shadow-2xs hover:border-slate-300 transition-colors"
                 >
-                  <option value="company">All Company</option>
                   <option value="assigned">Assigned to Me</option>
+                  <option value="company">All Company</option>
                 </select>
                 <IconBuildingSkyscraper className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />

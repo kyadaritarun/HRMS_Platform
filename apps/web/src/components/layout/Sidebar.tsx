@@ -31,7 +31,7 @@ import {
   IconHelpCircle,
   IconCreditCard,
   IconHistory,
-  IconCpu,
+  IconSparkles,
   IconBuildingSkyscraper,
   IconPackage,
   IconIdBadge,
@@ -211,7 +211,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
 
             // Support & AI Assistant
             { label: 'Tickets', path: '/tickets', icon: IconHelpCircle, feature: 'support_ticket_management' },
-            { label: 'AI Assistant', path: '/assistant', icon: IconCpu, feature: 'ai_assistance' },
+            { label: 'AI Assistant', path: '/assistant', icon: IconSparkles, feature: 'ai_assistance' },
             { label: 'Refer & Earn', path: '/referrals', icon: IconGift },
           ],
         },
@@ -334,7 +334,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
 
           // Support & AI Assistant
           { label: 'Tickets', path: '/tickets', icon: IconHelpCircle, feature: 'support_ticket_management' },
-          { label: 'AI Assistant', path: '/assistant', icon: IconCpu, feature: 'ai_assistance' },
+          { label: 'AI Assistant', path: '/assistant', icon: IconSparkles, feature: 'ai_assistance' },
           { label: 'Refer & Earn', path: '/referrals', icon: IconGift },
         ],
       },
@@ -346,10 +346,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
             icon: IconChecklist,
             roles: ['EMPLOYEE'] as UserRole[],
             subItems: [
+              { label: 'Team Attendance', path: '/company/team-attendance', icon: IconClock, requiresManager: true, feature: 'time_attendance_management' },
               { label: 'Approvals Desk', path: '/company/approvals', icon: IconChecklist, requiresManager: true },
               { label: 'Expense Claims Review', path: '/company/claims/manage', icon: IconCash, requiresManager: true, feature: 'claim_process_management' },
               { label: 'Assigned Tickets', path: '/tickets/assigned', icon: IconHelpCircle, requiresManager: true, feature: 'support_ticket_management' },
-              { label: 'Document Verification', path: '/company/documents/review', icon: IconFolderCheck, requiresManager: true, feature: 'employee_document_management' },
             ],
           },
         ]

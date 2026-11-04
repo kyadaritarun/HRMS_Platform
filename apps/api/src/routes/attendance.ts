@@ -7,6 +7,7 @@ import { roleGuard } from '../middlewares/roleGuard.js';
 import { hrPermission } from '../middlewares/hrPermission.js';
 import { featureGuard } from '../middlewares/featureGuard.js';
 import { validateBody } from '../middlewares/validate.js';
+import { AppError } from '../middlewares/errorHandler.js';
 import { CheckInSchema, CheckOutSchema } from '../schemas/attendance.js';
 import { checkIn, checkOut, generateAttendanceExcel } from '../services/attendance.js';
 
@@ -201,6 +202,110 @@ router.get('/me', async (req, res, next) => {
       recentSessions: sessions,
       sessions,
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /attendance/team (Team Attendance for managers)
+router.get('/team', async (req, res, next) => {
+  try {
+    const managerId = req.user!.id;
+    const companyId = req.user!.companyId!;
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const pageSize = Math.min(500, Math.max(1, Number(req.query.pageSize) || 100));
+
+    const reportCount = await prisma.user.count({
+      where: { managerId, isActive: true },
+    });
+
+    const isManager =
+      reportCount > 0 ||
+      req.user!.role === 'COMPANY_ADMIN' ||
+      req.user!.role === 'HR';
+
+    if (!isManager) {
+      return next(
+        new AppError(403, 'FORBIDDEN', 'Only managers with reporting team members can view team attendance')
+      );
+    }
+
+    const where: any = {
+      companyId,
+      user: {
+        managerId,
+      },
+    };
+
+    if (req.query.date) {
+      const dStr = String(req.query.date);
+      const startOfDay = new Date(`${dStr}T00:00:00.000Z`);
+      const endOfDay = new Date(`${dStr}T23:59:59.999Z`);
+      where.checkIn = { gte: startOfDay, lte: endOfDay };
+    }
+
+    const [items, total, teamSize] = await Promise.all([
+      prisma.attendance.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              jobTitle: true,
+              profilePhoto: true,
+              department: { select: { name: true } },
+            },
+          },
+        },
+        orderBy: { checkIn: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.attendance.count({ where }),
+      prisma.user.count({
+        where: {
+          companyId,
+          managerId,
+          isActive: true,
+        },
+      }),
+    ]);
+
+    return res.json({ records: items, items, total, teamSize, page, pageSize });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /attendance/team/export
+router.get('/team/export', async (req, res, next) => {
+  try {
+    const managerId = req.user!.id;
+    const companyId = req.user!.companyId!;
+    const format = String(req.query.format || 'xlsx').toLowerCase() === 'csv' ? 'csv' : 'xlsx';
+    let from: Date | undefined;
+    let to: Date | undefined;
+
+    if (req.query.from) {
+      from = new Date(String(req.query.from));
+    }
+    if (req.query.to) {
+      to = new Date(String(req.query.to));
+    }
+
+    const fileBuffer = await generateAttendanceExcel(companyId, from, to, format, managerId);
+
+    if (format === 'csv') {
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=team_attendance_export.csv');
+    } else {
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=team_attendance_export.xlsx');
+    }
+    return res.send(fileBuffer);
   } catch (error) {
     next(error);
   }

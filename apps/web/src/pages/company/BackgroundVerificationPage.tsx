@@ -23,6 +23,8 @@ import {
   IconPlus,
   IconFileCheck,
   IconExternalLink,
+  IconLock,
+  IconMail,
 } from '@tabler/icons-react';
 
 export interface BGVItem {
@@ -103,45 +105,45 @@ const INITIAL_BGV_DATA: BGVItem[] = [
       number: '489210293849',
       maskedNumber: '•••• •••• 3849',
       fullName: 'Jone Doe',
-      status: 'VERIFIED',
-      verifiedDate: '2026-08-14',
-      verifiedBy: 'Compliance Admin',
-      documentUrl: 'aadhaar_card_scan.pdf',
-      notes: 'UIDAI biometric OTP verification cleared successfully.',
+      status: 'PENDING',
+      verifiedDate: null,
+      verifiedBy: null,
+      documentUrl: null,
+      notes: 'Pending BGV activation.',
     },
     pan: {
       number: 'ABCDE1234F',
       maskedNumber: 'ABCDE••••F',
       fullName: 'JONE DOE',
-      dobMatch: true,
-      status: 'VERIFIED',
-      verifiedDate: '2026-08-14',
-      verifiedBy: 'Compliance Admin',
-      documentUrl: 'pan_card_jone.pdf',
-      notes: 'NSDL database active match.',
+      dobMatch: false,
+      status: 'PENDING',
+      verifiedDate: null,
+      verifiedBy: null,
+      documentUrl: null,
+      notes: 'Pending BGV activation.',
     },
     address: {
       currentAddress: 'Flat 402, Green Glen Layout, Bellandur, Bengaluru 560103',
       permanentAddress: 'Flat 402, Green Glen Layout, Bellandur, Bengaluru 560103',
       method: 'UTILITY_BILL',
-      status: 'VERIFIED',
-      verifiedDate: '2026-08-16',
-      documentUrl: 'electricity_bill_latest.pdf',
-      notes: 'BESCOM electricity bill verified with permanent address match.',
+      status: 'PENDING',
+      verifiedDate: null,
+      documentUrl: null,
+      notes: 'Pending BGV activation.',
     },
     uan: {
       uanNumber: '100928371625',
       maskedUan: '1009••••1625',
       previousEmployerMemberId: 'KN/BNG/0091823/000/120',
-      serviceMatch: true,
-      status: 'VERIFIED',
-      verifiedDate: '2026-08-17',
-      notes: 'EPFO passbook service records verified without dual employment.',
+      serviceMatch: false,
+      status: 'PENDING',
+      verifiedDate: null,
+      notes: 'Pending BGV activation.',
     },
-    overallStatus: 'FULLY_VERIFIED',
+    overallStatus: 'PENDING',
     initiatedDate: '2026-08-10',
-    completionDate: '2026-08-17',
-    overallRemarks: 'All 4 statutory credentials fully verified by compliance team.',
+    completionDate: null,
+    overallRemarks: 'Pending activation by Uptrix organization.',
   },
   {
     id: 'bgv_2',
@@ -156,45 +158,45 @@ const INITIAL_BGV_DATA: BGVItem[] = [
       number: '883920194821',
       maskedNumber: '•••• •••• 4821',
       fullName: 'Arjun Verma',
-      status: 'VERIFIED',
-      verifiedDate: '2026-09-02',
-      verifiedBy: 'HR Operations',
-      documentUrl: 'aadhaar_arjun.pdf',
-      notes: 'Instant verification via Aadhaar paperless offline e-KYC.',
+      status: 'PENDING',
+      verifiedDate: null,
+      verifiedBy: null,
+      documentUrl: null,
+      notes: 'Pending BGV activation.',
     },
     pan: {
       number: 'BNMPV4829K',
       maskedNumber: 'BNMPV••••K',
       fullName: 'ARJUN VERMA',
-      dobMatch: true,
-      status: 'VERIFIED',
-      verifiedDate: '2026-09-02',
-      verifiedBy: 'HR Operations',
-      documentUrl: 'pan_arjun.pdf',
-      notes: 'PAN verified with Income Tax portal.',
+      dobMatch: false,
+      status: 'PENDING',
+      verifiedDate: null,
+      verifiedBy: null,
+      documentUrl: null,
+      notes: 'Pending BGV activation.',
     },
     address: {
       currentAddress: 'Plot 18, Phase 2, Hitec City, Hyderabad 500081',
       permanentAddress: 'House 44, Civil Lines, Jaipur 302006',
       method: 'PHYSICAL_VISIT',
-      status: 'IN_PROGRESS',
+      status: 'PENDING',
       verifiedDate: null,
-      documentUrl: 'rent_agreement_hyderabad.pdf',
-      notes: 'Physical field address check initiated with third-party agency.',
+      documentUrl: null,
+      notes: 'Pending BGV activation.',
     },
     uan: {
       uanNumber: '101283948201',
       maskedUan: '1012••••8201',
       previousEmployerMemberId: 'TS/HYD/0019283/000/089',
-      serviceMatch: true,
-      status: 'VERIFIED',
-      verifiedDate: '2026-09-05',
-      notes: 'EPFO record matching previous employer exit date.',
+      serviceMatch: false,
+      status: 'PENDING',
+      verifiedDate: null,
+      notes: 'Pending BGV activation.',
     },
-    overallStatus: 'IN_PROGRESS',
+    overallStatus: 'PENDING',
     initiatedDate: '2026-08-28',
     completionDate: null,
-    overallRemarks: 'Aadhaar, PAN, and UAN completed. Awaiting field agent address report.',
+    overallRemarks: 'Pending activation by Uptrix organization.',
   },
   {
     id: 'bgv_3',
@@ -209,45 +211,45 @@ const INITIAL_BGV_DATA: BGVItem[] = [
       number: '554019283748',
       maskedNumber: '•••• •••• 3748',
       fullName: 'Rohan Sharma',
-      status: 'VERIFIED',
-      verifiedDate: '2026-07-20',
-      verifiedBy: 'Compliance Admin',
-      documentUrl: 'aadhaar_rohan.pdf',
-      notes: 'UIDAI e-KYC verified.',
+      status: 'PENDING',
+      verifiedDate: null,
+      verifiedBy: null,
+      documentUrl: null,
+      notes: 'Pending BGV activation.',
     },
     pan: {
       number: 'CPSPS9182L',
       maskedNumber: 'CPSPS••••L',
       fullName: 'ROHAN SHARMA',
-      dobMatch: true,
-      status: 'VERIFIED',
-      verifiedDate: '2026-07-20',
-      verifiedBy: 'Compliance Admin',
-      documentUrl: 'pan_rohan.pdf',
-      notes: 'Income Tax department verified.',
+      dobMatch: false,
+      status: 'PENDING',
+      verifiedDate: null,
+      verifiedBy: null,
+      documentUrl: null,
+      notes: 'Pending BGV activation.',
     },
     address: {
       currentAddress: 'Tower B, Flat 804, Lodha Park, Worli, Mumbai 400018',
       permanentAddress: 'Tower B, Flat 804, Lodha Park, Worli, Mumbai 400018',
       method: 'PASSPORT',
-      status: 'VERIFIED',
-      verifiedDate: '2026-07-22',
-      documentUrl: 'passport_scan.pdf',
-      notes: 'Passport address page verified.',
+      status: 'PENDING',
+      verifiedDate: null,
+      documentUrl: null,
+      notes: 'Pending BGV activation.',
     },
     uan: {
       uanNumber: '100819283749',
       maskedUan: '1008••••3749',
       previousEmployerMemberId: 'MH/BAN/0048192/000/012',
-      serviceMatch: true,
-      status: 'VERIFIED',
-      verifiedDate: '2026-07-24',
-      notes: 'UAN validated.',
+      serviceMatch: false,
+      status: 'PENDING',
+      verifiedDate: null,
+      notes: 'Pending BGV activation.',
     },
-    overallStatus: 'FULLY_VERIFIED',
+    overallStatus: 'PENDING',
     initiatedDate: '2026-07-15',
-    completionDate: '2026-07-24',
-    overallRemarks: 'Fully compliant executive background verification.',
+    completionDate: null,
+    overallRemarks: 'Pending activation by Uptrix organization.',
   },
   {
     id: 'bgv_4',
@@ -266,18 +268,18 @@ const INITIAL_BGV_DATA: BGVItem[] = [
       verifiedDate: null,
       verifiedBy: null,
       documentUrl: null,
-      notes: 'Document uploaded has blurred address. Re-upload requested.',
+      notes: 'Pending BGV activation.',
     },
     pan: {
       number: 'APRPN8392M',
       maskedNumber: 'APRPN••••M',
       fullName: 'PRIYA NAIR',
-      dobMatch: true,
-      status: 'VERIFIED',
-      verifiedDate: '2026-10-01',
-      verifiedBy: 'HR Operations',
-      documentUrl: 'pan_priya.pdf',
-      notes: 'PAN verified.',
+      dobMatch: false,
+      status: 'PENDING',
+      verifiedDate: null,
+      verifiedBy: null,
+      documentUrl: null,
+      notes: 'Pending BGV activation.',
     },
     address: {
       currentAddress: 'No. 54, 4th Cross, Indiranagar, Bengaluru 560038',
@@ -286,21 +288,21 @@ const INITIAL_BGV_DATA: BGVItem[] = [
       status: 'PENDING',
       verifiedDate: null,
       documentUrl: null,
-      notes: 'Awaiting utility bill proof.',
+      notes: 'Pending BGV activation.',
     },
     uan: {
-      uanNumber: '',
-      maskedUan: 'Not Submitted',
+      uanNumber: '101492837482',
+      maskedUan: '1014••••7482',
       previousEmployerMemberId: '',
       serviceMatch: false,
-      status: 'NOT_SUBMITTED',
+      status: 'PENDING',
       verifiedDate: null,
-      notes: 'First-time formal employment or UAN generation required.',
+      notes: 'Pending BGV activation.',
     },
-    overallStatus: 'ACTION_REQUIRED',
+    overallStatus: 'PENDING',
     initiatedDate: '2026-09-28',
     completionDate: null,
-    overallRemarks: 'Aadhaar re-upload requested. UAN generation required.',
+    overallRemarks: 'Pending activation by Uptrix organization.',
   },
   {
     id: 'bgv_5',
@@ -315,45 +317,45 @@ const INITIAL_BGV_DATA: BGVItem[] = [
       number: '629183746281',
       maskedNumber: '•••• •••• 6281',
       fullName: 'Vikram Joshi',
-      status: 'VERIFIED',
-      verifiedDate: '2026-10-12',
-      verifiedBy: 'HR Operations',
-      documentUrl: 'aadhaar_vikram.pdf',
-      notes: 'Verified via DigiLocker authentication.',
+      status: 'PENDING',
+      verifiedDate: null,
+      verifiedBy: null,
+      documentUrl: null,
+      notes: 'Pending BGV activation.',
     },
     pan: {
       number: 'BVJPJ8291Q',
       maskedNumber: 'BVJPJ••••Q',
       fullName: 'VIKRAM JOSHI',
-      dobMatch: true,
-      status: 'VERIFIED',
-      verifiedDate: '2026-10-12',
-      verifiedBy: 'HR Operations',
-      documentUrl: 'pan_vikram.pdf',
-      notes: 'PAN record verified.',
+      dobMatch: false,
+      status: 'PENDING',
+      verifiedDate: null,
+      verifiedBy: null,
+      documentUrl: null,
+      notes: 'Pending BGV activation.',
     },
     address: {
       currentAddress: 'B-302, Palm Heights, Viman Nagar, Pune 411014',
       permanentAddress: 'B-302, Palm Heights, Viman Nagar, Pune 411014',
       method: 'DIGITAL_OTP',
-      status: 'VERIFIED',
-      verifiedDate: '2026-10-14',
-      documentUrl: 'gas_bill_pune.pdf',
-      notes: 'Piped Gas bill with OTP confirmation cleared.',
+      status: 'PENDING',
+      verifiedDate: null,
+      documentUrl: null,
+      notes: 'Pending BGV activation.',
     },
     uan: {
       uanNumber: '101928374619',
       maskedUan: '1019••••4619',
       previousEmployerMemberId: 'MH/PUN/0092819/000/045',
-      serviceMatch: true,
-      status: 'VERIFIED',
-      verifiedDate: '2026-10-15',
-      notes: 'EPFO records cleared.',
+      serviceMatch: false,
+      status: 'PENDING',
+      verifiedDate: null,
+      notes: 'Pending BGV activation.',
     },
-    overallStatus: 'FULLY_VERIFIED',
+    overallStatus: 'PENDING',
     initiatedDate: '2026-10-08',
-    completionDate: '2026-10-15',
-    overallRemarks: 'Smooth digital e-verification completed within 7 days.',
+    completionDate: null,
+    overallRemarks: 'Pending activation by Uptrix organization.',
   },
 ];
 
@@ -388,73 +390,75 @@ export const BackgroundVerificationPage: React.FC = () => {
     return Array.from(set);
   }, [records]);
 
-  // Try to enrich with real database employees if available
+  // Fetch real database employees and initialize BGV records
   useEffect(() => {
     const fetchRealEmployees = async () => {
       try {
-        const res = await api.get('/employees?pageSize=100');
+        const res = await api.get('/employees', { params: { pageSize: 100, status: 'ALL' } });
         const dbStaff = res.data?.items || [];
         if (Array.isArray(dbStaff) && dbStaff.length > 0) {
-          // If staff exists, map any missing ones into BGV records
-          setRecords((prev) => {
-            const existingIds = new Set(prev.map((p) => p.employeeId));
-            const newMapped: BGVItem[] = [];
-
-            dbStaff.forEach((emp: any, idx: number) => {
-              if (!existingIds.has(emp.id)) {
-                newMapped.push({
-                  id: `bgv_dyn_${emp.id}`,
-                  employeeId: emp.id,
-                  employeeNumber: emp.employeeNumber || `EMP-${String(emp.id).padStart(3, '0')}`,
-                  name: `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Employee',
-                  email: emp.email || 'employee@company.com',
-                  jobTitle: emp.jobTitle || 'Team Member',
-                  department: emp.department?.name || 'General',
-                  avatarColor: ['bg-indigo-100 text-indigo-700', 'bg-blue-100 text-blue-700', 'bg-emerald-100 text-emerald-700'][idx % 3],
-                  profilePhoto: emp.profilePhoto,
-                  aadhaar: {
-                    number: '',
-                    maskedNumber: 'Not Submitted',
-                    fullName: '',
-                    status: 'NOT_SUBMITTED',
-                    verifiedDate: null,
-                    notes: '',
-                  },
-                  pan: {
-                    number: '',
-                    maskedNumber: 'Not Submitted',
-                    fullName: '',
-                    dobMatch: false,
-                    status: 'NOT_SUBMITTED',
-                    verifiedDate: null,
-                    notes: '',
-                  },
-                  address: {
-                    currentAddress: emp.address || '',
-                    permanentAddress: emp.address || '',
-                    method: 'UTILITY_BILL',
-                    status: emp.address ? 'PENDING' : 'NOT_SUBMITTED',
-                    verifiedDate: null,
-                    notes: '',
-                  },
-                  uan: {
-                    uanNumber: '',
-                    maskedUan: 'Not Submitted',
-                    previousEmployerMemberId: '',
-                    serviceMatch: false,
-                    status: 'NOT_SUBMITTED',
-                    verifiedDate: null,
-                    notes: '',
-                  },
-                  overallStatus: 'PENDING',
-                  initiatedDate: emp.joiningDate ? emp.joiningDate.slice(0, 10) : new Date().toISOString().slice(0, 10),
-                  completionDate: null,
-                  overallRemarks: 'Verification pending document upload by employee.',
-                });
-              }
-            });
-            return [...prev, ...newMapped];
+          const mapped: BGVItem[] = dbStaff.map((emp: any, idx: number) => {
+            const empName = `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || emp.username || 'Employee';
+            const empCode = emp.employeeNumber || `EMP-${String(emp.id).padStart(3, '0')}`;
+            const empDept = emp.department?.name || 'General';
+            return {
+              id: `bgv_${emp.id}`,
+              employeeId: emp.id,
+              employeeNumber: empCode,
+              name: empName,
+              email: emp.email || 'employee@company.com',
+              jobTitle: emp.jobTitle || 'Team Member',
+              department: empDept,
+              avatarColor: [
+                'bg-indigo-100 text-indigo-700',
+                'bg-purple-100 text-purple-700',
+                'bg-emerald-100 text-emerald-700',
+                'bg-rose-100 text-rose-700',
+                'bg-amber-100 text-amber-700',
+                'bg-cyan-100 text-cyan-700',
+              ][idx % 6],
+              profilePhoto: emp.profilePhoto,
+              aadhaar: {
+                number: '',
+                maskedNumber: `•••• •••• ${String(1000 + emp.id).slice(-4)}`,
+                fullName: empName,
+                status: 'PENDING',
+                verifiedDate: null,
+                notes: 'Aadhaar statutory check pending BGV activation.',
+              },
+              pan: {
+                number: '',
+                maskedNumber: `ABCDE••••${String.fromCharCode(65 + (emp.id % 26))}`,
+                fullName: empName.toUpperCase(),
+                dobMatch: false,
+                status: 'PENDING',
+                verifiedDate: null,
+                notes: 'PAN verification check pending BGV activation.',
+              },
+              address: {
+                currentAddress: emp.address || `${empDept} Work Location, India`,
+                permanentAddress: emp.address || `${empDept} Work Location, India`,
+                method: 'PHYSICAL_VISIT',
+                status: 'PENDING',
+                verifiedDate: null,
+                notes: 'Address field check pending BGV activation.',
+              },
+              uan: {
+                uanNumber: '',
+                maskedUan: `1009••••${String(1000 + emp.id).slice(-4)}`,
+                previousEmployerMemberId: '',
+                serviceMatch: false,
+                status: 'PENDING',
+                verifiedDate: null,
+                notes: 'EPFO UAN check pending BGV activation.',
+              },
+              overallStatus: 'PENDING',
+              initiatedDate: emp.joiningDate ? emp.joiningDate.slice(0, 10) : new Date().toISOString().slice(0, 10),
+              completionDate: null,
+              overallRemarks: 'Background verification pending activation by Uptrix organization.',
+            };
           });
+          setRecords(mapped);
         }
       } catch (err) {
         // Mock data will continue to serve gracefully
@@ -509,6 +513,8 @@ export const BackgroundVerificationPage: React.FC = () => {
     setSelectedRecord(record);
     setIsEditing(false);
     setEditFormData(JSON.parse(JSON.stringify(record)));
+    setSaveToast('Background verification is inactive. If you want to activate, contact to Uptrix organization.');
+    setTimeout(() => setSaveToast(null), 4000);
   };
 
   const handleSaveDrawer = () => {
@@ -562,7 +568,7 @@ export const BackgroundVerificationPage: React.FC = () => {
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
             <IconClock className="w-3 h-3 text-amber-600" />
-            Pending Review
+            Pending
           </span>
         );
     }
@@ -607,77 +613,9 @@ export const BackgroundVerificationPage: React.FC = () => {
             Audit and verify employee statutory credentials: Aadhaar, PAN card, residential address, and UAN / PF records.
           </p>
         </div>
-
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={handleExportCsv}
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
-          >
-            <IconDownload className="w-3.5 h-3.5 text-slate-500 font-medium" />
-            <span>Export CSV</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setShowInitiateModal(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer shrink-0"
-          >
-            <IconPlus className="w-4 h-4" />
-            <span>Initiate Check</span>
-          </button>
-        </div>
       </div>
 
-      {/* Metric Cards Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-500 font-medium mb-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Total Audited</span>
-            <IconUser className="w-4 h-4 text-indigo-500" />
-          </div>
-          <div className="text-xl font-black text-slate-900">{metrics.total}</div>
-          <div className="text-[10px] text-slate-500 font-medium mt-0.5">100% active workforce</div>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-emerald-200/80 shadow-2xs bg-emerald-50/20">
-          <div className="flex items-center justify-between text-emerald-600 mb-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Fully Verified</span>
-            <IconShieldCheck className="w-4 h-4 text-emerald-600" />
-          </div>
-          <div className="text-xl font-black text-emerald-700">{metrics.fullyVerified}</div>
-          <div className="text-[10px] text-emerald-600 font-semibold mt-0.5">
-            {metrics.total > 0 ? Math.round((metrics.fullyVerified / metrics.total) * 100) : 0}% compliance rate
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-blue-200/80 shadow-2xs bg-blue-50/20">
-          <div className="flex items-center justify-between text-blue-600 mb-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider">In Progress</span>
-            <IconRefresh className="w-4 h-4 text-blue-600" />
-          </div>
-          <div className="text-xl font-black text-blue-700">{metrics.inProgress}</div>
-          <div className="text-[10px] text-blue-600 font-semibold mt-0.5">Agency checking address/docs</div>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-amber-200/80 shadow-2xs bg-amber-50/20">
-          <div className="flex items-center justify-between text-amber-600 mb-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Pending Review</span>
-            <IconClock className="w-4 h-4 text-amber-600" />
-          </div>
-          <div className="text-xl font-black text-amber-700">{metrics.pending}</div>
-          <div className="text-[10px] text-amber-600 font-semibold mt-0.5">Documents uploaded</div>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-rose-200/80 shadow-2xs bg-rose-50/20 col-span-2 sm:col-span-1">
-          <div className="flex items-center justify-between text-rose-600 mb-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Action Needed</span>
-            <IconAlertTriangle className="w-4 h-4 text-rose-600" />
-          </div>
-          <div className="text-xl font-black text-rose-700">{metrics.actionRequired}</div>
-          <div className="text-[10px] text-rose-600 font-semibold mt-0.5">Mismatches / Re-upload needed</div>
-        </div>
-      </div>
+   
 
       {/* Main Table Card */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
@@ -696,107 +634,49 @@ export const BackgroundVerificationPage: React.FC = () => {
               className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-indigo-500 font-medium text-slate-800 placeholder-slate-400"
             />
           </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Status Filter */}
-            <div className="relative">
-              <select
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="appearance-none pl-8 pr-7 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-700 cursor-pointer"
-              >
-                <option value="ALL">All BGV Statuses</option>
-                <option value="FULLY_VERIFIED">Fully Verified</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="PENDING">Pending Review</option>
-                <option value="ACTION_REQUIRED">Action Required</option>
-              </select>
-              <IconFilter className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
-
-            {/* Department Filter */}
-            <div className="relative">
-              <select
-                value={departmentFilter}
-                onChange={(e) => {
-                  setDepartmentFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="appearance-none pl-8 pr-7 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-700 cursor-pointer"
-              >
-                <option value="ALL">All Departments</option>
-                {departments.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
-              <IconFilter className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
-
-            {(search || statusFilter !== 'ALL' || departmentFilter !== 'ALL' || activeCheckFilter !== 'ALL') && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearch('');
-                  setStatusFilter('ALL');
-                  setDepartmentFilter('ALL');
-                  setActiveCheckFilter('ALL');
-                  setCurrentPage(1);
-                }}
-                className="px-2.5 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
-              >
-                Reset
-              </button>
-            )}
-          </div>
         </div>
 
-        {/* Verification Status Quick Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] font-bold">
-          <span className="text-slate-500 text-xs font-medium mr-1">Quick Filter:</span>
-          {[
-            { id: 'ALL', label: 'All Employees' },
-            { id: 'MISSING_AADHAAR', label: 'Missing / Rejected Aadhaar' },
-            { id: 'MISSING_PAN', label: 'Missing / Rejected PAN' },
-            { id: 'MISSING_ADDRESS', label: 'Pending Address Check' },
-            { id: 'MISSING_UAN', label: 'Missing UAN / PF' },
-          ].map((pill) => (
-            <button
-              key={pill.id}
-              type="button"
-              onClick={() => {
-                setActiveCheckFilter(pill.id);
-                setCurrentPage(1);
-              }}
-              className={`px-3 py-1 rounded-xl transition-all cursor-pointer shrink-0 ${
-                activeCheckFilter === pill.id
-                  ? 'bg-indigo-600 text-white shadow-2xs'
-                  : 'bg-slate-100 hover:bg-slate-200/80 text-slate-600'
-              }`}
-            >
-              {pill.label}
-            </button>
-          ))}
+     
+
+        {/* Activation Alert Banner */}
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-50/90 via-indigo-50/70 to-purple-50/80 border border-indigo-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-100/80 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200">
+              <IconLock className="w-4 h-4 stroke-[2]" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                <span>Background Verification (BGV) Inactive</span>
+                <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-bold">
+                  Pending Activation
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-600 font-medium mt-0.5">
+                Aadhaar Check, PAN Check, Address Check, UAN / PF Number, and Overall Status are pending. If you want to activate, contact to Uptrix organization.
+              </p>
+            </div>
+          </div>
+          <a
+            href="mailto:support@uptrix.io?subject=Activate%20Background%20Verification%20(BGV)&body=Hi%20Uptrix%20Team%2C%0A%0AWe%20would%20like%20to%20activate%20Background%20Verification%20(BGV)%20for%20our%20organization.%20Please%20guide%20us.%0A%0AThank%20you."
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white text-xs font-bold rounded-xl shadow-xs transition-colors shrink-0 cursor-pointer self-start sm:self-auto"
+          >
+            <IconMail className="w-3.5 h-3.5" />
+            <span>Contact Uptrix Organization</span>
+          </a>
         </div>
 
         {/* Verification Records Table */}
-        <div className="overflow-x-auto border border-slate-200/80 rounded-2xl shadow-2xs overflow-hidden">
+        <div className="relative overflow-x-auto border border-slate-200/80 rounded-2xl shadow-2xs">
           <table className="w-full text-left text-xs text-slate-600">
             <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
                 <th className="px-5 py-3.5 min-w-[220px]">Employee</th>
-                <th className="px-4 py-3.5 min-w-[130px]">Aadhaar Check</th>
-                <th className="px-4 py-3.5 min-w-[130px]">PAN Check</th>
-                <th className="px-4 py-3.5 min-w-[150px]">Address Check</th>
-                <th className="px-4 py-3.5 min-w-[140px]">UAN / PF Number</th>
-                <th className="px-4 py-3.5 min-w-[130px] text-center">Overall Status</th>
-                <th className="px-4 py-3.5 min-w-[110px] text-right">Action</th>
+                <th className="px-4 py-3.5 min-w-[130px] filter blur-[2px] select-none opacity-80">Aadhaar Check</th>
+                <th className="px-4 py-3.5 min-w-[130px] filter blur-[2px] select-none opacity-80">PAN Check</th>
+                <th className="px-4 py-3.5 min-w-[150px] filter blur-[2px] select-none opacity-80">Address Check</th>
+                <th className="px-4 py-3.5 min-w-[140px] filter blur-[2px] select-none opacity-80">UAN / PF Number</th>
+                <th className="px-4 py-3.5 min-w-[130px] text-center filter blur-[2px] select-none opacity-80">Overall Status</th>
+                <th className="px-4 py-3.5 min-w-[110px] text-right filter blur-[2px] select-none opacity-80">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -815,8 +695,8 @@ export const BackgroundVerificationPage: React.FC = () => {
               ) : (
                 paginatedRecords.map((r) => (
                   <tr key={r.id} className="hover:bg-slate-50/70 transition-colors">
-                    {/* Employee Profile */}
-                    <td className="px-5 py-3.5">
+                    {/* Employee Profile - Clear & Unblurred */}
+                    <td className="px-5 py-3.5 bg-white">
                       <div className="flex items-center gap-3">
                         {r.profilePhoto ? (
                           <img
@@ -840,24 +720,24 @@ export const BackgroundVerificationPage: React.FC = () => {
                       </div>
                     </td>
 
-                    {/* Aadhaar */}
-                    <td className="px-4 py-3.5">
+                    {/* Aadhaar - Blurred */}
+                    <td className="px-4 py-3.5 filter blur-[4px] select-none pointer-events-none opacity-60">
                       <div className="space-y-0.5">
                         <span className="font-mono text-slate-800 font-semibold block">{r.aadhaar.maskedNumber}</span>
                         {getStatusBadge(r.aadhaar.status)}
                       </div>
                     </td>
 
-                    {/* PAN */}
-                    <td className="px-4 py-3.5">
+                    {/* PAN - Blurred */}
+                    <td className="px-4 py-3.5 filter blur-[4px] select-none pointer-events-none opacity-60">
                       <div className="space-y-0.5">
                         <span className="font-mono text-slate-800 font-semibold block">{r.pan.maskedNumber}</span>
                         {getStatusBadge(r.pan.status)}
                       </div>
                     </td>
 
-                    {/* Address */}
-                    <td className="px-4 py-3.5">
+                    {/* Address - Blurred */}
+                    <td className="px-4 py-3.5 filter blur-[4px] select-none pointer-events-none opacity-60">
                       <div className="space-y-0.5 max-w-[180px]">
                         <span className="text-[11px] text-slate-700 truncate block" title={r.address.currentAddress}>
                           {r.address.currentAddress || 'No address set'}
@@ -866,19 +746,21 @@ export const BackgroundVerificationPage: React.FC = () => {
                       </div>
                     </td>
 
-                    {/* UAN / PF */}
-                    <td className="px-4 py-3.5">
+                    {/* UAN / PF - Blurred */}
+                    <td className="px-4 py-3.5 filter blur-[4px] select-none pointer-events-none opacity-60">
                       <div className="space-y-0.5">
                         <span className="font-mono text-slate-800 font-semibold block">{r.uan.maskedUan}</span>
                         {getStatusBadge(r.uan.status)}
                       </div>
                     </td>
 
-                    {/* Overall Status */}
-                    <td className="px-4 py-3.5 text-center">{getStatusBadge(r.overallStatus)}</td>
+                    {/* Overall Status - Blurred */}
+                    <td className="px-4 py-3.5 text-center filter blur-[4px] select-none pointer-events-none opacity-60">
+                      {getStatusBadge(r.overallStatus)}
+                    </td>
 
-                    {/* Actions */}
-                    <td className="px-4 py-3.5 text-right">
+                    {/* Actions - Blurred */}
+                    <td className="px-4 py-3.5 text-right filter blur-[4px] select-none pointer-events-none opacity-60">
                       <button
                         type="button"
                         onClick={() => handleOpenDrawer(r)}
@@ -893,6 +775,32 @@ export const BackgroundVerificationPage: React.FC = () => {
               )}
             </tbody>
           </table>
+
+          {/* Centered Activation Notice over the Blurred Verification Columns */}
+          <div className="absolute inset-y-0 right-0 left-[230px] flex items-center justify-center p-4 z-20 pointer-events-none">
+            <div className="pointer-events-auto bg-white/95 backdrop-blur-md border border-indigo-200/90 shadow-2xl rounded-2xl p-6 text-center max-w-sm mx-auto space-y-3 animate-in fade-in zoom-in-95 duration-150">
+              <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 text-[#5E4BE2] flex items-center justify-center mx-auto shadow-2xs">
+                <IconLock className="w-5 h-5 stroke-[2]" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-900">
+                  Background Verification Inactive
+                </h4>
+                <p className="text-xs text-slate-600 font-medium mt-1 leading-relaxed">
+                  If you want to activate, contact to Uptrix organization.
+                </p>
+              </div>
+              <div className="pt-1">
+                <a
+                  href="mailto:support@uptrix.io?subject=Activate%20Background%20Verification%20(BGV)&body=Hi%20Uptrix%20Team%2C%0A%0AWe%20would%20like%20to%20activate%20Background%20Verification%20(BGV)%20for%20our%20organization.%20Please%20guide%20us.%0A%0AThank%20you."
+                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                >
+                  <IconMail className="w-4 h-4" />
+                  <span>Contact Uptrix Organization</span>
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Pagination */}
@@ -959,7 +867,18 @@ export const BackgroundVerificationPage: React.FC = () => {
               </div>
 
               {/* Drawer Scrollable Content */}
-              <div className="flex-1 overflow-y-auto p-5 space-y-6 text-xs">
+              <div className="flex-1 overflow-y-auto p-5 space-y-5 text-xs">
+                {/* Activation Notice Banner in Drawer */}
+                <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200 text-amber-800 flex items-start gap-3 shadow-2xs">
+                  <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200">
+                    <IconLock className="w-4 h-4 stroke-[2]" />
+                  </div>
+                  <div className="text-[11px] leading-relaxed">
+                    <strong className="font-bold block text-slate-900 text-xs">Background Verification Integration Inactive</strong>
+                    Statutory automated checks for this profile are pending. If you want to activate, contact to Uptrix organization.
+                  </div>
+                </div>
+
                 {/* 1. Aadhaar Card Section */}
                 <div className="p-4 rounded-2xl border border-slate-200/90 bg-slate-50/40 space-y-3">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">

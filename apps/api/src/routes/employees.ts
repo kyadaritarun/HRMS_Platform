@@ -73,6 +73,7 @@ router.get('/', roleGuard('COMPANY_ADMIN', 'HR', 'FINANCE', 'IT', 'EMPLOYEE'), a
           currency: true,
           bankDetails: true,
           department: { select: { id: true, name: true } },
+          managerId: true,
           manager: { select: { id: true, firstName: true, lastName: true } },
           createdAt: true,
         },

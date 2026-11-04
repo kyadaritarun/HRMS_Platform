@@ -54,3 +54,48 @@ export function getDaysInMonth(year: number, month: number): Date[] {
   }
   return dates;
 }
+
+/**
+ * Convert a local date string (YYYY-MM-DD or Date) and time string (HH:mm)
+ * in a given timezone (e.g., 'Asia/Kolkata') to a UTC Date object.
+ */
+export function parseZonedTimeToUTC(
+  dateInput: Date | string,
+  timeStr: string,
+  timeZone: string = 'Asia/Kolkata'
+): Date {
+  const dateStr = typeof dateInput === 'string' ? dateInput.split('T')[0] : toDateKey(dateInput);
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const [hours, minutes] = timeStr.split(':').map(Number);
+
+  // Guess UTC timestamp
+  const guessUtc = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
+
+  // Determine actual time in the target timezone using Intl.DateTimeFormat
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hour12: false,
+  });
+
+  const parts = formatter.formatToParts(guessUtc);
+  const getPart = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+
+  const tzYear = getPart('year');
+  const tzMonth = getPart('month');
+  const tzDay = getPart('day');
+  let tzHour = getPart('hour');
+  if (tzHour === 24) tzHour = 0;
+  const tzMinute = getPart('minute');
+
+  const tzAsUtc = Date.UTC(tzYear, tzMonth - 1, tzDay, tzHour, tzMinute, 0, 0);
+  const offsetMs = tzAsUtc - guessUtc.getTime();
+
+  return new Date(guessUtc.getTime() - offsetMs);
+}
+

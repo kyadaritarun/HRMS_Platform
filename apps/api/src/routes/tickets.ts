@@ -19,8 +19,8 @@ router.use(featureGuard('support_ticket_management'));
  * Resolves the designated department agent/handler based on ticket category:
  * - IT / HARDWARE -> User with role IT
  * - FINANCE -> User with role FINANCE
- * - HR / FACILITIES -> User with role HR
- * - Fallback -> COMPANY_ADMIN
+ * - HR / FACILITIES / HUMAN RESOURCES -> User with role HR
+ * - Fallback -> Active HR or COMPANY_ADMIN
  */
 async function resolveDepartmentAgent(
   companyId: number,
@@ -29,7 +29,14 @@ async function resolveDepartmentAgent(
   const norm = (category || 'GENERAL').toUpperCase();
 
   // 1. IT or HARDWARE -> Route to IT role
-  if (norm === 'IT' || norm === 'HARDWARE') {
+  if (
+    norm === 'IT' ||
+    norm === 'HARDWARE' ||
+    norm.includes('IT') ||
+    norm.includes('TECH') ||
+    norm.includes('HARDWARE') ||
+    norm.includes('SOFTWARE')
+  ) {
     const itUser = await prisma.user.findFirst({
       where: { companyId, role: 'IT', isActive: true },
       select: { id: true, departmentId: true },
@@ -38,7 +45,17 @@ async function resolveDepartmentAgent(
   }
 
   // 2. FINANCE (and Finance Sub-categories) -> Route to FINANCE role
-  if (norm.startsWith('FINANCE') || norm === 'SALARY' || norm === 'TAX' || norm === 'PAYROLL') {
+  if (
+    norm.startsWith('FINANCE') ||
+    norm.includes('FINANCE') ||
+    norm === 'SALARY' ||
+    norm === 'TAX' ||
+    norm === 'PAYROLL' ||
+    norm.includes('CLAIM') ||
+    norm.includes('EXPENSE') ||
+    norm.includes('BANK') ||
+    norm.includes('PF')
+  ) {
     const finUser = await prisma.user.findFirst({
       where: { companyId, role: 'FINANCE', isActive: true },
       select: { id: true, departmentId: true },
@@ -46,8 +63,18 @@ async function resolveDepartmentAgent(
     if (finUser) return { assigneeId: finUser.id, departmentId: finUser.departmentId };
   }
 
-  // 3. HR or FACILITIES -> Route to HR role
-  if (norm === 'HR' || norm === 'FACILITIES') {
+  // 3. HR or FACILITIES or HUMAN RESOURCES -> Route to HR role
+  if (
+    norm === 'HR' ||
+    norm === 'FACILITIES' ||
+    norm.includes('HR') ||
+    norm.includes('HUMAN') ||
+    norm.includes('PEOPLE') ||
+    norm.includes('FACILITIES') ||
+    norm.includes('LEAVE') ||
+    norm.includes('ATTENDANCE') ||
+    norm === 'GENERAL'
+  ) {
     const hrUser = await prisma.user.findFirst({
       where: { companyId, role: 'HR', isActive: true },
       select: { id: true, departmentId: true },
@@ -55,16 +82,16 @@ async function resolveDepartmentAgent(
     if (hrUser) return { assigneeId: hrUser.id, departmentId: hrUser.departmentId };
   }
 
-  // 4. Fallback -> Company Admin or active HR
-  const adminOrHr = await prisma.user.findFirst({
-    where: { companyId, role: { in: ['COMPANY_ADMIN', 'HR'] }, isActive: true },
+  // 4. Fallback -> Active HR or Company Admin
+  const hrOrAdmin = await prisma.user.findFirst({
+    where: { companyId, role: { in: ['HR', 'COMPANY_ADMIN'] }, isActive: true },
     select: { id: true, departmentId: true },
-    orderBy: { role: 'asc' }, // COMPANY_ADMIN first
+    orderBy: { role: 'desc' }, // HR first
   });
 
   return {
-    assigneeId: adminOrHr?.id || null,
-    departmentId: adminOrHr?.departmentId || null,
+    assigneeId: hrOrAdmin?.id || null,
+    departmentId: hrOrAdmin?.departmentId || null,
   };
 }
 
@@ -111,19 +138,36 @@ router.get('/', async (req, res, next) => {
       } else if (userRole === 'IT') {
         where.OR = [
           { assigneeId: userId },
-          { category: { in: ['IT', 'HARDWARE'] } },
+          { category: { in: ['IT', 'HARDWARE', 'SOFTWARE', 'NETWORK', 'INFRASTRUCTURE', 'EQUIPMENT'] } },
+          { category: { startsWith: 'IT' } },
+          { category: { contains: 'IT', mode: 'insensitive' } },
+          { department: { name: { contains: 'IT', mode: 'insensitive' } } },
+          { department: { name: { contains: 'Tech', mode: 'insensitive' } } },
+          { assignee: { role: 'IT' } },
         ];
       } else if (userRole === 'FINANCE') {
         where.OR = [
           { assigneeId: userId },
           { category: 'FINANCE' },
           { category: { startsWith: 'FINANCE' } },
-          { category: { in: ['SALARY', 'TAX', 'PAYROLL'] } },
+          { category: { in: ['SALARY', 'TAX', 'PAYROLL', 'CLAIM', 'EXPENSE', 'BANK', 'PF'] } },
+          { category: { contains: 'FINANCE', mode: 'insensitive' } },
+          { department: { name: { contains: 'Finance', mode: 'insensitive' } } },
+          { department: { name: { contains: 'Account', mode: 'insensitive' } } },
+          { department: { name: { contains: 'Payroll', mode: 'insensitive' } } },
+          { assignee: { role: 'FINANCE' } },
         ];
       } else if (userRole === 'HR') {
         where.OR = [
           { assigneeId: userId },
-          { category: { in: ['HR', 'FACILITIES', 'GENERAL'] } },
+          { category: { in: ['HR', 'HUMAN RESOURCES', 'HUMAN_RESOURCES', 'FACILITIES', 'GENERAL'] } },
+          { category: { contains: 'HR', mode: 'insensitive' } },
+          { category: { contains: 'HUMAN', mode: 'insensitive' } },
+          { category: { contains: 'FACILITIES', mode: 'insensitive' } },
+          { department: { name: { contains: 'HR', mode: 'insensitive' } } },
+          { department: { name: { contains: 'Human', mode: 'insensitive' } } },
+          { department: { name: { contains: 'People', mode: 'insensitive' } } },
+          { assignee: { role: 'HR' } },
         ];
       } else {
         // For managers / regular employees
@@ -244,8 +288,15 @@ router.get('/:id', async (req, res, next) => {
     }
 
     const isAdminOrHr = ['COMPANY_ADMIN', 'HR', 'PRODUCT_SUPER_ADMIN'].includes(userRole);
-    const isItAgent = userRole === 'IT' && ['IT', 'HARDWARE'].includes(ticket.category);
-    const isFinanceAgent = userRole === 'FINANCE' && (ticket.category.startsWith('FINANCE') || ['FINANCE', 'SALARY', 'TAX', 'PAYROLL'].includes(ticket.category));
+    const isItAgent =
+      userRole === 'IT' &&
+      (['IT', 'HARDWARE', 'SOFTWARE', 'NETWORK', 'INFRASTRUCTURE', 'EQUIPMENT'].includes(ticket.category) ||
+        ticket.category.includes('IT'));
+    const isFinanceAgent =
+      userRole === 'FINANCE' &&
+      (ticket.category.startsWith('FINANCE') ||
+        ['FINANCE', 'SALARY', 'TAX', 'PAYROLL', 'CLAIM', 'EXPENSE', 'BANK', 'PF'].includes(ticket.category) ||
+        ticket.category.includes('FINANCE'));
     const isAssignee = ticket.assignee?.id === userId;
     const isRequester = ticket.requester?.id === userId;
     const isRequesterManager = ticket.requester?.managerId === userId;
@@ -361,8 +412,15 @@ router.patch(['/:id', '/:id/status'], validateBody(UpdateTicketSchema), async (r
     }
 
     const isAdminOrHr = ['COMPANY_ADMIN', 'HR', 'PRODUCT_SUPER_ADMIN'].includes(userRole);
-    const isItAgent = userRole === 'IT' && ['IT', 'HARDWARE'].includes(ticket.category);
-    const isFinanceAgent = userRole === 'FINANCE' && (ticket.category.startsWith('FINANCE') || ['FINANCE', 'SALARY', 'TAX', 'PAYROLL'].includes(ticket.category));
+    const isItAgent =
+      userRole === 'IT' &&
+      (['IT', 'HARDWARE', 'SOFTWARE', 'NETWORK', 'INFRASTRUCTURE', 'EQUIPMENT'].includes(ticket.category) ||
+        ticket.category.includes('IT'));
+    const isFinanceAgent =
+      userRole === 'FINANCE' &&
+      (ticket.category.startsWith('FINANCE') ||
+        ['FINANCE', 'SALARY', 'TAX', 'PAYROLL', 'CLAIM', 'EXPENSE', 'BANK', 'PF'].includes(ticket.category) ||
+        ticket.category.includes('FINANCE'));
     const isAssignee = ticket.assigneeId === userId;
     const isRequester = ticket.requesterId === userId;
     const isRequesterManager = ticket.requester?.managerId === userId;

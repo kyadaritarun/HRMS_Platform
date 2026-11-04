@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import api from '../../api/client';
@@ -61,26 +61,152 @@ interface Ticket {
   comments?: TicketComment[];
 }
 
+interface TicketCategoryOption {
+  value: string;
+  label: string;
+  subtitle: string;
+  icon: string;
+  group: 'IT & Infrastructure' | 'Finance & Payroll' | 'HR & Facilities';
+  badgeColor: string;
+}
+
+const TICKET_CATEGORIES: TicketCategoryOption[] = [
+  // IT & Infrastructure
+  {
+    value: 'IT',
+    label: 'IT Support',
+    subtitle: 'Software, accounts, email, VPN, credentials',
+    icon: '💻',
+    group: 'IT & Infrastructure',
+    badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
+  },
+  {
+    value: 'HARDWARE',
+    label: 'Hardware & Devices',
+    subtitle: 'Laptop, monitors, accessories, peripherals',
+    icon: '🖥️',
+    group: 'IT & Infrastructure',
+    badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
+  },
+  // Finance & Payroll
+  {
+    value: 'FINANCE_SALARY',
+    label: 'Salary & Payslip Discrepancy',
+    subtitle: 'Payslip corrections, salary delayed, deductions',
+    icon: '💵',
+    group: 'Finance & Payroll',
+    badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  },
+  {
+    value: 'FINANCE_CLAIM',
+    label: 'Expense Claims & Reimbursements',
+    subtitle: 'Out-of-pocket expenses, travel allowances, payout status',
+    icon: '💳',
+    group: 'Finance & Payroll',
+    badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  },
+  {
+    value: 'FINANCE_TAX',
+    label: 'Tax Declarations & Form 16',
+    subtitle: 'TDS calculations, Form 16, tax regime, investment proofs',
+    icon: '📑',
+    group: 'Finance & Payroll',
+    badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  },
+  {
+    value: 'FINANCE_BANK',
+    label: 'Bank Details & Payout Update',
+    subtitle: 'Account number change, IFSC updates, direct deposit',
+    icon: '🏦',
+    group: 'Finance & Payroll',
+    badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  },
+  {
+    value: 'FINANCE_PF',
+    label: 'Provident Fund (PF) & Gratuity',
+    subtitle: 'UAN updates, EPF transfer, gratuity queries',
+    icon: '🛡️',
+    group: 'Finance & Payroll',
+    badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  },
+  // HR & Facilities
+  {
+    value: 'HR',
+    label: 'Human Resources',
+    subtitle: 'Leaves, HR policies, bonafide/employment letters',
+    icon: '📋',
+    group: 'HR & Facilities',
+    badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
+  },
+  {
+    value: 'FACILITIES',
+    label: 'Facilities & Office Management',
+    subtitle: 'Desk allocation, office badge/keycards, maintenance',
+    icon: '🏢',
+    group: 'HR & Facilities',
+    badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
+  },
+];
+
+const PRIORITY_OPTIONS = [
+  {
+    id: 'LOW',
+    label: 'Low',
+    color: 'border-slate-200 text-slate-700 hover:bg-slate-50',
+    active: 'bg-slate-100 border-slate-400 text-slate-900 font-bold shadow-2xs',
+    dot: 'bg-slate-400',
+  },
+  {
+    id: 'MEDIUM',
+    label: 'Medium',
+    color: 'border-blue-200 text-blue-700 hover:bg-blue-50/60',
+    active: 'bg-blue-50 border-blue-400 text-blue-900 font-bold shadow-2xs',
+    dot: 'bg-blue-500',
+  },
+  {
+    id: 'HIGH',
+    label: 'High',
+    color: 'border-amber-200 text-amber-700 hover:bg-amber-50/60',
+    active: 'bg-amber-50 border-amber-400 text-amber-900 font-bold shadow-2xs',
+    dot: 'bg-amber-500',
+  },
+  {
+    id: 'CRITICAL',
+    label: 'Critical',
+    color: 'border-rose-200 text-rose-700 hover:bg-rose-50/60',
+    active: 'bg-rose-50 border-rose-400 text-rose-900 font-bold shadow-2xs',
+    dot: 'bg-rose-500',
+  },
+];
+
 export const TicketsPage: React.FC = () => {
   const { user } = useAuth();
   const location = useLocation();
   const isManager = Boolean(user?.isManager || (user as any)?._count?.reports > 0);
+  const isCompanyAdmin = user?.role === 'COMPANY_ADMIN' || user?.role === 'PRODUCT_SUPER_ADMIN';
   const isAdminOrHr = user?.role === 'COMPANY_ADMIN' || user?.role === 'HR';
   const isItOrFinance = user?.role === 'IT' || user?.role === 'FINANCE';
 
+  const isAssignedRoute = location.pathname.includes('/assigned');
+  const isCompanyManageRoute = location.pathname.includes('/manage');
+
   const getInitialScope = () => {
-    if (location.pathname.includes('/assigned')) return 'assigned';
-    if (location.pathname.includes('/manage')) return 'company';
-    if (isItOrFinance) return 'assigned';
+    if (isAssignedRoute) return 'assigned';
+    if (isCompanyManageRoute && isCompanyAdmin) return 'company';
     return 'mine';
   };
 
   const [scope, setScope] = useState<string>(getInitialScope);
 
   useEffect(() => {
-    if (location.pathname.includes('/assigned')) setScope('assigned');
-    else if (location.pathname.includes('/manage')) setScope('company');
-  }, [location.pathname]);
+    if (isAssignedRoute) {
+      setScope('assigned');
+    } else if (isCompanyManageRoute && isCompanyAdmin) {
+      setScope('company');
+    } else {
+      setScope('mine');
+    }
+  }, [location.pathname, isAssignedRoute, isCompanyManageRoute, isCompanyAdmin]);
 
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -113,10 +239,46 @@ export const TicketsPage: React.FC = () => {
   });
   const [isCreating, setIsCreating] = useState(false);
 
+  // Custom Category Dropdown State
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
+
+  const selectedCategoryObj = useMemo(() => {
+    return (
+      TICKET_CATEGORIES.find((c) => c.value === createForm.department) ||
+      TICKET_CATEGORIES[0]
+    );
+  }, [createForm.department]);
+
+  // Close category dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        categoryDropdownRef.current &&
+        !categoryDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsCategoryDropdownOpen(false);
+      }
+    };
+    if (isCategoryDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isCategoryDropdownOpen]);
+
   const fetchTickets = async () => {
     setIsLoading(true);
     try {
-      const res = await api.get('/tickets', { params: { scope } });
+      const activeScope = isAssignedRoute
+        ? isCompanyAdmin
+          ? scope
+          : 'assigned'
+        : isCompanyManageRoute && isCompanyAdmin
+        ? 'company'
+        : 'mine';
+      const res = await api.get('/tickets', { params: { scope: activeScope } });
       const fetchedTickets = res.data?.tickets || [];
       setTickets(fetchedTickets);
 
@@ -141,7 +303,7 @@ export const TicketsPage: React.FC = () => {
 
   useEffect(() => {
     fetchTickets();
-  }, [scope]);
+  }, [scope, isAssignedRoute, isCompanyManageRoute]);
 
   const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -189,7 +351,17 @@ export const TicketsPage: React.FC = () => {
     }
   };
 
-  const [employees, setEmployees] = useState<{ id: number; firstName: string; lastName: string; role: string; jobTitle?: string; email: string }[]>([]);
+  const [employees, setEmployees] = useState<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    role: string;
+    jobTitle?: string;
+    email: string;
+    department?: { id: number; name: string } | null;
+    managerId?: number | null;
+    manager?: { id: number; firstName: string; lastName: string } | null;
+  }[]>([]);
 
   useEffect(() => {
     if (isAdminOrHr || isItOrFinance || isManager) {
@@ -200,6 +372,123 @@ export const TicketsPage: React.FC = () => {
         .catch((e) => console.error('Failed to load employees for assignment:', e));
     }
   }, [isAdminOrHr, isItOrFinance, isManager]);
+
+  // Filters employees shown in "Assigned To" selector based on role & team context
+  const { assignableEmployees, assignedTeamLabel } = useMemo(() => {
+    if (!employees || employees.length === 0) {
+      return { assignableEmployees: [], assignedTeamLabel: '' };
+    }
+
+    const isHrMember = (emp: typeof employees[0]) => {
+      const dept = (emp.department?.name || '').toLowerCase();
+      const job = (emp.jobTitle || '').toLowerCase();
+      return (
+        emp.role === 'HR' ||
+        dept.includes('hr') ||
+        dept.includes('human') ||
+        dept.includes('people') ||
+        job.includes('hr') ||
+        job.includes('talent') ||
+        job.includes('recruiter') ||
+        job.includes('people')
+      );
+    };
+
+    const isFinanceMember = (emp: typeof employees[0]) => {
+      const dept = (emp.department?.name || '').toLowerCase();
+      const job = (emp.jobTitle || '').toLowerCase();
+      return (
+        emp.role === 'FINANCE' ||
+        dept.includes('finance') ||
+        dept.includes('account') ||
+        dept.includes('payroll') ||
+        job.includes('finance') ||
+        job.includes('account') ||
+        job.includes('payroll') ||
+        job.includes('tax')
+      );
+    };
+
+    const isItMember = (emp: typeof employees[0]) => {
+      const dept = (emp.department?.name || '').toLowerCase();
+      const job = (emp.jobTitle || '').toLowerCase();
+      return (
+        emp.role === 'IT' ||
+        dept.includes('it') ||
+        dept.includes('tech') ||
+        dept.includes('infrastructure') ||
+        dept.includes('hardware') ||
+        job.includes('it ') ||
+        job.includes('sysadmin') ||
+        job.includes('system') ||
+        job.includes('devops') ||
+        job.includes('developer') ||
+        job.includes('engineer')
+      );
+    };
+
+    const currentRole = user?.role;
+    const ticketCat = (selectedTicket?.category || '').toUpperCase();
+
+    let list: typeof employees = [];
+    let label = '';
+
+    if (currentRole === 'HR') {
+      list = employees.filter(isHrMember);
+      label = 'HR Team';
+    } else if (currentRole === 'FINANCE') {
+      list = employees.filter(isFinanceMember);
+      label = 'Finance Team';
+    } else if (currentRole === 'IT') {
+      list = employees.filter(isItMember);
+      label = 'IT Team';
+    } else if (user?.isManager && currentRole === 'EMPLOYEE') {
+      list = employees.filter(
+        (emp) => emp.managerId === user.id || emp.manager?.id === user.id || emp.id === user.id
+      );
+      label = 'Your Team';
+    } else if (currentRole === 'COMPANY_ADMIN') {
+      if (ticketCat === 'HR' || ticketCat.includes('HUMAN') || ticketCat.includes('FACILITIES')) {
+        list = employees.filter(isHrMember);
+        label = 'HR Team';
+      } else if (
+        ticketCat.startsWith('FINANCE') ||
+        ['SALARY', 'TAX', 'PAYROLL', 'CLAIM', 'EXPENSE', 'BANK', 'PF'].includes(ticketCat)
+      ) {
+        list = employees.filter(isFinanceMember);
+        label = 'Finance Team';
+      } else if (ticketCat === 'IT' || ticketCat === 'HARDWARE') {
+        list = employees.filter(isItMember);
+        label = 'IT Team';
+      } else {
+        list = employees;
+        label = 'All Staff';
+      }
+    } else {
+      list = employees;
+    }
+
+    // Safety fallback: if list is empty, ensure matching role users or current user are shown
+    if (list.length === 0) {
+      if (currentRole === 'HR') list = employees.filter((e) => e.role === 'HR');
+      else if (currentRole === 'FINANCE') list = employees.filter((e) => e.role === 'FINANCE');
+      else if (currentRole === 'IT') list = employees.filter((e) => e.role === 'IT');
+      else if (user?.isManager) list = employees.filter((e) => e.id === user?.id);
+    }
+
+    // Always preserve current assignee in list if one is set
+    if (selectedTicket?.assignee?.id) {
+      const alreadyHasAssignee = list.some((e) => e.id === selectedTicket.assignee?.id);
+      if (!alreadyHasAssignee) {
+        const foundAssignee = employees.find((e) => e.id === selectedTicket.assignee?.id);
+        if (foundAssignee) {
+          list = [foundAssignee, ...list];
+        }
+      }
+    }
+
+    return { assignableEmployees: list, assignedTeamLabel: label };
+  }, [employees, user, selectedTicket]);
 
   const handleAssigneeChange = async (newAssigneeId: number | null) => {
     if (!selectedTicket) return;
@@ -360,25 +649,27 @@ export const TicketsPage: React.FC = () => {
         <div>
           <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
             <IconHeadset className="w-5 h-5 text-indigo-600 shrink-0" />
-            <span>Tickets</span>
+            <span>{isAssignedRoute ? 'Assigned Tickets' : 'Tickets'}</span>
           </h1>
           <p className="text-xs text-slate-500 font-medium mt-0.5">
-            {scope === 'assigned'
-              ? 'View, reply to, and resolve support tickets submitted by your team members or assigned to you.'
-              : scope === 'company'
-              ? 'Manage organization-wide employee support requests, IT issues, and facility inquiries.'
+            {isAssignedRoute
+              ? isCompanyAdmin && scope === 'company'
+                ? 'Manage organization-wide employee support requests, IT issues, and facility inquiries.'
+                : 'View, reply to, and resolve support tickets assigned to you.'
               : 'Submit IT tickets, HR inquiries, facility requests, and track threaded discussions.'}
           </p>
         </div>
 
-        {/* Right CTA Button */}
-        <button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer shrink-0"
-        >
-          <IconPlus className="w-4 h-4" />
-          <span>Create Ticket</span>
-        </button>
+        {/* Right CTA Button - only show Create Ticket in Self Service, not in Assigned Tickets */}
+        {!isAssignedRoute && (
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer shrink-0"
+          >
+            <IconPlus className="w-4 h-4" />
+            <span>Create Ticket</span>
+          </button>
+        )}
       </div>
 
       {/* ===================== ROW 2: SEARCH & STATUS FILTER TOOLBAR ===================== */}
@@ -411,8 +702,8 @@ export const TicketsPage: React.FC = () => {
 
         {/* Right Controls: Scope Dropdown, Status Filter Dropdown & Ticket Count */}
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Scope Dropdown */}
-          {(isManager || isAdminOrHr || isItOrFinance) && (
+          {/* Scope Dropdown: Only shown on Assigned / Manage routes for Company Admin */}
+          {(isAssignedRoute || isCompanyManageRoute) && isCompanyAdmin && (
             <div className="relative shrink-0">
               <select
                 value={scope}
@@ -422,17 +713,8 @@ export const TicketsPage: React.FC = () => {
                 }}
                 className="appearance-none pl-8 pr-8 py-2.5 text-xs font-bold bg-white border border-slate-200/80 rounded-xl text-slate-700 shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all cursor-pointer"
               >
-                <option value="mine">My Tickets</option>
-                <option value="assigned">
-                  {isItOrFinance
-                    ? user?.role === 'IT'
-                      ? 'IT Queue'
-                      : 'Finance Queue'
-                    : isManager
-                    ? 'Team Tickets'
-                    : 'Assigned to Me'}
-                </option>
-                {isAdminOrHr && <option value="company">All Company</option>}
+                <option value="assigned">Assigned to Me</option>
+                <option value="company">All Company</option>
               </select>
               <IconBuildingSkyscraper className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -483,7 +765,9 @@ export const TicketsPage: React.FC = () => {
             <p className="text-xs text-slate-500 font-medium mt-1">
               {search || statusFilter !== 'ALL'
                 ? 'Try clearing your search query or status filter.'
-                : 'Submit a ticket using the "Create Ticket" button above.'}
+                : isAssignedRoute
+                  ? 'No tickets are currently assigned to you.'
+                  : 'Submit a ticket using the "Create Ticket" button above.'}
             </p>
             {(search || statusFilter !== 'ALL') && (
               <button
@@ -650,8 +934,8 @@ export const TicketsPage: React.FC = () => {
           : '';
         const canManageTicket =
           isAdminOrHr ||
-          (user?.role === 'IT' && ['IT', 'HARDWARE'].includes((t.category || '').toUpperCase())) ||
-          (user?.role === 'FINANCE' && (t.category || '').toUpperCase() === 'FINANCE') ||
+          (user?.role === 'IT' && ['IT', 'HARDWARE', 'SOFTWARE', 'NETWORK'].some((c) => (t.category || '').toUpperCase().includes(c))) ||
+          (user?.role === 'FINANCE' && ((t.category || '').toUpperCase().startsWith('FINANCE') || ['SALARY', 'TAX', 'PAYROLL', 'CLAIM', 'EXPENSE', 'BANK', 'PF'].includes((t.category || '').toUpperCase()))) ||
           t.assignee?.id === user?.id ||
           isManager;
         const deptLabel = (
@@ -808,7 +1092,7 @@ export const TicketsPage: React.FC = () => {
                     {/* Assignee Card */}
                     <div className="p-2.5 bg-slate-50/90 rounded-xl border border-slate-200/60 min-w-0">
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                        Assigned To
+                        Assigned To {assignedTeamLabel ? `(${assignedTeamLabel})` : ''}
                       </span>
                       <div className="flex items-center gap-2 min-w-0">
                         <div className={`w-7 h-7 rounded-lg ${getAvatarColor(assigneeName || 'Unassigned')} font-bold text-xs flex items-center justify-center shrink-0`}>
@@ -823,9 +1107,9 @@ export const TicketsPage: React.FC = () => {
                               title="Reassign ticket"
                             >
                               <option value="">Unassigned</option>
-                              {employees.map((emp) => (
+                              {assignableEmployees.map((emp) => (
                                 <option key={emp.id} value={emp.id}>
-                                  {emp.firstName} {emp.lastName}
+                                  {emp.firstName} {emp.lastName} {emp.jobTitle ? `— ${emp.jobTitle}` : emp.role ? `(${emp.role})` : ''}
                                 </option>
                               ))}
                             </select>
@@ -993,49 +1277,121 @@ export const TicketsPage: React.FC = () => {
                       />
                     </div>
 
-                    {/* Department Category & Priority Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
-                          Department / Category <span className="text-rose-500">*</span>
-                        </label>
-                        <select
-                          value={createForm.department}
-                          onChange={(e) => setCreateForm({ ...createForm, department: e.target.value })}
-                          className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all text-slate-700 cursor-pointer"
-                        >
-                          <optgroup label="💻 IT & Infrastructure">
-                            <option value="IT">💻 IT Support (Software, Accounts, Email)</option>
-                            <option value="HARDWARE">🖥️ Hardware (Laptop, Monitor, Devices)</option>
-                          </optgroup>
-                          <optgroup label="💰 Finance & Payroll">
-                            <option value="FINANCE_SALARY">💵 Salary & Payslip Discrepancy</option>
-                            <option value="FINANCE_CLAIM">💳 Expense Claims & Reimbursements</option>
-                            <option value="FINANCE_TAX">📑 Tax Declarations & Form 16</option>
-                            <option value="FINANCE_BANK">🏦 Bank Details & Payout Update</option>
-                            <option value="FINANCE_PF">🛡️ Provident Fund (PF) & Gratuity</option>
-                          </optgroup>
-                          <optgroup label="📋 HR & Facilities">
-                            <option value="HR">📋 Human Resources (Leaves, Policies, Letters)</option>
-                            <option value="FACILITIES">🏢 Facilities & Office Management</option>
-                          </optgroup>
-                        </select>
-                      </div>
+                    {/* Department / Category Custom Dropdown - Full Width */}
+                    <div className="relative" ref={categoryDropdownRef}>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Department / Category <span className="text-rose-500">*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setIsCategoryDropdownOpen((prev) => !prev)}
+                        className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200/80 rounded-xl hover:bg-white hover:border-[#5E4BE2] focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all text-slate-800 flex items-center justify-between gap-3 text-left cursor-pointer shadow-2xs"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="text-base shrink-0">{selectedCategoryObj.icon}</span>
+                          <div className="min-w-0">
+                            <div className="font-bold text-slate-900 truncate">
+                              {selectedCategoryObj.label}
+                            </div>
+                            <div className="text-[11px] text-slate-500 font-normal truncate">
+                              {selectedCategoryObj.subtitle}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${selectedCategoryObj.badgeColor}`}
+                          >
+                            {selectedCategoryObj.group}
+                          </span>
+                          <IconChevronDown
+                            className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${
+                              isCategoryDropdownOpen ? 'rotate-180 text-[#5E4BE2]' : ''
+                            }`}
+                          />
+                        </div>
+                      </button>
 
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
-                          Priority
-                        </label>
-                        <select
-                          value={createForm.priority}
-                          onChange={(e) => setCreateForm({ ...createForm, priority: e.target.value })}
-                          className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all text-slate-700 cursor-pointer"
-                        >
-                          <option value="LOW">Low</option>
-                          <option value="MEDIUM">Medium</option>
-                          <option value="HIGH">High</option>
-                          <option value="CRITICAL">Critical</option>
-                        </select>
+                      {/* Custom Dropdown Popover */}
+                      {isCategoryDropdownOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 py-2 max-h-80 overflow-y-auto animate-in fade-in zoom-in-95 duration-150 divide-y divide-slate-100">
+                          {(['IT & Infrastructure', 'Finance & Payroll', 'HR & Facilities'] as const).map(
+                            (groupName) => {
+                              const groupItems = TICKET_CATEGORIES.filter((c) => c.group === groupName);
+                              return (
+                                <div key={groupName} className="py-1.5 first:pt-0 last:pb-0">
+                                  <div className="px-3.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                    <span>{groupName}</span>
+                                  </div>
+                                  <div className="space-y-0.5 px-1.5">
+                                    {groupItems.map((cat) => {
+                                      const isSelected = createForm.department === cat.value;
+                                      return (
+                                        <button
+                                          key={cat.value}
+                                          type="button"
+                                          onClick={() => {
+                                            setCreateForm({ ...createForm, department: cat.value });
+                                            setIsCategoryDropdownOpen(false);
+                                          }}
+                                          className={`w-full px-3 py-2 rounded-xl text-left flex items-center justify-between gap-3 transition-colors cursor-pointer ${
+                                            isSelected
+                                              ? 'bg-indigo-50/80 text-[#5E4BE2]'
+                                              : 'hover:bg-slate-50 text-slate-800'
+                                          }`}
+                                        >
+                                          <div className="flex items-center gap-2.5 min-w-0">
+                                            <span className="text-base shrink-0">{cat.icon}</span>
+                                            <div className="min-w-0">
+                                              <div
+                                                className={`text-xs font-bold leading-tight ${
+                                                  isSelected ? 'text-[#5E4BE2]' : 'text-slate-900'
+                                                }`}
+                                              >
+                                                {cat.label}
+                                              </div>
+                                              <div className="text-[11px] text-slate-500 font-normal leading-tight truncate mt-0.5">
+                                                {cat.subtitle}
+                                              </div>
+                                            </div>
+                                          </div>
+                                          {isSelected && (
+                                            <IconCheck className="w-4 h-4 text-[#5E4BE2] shrink-0" />
+                                          )}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            }
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Priority Selector */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Priority Level
+                      </label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {PRIORITY_OPTIONS.map((p) => {
+                          const isSelected = createForm.priority === p.id;
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => setCreateForm({ ...createForm, priority: p.id as any })}
+                              className={`py-2 px-3 rounded-xl border text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                                isSelected ? p.active : `bg-white ${p.color}`
+                              }`}
+                            >
+                              <span className={`w-2 h-2 rounded-full shrink-0 ${p.dot}`} />
+                              <span className="font-semibold">{p.label}</span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 

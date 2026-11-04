@@ -17,14 +17,11 @@ import {
   IconClock,
   IconCreditCard,
   IconSparkles,
-  IconRobot,
   IconAlertTriangle,
   IconSettings,
   IconFileText,
-  IconGift,
 } from '@tabler/icons-react';
 import { SettingsModal } from '../SettingsModal';
-import { ReferLeadModal } from '../referrals/ReferLeadModal';
 import { TermsAndConditionsModal, PrivacyPolicyModal } from '../LegalModals';
 import { getAvatarColor } from '../../utils/avatarColors';
 
@@ -43,7 +40,6 @@ export const AppLayout: React.FC = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
-  const [referModalOpen, setReferModalOpen] = useState(false);
 
   // Live notifications
   interface NotificationItem {
@@ -295,28 +291,50 @@ export const AppLayout: React.FC = () => {
 
           {/* Right: AI Assistant, Notifications, Settings & User Profile */}
           <div className="flex items-center gap-2 sm:gap-2.5">
-            {/* Quick Refer a Lead Button */}
-            {user?.role !== 'PRODUCT_SUPER_ADMIN' && (
-              <button
-                type="button"
-                onClick={() => setReferModalOpen(true)}
-                title="Refer a Lead & Earn ₹3,000"
-                className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 border border-amber-200/90 text-amber-900 text-xs font-bold transition-all shadow-2xs hover:shadow-xs group cursor-pointer"
-              >
-                <IconGift className="w-3.5 h-3.5 text-amber-600 group-hover:scale-110 transition-transform" />
-                <span>Refer a Lead</span>
-                <span className="bg-amber-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">₹3K</span>
-              </button>
-            )}
-
-            {/* AI Assistant Robot Icon */}
+            {/* AI Assistant Button */}
             <button
               type="button"
               onClick={() => navigate('/assistant')}
               title="AI Assistant"
-              className="w-9 h-9 rounded-xl hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
+              className={`relative group h-9 px-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                isAssistantActive
+                  ? 'bg-indigo-50 text-indigo-700'
+                  : 'hover:bg-slate-100 text-slate-700'
+              }`}
             >
-              <IconRobot className="w-6 h-6 stroke-[1.9] text-[#5E4BE2] hover:text-[#4D3BC9] animate-ai-float" />
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-5 h-5 shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6 animate-ai-sparkle"
+              >
+                <defs>
+                  <linearGradient id="aiSparkleGrad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#5E4BE2" />
+                    <stop offset="50%" stopColor="#8B5CF6" />
+                    <stop offset="100%" stopColor="#EC4899" />
+                  </linearGradient>
+                  <linearGradient id="aiSmallGrad" x1="14" y1="12" x2="22" y2="20" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#8B5CF6" />
+                    <stop offset="100%" stopColor="#F43F5E" />
+                  </linearGradient>
+                </defs>
+                {/* Primary 4-pointed AI sparkle star */}
+                <path
+                  d="M10 2C10 6.41828 6.41828 10 2 10C6.41828 10 10 13.5817 10 18C10 13.5817 13.5817 10 18 10C13.5817 10 10 6.41828 10 2Z"
+                  fill="url(#aiSparkleGrad)"
+                />
+                {/* Secondary companion AI sparkle star */}
+                <path
+                  d="M18 12C18 14.2091 16.2091 16 14 16C16.2091 16 18 17.7909 18 20C18 17.7909 19.7909 16 22 16C19.7909 16 18 14.2091 18 12Z"
+                  fill="url(#aiSmallGrad)"
+                />
+                {/* Accent micro-sparkle */}
+                <circle cx="18" cy="4.5" r="1.5" fill="#EC4899" />
+              </svg>
+              <span className="text-xs font-black tracking-wider bg-gradient-to-r from-[#5E4BE2] via-[#7C3AED] to-[#EC4899] bg-clip-text text-transparent">
+                AI
+              </span>
             </button>
 
             {/* Notification Bell */}
@@ -552,9 +570,6 @@ export const AppLayout: React.FC = () => {
 
       {/* Privacy Policy Modal */}
       <PrivacyPolicyModal isOpen={privacyOpen} onClose={() => setPrivacyOpen(false)} />
-
-      {/* Refer a Lead Quick Modal */}
-      <ReferLeadModal isOpen={referModalOpen} onClose={() => setReferModalOpen(false)} />
     </div>
   );
 };

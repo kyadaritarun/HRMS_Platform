@@ -130,9 +130,13 @@ export async function generateAttendanceExcel(
   companyId: number,
   fromDate?: Date,
   toDate?: Date,
-  format: 'xlsx' | 'csv' = 'xlsx'
+  format: 'xlsx' | 'csv' = 'xlsx',
+  managerId?: number
 ): Promise<Buffer> {
   const where: any = { companyId };
+  if (managerId) {
+    where.user = { managerId };
+  }
   if (fromDate || toDate) {
     where.checkIn = {};
     if (fromDate) where.checkIn.gte = fromDate;
