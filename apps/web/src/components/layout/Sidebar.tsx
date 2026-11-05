@@ -212,7 +212,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
             // Support & AI Assistant
             { label: 'Tickets', path: '/tickets', icon: IconHelpCircle, feature: 'support_ticket_management' },
             { label: 'AI Assistant', path: '/assistant', icon: IconSparkles, feature: 'ai_assistance' },
-            { label: 'Refer & Earn', path: '/referrals', icon: IconGift },
+            { label: 'Employee Referrals', path: '/referrals', icon: IconBriefcase },
           ],
         },
         {
@@ -335,7 +335,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           // Support & AI Assistant
           { label: 'Tickets', path: '/tickets', icon: IconHelpCircle, feature: 'support_ticket_management' },
           { label: 'AI Assistant', path: '/assistant', icon: IconSparkles, feature: 'ai_assistance' },
-          { label: 'Refer & Earn', path: '/referrals', icon: IconGift },
+          { label: 'Employee Referrals', path: '/referrals', icon: IconBriefcase },
         ],
       },
       ...(isManagerUser

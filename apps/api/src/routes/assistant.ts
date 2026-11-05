@@ -4,6 +4,15 @@ import { authMiddleware } from '../middlewares/auth.js';
 import { tenantMatchMiddleware } from '../middlewares/tenantMatch.js';
 import { policyComplianceMiddleware } from '../middlewares/policyCompliance.js';
 import { AppError } from '../middlewares/errorHandler.js';
+import { parseAgentIntent, executeAgentTool } from '../services/assistantAgent.js';
+import { executeHybridRag } from '../services/hybridRag.js';
+import {
+  listSessions,
+  getSession,
+  createSession,
+  appendMessage,
+  deleteSession,
+} from '../services/sessionStore.js';
 
 const router = Router();
 
@@ -35,6 +44,61 @@ function formatDate(date: Date | string | null | undefined): string {
   });
 }
 
+// ----------------------------------------------------------------------------
+// PILLAR 3: SESSION MANAGEMENT & THREAD ENDPOINTS
+// ----------------------------------------------------------------------------
+
+// GET /assistant/sessions - Lists user's conversation threads
+router.get('/sessions', async (req, res, next) => {
+  try {
+    const userId = req.user!.id;
+    const companyId = req.user!.companyId!;
+    const sessions = listSessions(userId, companyId);
+    return res.json({ sessions });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /assistant/sessions - Creates a new clean thread
+router.post('/sessions', async (req, res, next) => {
+  try {
+    const userId = req.user!.id;
+    const companyId = req.user!.companyId!;
+    const session = createSession(userId, companyId, req.body?.title);
+    return res.json({ session });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /assistant/sessions/:id - Retrieves thread messages and active context
+router.get('/sessions/:id', async (req, res, next) => {
+  try {
+    const userId = req.user!.id;
+    const companyId = req.user!.companyId!;
+    const session = getSession(req.params.id, userId, companyId);
+    if (!session) {
+      return next(new AppError(404, 'SESSION_NOT_FOUND', 'Conversation thread not found'));
+    }
+    return res.json({ session });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /assistant/sessions/:id - Deletes a thread
+router.delete('/sessions/:id', async (req, res, next) => {
+  try {
+    const userId = req.user!.id;
+    const companyId = req.user!.companyId!;
+    const ok = deleteSession(req.params.id, userId, companyId);
+    return res.json({ success: ok });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /assistant/chat
 router.post('/chat', async (req, res, next) => {
   try {
@@ -51,6 +115,56 @@ router.post('/chat', async (req, res, next) => {
     const isCompanyAdmin = userRole === 'COMPANY_ADMIN' || userRole === 'PRODUCT_SUPER_ADMIN';
     const isHr = userRole === 'HR';
     const isEmployee = userRole === 'EMPLOYEE';
+
+    // ------------------------------------------------------------------------
+    // PILLAR 3: RESOLVE OR INITIALIZE MULTI-TURN SESSION THREAD
+    // ------------------------------------------------------------------------
+    const sessionId = req.body.sessionId;
+    let currentSession = sessionId ? getSession(sessionId, userId, companyId) : null;
+    if (!currentSession) {
+      currentSession = createSession(userId, companyId);
+    }
+
+    appendMessage(currentSession.id, userId, companyId, {
+      id: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      sender: 'user',
+      text: message,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      createdAt: Date.now(),
+    });
+
+    const sendAssistantResponse = (data: {
+      reply: string;
+      citations?: string[];
+      action?: any;
+      widget?: any;
+      contextUpdate?: any;
+    }) => {
+      appendMessage(
+        currentSession!.id,
+        userId,
+        companyId,
+        {
+          id: `asst_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          sender: 'assistant',
+          text: data.reply,
+          action: data.action || null,
+          widget: data.widget || null,
+          citations: data.citations || [],
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          createdAt: Date.now(),
+        },
+        data.contextUpdate
+      );
+
+      return res.json({
+        reply: data.reply,
+        citations: data.citations || [],
+        action: data.action || null,
+        widget: data.widget || null,
+        sessionId: currentSession!.id,
+      });
+    };
 
     // ------------------------------------------------------------------------
     // 1. STRICT TENANT LOOKUP & MULTI-TENANT ISOLATION
@@ -78,9 +192,32 @@ router.post('/chat', async (req, res, next) => {
       'external company',
     ];
     if (externalTenantTriggers.some((t) => query.includes(t))) {
-      return res.json({
+      return sendAssistantResponse({
         reply: `🔒 **Access Restricted:** We do not have access to other organizations. Under our enterprise multi-tenant security architecture, all queries and data are strictly isolated exclusively to your company workspace (**${company.name}**).`,
         citations: ['Multi-Tenant Data Isolation & Workspace Governance'],
+      });
+    }
+
+    // ------------------------------------------------------------------------
+    // 1.5 AUTONOMOUS AGENT ACTION PARSER (WITH MULTI-TURN MEMORY)
+    // ------------------------------------------------------------------------
+    const agentAction = await parseAgentIntent({
+      userId,
+      companyId,
+      query: message,
+      sessionContext: currentSession.context,
+      previousMessages: currentSession.messages,
+    });
+
+    if (agentAction.isAction) {
+      return sendAssistantResponse({
+        reply: agentAction.reply || '',
+        citations: agentAction.citations || ['Autonomous Action Engine (Multi-Turn Session Memory)'],
+        action: agentAction.action || null,
+        contextUpdate: {
+          pendingAction: agentAction.action || null,
+          lastTopic: 'ACTION_TOOL',
+        },
       });
     }
 
@@ -176,7 +313,7 @@ router.post('/chat', async (req, res, next) => {
       // Policies
       prisma.policy.findMany({
         where: { companyId, isActive: true },
-        select: { title: true, extractedText: true, policyType: true, version: true },
+        select: { id: true, title: true, body: true, extractedText: true, policyType: true, version: true, slug: true },
       }),
       // Holidays
       prisma.holiday.findMany({
@@ -302,7 +439,11 @@ router.post('/chat', async (req, res, next) => {
         reply += `• **Joining Date:** ${formatDate(currentUser.joiningDate)}\n`;
       }
       reply += `\nYou can review or update personal credentials under **Account > My Profile**.`;
-      return res.json({ reply: reply.trim(), citations });
+      return sendAssistantResponse({
+        reply: reply.trim(),
+        citations,
+        contextUpdate: { lastTopic: 'PROFILE' },
+      });
     }
 
     // ------------------------------------------------------------------------
@@ -323,8 +464,12 @@ router.post('/chat', async (req, res, next) => {
       reply += `1. Navigate to **Self Service > Tickets** on your sidebar.\n`;
       reply += `2. Click **+ Raise Ticket** and select the category (Payroll, Leave Dispute, Asset, or General Inquiry).\n`;
       reply += `3. The HR Operations desk will review and resolve your request with guaranteed SLA tracking.\n\n`;
-      reply += `For urgent workplace issues, you can also speak directly with your reporting manager.`;
-      return res.json({ reply: reply.trim(), citations });
+      reply += `For urgent workplace issues, you can also speak directly with your reporting manager or ask me: *"Raise an IT ticket for broken laptop"*.`;
+      return sendAssistantResponse({
+        reply: reply.trim(),
+        citations,
+        contextUpdate: { lastTopic: 'CONTACT_HR' },
+      });
     }
 
     // ------------------------------------------------------------------------
@@ -349,8 +494,38 @@ router.post('/chat', async (req, res, next) => {
         citations.push(leavePolicy.title);
         reply += `📌 **Policy Guideline (${leavePolicy.title}):**\n${leavePolicy.extractedText || 'Leaves should be requested in advance and approved by your supervisor.'}\n\n`;
       }
-      reply += `To apply for time-off:\n1. Open **Self Service > Leaves**.\n2. Select your leave category, dates, and reason.\n3. Submit for managerial approval.`;
-      return res.json({ reply: reply.trim(), citations });
+      reply += `You can quickly apply for leave using the interactive launchers below, or simply type: *"Apply Casual Leave for tomorrow due to personal work"*.`;
+
+      const leaveQuotaItems = (currentUser?.leaveBalances || []).map((lb) => {
+        const balance = Number(lb.balance || 0);
+        const total = Math.max(balance, (lb.leaveType as any)?.annualAllowance || 12);
+        const used = Math.max(0, total - balance);
+        const percent = Math.min(100, Math.round((balance / total) * 100));
+        return {
+          id: lb.leaveTypeId,
+          name: lb.leaveType.name,
+          code: lb.leaveType.code,
+          color: (lb.leaveType as any)?.color || '#5E4BE2',
+          balance,
+          total,
+          used,
+          percent,
+        };
+      });
+
+      return sendAssistantResponse({
+        reply: reply.trim(),
+        citations,
+        widget: {
+          type: 'LEAVE_QUOTA_BARS',
+          title: 'Leave Balances & Quota Overview',
+          items: leaveQuotaItems,
+        },
+        contextUpdate: {
+          lastTopic: 'LEAVE_QUOTA',
+          mentionedLeaveTypes: leaveQuotaItems.map((i) => i.name),
+        },
+      });
     }
 
     // ------------------------------------------------------------------------
@@ -365,21 +540,60 @@ router.post('/chat', async (req, res, next) => {
       query.includes('punch status') ||
       query.includes('working hours today') ||
       query.includes('how to punch') ||
-      query.includes('how to check in')
+      query.includes('how to check in') ||
+      query.includes('shift timing')
     ) {
       citations.push('Daily Time & Attendance Log');
+
+      let durationText = '0h 0m';
+      const inTime = todaySession ? new Date(todaySession.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null;
+      const outTime = todaySession?.checkOut ? new Date(todaySession.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null;
+
       if (todaySession) {
-        const inTime = new Date(todaySession.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const end = todaySession.checkOut ? new Date(todaySession.checkOut).getTime() : Date.now();
+        const diffMs = Math.max(0, end - new Date(todaySession.checkIn).getTime());
+        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+        const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        durationText = `${hours}h ${mins}m`;
+
         reply += `⏱️ **Your Attendance Status Today:**\n\n`;
-        reply += `• **Status:** Punched In (${todaySession.workMode || 'WFO'})\n`;
+        reply += `• **Status:** ${todaySession.checkOut ? 'Shift Concluded' : 'Punched In'} (${todaySession.workMode || 'WFO'})\n`;
         reply += `• **First Punch In:** ${inTime}\n`;
+        if (outTime) {
+          reply += `• **Punch Out:** ${outTime}\n`;
+        }
+        reply += `• **Working Duration:** ${durationText}\n`;
         reply += `• **Standard Shift Timing:** ${currentUser?.shiftTiming || '09:00 AM - 06:00 PM'}\n\n`;
-        reply += `Remember to punch out before ending your shift from the top bar timer or **Self Service > Attendance**.`;
+        if (!todaySession.checkOut) {
+          reply += `You can punch out with 1 click using the attendance widget below:`;
+        }
       } else {
         reply += `⏱️ **You have not punched in yet today.**\n\n`;
-        reply += `To punch in:\n• Click the punch-in button beside your profile at the top of the screen, or\n• Navigate to **Self Service > Attendance** to mark your geolocation-verified presence.`;
+        reply += `• **Standard Shift Timing:** ${currentUser?.shiftTiming || '09:00 AM - 06:00 PM'}\n\n`;
+        reply += `You can punch in directly from the live attendance widget below:`;
       }
-      return res.json({ reply: reply.trim(), citations });
+
+      return sendAssistantResponse({
+        reply: reply.trim(),
+        citations,
+        widget: {
+          type: 'ATTENDANCE_TIMELINE',
+          title: "Today's Attendance Timeline",
+          data: {
+            status: todaySession ? (todaySession.checkOut ? 'CLOCKED_OUT' : 'CLOCKED_IN') : 'NOT_CLOCKED_IN',
+            workMode: todaySession?.workMode || 'WFO',
+            checkIn: inTime,
+            checkOut: outTime,
+            shiftTiming: currentUser?.shiftTiming || '09:00 AM - 06:00 PM',
+            duration: durationText,
+            canPunchOut: !!todaySession && !todaySession.checkOut,
+            canPunchIn: !todaySession,
+          },
+        },
+        contextUpdate: {
+          lastTopic: 'ATTENDANCE_STATUS',
+        },
+      });
     }
 
     // ------------------------------------------------------------------------
@@ -414,7 +628,11 @@ router.post('/chat', async (req, res, next) => {
       }
 
       reply += `\nFor the live roster, visit **HR Operations > Employee Attendance**.`;
-      return res.json({ reply: reply.trim(), citations });
+      return sendAssistantResponse({
+        reply: reply.trim(),
+        citations,
+        contextUpdate: { lastTopic: 'COMPANY_ATTENDANCE' },
+      });
     }
 
     // ------------------------------------------------------------------------
@@ -433,7 +651,11 @@ router.post('/chat', async (req, res, next) => {
       } else {
         reply += `Your current compensation is registered on file. However, you do not have a published payslip for the current cycle yet. Payslips are published by Finance at the end of each payroll period.`;
       }
-      return res.json({ reply: reply.trim(), citations });
+      return sendAssistantResponse({
+        reply: reply.trim(),
+        citations,
+        contextUpdate: { lastTopic: 'SALARY' },
+      });
     }
 
     // ------------------------------------------------------------------------
@@ -460,7 +682,11 @@ router.post('/chat', async (req, res, next) => {
       });
 
       reply += `\nTo view or reassign organizational hierarchy, visit **Company > Organization Hierarchy**.`;
-      return res.json({ reply: reply.trim(), citations });
+      return sendAssistantResponse({
+        reply: reply.trim(),
+        citations,
+        contextUpdate: { lastTopic: 'HEADCOUNT' },
+      });
     }
 
     // ------------------------------------------------------------------------
@@ -490,35 +716,117 @@ router.post('/chat', async (req, res, next) => {
         reply += `• **Next Renewal Date:** ${formatDate(company.nextPaymentDate)}\n`;
       }
       reply += `\nManage your seats and invoices in **Company > Subscription & Billing**.`;
-      return res.json({ reply: reply.trim(), citations });
+      return sendAssistantResponse({
+        reply: reply.trim(),
+        citations,
+        contextUpdate: { lastTopic: 'BILLING' },
+      });
     }
 
     // ------------------------------------------------------------------------
-    // INTENT I: PENDING WORKFLOWS & APPROVALS (ADMIN & HR ONLY)
+    // INTENT I: PENDING WORKFLOWS & APPROVALS (MANAGER, ADMIN & HR)
     // ------------------------------------------------------------------------
-    if (
-      (isCompanyAdmin || isHr) &&
-      (query.includes('pending requests') ||
-        query.includes('pending approvals') ||
-        query.includes('pending leaves') ||
-        query.includes('pending claims') ||
-        query.includes('what needs approval'))
-    ) {
-      citations.push('Workforce Approvals Desk');
-      const counts: Record<string, number> = { LEAVE: 0, CLAIM: 0, COMP_OFF: 0, REGULARIZATION: 0 };
-      pendingRequests.forEach((r) => {
-        counts[r.type] = (counts[r.type] || 0) + 1;
-      });
+    const isApprovalQuery =
+      query.includes('pending requests') ||
+      query.includes('pending approvals') ||
+      query.includes('pending leaves') ||
+      query.includes('pending claims') ||
+      query.includes('what needs approval') ||
+      query.includes('what approvals are pending') ||
+      query.includes('any leave requests to approve') ||
+      query.includes('approvals to review') ||
+      query.includes('requests to approve') ||
+      query.includes('approval requests') ||
+      query.includes('who needs approval') ||
+      query.includes('approvals pending');
 
-      const totalPending = pendingRequests.length;
-      reply += `📋 **Pending Approval Summary:**\n\n`;
-      reply += `• **Total Pending Items:** ${totalPending}\n`;
-      reply += `• **Leave Requests:** ${counts.LEAVE || 0}\n`;
-      reply += `• **Expense Claims:** ${counts.CLAIM || 0}\n`;
-      reply += `• **Attendance Regularizations:** ${counts.REGULARIZATION || 0}\n`;
-      reply += `• **Comp-Off Claims:** ${counts.COMP_OFF || 0}\n\n`;
-      reply += `Review and approve requests directly from **Assigned To Me > Approval Requests**.`;
-      return res.json({ reply: reply.trim(), citations });
+    if (isApprovalQuery) {
+      citations.push('Workforce Approvals Desk');
+
+      let pendingList: any[] = [];
+      try {
+        pendingList = await prisma.request.findMany({
+          where: isCompanyAdmin || isHr
+            ? { companyId, status: 'PENDING' }
+            : { companyId, approverId: userId, status: 'PENDING' },
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                jobTitle: true,
+                email: true,
+              },
+            },
+            leaveType: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        });
+      } catch {
+        pendingList = [];
+      }
+
+      if (pendingList.length > 0) {
+        const items = pendingList.map((r) => {
+          const reqName = `${r.user?.firstName || 'Team'} ${r.user?.lastName || 'Member'}`.trim();
+          const leaveName = r.leaveType?.name || (r.type === 'CLAIM' ? 'Expense Claim' : r.type === 'REGULARIZATION' ? 'Attendance Regularization' : 'Request');
+          return {
+            id: r.id,
+            requesterName: reqName,
+            jobTitle: r.user?.jobTitle || 'Team Member',
+            type: r.type,
+            leaveTypeName: leaveName,
+            startDate: r.startDate ? formatDate(r.startDate) : null,
+            endDate: r.endDate ? formatDate(r.endDate) : null,
+            days: r.days ? Number(r.days) : 1,
+            amount: r.amount ? Number(r.amount) : null,
+            reason: r.reason || 'No description provided',
+            status: 'PENDING',
+          };
+        });
+
+        const firstItem = items[0];
+        const previewText = items.length === 1
+          ? `**${firstItem.requesterName}** has requested **${firstItem.days === 1 ? '1 day' : `${firstItem.days} days`}** of ${firstItem.leaveTypeName}.`
+          : `You have **${items.length}** pending requests awaiting your decision.`;
+
+        reply += `📋 **Pending Approvals Desk:**\n\n${previewText}\n\nYou can review details and click **[Approve]** or **[Reject]** directly from the live action cards below:`;
+
+        return sendAssistantResponse({
+          reply: reply.trim(),
+          citations,
+          widget: {
+            type: 'PENDING_APPROVALS',
+            title: 'Pending Workforce Approvals',
+            items,
+          },
+          contextUpdate: {
+            lastTopic: 'PENDING_APPROVALS',
+          },
+        });
+      } else {
+        reply += `✅ **No Pending Approvals:** You currently have zero pending approval requests waiting for your decision. All team submissions are up to date.`;
+        return sendAssistantResponse({
+          reply: reply.trim(),
+          citations,
+          widget: {
+            type: 'PENDING_APPROVALS',
+            title: 'Pending Workforce Approvals',
+            items: [],
+          },
+          contextUpdate: {
+            lastTopic: 'PENDING_APPROVALS',
+          },
+        });
+      }
     }
 
     // ------------------------------------------------------------------------
@@ -550,7 +858,11 @@ router.post('/chat', async (req, res, next) => {
       } else {
         reply += `All scheduled holidays for this calendar period have completed. HR will update next year's schedule shortly.`;
       }
-      return res.json({ reply: reply.trim(), citations });
+      return sendAssistantResponse({
+        reply: reply.trim(),
+        citations,
+        contextUpdate: { lastTopic: 'HOLIDAYS' },
+      });
     }
 
     // ------------------------------------------------------------------------
@@ -577,7 +889,11 @@ router.post('/chat', async (req, res, next) => {
       } else {
         reply += `There are no urgent company announcements at this time. All operations are running normally.`;
       }
-      return res.json({ reply: reply.trim(), citations });
+      return sendAssistantResponse({
+        reply: reply.trim(),
+        citations,
+        contextUpdate: { lastTopic: 'NOTICES' },
+      });
     }
 
     // ------------------------------------------------------------------------
@@ -596,62 +912,31 @@ router.post('/chat', async (req, res, next) => {
       reply += `2. **Receipts**: Valid tax invoices or payment receipts must be uploaded for each claim.\n`;
       reply += `3. **Submission**: Navigate to **Self Service > Claims**, click **+ New Claim**, enter the amount, and attach bills.\n`;
       reply += `4. **Payout**: Once approved by your manager and Finance, reimbursement is disbursed in the next monthly payroll run.`;
-      return res.json({ reply: reply.trim(), citations });
+      return sendAssistantResponse({
+        reply: reply.trim(),
+        citations,
+        contextUpdate: { lastTopic: 'CLAIMS' },
+      });
     }
 
     // ------------------------------------------------------------------------
-    // INTENT M: OFFICIAL COMPANY POLICIES MATCHING
+    // INTENT M: PILLAR 2 - TRUE HYBRID SEMANTIC RAG (VECTOR EMBEDDINGS + BM25)
     // ------------------------------------------------------------------------
-    let matchedPolicy = null;
-    for (const p of policies) {
-      const pTitle = p.title.toLowerCase();
-      const pText = (p.extractedText || '').toLowerCase();
+    const ragResult = executeHybridRag({
+      query: message,
+      companyName: company.name,
+      policies,
+    });
 
-      if (
-        (query.includes('travel') || query.includes('expense') || query.includes('reimburse')) &&
-        (p.policyType === 'CLAIM' || pTitle.includes('travel') || pTitle.includes('expense'))
-      ) {
-        matchedPolicy = p;
-        break;
-      } else if (
-        (query.includes('leave') || query.includes('vacation') || query.includes('sick') || query.includes('maternity') || query.includes('paternity')) &&
-        (p.policyType === 'LEAVE' || pTitle.includes('leave'))
-      ) {
-        matchedPolicy = p;
-        break;
-      } else if (
-        (query.includes('conduct') || query.includes('ethics') || query.includes('dress code') || query.includes('behavior')) &&
-        (p.policyType === 'HR' || pTitle.includes('conduct'))
-      ) {
-        matchedPolicy = p;
-        break;
-      } else if (
-        (query.includes('posh') || query.includes('harassment') || query.includes('safety') || query.includes('protection')) &&
-        (pTitle.includes('posh') || pTitle.includes('harassment'))
-      ) {
-        matchedPolicy = p;
-        break;
-      } else if (
-        (query.includes('notice period') || query.includes('resignation') || query.includes('exit')) &&
-        (pTitle.includes('exit') || pTitle.includes('notice') || pTitle.includes('resignation'))
-      ) {
-        matchedPolicy = p;
-        break;
-      } else if (
-        (query.includes('wfh') || query.includes('remote') || query.includes('work from home')) &&
-        (pTitle.includes('wfh') || pTitle.includes('remote') || pText.includes('remote work'))
-      ) {
-        matchedPolicy = p;
-        break;
-      }
-    }
-
-    if (matchedPolicy) {
-      citations.push(matchedPolicy.title);
-      reply += `📄 **According to the official ${matchedPolicy.title}:**\n\n`;
-      reply += `${matchedPolicy.extractedText || 'Please refer to the full policy document in the policies repository.'}\n\n`;
-      reply += `Full signed document is available under **Self Service > Policies**.`;
-      return res.json({ reply: reply.trim(), citations });
+    if (ragResult) {
+      return sendAssistantResponse({
+        reply: ragResult.answer,
+        citations: ragResult.citations,
+        contextUpdate: {
+          lastPolicyTitle: ragResult.policy.title,
+          lastTopic: 'POLICY_INQUIRY',
+        },
+      });
     }
 
     // ------------------------------------------------------------------------
@@ -670,10 +955,56 @@ router.post('/chat', async (req, res, next) => {
       reply = `Hello ${greetingName}! I am your personal **Uptrix HR AI Assistant**.\n\nI am grounded in **${company.name}** official policies and your employment profile:\n\n• **Leave Quotas**: Ask *"How many leave days do I have available?"*\n• **Attendance**: Ask *"What was my punch-in time today?"*\n• **My Profile**: Ask *"Who is my manager?"* or *"What is my shift timing?"*\n• **Upcoming Holidays**: Ask *"When is the next official holiday?"*\n• **Company Policies**: Ask *"What is our medical/sick leave policy?"* or *"How do I claim reimbursement?"*\n• **Notices**: Ask *"What are the latest company announcements?"*\n\nHow may I assist you today?`;
     }
 
-    return res.json({
+    return sendAssistantResponse({
       reply: reply.trim(),
       citations,
+      contextUpdate: {
+        lastTopic: 'GENERAL_GREETING',
+      },
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /assistant/execute-tool (Executes confirmed action card)
+router.post('/execute-tool', async (req, res, next) => {
+  try {
+    const userId = req.user!.id;
+    const companyId = req.user!.companyId!;
+    const { tool, payload, sessionId } = req.body;
+
+    if (!tool || !payload) {
+      return next(new AppError(400, 'INVALID_BODY', 'Tool name and payload are required'));
+    }
+
+    const result = await executeAgentTool({
+      userId,
+      companyId,
+      tool,
+      payload,
+    });
+
+    if (sessionId) {
+      appendMessage(
+        sessionId,
+        userId,
+        companyId,
+        {
+          id: `asst_exec_${Date.now()}`,
+          sender: 'assistant',
+          text: `✅ **Action Confirmed:** ${result.message}`,
+          citations: ['Autonomous Action Engine'],
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          createdAt: Date.now(),
+        },
+        {
+          pendingAction: null,
+        }
+      );
+    }
+
+    return res.json(result);
   } catch (error) {
     next(error);
   }

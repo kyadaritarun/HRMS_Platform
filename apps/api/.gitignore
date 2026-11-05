@@ -15,6 +15,7 @@ build/
 uploads/
 temp/
 tmp/
+data/
 
 # Logs
 logs/
