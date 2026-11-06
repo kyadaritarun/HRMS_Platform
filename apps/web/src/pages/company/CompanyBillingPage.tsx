@@ -1005,12 +1005,12 @@ export const CompanyBillingPage: React.FC = () => {
 
                 <div className="space-y-3 text-xs text-slate-600">
                   <div className="font-bold text-slate-900 text-sm">
-                    {billingContact.name || compInfo?.name || 'Kyadari Tarun'}
+                    {billingContact.name || compInfo?.name || 'Srikanth'}
                   </div>
 
                   <div className="flex items-center gap-2 text-slate-600">
                     <IconMail className="w-4 h-4 text-slate-500 font-medium shrink-0" />
-                    <span>{billingContact.email || 'kyadarit@gmail.com'}</span>
+                    <span>{billingContact.email || 'srikanth@uptrixglobal.com'}</span>
                   </div>
 
                   {billingContact.phone && (
@@ -1287,10 +1287,10 @@ export const CompanyBillingPage: React.FC = () => {
                         <span className="text-[11px] text-slate-500 font-medium">Authorized Account</span>
                         <div className="font-bold text-slate-900 flex items-center gap-1.5">
                           <IconMail className="w-3.5 h-3.5 text-slate-500 font-medium" />
-                          <span>{paymentMethod.payerEmail || billingContact.email || 'kyadarit@gmail.com'}</span>
+                          <span>{paymentMethod.payerEmail || billingContact.email || 'srikanth@uptrixglobal.com'}</span>
                         </div>
                         <div className="text-[10px] text-slate-500 font-medium">
-                          {paymentMethod.payerName || billingContact.name || 'Kyadari Tarun'} (Workspace Owner)
+                          {paymentMethod.payerName || billingContact.name || 'Srikanth'} (Workspace Owner)
                         </div>
                       </div>
                     </div>
