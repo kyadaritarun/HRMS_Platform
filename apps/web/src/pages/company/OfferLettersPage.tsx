@@ -587,7 +587,7 @@ export const OfferLettersPage: React.FC = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Candidate Full Name *
+                        Candidate Full Name <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -601,7 +601,7 @@ export const OfferLettersPage: React.FC = () => {
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Candidate Email Address *
+                        Candidate Email Address <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="email"
@@ -628,7 +628,7 @@ export const OfferLettersPage: React.FC = () => {
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Designation / Role Title *
+                        Designation / Role Title <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -675,7 +675,7 @@ export const OfferLettersPage: React.FC = () => {
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Date of Joining *
+                        Date of Joining <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="date"
@@ -688,7 +688,7 @@ export const OfferLettersPage: React.FC = () => {
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Annual CTC (₹ INR) *
+                        Annual CTC (₹ INR) <span className="text-rose-500">*</span>
                       </label>
                       <div className="relative">
                         <span className="absolute left-3 top-2 text-slate-500 font-bold text-xs">₹</span>

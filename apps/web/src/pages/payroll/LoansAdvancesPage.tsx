@@ -443,7 +443,7 @@ export const LoansAdvancesPage: React.FC = () => {
             </p>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Bank UTR / Transaction Reference *</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Bank UTR / Transaction Reference <span className="text-rose-500">*</span></label>
                 <input
                   type="text"
                   required
@@ -510,7 +510,7 @@ export const LoansAdvancesPage: React.FC = () => {
                 <div className="p-5 space-y-4 text-xs">
                   {isFinanceOrAdmin && (
                     <div>
-                      <label className="block font-bold text-slate-700 mb-1">Employee *</label>
+                      <label className="block font-bold text-slate-700 mb-1">Employee <span className="text-rose-500">*</span></label>
                       <select
                         value={form.employeeId}
                         onChange={(e) => setForm({ ...form, employeeId: Number(e.target.value) })}
@@ -526,7 +526,7 @@ export const LoansAdvancesPage: React.FC = () => {
                   )}
 
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Advance Type *</label>
+                    <label className="block font-bold text-slate-700 mb-1">Advance Type <span className="text-rose-500">*</span></label>
                     <select
                       value={form.type}
                       onChange={(e) => setForm({ ...form, type: e.target.value as any })}
@@ -541,7 +541,7 @@ export const LoansAdvancesPage: React.FC = () => {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block font-bold text-slate-700 mb-1">Amount (₹) *</label>
+                      <label className="block font-bold text-slate-700 mb-1">Amount (₹) <span className="text-rose-500">*</span></label>
                       <input
                         type="number"
                         min="5000"
@@ -553,7 +553,7 @@ export const LoansAdvancesPage: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="block font-bold text-slate-700 mb-1">Tenure (Months) *</label>
+                      <label className="block font-bold text-slate-700 mb-1">Tenure (Months) <span className="text-rose-500">*</span></label>
                       <select
                         value={form.tenureMonths}
                         onChange={(e) => setForm({ ...form, tenureMonths: e.target.value })}
@@ -580,7 +580,7 @@ export const LoansAdvancesPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Reason / Purpose *</label>
+                    <label className="block font-bold text-slate-700 mb-1">Reason / Purpose <span className="text-rose-500">*</span></label>
                     <textarea
                       required
                       rows={4}

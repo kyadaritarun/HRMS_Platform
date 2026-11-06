@@ -787,7 +787,7 @@ export const MyAttendancePage: React.FC = () => {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Missed Date *
+                      Missed Date <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="date"
@@ -801,7 +801,7 @@ export const MyAttendancePage: React.FC = () => {
                   {/* Correction Scope Selector */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      What needs regularization? *
+                      What needs regularization? <span className="text-rose-500">*</span>
                     </label>
                     <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200 text-center">
                       <button
@@ -845,7 +845,7 @@ export const MyAttendancePage: React.FC = () => {
                     <div className="space-y-3">
                       <div>
                         <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                          Actual Check-in Time *
+                          Actual Check-in Time <span className="text-rose-500">*</span>
                         </label>
                         <input
                           type="time"
@@ -873,7 +873,7 @@ export const MyAttendancePage: React.FC = () => {
                     <div className="space-y-3">
                       <div>
                         <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                          Actual Check-out Time *
+                          Actual Check-out Time <span className="text-rose-500">*</span>
                         </label>
                         <input
                           type="time"
@@ -899,7 +899,7 @@ export const MyAttendancePage: React.FC = () => {
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                          Actual Check-in *
+                          Actual Check-in <span className="text-rose-500">*</span>
                         </label>
                         <input
                           type="time"
@@ -911,7 +911,7 @@ export const MyAttendancePage: React.FC = () => {
                       </div>
                       <div>
                         <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                          Actual Check-out *
+                          Actual Check-out <span className="text-rose-500">*</span>
                         </label>
                         <input
                           type="time"
@@ -926,7 +926,7 @@ export const MyAttendancePage: React.FC = () => {
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Reason for Regularization *
+                      Reason for Regularization <span className="text-rose-500">*</span>
                     </label>
                     <textarea
                       required

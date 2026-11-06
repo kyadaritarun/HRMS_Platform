@@ -29,6 +29,7 @@ import {
   IconCreditCard,
   IconSparkles,
   IconClock,
+  IconFilter,
 } from '@tabler/icons-react';
 
 interface CompanyAdmin {
@@ -674,252 +675,66 @@ export const CompaniesPage: React.FC = () => {
       ) : (
         <>
           {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">Tenants &amp; Companies</h1>
-          <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5 font-medium">
-            <span className="text-slate-500 font-medium">Application</span>
-            <span className="text-slate-300">&gt;</span>
-            <span className="text-slate-600 font-medium">Companies List</span>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-center">
-          <Link
-            to="/super-admin/companies/add"
-            className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold text-xs shadow-xs transition-all active:scale-95"
-          >
-            <IconPlus className="w-4 h-4" />
-            Add Company
-          </Link>
-        </div>
-      </div>
-
-      {/* 4 Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* Card 1: Total Tenants */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col justify-between">
-          <div className="flex items-start gap-4 relative z-10">
-            <div className="w-12 h-12 rounded-xl bg-blue-50/80 text-blue-500 border border-blue-100/60 flex items-center justify-center shrink-0">
-              <IconBuilding className="w-6 h-6 stroke-[1.75]" />
-            </div>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold text-slate-500">Total Tenants</p>
-              <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
-                {companies.length}
-              </p>
-              <p className="text-xs font-semibold text-blue-600 mt-1">
-                Registered workspaces
-              </p>
+              <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                <IconBuilding className="w-5 h-5 text-indigo-600 shrink-0" />
+                <span>Tenants &amp; Companies</span>
+              </h1>
+             
             </div>
-          </div>
-          {/* Decorative Wave */}
-          <div className="absolute bottom-0 left-0 right-0 h-10 pointer-events-none overflow-hidden opacity-90">
-            <svg viewBox="0 0 400 60" preserveAspectRatio="none" className="w-full h-full">
-              <path
-                d="M0 45 C 70 20, 140 55, 210 35 C 280 15, 340 45, 400 25 L 400 60 L 0 60 Z"
-                fill="#3b82f6"
-                fillOpacity="0.06"
-              />
-              <path
-                d="M0 45 C 70 20, 140 55, 210 35 C 280 15, 340 45, 400 25"
-                fill="none"
-                stroke="#60a5fa"
-                strokeWidth="2"
-                strokeOpacity="0.5"
-              />
-            </svg>
-          </div>
-        </div>
 
-        {/* Card 2: Payment Done */}
-        <div className="bg-white p-5 rounded-2xl border border-emerald-100/90 shadow-[0_2px_12px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col justify-between">
-          <div className="absolute top-4 right-4 w-6 h-6 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center z-10 shadow-2xs">
-            <IconCheck className="w-3.5 h-3.5 stroke-[2.5]" />
-          </div>
-
-          <div className="flex items-start gap-4 relative z-10">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0">
-              <IconCreditCard className="w-6 h-6 stroke-[1.75]" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-500">Payment Done</p>
-              <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
-                {paymentDoneCount}
-              </p>
-              <p className="text-xs font-semibold text-emerald-600 mt-1">
-                Ready for Admin Setup
-              </p>
-            </div>
-          </div>
-          {/* Decorative Wave */}
-          <div className="absolute bottom-0 left-0 right-0 h-10 pointer-events-none overflow-hidden opacity-90">
-            <svg viewBox="0 0 400 60" preserveAspectRatio="none" className="w-full h-full">
-              <path
-                d="M0 46 C 80 18, 150 54, 220 28 C 290 12, 350 40, 400 22 L 400 60 L 0 60 Z"
-                fill="#10b981"
-                fillOpacity="0.06"
-              />
-              <path
-                d="M0 46 C 80 18, 150 54, 220 28 C 290 12, 350 40, 400 22"
-                fill="none"
-                stroke="#34d399"
-                strokeWidth="2"
-                strokeOpacity="0.5"
-              />
-            </svg>
-          </div>
-        </div>
-
-        {/* Card 3: In Process */}
-        <div className="bg-white p-5 rounded-2xl border border-amber-100/90 shadow-[0_2px_12px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col justify-between">
-          <div className="flex items-start gap-4 relative z-10">
-            <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0">
-              <IconClock className="w-6 h-6 stroke-[1.75]" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-500">In Process</p>
-              <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
-                {inProcessCount}
-              </p>
-              <p className="text-xs font-medium text-amber-700 mt-1">
-                Payment Link Dispatched
-              </p>
-            </div>
-          </div>
-          {/* Decorative Wave */}
-          <div className="absolute bottom-0 left-0 right-0 h-10 pointer-events-none overflow-hidden opacity-90">
-            <svg viewBox="0 0 400 60" preserveAspectRatio="none" className="w-full h-full">
-              <path
-                d="M0 40 C 90 22, 160 58, 230 30 C 300 18, 360 46, 400 32 L 400 60 L 0 60 Z"
-                fill="#f59e0b"
-                fillOpacity="0.06"
-              />
-              <path
-                d="M0 40 C 90 22, 160 58, 230 30 C 300 18, 360 46, 400 32"
-                fill="none"
-                stroke="#fbbf24"
-                strokeWidth="2"
-                strokeOpacity="0.35"
-              />
-            </svg>
-          </div>
-        </div>
-
-        {/* Card 4: Declined */}
-        <div className="bg-white p-5 rounded-2xl border border-rose-100/90 shadow-[0_2px_12px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col justify-between">
-          <div className="flex items-start gap-4 relative z-10">
-            <div className="w-12 h-12 rounded-xl bg-rose-50 text-rose-500 border border-rose-100 flex items-center justify-center shrink-0">
-              <IconCircleX className="w-6 h-6 stroke-[1.75]" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-500">Declined / Failed</p>
-              <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
-                {declineCount}
-              </p>
-              <p className="text-xs font-medium text-rose-600 mt-1">
-                Payment expired or declined
-              </p>
-            </div>
-          </div>
-          {/* Decorative Wave */}
-          <div className="absolute bottom-0 left-0 right-0 h-10 pointer-events-none overflow-hidden opacity-90">
-            <svg viewBox="0 0 400 60" preserveAspectRatio="none" className="w-full h-full">
-              <path
-                d="M0 44 C 85 18, 150 52, 230 25 C 310 10, 360 42, 400 22 L 400 60 L 0 60 Z"
-                fill="#f43f5e"
-                fillOpacity="0.06"
-              />
-              <path
-                d="M0 44 C 85 18, 150 52, 230 25 C 310 10, 360 42, 400 22"
-                fill="none"
-                stroke="#f43f5e"
-                strokeWidth="2"
-                strokeOpacity="0.5"
-              />
-            </svg>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Table Card: Companies List */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        {/* Card Header & Controls with Status Filter Tabs */}
-        <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          {/* Status Filter Buttons */}
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => {
-                setStatusFilter('ALL');
-                setCurrentPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
-                statusFilter === 'ALL'
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
+            <Link
+              to="/super-admin/companies/add"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 active:scale-[0.98] transition-all cursor-pointer shrink-0"
             >
-              All Tenants ({companies.length})
-            </button>
-            <button
-              onClick={() => {
-                setStatusFilter('IN_PROCESS');
-                setCurrentPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
-                statusFilter === 'IN_PROCESS'
-                  ? 'bg-amber-600 text-white'
-                  : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
-              }`}
-            >
-              In Process ({inProcessCount})
-            </button>
-            <button
-              onClick={() => {
-                setStatusFilter('PAYMENT_DONE');
-                setCurrentPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
-                statusFilter === 'PAYMENT_DONE'
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
-              }`}
-            >
-              Payment Done ({paymentDoneCount})
-            </button>
-            <button
-              onClick={() => {
-                setStatusFilter('DECLINE');
-                setCurrentPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
-                statusFilter === 'DECLINE'
-                  ? 'bg-rose-600 text-white'
-                  : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
-              }`}
-            >
-              Decline ({declineCount})
-            </button>
+              <IconPlus className="w-4 h-4" />
+              <span>Add Company</span>
+            </Link>
           </div>
 
-          {/* Search Input */}
-          <div className="relative w-full md:w-72">
-            <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search by company or email..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="pl-9 pr-3.5 py-1.5 text-xs bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-blue-600 w-full placeholder:text-slate-500 font-medium text-slate-800 shadow-2xs"
-            />
-          </div>
-        </div>
+          {/* Toolbar: Search on Left & Status Dropdown Filter on Right */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            {/* Search on the Left */}
+            <div className="relative flex-1 max-w-md">
+              <IconSearch className="w-4 h-4 text-slate-400 font-medium absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search by company name, code, domain, or admin..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full pl-10 pr-4 py-2 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 transition-all text-slate-800"
+              />
+            </div>
 
-        {/* Table View */}
-        <div className="overflow-x-auto">
+            {/* Dropdown Filter on the Right */}
+            <div className="relative min-w-[210px] shrink-0">
+              <select
+                aria-label="Filter by status"
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value as any);
+                  setCurrentPage(1);
+                }}
+                className="w-full pl-9 pr-8 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200/90 rounded-xl shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-indigo-600/20 appearance-none cursor-pointer hover:border-slate-300 transition-colors"
+              >
+                <option value="ALL">All Tenants ({companies.length})</option>
+                <option value="IN_PROCESS">In Process ({inProcessCount})</option>
+                <option value="PAYMENT_DONE">Payment Done ({paymentDoneCount})</option>
+                <option value="DECLINE">Declined ({declineCount})</option>
+              </select>
+              <IconFilter className="w-3.5 h-3.5 text-slate-400 font-medium absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <IconChevronDown className="w-3.5 h-3.5 text-slate-400 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Main Table Card: Companies List */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+            {/* Table View */}
+            <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
@@ -1257,54 +1072,34 @@ export const CompaniesPage: React.FC = () => {
         </div>
 
         {/* Pagination Bar */}
-        <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+        <div className="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 font-medium">
           <span>
             {totalEntries === 0
               ? 'Showing 0 - 0 of 0 entries'
               : `Showing ${startIndex + 1} - ${endIndex} of ${totalEntries} entries`}
           </span>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage <= 1}
-              className={`h-7 px-2 rounded-lg border flex items-center justify-center gap-1 text-xs font-bold transition-all shadow-2xs mr-1 ${
-                currentPage <= 1
-                  ? 'bg-slate-50 border-slate-200 text-slate-300 cursor-not-allowed'
-                  : 'bg-slate-100 hover:bg-blue-50 border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-700 cursor-pointer'
-              }`}
+              disabled={currentPage <= 1 || totalPages === 0}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
               title="Previous page"
             >
-              <IconChevronLeft className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span className="text-[10px] hidden sm:inline">Prev</span>
+              <IconChevronLeft className="w-3.5 h-3.5" />
+              <span>Prev</span>
             </button>
-
-            {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((pageNum) => (
-              <button
-                key={pageNum}
-                onClick={() => setCurrentPage(pageNum)}
-                className={`w-7 h-7 rounded-lg text-xs font-bold transition-colors ${
-                  currentPage === pageNum
-                    ? 'bg-blue-700 text-white'
-                    : 'text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                {pageNum}
-              </button>
-            ))}
-
+            <span className="px-3 py-1 rounded-lg bg-[#5E4BE2] text-white font-bold text-xs shadow-2xs">
+              {currentPage} / {totalPages}
+            </span>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage >= totalPages}
-              className={`h-7 px-2 rounded-lg border flex items-center justify-center gap-1 text-xs font-bold transition-all shadow-2xs ml-1 ${
-                currentPage >= totalPages
-                  ? 'bg-slate-50 border-slate-200 text-slate-300 cursor-not-allowed'
-                  : 'bg-slate-100 hover:bg-blue-50 border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-700 cursor-pointer'
-              }`}
+              disabled={currentPage >= totalPages || totalPages === 0}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
               title="Next page"
             >
-              <span className="text-[10px] hidden sm:inline">Next</span>
-              <IconChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Next</span>
+              <IconChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -1533,7 +1328,7 @@ export const CompaniesPage: React.FC = () => {
 
             <form onSubmit={handleCreateAdmin} className="space-y-3.5 text-xs">
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Email Address *</label>
+                <label className="block font-medium text-slate-700 mb-1">Email Address <span className="text-rose-500">*</span></label>
                 <input
                   type="email"
                   required
@@ -1710,7 +1505,7 @@ export const CompaniesPage: React.FC = () => {
 
             <form onSubmit={handleSaveEdit} className="space-y-3.5 text-xs">
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Company Name *</label>
+                <label className="block font-medium text-slate-700 mb-1">Company Name <span className="text-rose-500">*</span></label>
                 <input
                   type="text"
                   required

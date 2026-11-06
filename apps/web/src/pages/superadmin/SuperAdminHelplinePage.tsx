@@ -96,22 +96,14 @@ export const SuperAdminHelplinePage: React.FC = () => {
       {/* Breadcrumb & Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs text-slate-500 font-semibold mb-1">
-            <Link to="/super-admin/dashboard" className="hover:text-[#5E4BE2] transition-colors">
-              Platform Admin
-            </Link>
-            <span>/</span>
-            <span className="text-slate-800">Global Helpline Desk</span>
-          </div>
+         
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
             <span className="w-9 h-9 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shadow-2xs">
               <IconHeadset className="w-5 h-5" />
             </span>
             <span>Helpline &amp; Support Management</span>
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-            Configure central emergency hotlines, HR desks, IT contacts, and workplace info visible to all companies and employees.
-          </p>
+        
         </div>
 
         <div className="flex items-center gap-2.5 shrink-0">

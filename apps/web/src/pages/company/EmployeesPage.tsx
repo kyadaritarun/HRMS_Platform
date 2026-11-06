@@ -1285,7 +1285,7 @@ export const EmployeesPage: React.FC = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     {/* First Name (Editable) */}
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">First Name *</label>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">First Name <span className="text-rose-500">*</span></label>
                       <input
                         type="text"
                         required
@@ -1323,7 +1323,7 @@ export const EmployeesPage: React.FC = () => {
 
                     {/* Date of Birth (Editable) */}
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Date of Birth *</label>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Date of Birth <span className="text-rose-500">*</span></label>
                       <input
                         type="date"
                         required
@@ -1335,7 +1335,7 @@ export const EmployeesPage: React.FC = () => {
 
                     {/* Personal Email Address (Editable) */}
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Personal Email Address *</label>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Personal Email Address <span className="text-rose-500">*</span></label>
                       <input
                         type="email"
                         required
@@ -1422,7 +1422,7 @@ export const EmployeesPage: React.FC = () => {
 
                     {/* Work Type (Editable) */}
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Work Type *</label>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Work Type <span className="text-rose-500">*</span></label>
                       <select
                         value={editForm.employmentType}
                         onChange={(e) => setEditForm({ ...editForm, employmentType: e.target.value })}
@@ -1539,7 +1539,7 @@ export const EmployeesPage: React.FC = () => {
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Name *</label>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Name <span className="text-rose-500">*</span></label>
                         <input
                           type="text"
                           required
@@ -1550,7 +1550,7 @@ export const EmployeesPage: React.FC = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Relationship *</label>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Relationship <span className="text-rose-500">*</span></label>
                         <input
                           type="text"
                           required
@@ -1562,7 +1562,7 @@ export const EmployeesPage: React.FC = () => {
                       </div>
                       <div>
                         <div className="flex items-center justify-between mb-1">
-                          <label className="block text-[11px] font-bold text-slate-700">Contact *</label>
+                          <label className="block text-[11px] font-bold text-slate-700">Contact <span className="text-rose-500">*</span></label>
                           <span className="text-[10px] text-slate-500 font-mono font-medium">{editForm.emergencyContactPhone.length}/10</span>
                         </div>
                         <input

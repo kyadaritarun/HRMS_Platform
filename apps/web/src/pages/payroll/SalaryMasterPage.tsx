@@ -489,7 +489,7 @@ export const SalaryMasterPage: React.FC = () => {
                 <div className="p-3.5 sm:p-4 bg-slate-50/70 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex-1 max-w-[220px]">
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                      Monthly Base CTC *
+                      Monthly Base CTC <span className="text-rose-500">*</span>
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500 select-none">

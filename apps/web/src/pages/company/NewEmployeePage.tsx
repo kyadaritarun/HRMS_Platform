@@ -909,7 +909,7 @@ export const NewEmployeePage: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">First Name *</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">First Name <span className="text-rose-500">*</span></label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#5E4BE2]">
                         <IconUser className="w-4 h-4" />
@@ -948,7 +948,7 @@ export const NewEmployeePage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Employee ID *</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Employee ID <span className="text-rose-500">*</span></label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-indigo-600">
                         <IconId className="w-4 h-4" />
@@ -969,7 +969,7 @@ export const NewEmployeePage: React.FC = () => {
 
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-bold text-slate-700">Date of Birth *</label>
+                      <label className="block text-xs font-bold text-slate-700">Date of Birth <span className="text-rose-500">*</span></label>
                       <span className="text-[10px] text-slate-500 font-medium">Min 18 years</span>
                     </div>
                     <div className="relative">
@@ -992,7 +992,7 @@ export const NewEmployeePage: React.FC = () => {
 
                   <div>
                     <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
-                      <label className="block text-xs font-bold text-slate-700">Work Email *</label>
+                      <label className="block text-xs font-bold text-slate-700">Work Email <span className="text-rose-500">*</span></label>
                       {allowedDomains.length > 0 && (
                         <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/70 px-2 py-0.5 rounded-full flex items-center gap-1">
                           <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 inline-block animate-pulse" />
@@ -1025,7 +1025,7 @@ export const NewEmployeePage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Personal Email Address *</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Personal Email Address <span className="text-rose-500">*</span></label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-violet-600">
                         <IconMail className="w-4 h-4" />
@@ -1045,7 +1045,7 @@ export const NewEmployeePage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">System Username *</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">System Username <span className="text-rose-500">*</span></label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-purple-600">
                         <IconAt className="w-4 h-4" />
@@ -1066,7 +1066,7 @@ export const NewEmployeePage: React.FC = () => {
 
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-bold text-slate-700">Phone Number *</label>
+                      <label className="block text-xs font-bold text-slate-700">Phone Number <span className="text-rose-500">*</span></label>
                       <span className={`text-[10px] font-mono font-bold ${form.phone.length === 10 ? 'text-emerald-600' : 'text-slate-500'
                         }`}>
                         {form.phone.length}/10 digits
@@ -1095,7 +1095,7 @@ export const NewEmployeePage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Joining Date *</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Joining Date <span className="text-rose-500">*</span></label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-indigo-600">
                         <IconCalendar className="w-4 h-4" />
@@ -1134,7 +1134,7 @@ export const NewEmployeePage: React.FC = () => {
 
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-bold text-slate-700">Working Address *</label>
+                      <label className="block text-xs font-bold text-slate-700">Working Address <span className="text-rose-500">*</span></label>
                       {form.address && (
                         <button
                           type="button"
@@ -1168,7 +1168,7 @@ export const NewEmployeePage: React.FC = () => {
 
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-bold text-slate-700">Shift Timing *</label>
+                      <label className="block text-xs font-bold text-slate-700">Shift Timing <span className="text-rose-500">*</span></label>
                       <button
                         type="button"
                         onClick={handleOpenShiftDrawer}
@@ -1252,7 +1252,7 @@ export const NewEmployeePage: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Role *</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Role <span className="text-rose-500">*</span></label>
                     <select
                       name="role"
                       value={isHr ? 'EMPLOYEE' : (form.role === 'COMPANY_ADMIN' ? 'EMPLOYEE' : form.role)}
@@ -1335,7 +1335,7 @@ export const NewEmployeePage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Work Type *</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Work Type <span className="text-rose-500">*</span></label>
                     <select
                       name="workType"
                       required
@@ -1373,7 +1373,7 @@ export const NewEmployeePage: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Name *</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Name <span className="text-rose-500">*</span></label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-rose-500">
                         <IconUser className="w-4 h-4" />
@@ -1393,7 +1393,7 @@ export const NewEmployeePage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Relationship *</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Relationship <span className="text-rose-500">*</span></label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-rose-500">
                         <IconHeartHandshake className="w-4 h-4" />
@@ -1414,7 +1414,7 @@ export const NewEmployeePage: React.FC = () => {
 
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-bold text-slate-700">Contact *</label>
+                      <label className="block text-xs font-bold text-slate-700">Contact <span className="text-rose-500">*</span></label>
                       <span className={`text-[10px] font-mono font-bold ${form.emergencyContactPhone.length === 10 ? 'text-emerald-600' : 'text-slate-500'
                         }`}>
                         {form.emergencyContactPhone.length}/10 digits
@@ -1460,7 +1460,7 @@ export const NewEmployeePage: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Cost to Company (CTC) *</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Cost to Company (CTC) <span className="text-rose-500">*</span></label>
                     <div className="relative flex rounded-xl shadow-2xs">
                       {/* Compact Currency Dropdown directly before amount */}
                       <select

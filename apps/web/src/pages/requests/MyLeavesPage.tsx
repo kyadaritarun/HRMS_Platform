@@ -804,7 +804,7 @@ export const MyLeavesPage: React.FC = () => {
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Leave Category *
+                      Leave Category <span className="text-rose-500">*</span>
                     </label>
                     <select
                       required
@@ -841,7 +841,7 @@ export const MyLeavesPage: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        Start Date *
+                        Start Date <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="date"
@@ -853,7 +853,7 @@ export const MyLeavesPage: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        End Date *
+                        End Date <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="date"
@@ -867,7 +867,7 @@ export const MyLeavesPage: React.FC = () => {
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Reason for Absence *
+                      Reason for Absence <span className="text-rose-500">*</span>
                     </label>
                     <textarea
                       required

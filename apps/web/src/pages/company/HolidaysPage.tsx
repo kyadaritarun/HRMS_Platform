@@ -1200,7 +1200,7 @@ export const HolidaysPage: React.FC = () => {
                   {/* Holiday Title */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Holiday Title *
+                      Holiday Title <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -1215,7 +1215,7 @@ export const HolidaysPage: React.FC = () => {
                   {/* Calendar Date Input (Synced with Left Calendar) */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Calendar Date *
+                      Calendar Date <span className="text-rose-500">*</span>
                     </label>
                     <div className="relative">
                       <input

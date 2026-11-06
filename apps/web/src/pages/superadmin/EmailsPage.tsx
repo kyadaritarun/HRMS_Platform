@@ -222,14 +222,6 @@ export const EmailsPage: React.FC = () => {
             <IconMail className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>Email Notifications</span>
           </h1>
-          <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1 font-medium">
-            <Link to="/super-admin/dashboard" className="hover:text-brand-600 flex items-center gap-1">
-              <IconHome className="w-3.5 h-3.5 text-slate-500 font-medium" />
-            </Link>
-            <span className="text-slate-500 font-medium">Super Admin</span>
-            <span className="text-slate-300">&gt;</span>
-            <span className="text-slate-600 font-medium">Email Notification Logs</span>
-          </div>
         </div>
 
         {/* Action Buttons */}

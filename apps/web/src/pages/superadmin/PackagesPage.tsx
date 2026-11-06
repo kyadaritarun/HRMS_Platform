@@ -21,6 +21,8 @@ import {
   IconCheck,
   IconSparkles,
   IconCrown,
+  IconFilter,
+  IconChevronDown,
 } from '@tabler/icons-react';
 
 export interface PackageItem {
@@ -389,239 +391,71 @@ export const PackagesPage: React.FC = () => {
       {/* Header & Breadcrumb */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">Packages &amp; Pricing</h1>
-          <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5 font-medium">
-            <Link to="/super-admin/dashboard" className="hover:text-blue-600 flex items-center gap-1">
-              <IconHome className="w-3.5 h-3.5 text-slate-500 font-medium" />
-            </Link>
-            <span className="text-slate-500 font-medium">Super Admin</span>
-            <span className="text-slate-300">&gt;</span>
-            <span className="text-slate-600 font-medium">Packages &amp; Pricing</span>
-          </div>
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <IconPackage className="w-5 h-5 text-indigo-600 shrink-0" />
+            <span>Packages &amp; Pricing</span>
+          </h1>
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-center">
           <button
             onClick={() => handleOpenCreate('CUSTOM')}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-semibold text-xs shadow-2xs transition-all cursor-pointer"
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 text-xs font-bold shadow-2xs transition-all cursor-pointer"
           >
-            <IconBuilding className="w-4 h-4 text-amber-600" />
-            + Custom Plan for Company
+            <IconBuilding className="w-4 h-4 text-indigo-600" />
+            <span>+ Custom Plan</span>
           </button>
 
           <button
             onClick={() => handleOpenCreate('BASIC')}
-            className="inline-flex items-center justify-center gap-1.5 px-4.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs transition-all active:scale-95 cursor-pointer"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 active:scale-[0.98] transition-all cursor-pointer"
           >
             <IconPlus className="w-4 h-4" />
-            Add Package
+            <span>Add Package</span>
           </button>
         </div>
       </div>
 
-      {/* 3 Main Tier Cards (Basic, Medium, Custom) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {/* Tier 1: Basic Plan */}
-        <div className="bg-white p-5 rounded-2xl border border-emerald-100/90 shadow-sm relative overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                Basic Tier
-              </span>
-              <span className="text-xs text-slate-500 font-medium">{basicCount} Plans</span>
-            </div>
-            <h3 className="text-lg font-bold text-slate-900">Basic Plan</h3>
-            <p className="text-xs text-slate-500 font-medium mt-1 line-clamp-2">
-              Essential HR foundation: Attendance, Leave Management, and Employee Directory.
-            </p>
-
-            <div className="mt-4 pt-3 border-t border-slate-100 grid grid-cols-3 gap-2 text-center">
-              <div className="bg-slate-50 p-2 rounded-xl">
-                <div className="text-[10px] text-slate-500 uppercase font-semibold">Monthly</div>
-                <div className="text-xs font-bold text-slate-800 mt-0.5">₹999</div>
-              </div>
-              <div className="bg-slate-50 p-2 rounded-xl">
-                <div className="text-[10px] text-slate-500 uppercase font-semibold">Quarterly</div>
-                <div className="text-xs font-bold text-slate-800 mt-0.5">₹2,799</div>
-              </div>
-              <div className="bg-slate-50 p-2 rounded-xl">
-                <div className="text-[10px] text-slate-500 uppercase font-semibold">Yearly</div>
-                <div className="text-xs font-bold text-emerald-600 mt-0.5">₹9,999</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-[11px] text-slate-500 font-medium">Up to 25 Employees</span>
-            <button
-              onClick={() => handleOpenCreate('BASIC')}
-              className="text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:underline"
-            >
-              + Create Basic &rarr;
-            </button>
-          </div>
+      {/* Toolbar: Search on Left & Tier Filter Dropdown on Right */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        {/* Search on the Left */}
+        <div className="relative flex-1 max-w-md">
+          <IconSearch className="w-4 h-4 text-slate-400 font-medium absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search plan or company name..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="w-full pl-10 pr-4 py-2 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 transition-all text-slate-800"
+          />
         </div>
 
-        {/* Tier 2: Medium Plan */}
-        <div className="bg-white p-5 rounded-2xl border border-blue-100/90 shadow-sm relative overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                <span className="w-2 h-2 rounded-full bg-blue-500" />
-                Medium Tier
-              </span>
-              <span className="text-xs text-slate-500 font-medium">{mediumCount} Plans</span>
-            </div>
-            <h3 className="text-lg font-bold text-slate-900">Medium Plan</h3>
-            <p className="text-xs text-slate-500 font-medium mt-1 line-clamp-2">
-              Workforce suite: Attendance, Leaves, Expense Claims, Tickets, and Appreciations.
-            </p>
-
-            <div className="mt-4 pt-3 border-t border-slate-100 grid grid-cols-3 gap-2 text-center">
-              <div className="bg-slate-50 p-2 rounded-xl">
-                <div className="text-[10px] text-slate-500 uppercase font-semibold">Monthly</div>
-                <div className="text-xs font-bold text-slate-800 mt-0.5">₹2,499</div>
-              </div>
-              <div className="bg-slate-50 p-2 rounded-xl">
-                <div className="text-[10px] text-slate-500 uppercase font-semibold">Quarterly</div>
-                <div className="text-xs font-bold text-slate-800 mt-0.5">₹6,999</div>
-              </div>
-              <div className="bg-slate-50 p-2 rounded-xl">
-                <div className="text-[10px] text-slate-500 uppercase font-semibold">Yearly</div>
-                <div className="text-xs font-bold text-blue-600 mt-0.5">₹24,999</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-[11px] text-slate-500 font-medium">Up to 50 Employees</span>
-            <button
-              onClick={() => handleOpenCreate('MEDIUM')}
-              className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline"
-            >
-              + Create Medium &rarr;
-            </button>
-          </div>
-        </div>
-
-        {/* Tier 3: Custom Plan for Company */}
-        <div className="bg-white p-5 rounded-2xl border border-amber-200/90 shadow-sm relative overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                <IconSparkles className="w-3 h-3 text-amber-500" />
-                Custom Company Tier
-              </span>
-              <span className="text-xs text-slate-500 font-medium">{customCount} Custom Plans</span>
-            </div>
-            <h3 className="text-lg font-bold text-slate-900">Custom Plan</h3>
-            <p className="text-xs text-slate-500 font-medium mt-1 line-clamp-2">
-              Enterprise suite tailored for a specific company with custom pricing, seats, and AI.
-            </p>
-
-            <div className="mt-4 pt-3 border-t border-slate-100 grid grid-cols-3 gap-2 text-center">
-              <div className="bg-amber-50/50 p-2 rounded-xl border border-amber-100/60">
-                <div className="text-[10px] text-slate-500 uppercase font-semibold">Monthly</div>
-                <div className="text-xs font-bold text-slate-800 mt-0.5">₹4,999</div>
-              </div>
-              <div className="bg-amber-50/50 p-2 rounded-xl border border-amber-100/60">
-                <div className="text-[10px] text-slate-500 uppercase font-semibold">Quarterly</div>
-                <div className="text-xs font-bold text-slate-800 mt-0.5">₹13,999</div>
-              </div>
-              <div className="bg-amber-50/50 p-2 rounded-xl border border-amber-100/60">
-                <div className="text-[10px] text-slate-500 uppercase font-semibold">Yearly</div>
-                <div className="text-xs font-bold text-amber-600 mt-0.5">₹49,999</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-[11px] text-slate-500 font-medium">Custom Seats &amp; Title</span>
-            <button
-              onClick={() => handleOpenCreate('CUSTOM')}
-              className="text-xs font-bold text-amber-600 hover:text-amber-700 hover:underline"
-            >
-              + Create for Company &rarr;
-            </button>
-          </div>
+        {/* Tier Filter Dropdown on the Right */}
+        <div className="relative min-w-[210px] shrink-0">
+          <select
+            aria-label="Filter by tier"
+            value={selectedTierFilter}
+            onChange={(e) => {
+              setSelectedTierFilter(e.target.value as any);
+              setCurrentPage(1);
+            }}
+            className="w-full pl-9 pr-8 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200/90 rounded-xl shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-indigo-600/20 appearance-none cursor-pointer hover:border-slate-300 transition-colors"
+          >
+            <option value="ALL">All Plans ({totalPackages})</option>
+            <option value="BASIC">Basic Plans ({basicCount})</option>
+            <option value="MEDIUM">Medium Plans ({mediumCount})</option>
+            <option value="CUSTOM">Custom Plans ({customCount})</option>
+          </select>
+          <IconFilter className="w-3.5 h-3.5 text-slate-400 font-medium absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <IconChevronDown className="w-3.5 h-3.5 text-slate-400 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
       </div>
 
       {/* Main Table Card: Available Packages */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        {/* Card Header with Filter Pills and Search */}
-        <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => {
-                setSelectedTierFilter('ALL');
-                setCurrentPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
-                selectedTierFilter === 'ALL'
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              All Plans ({totalPackages})
-            </button>
-            <button
-              onClick={() => {
-                setSelectedTierFilter('BASIC');
-                setCurrentPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
-                selectedTierFilter === 'BASIC'
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
-              }`}
-            >
-              Basic ({basicCount})
-            </button>
-            <button
-              onClick={() => {
-                setSelectedTierFilter('MEDIUM');
-                setCurrentPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
-                selectedTierFilter === 'MEDIUM'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
-              }`}
-            >
-              Medium ({mediumCount})
-            </button>
-            <button
-              onClick={() => {
-                setSelectedTierFilter('CUSTOM');
-                setCurrentPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
-                selectedTierFilter === 'CUSTOM'
-                  ? 'bg-amber-600 text-white'
-                  : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
-              }`}
-            >
-              Custom Plans ({customCount})
-            </button>
-          </div>
-
-          <div className="relative w-full md:w-80">
-            <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Search plan or company name..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="pl-10 pr-4 py-2 text-xs bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-blue-600 w-full placeholder:text-slate-500 font-medium text-slate-800 shadow-2xs"
-            />
-          </div>
-        </div>
-
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
         {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -783,41 +617,33 @@ export const PackagesPage: React.FC = () => {
         <div className="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 font-medium">
           <span>
             {filteredPackages.length === 0
-              ? 'Showing 0 to 0 entries'
-              : `Showing ${(currentPage - 1) * pageSize + 1} to ${Math.min(
+              ? 'Showing 0 - 0 of 0 entries'
+              : `Showing ${(currentPage - 1) * pageSize + 1} - ${Math.min(
                   currentPage * pageSize,
                   filteredPackages.length
-                )} of ${filteredPackages.length} packages`}
+                )} of ${filteredPackages.length} entries`}
           </span>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage <= 1}
-              className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 disabled:opacity-30 disabled:hover:bg-white flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
+              disabled={currentPage <= 1 || totalPages === 0}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+              title="Previous page"
             >
-              <IconChevronLeft className="w-4 h-4" />
+              <IconChevronLeft className="w-3.5 h-3.5" />
+              <span>Prev</span>
             </button>
-
-            {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((pageNum) => (
-              <button
-                key={pageNum}
-                onClick={() => setCurrentPage(pageNum)}
-                className={`w-8 h-8 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-                  currentPage === pageNum
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 shadow-2xs'
-                }`}
-              >
-                {pageNum}
-              </button>
-            ))}
-
+            <span className="px-3 py-1 rounded-lg bg-[#5E4BE2] text-white font-bold text-xs shadow-2xs">
+              {currentPage} / {totalPages}
+            </span>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage >= totalPages}
-              className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 disabled:opacity-30 disabled:hover:bg-white flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
+              disabled={currentPage >= totalPages || totalPages === 0}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+              title="Next page"
             >
-              <IconChevronRight className="w-4 h-4" />
+              <span>Next</span>
+              <IconChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -1076,7 +902,7 @@ export const PackagesPage: React.FC = () => {
                         key={feat.key}
                         className={`flex items-start gap-2.5 p-2 rounded-lg border text-xs cursor-pointer transition-colors ${
                           isChecked
-                            ? 'bg-blue-50 border-blue-200 text-blue-900'
+                            ? 'bg-indigo-50 border-indigo-200 text-indigo-950 font-semibold'
                             : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                         }`}
                       >
@@ -1084,11 +910,11 @@ export const PackagesPage: React.FC = () => {
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => toggleFeature(feat.key)}
-                          className="mt-0.5 rounded text-blue-600 focus:ring-blue-500"
+                          className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                         />
                         <div className="leading-tight">
                           <div className="font-semibold">{feat.name}</div>
-                          <div className="text-[10px] text-slate-500 font-medium mt-0.5 leading-snug">
+                          <div className="text-[10px] text-slate-500 font-normal mt-0.5 leading-snug">
                             {feat.description}
                           </div>
                         </div>
@@ -1110,7 +936,7 @@ export const PackagesPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-xs font-semibold text-white shadow-xs transition-colors cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] disabled:opacity-50 text-xs font-bold text-white shadow-xs transition-colors cursor-pointer"
                 >
                   {isSubmitting ? 'Saving...' : form.id ? 'Save Changes' : 'Create Package Plan'}
                 </button>

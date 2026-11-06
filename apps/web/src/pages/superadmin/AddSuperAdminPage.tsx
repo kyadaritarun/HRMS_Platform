@@ -104,7 +104,7 @@ export const AddSuperAdminPage: React.FC = () => {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">Work Email *</label>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">Work Email <span className="text-rose-500">*</span></label>
           <div className="relative">
             <IconMail className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
@@ -123,7 +123,7 @@ export const AddSuperAdminPage: React.FC = () => {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">System Username *</label>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">System Username <span className="text-rose-500">*</span></label>
           <div className="relative">
             <IconUser className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
@@ -138,7 +138,7 @@ export const AddSuperAdminPage: React.FC = () => {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">Temporary Initial Password *</label>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">Temporary Initial Password <span className="text-rose-500">*</span></label>
           <div className="relative">
             <IconKey className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input

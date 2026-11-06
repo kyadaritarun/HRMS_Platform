@@ -220,7 +220,7 @@ export const SendProposalModal: React.FC<SendProposalModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Select Plan Tier *
+                  Select Plan Tier <span className="text-rose-500">*</span>
                 </label>
                 <select
                   required
@@ -238,7 +238,7 @@ export const SendProposalModal: React.FC<SendProposalModalProps> = ({
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Billing Cycle *
+                  Billing Cycle <span className="text-rose-500">*</span>
                 </label>
                 <select
                   value={form.planType}
@@ -256,7 +256,7 @@ export const SendProposalModal: React.FC<SendProposalModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Company / Organization Name *
+                  Company / Organization Name <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -270,7 +270,7 @@ export const SendProposalModal: React.FC<SendProposalModalProps> = ({
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Tenant Subdomain *
+                  Tenant Subdomain <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative flex items-center">
                   <input
@@ -305,7 +305,7 @@ export const SendProposalModal: React.FC<SendProposalModalProps> = ({
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Contact Work Email *
+                  Contact Work Email <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="email"

@@ -638,13 +638,13 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
               <tr>
                 <th className="px-3 py-3 w-12 text-center">#</th>
                 <th className="px-3 py-3 w-14 text-center">STATUS</th>
-                <th className="px-3 py-3 min-w-[150px]">FIRST NAME *</th>
+                <th className="px-3 py-3 min-w-[150px]">FIRST NAME <span className="text-rose-500">*</span></th>
                 <th className="px-3 py-3 min-w-[150px]">LAST NAME</th>
-                <th className="px-3 py-3 min-w-[200px]">WORK EMAIL *</th>
-                <th className="px-3 py-3 min-w-[200px]">PERSONAL EMAIL *</th>
-                <th className="px-3 py-3 min-w-[130px]">EMPLOYEE ID *</th>
-                <th className="px-3 py-3 min-w-[140px]">DOB (YYYY-MM-DD) *</th>
-                <th className="px-3 py-3 min-w-[140px]">WORK TYPE *</th>
+                <th className="px-3 py-3 min-w-[200px]">WORK EMAIL <span className="text-rose-500">*</span></th>
+                <th className="px-3 py-3 min-w-[200px]">PERSONAL EMAIL <span className="text-rose-500">*</span></th>
+                <th className="px-3 py-3 min-w-[130px]">EMPLOYEE ID <span className="text-rose-500">*</span></th>
+                <th className="px-3 py-3 min-w-[140px]">DOB (YYYY-MM-DD) <span className="text-rose-500">*</span></th>
+                <th className="px-3 py-3 min-w-[140px]">WORK TYPE <span className="text-rose-500">*</span></th>
                 <th className="px-3 py-3 min-w-[170px]">JOB TITLE</th>
                 <th className="px-3 py-3 min-w-[140px]">ROLE</th>
                 <th className="px-3 py-3 min-w-[140px]">PHONE</th>
@@ -652,11 +652,11 @@ export const BulkEmployeeImport: React.FC<BulkEmployeeImportProps> = ({
                 <th className="px-3 py-3 min-w-[140px]">JOINING DATE</th>
                 <th className="px-3 py-3 min-w-[200px]">SHIFT TIMING</th>
                 <th className="px-3 py-3 min-w-[220px]">RESIDENTIAL ADDRESS</th>
-                <th className="px-3 py-3 min-w-[220px]">WORKING ADDRESS *</th>
+                <th className="px-3 py-3 min-w-[220px]">WORKING ADDRESS <span className="text-rose-500">*</span></th>
                 <th className="px-3 py-3 min-w-[140px]">COST TO COMPANY (CTC)</th>
-                <th className="px-3 py-3 min-w-[160px]">EMERGENCY NAME *</th>
-                <th className="px-3 py-3 min-w-[160px]">EMERGENCY REL *</th>
-                <th className="px-3 py-3 min-w-[150px]">EMERGENCY PHONE *</th>
+                <th className="px-3 py-3 min-w-[160px]">EMERGENCY NAME <span className="text-rose-500">*</span></th>
+                <th className="px-3 py-3 min-w-[160px]">EMERGENCY REL <span className="text-rose-500">*</span></th>
+                <th className="px-3 py-3 min-w-[150px]">EMERGENCY PHONE <span className="text-rose-500">*</span></th>
                 <th className="px-3 py-3 w-12 text-center">ACTION</th>
               </tr>
             </thead>

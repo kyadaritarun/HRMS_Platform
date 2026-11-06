@@ -609,7 +609,7 @@ export const InvoicesPage: React.FC = () => {
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Select Tenant Company *
+                  Select Tenant Company <span className="text-rose-500">*</span>
                 </label>
                 <select
                   required
@@ -629,7 +629,7 @@ export const InvoicesPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Amount (₹) *
+                    Amount (₹) <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="number"
@@ -660,7 +660,7 @@ export const InvoicesPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Payment Method *
+                    Payment Method <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={form.paymentMethod}
@@ -675,7 +675,7 @@ export const InvoicesPage: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Invoice Status *
+                    Invoice Status <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={form.status}
@@ -703,7 +703,7 @@ export const InvoicesPage: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Payment Due Date *
+                    Payment Due Date <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="date"

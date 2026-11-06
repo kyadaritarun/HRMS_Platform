@@ -204,7 +204,7 @@ export const InfrastructurePage: React.FC = () => {
 
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Server Cluster Label *</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Server Cluster Label <span className="text-rose-500">*</span></label>
                 <input
                   type="text"
                   required
@@ -216,7 +216,7 @@ export const InfrastructurePage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Host IP / FQDN *</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Host IP / FQDN <span className="text-rose-500">*</span></label>
                 <input
                   type="text"
                   required
