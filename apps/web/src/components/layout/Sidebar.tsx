@@ -530,11 +530,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           <span className="sr-only">UPTRIX HRMS</span>
           <div className="flex items-center justify-center min-w-0 w-full">
             {collapsed ? (
-              <div className="w-9 h-9 rounded-xl bg-white border border-slate-200/80 p-0.5 flex items-center justify-center shadow-2xs shrink-0 overflow-hidden mx-auto">
+              <div className="w-9 h-9 rounded-xl bg-white border border-slate-200/80 p-1 flex items-center justify-center shadow-2xs shrink-0 overflow-hidden mx-auto">
                 <img
-                  src="/Uptrix_logo.png"
+                  src="/logo-icon.png"
                   alt="Uptrix Logo"
-                  className="h-full w-full object-cover object-left scale-105"
+                  className="h-full w-full object-contain"
                 />
               </div>
             ) : (
