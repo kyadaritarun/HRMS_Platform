@@ -2121,6 +2121,16 @@ router.delete('/cycles/:id', roleGuard('COMPANY_ADMIN', 'HR'), async (req, res, 
   }
 });
 
+// Initial starter claim category presets for new companies
+const INITIAL_CLAIM_PRESETS = [
+  { id: 'cat-travel', name: 'Travel & Transport', maxLimit: 25000, requiresReceipt: true, description: 'Flights, cabs, train tickets, lodging for official company travel.', isActive: true },
+  { id: 'cat-meals', name: 'Food & Meals', maxLimit: 3000, requiresReceipt: true, description: 'Client lunches, team dinners, or late-night overtime meals.', isActive: true },
+  { id: 'cat-internet', name: 'Internet & Mobile Reimbursement', maxLimit: 2000, requiresReceipt: true, description: 'Monthly work-from-home broadband and mobile utility bills.', isActive: true },
+  { id: 'cat-learning', name: 'Learning & Certifications', maxLimit: 15000, requiresReceipt: true, description: 'Professional development courses, books, and exams.', isActive: true },
+  { id: 'cat-office', name: 'Office Supplies & Peripherals', maxLimit: 10000, requiresReceipt: true, description: 'Desk accessories, monitors, ergonomic accessories.', isActive: true },
+  { id: 'cat-medical', name: 'Health & Wellness', maxLimit: 5000, requiresReceipt: true, description: 'Annual health checkups and preventative wellness claims.', isActive: true },
+];
+
 // GET /company/claims/categories
 router.get('/claims/categories', async (req, res, next) => {
   try {
@@ -2130,16 +2140,17 @@ router.get('/claims/categories', async (req, res, next) => {
       select: { settings: true },
     });
     const settings = (company?.settings as any) || {};
-    const defaultCategories = [
-      { id: 'cat-travel', name: 'Travel & Transport', maxLimit: 25000, requiresReceipt: true, description: 'Flights, cabs, train tickets, lodging for official company travel.', isActive: true },
-      { id: 'cat-meals', name: 'Food & Meals', maxLimit: 3000, requiresReceipt: true, description: 'Client lunches, team dinners, or late-night overtime meals.', isActive: true },
-      { id: 'cat-internet', name: 'Internet & Mobile Reimbursement', maxLimit: 2000, requiresReceipt: true, description: 'Monthly work-from-home broadband and mobile utility bills.', isActive: true },
-      { id: 'cat-learning', name: 'Learning & Certifications', maxLimit: 15000, requiresReceipt: true, description: 'Professional development courses, books, and exams.', isActive: true },
-      { id: 'cat-office', name: 'Office Supplies & Peripherals', maxLimit: 10000, requiresReceipt: true, description: 'Desk accessories, monitors, ergonomic accessories.', isActive: true },
-      { id: 'cat-medical', name: 'Health & Wellness', maxLimit: 5000, requiresReceipt: true, description: 'Annual health checkups and preventative wellness claims.', isActive: true },
-    ];
-    const categories = settings.claimCategories && settings.claimCategories.length > 0 ? settings.claimCategories : defaultCategories;
-    return res.json({ categories });
+
+    // If company does not have claimCategories initialized in database yet, persist starter presets to DB once
+    if (!Array.isArray(settings.claimCategories)) {
+      settings.claimCategories = [...INITIAL_CLAIM_PRESETS];
+      await prisma.company.update({
+        where: { id: companyId },
+        data: { settings },
+      });
+    }
+
+    return res.json({ categories: settings.claimCategories });
   } catch (error) {
     next(error);
   }
@@ -2155,7 +2166,7 @@ router.post('/claims/categories', roleGuard('COMPANY_ADMIN', 'HR'), async (req, 
       select: { settings: true },
     });
     const settings = (company?.settings as any) || {};
-    const existing = settings.claimCategories || [];
+    const existing = Array.isArray(settings.claimCategories) ? settings.claimCategories : [...INITIAL_CLAIM_PRESETS];
     const newCat = { id: `cat-${Date.now()}`, ...category, isActive: category.isActive !== false };
     settings.claimCategories = [...existing, newCat];
     await prisma.company.update({
@@ -2163,6 +2174,55 @@ router.post('/claims/categories', roleGuard('COMPANY_ADMIN', 'HR'), async (req, 
       data: { settings },
     });
     return res.status(201).json({ success: true, category: newCat });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PUT /company/claims/categories/:id
+router.put('/claims/categories/:id', roleGuard('COMPANY_ADMIN', 'HR'), async (req, res, next) => {
+  try {
+    const companyId = req.user!.companyId!;
+    const { id } = req.params;
+    const updateData = req.body;
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { settings: true },
+    });
+    const settings = (company?.settings as any) || {};
+    const categories = Array.isArray(settings.claimCategories) ? settings.claimCategories : [...INITIAL_CLAIM_PRESETS];
+    const index = categories.findIndex((c: any) => c.id === id);
+    if (index >= 0) {
+      categories[index] = { ...categories[index], ...updateData, id };
+    }
+    settings.claimCategories = categories;
+    await prisma.company.update({
+      where: { id: companyId },
+      data: { settings },
+    });
+    return res.json({ success: true, category: categories[index] });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// DELETE /company/claims/categories/:id
+router.delete('/claims/categories/:id', roleGuard('COMPANY_ADMIN', 'HR'), async (req, res, next) => {
+  try {
+    const companyId = req.user!.companyId!;
+    const { id } = req.params;
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { settings: true },
+    });
+    const settings = (company?.settings as any) || {};
+    const categories = Array.isArray(settings.claimCategories) ? settings.claimCategories : [...INITIAL_CLAIM_PRESETS];
+    settings.claimCategories = categories.filter((c: any) => c.id !== id);
+    await prisma.company.update({
+      where: { id: companyId },
+      data: { settings },
+    });
+    return res.json({ success: true });
   } catch (error) {
     next(error);
   }

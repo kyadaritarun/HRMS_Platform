@@ -4,18 +4,16 @@ import { useAuth } from '../../context/AuthContext';
 import TablePagination from '../../components/common/TablePagination';
 import {
   IconFileCertificate,
-  IconShieldCheck,
   IconCheck,
   IconX,
   IconSearch,
   IconFilter,
+  IconChevronDown,
   IconDownload,
   IconEye,
   IconLock,
-  IconFileText,
   IconPrinter,
   IconCalendar,
-  IconReceipt2,
   IconBuildingBank,
 } from '@tabler/icons-react';
 
@@ -100,20 +98,6 @@ export const TaxDeclarationsPage: React.FC = () => {
     const start = (currentPage - 1) * pageSize;
     return filteredRecords.slice(start, start + pageSize);
   }, [filteredRecords, currentPage, pageSize]);
-
-  // Metrics
-  const metrics = useMemo(() => {
-    const total = records.length;
-    const pending = records.filter((r) => r.status === 'PENDING_REVIEW').length;
-    const verified = records.filter((r) => r.status === 'VERIFIED').length;
-    const locked = records.filter((r) => r.status === 'LOCKED').length;
-    const totalTaxSaved = records.reduce((acc, r) => {
-      const ded = r.section80CVerified + r.section80DVerified + r.hraVerified + r.homeLoanInterestVerified;
-      return acc + Math.round(ded * 0.2); // avg 20% tax slab saved
-    }, 0);
-
-    return { total, pending, verified, locked, totalTaxSaved };
-  }, [records]);
 
   const handleVerify = async (empId: number) => {
     const target = records.find((r) => r.id === empId);
@@ -218,92 +202,40 @@ export const TaxDeclarationsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-slate-500">Total Declarations</span>
-            <span className="w-7 h-7 rounded-lg bg-indigo-50 text-[#5E4BE2] flex items-center justify-center">
-              <IconFileText className="w-4 h-4" />
-            </span>
-          </div>
-          <div className="text-xl font-black text-slate-900">{metrics.total}</div>
-          <p className="text-[11px] text-slate-500 font-medium mt-1">Across Old & New Tax Regimes</p>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-slate-500">Pending Proof Review</span>
-            <span className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-              <IconShieldCheck className="w-4 h-4" />
-            </span>
-          </div>
-          <div className="text-xl font-black text-amber-600">{metrics.pending}</div>
-          <p className="text-[11px] text-slate-500 font-medium mt-1">Require Finance proof audit</p>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-slate-500">Verified & Locked</span>
-            <span className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <IconCheck className="w-4 h-4" />
-            </span>
-          </div>
-          <div className="text-xl font-black text-emerald-700">
-            {metrics.verified + metrics.locked}
-          </div>
-          <p className="text-[11px] text-slate-500 font-medium mt-1">TDS adjusted in monthly payroll</p>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-slate-500">Est. Tax Savings</span>
-            <span className="w-7 h-7 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
-              <IconReceipt2 className="w-4 h-4" />
-            </span>
-          </div>
-          <div className="text-xl font-black text-teal-700">
-            ₹{metrics.totalTaxSaved.toLocaleString('en-IN')}
-          </div>
-          <p className="text-[11px] text-slate-500 font-medium mt-1">Total tax rebate passed to employees</p>
-        </div>
-      </div>
-
       {/* Filter Toolbar */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-        <div className="flex items-center bg-slate-50/80 border border-slate-200/70 p-1 rounded-xl shrink-0">
-          {(['ALL', 'PENDING', 'VERIFIED', 'LOCKED'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => {
-                setActiveTab(tab);
-                setCurrentPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${activeTab === tab
-                  ? 'bg-white text-[#5E4BE2] shadow-2xs'
-                  : 'text-slate-500 hover:text-slate-800'
-                }`}
-            >
-              {tab === 'ALL'
-                ? 'All Declarations'
-                : tab === 'PENDING'
-                  ? 'Pending Audit'
-                  : tab === 'VERIFIED'
-                    ? 'Verified'
-                    : 'Locked'}
-            </button>
-          ))}
-        </div>
-
+        {/* Search on the Left */}
         <div className="relative flex-1 max-w-md">
           <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             placeholder="Search by employee name, PAN, or department..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full pl-10 pr-4 py-2 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all text-slate-800"
           />
+        </div>
+
+        {/* Dropdown Filter on the Right */}
+        <div className="relative min-w-[200px] shrink-0">
+          <select
+            value={activeTab}
+            onChange={(e) => {
+              setActiveTab(e.target.value as 'ALL' | 'PENDING' | 'VERIFIED' | 'LOCKED');
+              setCurrentPage(1);
+            }}
+            className="w-full pl-9 pr-8 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200/90 rounded-xl shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 appearance-none cursor-pointer hover:border-slate-300 transition-colors"
+          >
+            <option value="ALL">All Declarations</option>
+            <option value="PENDING">Pending Audit</option>
+            <option value="VERIFIED">Verified</option>
+            <option value="LOCKED">Locked</option>
+          </select>
+          <IconFilter className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
       </div>
 
@@ -311,16 +243,16 @@ export const TaxDeclarationsPage: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50/70 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
-                <th className="px-5 py-3.5">Employee</th>
-                <th className="px-5 py-3.5">PAN & Regime</th>
-                <th className="px-5 py-3.5 text-right">Gross Salary</th>
-                <th className="px-5 py-3.5 text-right">80C Verified</th>
-                <th className="px-5 py-3.5 text-right">80D (Health)</th>
-                <th className="px-5 py-3.5 text-right">HRA Verified</th>
-                <th className="px-5 py-3.5">Status</th>
-                <th className="px-5 py-3.5 text-right">Actions</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Employee</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">PAN & Regime</th>
+                <th className="px-5 py-3.5 text-right whitespace-nowrap">Gross Salary</th>
+                <th className="px-5 py-3.5 text-right whitespace-nowrap">80C Verified</th>
+                <th className="px-5 py-3.5 text-right whitespace-nowrap">80D (Health)</th>
+                <th className="px-5 py-3.5 text-right whitespace-nowrap">HRA Verified</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Status</th>
+                <th className="px-5 py-3.5 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
@@ -370,18 +302,18 @@ export const TaxDeclarationsPage: React.FC = () => {
                       {isFinanceOrAdmin && emp.status === 'PENDING_REVIEW' && (
                         <button
                           onClick={() => handleVerify(emp.id)}
-                          className="px-2.5 py-1 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-2xs transition-colors cursor-pointer"
+                          title="Verify Proofs"
+                          className="p-1.5 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 shadow-2xs transition-colors cursor-pointer"
                         >
-                          Verify Proofs
+                          <IconCheck className="w-4 h-4" />
                         </button>
                       )}
                       <button
                         onClick={() => handleOpenForm16(emp)}
-                        className="px-2.5 py-1 text-[11px] font-bold bg-indigo-50 hover:bg-indigo-100 text-[#5E4BE2] rounded-lg transition-colors cursor-pointer flex items-center gap-1"
-                        title="Generate Form 16 PDF"
+                        className="p-1.5 rounded-lg text-[#5E4BE2] bg-indigo-50 hover:bg-indigo-100 border border-indigo-100/80 shadow-2xs transition-colors cursor-pointer"
+                        title="Form 16"
                       >
-                        <IconFileCertificate className="w-3.5 h-3.5" />
-                        <span>Form 16</span>
+                        <IconFileCertificate className="w-4 h-4" />
                       </button>
                     </div>
                   </td>

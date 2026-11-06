@@ -77,11 +77,11 @@ describe('LoginPage Finance Landing Redirection Tests', () => {
     mockLogin.mockResolvedValueOnce({
       user: {
         id: 5,
-        email: 'finance@kyadari.com',
-        username: 'rohan.sharma',
+        email: 'sushanth@uptrixglobal.com',
+        username: 'sushanth',
         role: 'FINANCE',
-        firstName: 'Rohan',
-        lastName: 'Sharma',
+        firstName: 'Sushanth',
+        lastName: 'Reddy',
         companyId: 1,
         mustChangePassword: false,
       },
@@ -98,14 +98,14 @@ describe('LoginPage Finance Landing Redirection Tests', () => {
     const demoAccordionBtn = screen.getByText(/1-Click Demo Logins/i);
     fireEvent.click(demoAccordionBtn);
 
-    // Find and click the Finance demo persona button
-    const financePersonaBtn = screen.getByRole('button', { name: /Kyadari Finance/i });
+    // Find and click the Finance demo persona row/button
+    const financePersonaBtn = screen.getByText('sushanth@uptrixglobal.com');
     fireEvent.click(financePersonaBtn);
 
     await waitFor(() => {
       expect(mockLogin).toHaveBeenCalledWith({
-        login: 'finance@kyadari.com',
-        password: 'Admin@123!',
+        login: 'sushanth@uptrixglobal.com',
+        password: 'Password@123',
       });
       expect(mockNavigate).toHaveBeenCalledWith('/employee/dashboard');
       expect(mockNavigate).not.toHaveBeenCalledWith('/payroll/attendance-salary');
@@ -116,11 +116,11 @@ describe('LoginPage Finance Landing Redirection Tests', () => {
     mockLogin.mockResolvedValueOnce({
       user: {
         id: 6,
-        email: 'it@kyadari.com',
-        username: 'arjun.verma',
+        email: 'tarun@uptrixglobal.com',
+        username: 'kyadaritarun',
         role: 'IT',
-        firstName: 'Arjun',
-        lastName: 'Verma',
+        firstName: 'Tarun',
+        lastName: 'Kyadari',
         companyId: 1,
         mustChangePassword: false,
       },
@@ -137,14 +137,14 @@ describe('LoginPage Finance Landing Redirection Tests', () => {
     const passwordInput = screen.getByPlaceholderText(/Password/i);
     const submitBtn = container.querySelector('button[type="submit"]') as HTMLElement;
 
-    fireEvent.change(emailInput, { target: { value: 'it@kyadari.com' } });
-    fireEvent.change(passwordInput, { target: { value: 'Admin@123!' } });
+    fireEvent.change(emailInput, { target: { value: 'tarun@uptrixglobal.com' } });
+    fireEvent.change(passwordInput, { target: { value: 'Password@123' } });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
       expect(mockLogin).toHaveBeenCalledWith({
-        login: 'it@kyadari.com',
-        password: 'Admin@123!',
+        login: 'tarun@uptrixglobal.com',
+        password: 'Password@123',
       });
       // Verifies IT redirects to Dashboard (/employee/dashboard) instead of /company/assets
       expect(mockNavigate).toHaveBeenCalledWith('/employee/dashboard');
@@ -156,11 +156,11 @@ describe('LoginPage Finance Landing Redirection Tests', () => {
     mockLogin.mockResolvedValueOnce({
       user: {
         id: 6,
-        email: 'it@kyadari.com',
-        username: 'arjun.verma',
+        email: 'tarun@uptrixglobal.com',
+        username: 'kyadaritarun',
         role: 'IT',
-        firstName: 'Arjun',
-        lastName: 'Verma',
+        firstName: 'Tarun',
+        lastName: 'Kyadari',
         companyId: 1,
         mustChangePassword: false,
       },
@@ -177,14 +177,14 @@ describe('LoginPage Finance Landing Redirection Tests', () => {
     const demoAccordionBtn = screen.getByText(/1-Click Demo Logins/i);
     fireEvent.click(demoAccordionBtn);
 
-    // Find and click the IT demo persona button
-    const itPersonaBtn = screen.getByRole('button', { name: /Kyadari IT/i });
+    // Find and click the IT demo persona row/button
+    const itPersonaBtn = screen.getByText('tarun@uptrixglobal.com');
     fireEvent.click(itPersonaBtn);
 
     await waitFor(() => {
       expect(mockLogin).toHaveBeenCalledWith({
-        login: 'it@kyadari.com',
-        password: 'Admin@123!',
+        login: 'tarun@uptrixglobal.com',
+        password: 'Password@123',
       });
       expect(mockNavigate).toHaveBeenCalledWith('/employee/dashboard');
       expect(mockNavigate).not.toHaveBeenCalledWith('/company/assets');

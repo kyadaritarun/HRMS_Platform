@@ -18,6 +18,7 @@ import {
   IconCalculator,
   IconUser,
   IconCalendar,
+  IconChevronDown,
 } from '@tabler/icons-react';
 
 export interface LoanRecord {
@@ -271,104 +272,41 @@ export const LoansAdvancesPage: React.FC = () => {
         </button>
       </div>
 
-      {/* KPI Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-slate-500">Active Advances</span>
-            <span className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <IconCash className="w-4 h-4" />
-            </span>
-          </div>
-          <div className="text-xl font-black text-slate-900">
-            ₹{metrics.totalOutstanding.toLocaleString('en-IN')}
-          </div>
-          <p className="text-[11px] text-slate-500 font-medium mt-1">
-            {metrics.activeCount} employee loans currently active
-          </p>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-slate-500">Monthly EMI Recovery</span>
-            <span className="w-7 h-7 rounded-lg bg-indigo-50 text-[#5E4BE2] flex items-center justify-center">
-              <IconReceipt2 className="w-4 h-4" />
-            </span>
-          </div>
-          <div className="text-xl font-black text-slate-900">
-            ₹{metrics.monthlyRecovery.toLocaleString('en-IN')}
-          </div>
-          <p className="text-[11px] text-slate-500 font-medium mt-1">
-            Auto-deducted from upcoming monthly payslips
-          </p>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-slate-500">Total Disbursed (FY)</span>
-            <span className="w-7 h-7 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
-              <IconBuildingBank className="w-4 h-4" />
-            </span>
-          </div>
-          <div className="text-xl font-black text-slate-900">
-            ₹{metrics.totalDisbursed.toLocaleString('en-IN')}
-          </div>
-          <p className="text-[11px] text-slate-500 font-medium mt-1">
-            Cumulative financial assistance this year
-          </p>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-slate-500">Pending Requests</span>
-            <span className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-              <IconClock className="w-4 h-4" />
-            </span>
-          </div>
-          <div className="text-xl font-black text-slate-900">
-            {metrics.pendingCount}
-          </div>
-          <p className="text-[11px] text-slate-500 font-medium mt-1">
-            Awaiting Finance approval & UTR disbursement
-          </p>
-        </div>
-      </div>
-
-      {/* Toolbar & Filter Tabs */}
+      {/* Toolbar: Search on Left & Status Dropdown Filter on Right */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-        <div className="flex items-center bg-slate-50/80 border border-slate-200/70 p-1 rounded-xl shrink-0">
-          {(['ALL', 'PENDING', 'ACTIVE', 'CLOSED'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => {
-                setActiveTab(tab);
-                setCurrentPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === tab
-                  ? 'bg-white text-emerald-600 shadow-2xs'
-                  : 'text-slate-500 hover:text-slate-800'
-                }`}
-            >
-              {tab === 'ALL'
-                ? 'All Records'
-                : tab === 'PENDING'
-                  ? 'Pending Review'
-                  : tab === 'ACTIVE'
-                    ? 'Active Payouts'
-                    : 'Settled'}
-            </button>
-          ))}
-        </div>
-
+        {/* Search on the Left */}
         <div className="relative flex-1 max-w-md">
           <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             placeholder="Search by employee name, loan ID, or department..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full pl-10 pr-4 py-2 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all text-slate-800"
           />
+        </div>
+
+        {/* Dropdown Filter on the Right */}
+        <div className="relative min-w-[190px] shrink-0">
+          <select
+            aria-label="Filter by status"
+            value={activeTab}
+            onChange={(e) => {
+              setActiveTab(e.target.value as 'ALL' | 'PENDING' | 'ACTIVE' | 'CLOSED');
+              setCurrentPage(1);
+            }}
+            className="w-full pl-9 pr-8 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200/90 rounded-xl shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-emerald-600/20 appearance-none cursor-pointer hover:border-slate-300 transition-colors"
+          >
+            <option value="ALL">All Records</option>
+            <option value="PENDING">Pending Review</option>
+            <option value="ACTIVE">Active Payouts</option>
+            <option value="CLOSED">Settled</option>
+          </select>
+          <IconFilter className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
       </div>
 
@@ -435,15 +373,17 @@ export const LoansAdvancesPage: React.FC = () => {
                             <>
                               <button
                                 onClick={() => handleApprove(loan.id)}
-                                className="px-3 py-1.5 text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-[#5E4BE2] rounded-xl shadow-2xs transition-colors cursor-pointer"
+                                title="Approve"
+                                className="p-1.5 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 shadow-2xs transition-colors cursor-pointer"
                               >
-                                Approve
+                                <IconCheck className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => handleReject(loan.id)}
-                                className="px-3 py-1.5 text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl shadow-2xs transition-colors cursor-pointer"
+                                title="Reject"
+                                className="p-1.5 rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200/80 shadow-2xs transition-colors cursor-pointer"
                               >
-                                Reject
+                                <IconX className="w-4 h-4" />
                               </button>
                             </>
                           )}

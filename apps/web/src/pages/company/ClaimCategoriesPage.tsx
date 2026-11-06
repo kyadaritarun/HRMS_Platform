@@ -10,6 +10,8 @@ import {
   IconCash,
   IconFileCertificate,
   IconSearch,
+  IconPencil,
+  IconTrash,
 } from '@tabler/icons-react';
 
 interface ClaimCategory {
@@ -25,6 +27,9 @@ export const ClaimCategoriesPage: React.FC = () => {
   const [categories, setCategories] = useState<ClaimCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<ClaimCategory | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'RECEIPT_REQUIRED' | 'CAPPED'>('ALL');
 
@@ -53,7 +58,26 @@ export const ClaimCategoriesPage: React.FC = () => {
     fetchCategories();
   }, []);
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleOpenAdd = () => {
+    setEditingId(null);
+    setError(null);
+    setForm({ name: '', maxLimit: 10000, requiresReceipt: true, description: '' });
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (cat: ClaimCategory) => {
+    setEditingId(cat.id);
+    setError(null);
+    setForm({
+      name: cat.name,
+      maxLimit: cat.maxLimit,
+      requiresReceipt: cat.requiresReceipt,
+      description: cat.description || '',
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleCreateOrUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) {
       setError('Category name is required');
@@ -62,17 +86,39 @@ export const ClaimCategoriesPage: React.FC = () => {
     setError(null);
     setIsSubmitting(true);
     try {
-      await api.post('/company/claims/categories', {
-        ...form,
-        maxLimit: Number(form.maxLimit) || 0,
-      });
+      if (editingId) {
+        await api.put(`/company/claims/categories/${editingId}`, {
+          ...form,
+          maxLimit: Number(form.maxLimit) || 0,
+        });
+      } else {
+        await api.post('/company/claims/categories', {
+          ...form,
+          maxLimit: Number(form.maxLimit) || 0,
+        });
+      }
       setIsModalOpen(false);
+      setEditingId(null);
       setForm({ name: '', maxLimit: 10000, requiresReceipt: true, description: '' });
       fetchCategories();
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to add claim category');
+      setError(err.response?.data?.error || `Failed to ${editingId ? 'update' : 'add'} claim category`);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!categoryToDelete) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/company/claims/categories/${categoryToDelete.id}`);
+      setCategoryToDelete(null);
+      fetchCategories();
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to delete category');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -113,10 +159,7 @@ export const ClaimCategoriesPage: React.FC = () => {
         </div>
 
         <button
-          onClick={() => {
-            setError(null);
-            setIsModalOpen(true);
-          }}
+          onClick={handleOpenAdd}
           className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white font-bold text-xs shadow-xs transition-colors cursor-pointer shrink-0"
         >
           <IconPlus className="w-4 h-4" />
@@ -242,7 +285,8 @@ export const ClaimCategoriesPage: React.FC = () => {
                 <th className="px-5 py-3.5">Description &amp; Guidelines</th>
                 <th className="px-5 py-3.5 whitespace-nowrap">Max Cap Per Claim</th>
                 <th className="px-5 py-3.5 whitespace-nowrap">Proof Required</th>
-                <th className="px-5 py-3.5 text-right whitespace-nowrap">Status</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Status</th>
+                <th className="px-5 py-3.5 text-right whitespace-nowrap">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -264,14 +308,17 @@ export const ClaimCategoriesPage: React.FC = () => {
                     <td className="px-5 py-4">
                       <div className="w-24 h-5 bg-slate-100 rounded-full" />
                     </td>
+                    <td className="px-5 py-4">
+                      <div className="w-16 h-5 bg-slate-100 rounded-full" />
+                    </td>
                     <td className="px-5 py-4 text-right">
-                      <div className="w-16 h-5 bg-slate-100 rounded-full ml-auto" />
+                      <div className="w-14 h-5 bg-slate-100 rounded-full ml-auto" />
                     </td>
                   </tr>
                 ))
               ) : filteredCategories.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-16 text-center text-slate-500 font-medium">
+                  <td colSpan={6} className="py-16 text-center text-slate-500 font-medium">
                     <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-[#5E4BE2] flex items-center justify-center mx-auto mb-3">
                       <IconReceipt2 className="w-6 h-6" />
                     </div>
@@ -325,10 +372,32 @@ export const ClaimCategoriesPage: React.FC = () => {
                     </td>
 
                     {/* Status */}
-                    <td className="px-5 py-4 text-right whitespace-nowrap">
+                    <td className="px-5 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                         ACTIVE
                       </span>
+                    </td>
+
+                    {/* Action */}
+                    <td className="px-5 py-4 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(cat)}
+                          title="Edit Category"
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-[#5E4BE2] hover:bg-indigo-50 transition-colors cursor-pointer"
+                        >
+                          <IconPencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCategoryToDelete(cat)}
+                          title="Delete Category"
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                        >
+                          <IconTrash className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -338,7 +407,42 @@ export const ClaimCategoriesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Add Category Right-Side Slide-Over Drawer */}
+      {/* Delete Category Confirmation Dialog */}
+      {categoryToDelete && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+              <IconAlertCircle className="w-6 h-6" />
+            </div>
+            <div className="text-center">
+              <h3 className="text-base font-bold text-slate-900">Delete Category?</h3>
+              <p className="text-xs text-slate-500 font-medium mt-1">
+                Are you sure you want to delete <span className="font-bold text-slate-800">"{categoryToDelete.name}"</span>? Employees will no longer be able to submit claims under this category.
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setCategoryToDelete(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add / Edit Category Right-Side Slide-Over Drawer */}
       {isModalOpen && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[9999] overflow-hidden">
           <div
@@ -361,7 +465,7 @@ export const ClaimCategoriesPage: React.FC = () => {
                       Expense Management
                     </span>
                     <h2 className="text-base font-bold text-slate-900 mt-0.5">
-                      Add Claim Category
+                      {editingId ? 'Edit Claim Category' : 'Add Claim Category'}
                     </h2>
                   </div>
                 </div>
@@ -375,7 +479,7 @@ export const ClaimCategoriesPage: React.FC = () => {
               </div>
 
               {/* Form Body */}
-              <form onSubmit={handleCreate} className="p-6 space-y-5 flex-1 flex flex-col justify-between">
+              <form onSubmit={handleCreateOrUpdate} className="p-6 space-y-5 flex-1 flex flex-col justify-between">
                 <div className="space-y-4">
                   {error && (
                     <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium flex items-center gap-2">
@@ -456,7 +560,7 @@ export const ClaimCategoriesPage: React.FC = () => {
                     disabled={isSubmitting}
                     className="px-5 py-2 text-xs font-bold text-white bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] disabled:opacity-50 shadow-xs cursor-pointer transition-all"
                   >
-                    {isSubmitting ? 'Saving...' : 'Add Category'}
+                    {isSubmitting ? 'Saving...' : editingId ? 'Update Category' : 'Add Category'}
                   </button>
                 </div>
               </form>

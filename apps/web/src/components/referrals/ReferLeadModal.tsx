@@ -137,7 +137,10 @@ export const ReferLeadModal: React.FC<ReferLeadModalProps> = ({
         onClose();
       }, 1500);
     } catch (err: any) {
-      const msg = err.response?.data?.error || err.response?.data?.message || 'Failed to submit referral. Please try again.';
+      let msg = err.response?.data?.error || err.response?.data?.message || 'Failed to submit referral. Please try again.';
+      if (err.response?.status === 413 || (typeof msg === 'string' && msg.toLowerCase().includes('entity too large'))) {
+        msg = 'The attached resume exceeds the upload limit. Please upload a file smaller than 10MB.';
+      }
       setErrorMessage(msg);
     } finally {
       setIsSubmitting(false);

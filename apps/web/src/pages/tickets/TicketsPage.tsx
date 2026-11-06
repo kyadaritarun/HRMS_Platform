@@ -785,8 +785,8 @@ export const TicketsPage: React.FC = () => {
           <>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
+                  <tr>
                     <th className="py-3.5 px-4 whitespace-nowrap">Ticket ID</th>
                     <th className="py-3.5 px-4 min-w-[260px]">Subject & Details</th>
                     <th className="py-3.5 px-4 whitespace-nowrap">Category</th>

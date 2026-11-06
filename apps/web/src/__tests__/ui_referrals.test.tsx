@@ -186,4 +186,39 @@ describe('Refer a Lead & Refer & Earn UI Tests', () => {
 
     expect(screen.getByText('Employee Referrals')).toBeInTheDocument();
   });
+
+  it('5. ReferLeadModal handles 413 / payload too large errors gracefully', async () => {
+    (api.post as any).mockRejectedValueOnce({
+      response: {
+        status: 413,
+        data: { error: 'request entity too large' },
+      },
+    });
+
+    render(<ReferLeadModal isOpen={true} onClose={vi.fn()} />);
+
+    fireEvent.change(screen.getByPlaceholderText('Enter employee name'), {
+      target: { value: 'Krishna' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('e.g. JOB-101'), {
+      target: { value: 'random' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('e.g. Senior Frontend Developer'), {
+      target: { value: 'Software Engineer' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Enter mobile number'), {
+      target: { value: '9223572847' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Enter working email'), {
+      target: { value: 'sdf@gmail.com' },
+    });
+
+    fireEvent.click(screen.getByText('Submit Referral'));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('The attached resume exceeds the upload limit. Please upload a file smaller than 10MB.')
+      ).toBeInTheDocument();
+    });
+  });
 });

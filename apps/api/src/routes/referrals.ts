@@ -330,7 +330,7 @@ referralsRouter.post('/', async (req, res, next) => {
 
     const notesParts: string[] = [];
     if (effJobId && effJobId !== 'JOB-REF') notesParts.push(`Job ID: ${effJobId}`);
-    if (effResumeUrl) notesParts.push(`Resume: ${effResumeUrl}`);
+    if (effResumeUrl && !effResumeUrl.startsWith('data:')) notesParts.push(`Resume: ${effResumeUrl}`);
     if (companySize?.trim()) notesParts.push(`Team Size: ${companySize.trim()}`);
     if (notes?.trim()) notesParts.push(notes.trim());
     const combinedNotes = notesParts.length > 0 ? notesParts.join(' • ') : null;

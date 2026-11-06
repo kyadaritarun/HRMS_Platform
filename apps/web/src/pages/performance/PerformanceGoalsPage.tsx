@@ -670,17 +670,17 @@ export const PerformanceGoalsPage: React.FC = () => {
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}
-                <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+                <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0 shadow-2xs">
-                      <IconTarget className="w-5 h-5" />
+                    <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100/80 flex items-center justify-center text-[#5E4BE2] shrink-0 shadow-2xs">
+                      <IconTarget className="w-4.5 h-4.5" />
                     </div>
                     <div>
                       <h3 className="text-base font-bold text-slate-900 leading-tight">
                         Performance Objective
                       </h3>
                       <p className="text-xs text-slate-500 font-medium mt-0.5">
-                        Submit a key result or OKR to your manager for quarterly evaluation.
+                        Submit an OKR or goal for evaluation.
                       </p>
                     </div>
                   </div>
@@ -705,7 +705,7 @@ export const PerformanceGoalsPage: React.FC = () => {
                 <form onSubmit={handleCreate} className="flex flex-col flex-1 min-h-0">
                   <div className="flex-1 overflow-y-auto p-6 space-y-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                         Objective Title <span className="text-rose-500">*</span>
                       </label>
                       <input
@@ -713,28 +713,28 @@ export const PerformanceGoalsPage: React.FC = () => {
                         required
                         value={form.title}
                         onChange={(e) => setForm({ ...form, title: e.target.value })}
-                        placeholder="e.g. Optimize API latency by 40% & achieve 99.9% uptime"
-                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all"
+                        placeholder="e.g. Optimize API latency & achieve 99.9% uptime"
+                        className="w-full px-3.5 py-2.5 bg-slate-50/70 border border-slate-200/90 rounded-xl text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                         Key Results & Success Metrics <span className="text-rose-500">*</span>
                       </label>
                       <textarea
                         required
-                        rows={4}
+                        rows={3}
                         value={form.reason}
                         onChange={(e) => setForm({ ...form, reason: e.target.value })}
-                        placeholder="Detail the measurable metrics, deliverables, and targets..."
-                        className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all resize-none"
+                        placeholder="Detail the measurable metrics and targets..."
+                        className="w-full p-3.5 bg-slate-50/70 border border-slate-200/90 rounded-xl text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all resize-none"
                       />
                     </div>
 
-                    {/* Appraisal Cycle Selection - Full Width */}
+                    {/* Appraisal Cycle Selection */}
                     <div>
-                      <label htmlFor="cycle-select" className="block text-xs font-semibold text-slate-700 mb-1">
+                      <label htmlFor="cycle-select" className="block text-xs font-semibold text-slate-700 mb-1.5">
                         Appraisal Cycle <span className="text-rose-500">*</span>
                       </label>
                       <div className="relative">
@@ -743,11 +743,14 @@ export const PerformanceGoalsPage: React.FC = () => {
                           required
                           value={form.cycleId}
                           onChange={(e) => handleCycleChange(e.target.value)}
-                          className="w-full appearance-none px-3.5 py-2.5 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all cursor-pointer"
+                          style={{ outline: 'none' }}
+                          className="w-full appearance-none px-3.5 py-2.5 pr-10 bg-slate-50/70 border border-slate-200/90 rounded-xl text-xs sm:text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all cursor-pointer"
                         >
                           <option value="">
-                            {availableCycles.length === 0
-                              ? 'All appraisal cycles 100% allocated'
+                            {cycles.length === 0
+                              ? 'No cycle available'
+                              : availableCycles.length === 0
+                              ? 'All cycles 100% allocated'
                               : 'Select appraisal cycle...'}
                           </option>
                           {availableCycles.map((c) => {
@@ -755,7 +758,7 @@ export const PerformanceGoalsPage: React.FC = () => {
                             const remaining = 100 - allocated;
                             return (
                               <option key={c.id} value={c.id}>
-                                {c.name} ({remaining}% available){c.isActive ? ' — Active Cycle' : ''}
+                                {c.name} ({remaining}% free){c.isActive ? ' • Active' : ''}
                               </option>
                             );
                           })}
@@ -764,94 +767,61 @@ export const PerformanceGoalsPage: React.FC = () => {
                       </div>
 
                       {availableCycles.length === 0 && (
-                        <div className="mt-2.5 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
-                          <IconAlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
-                          <span>All appraisal cycles have reached 100% goal weightage allocation.</span>
+                        <div className="mt-2 p-2.5 rounded-xl bg-amber-50/90 border border-amber-200/80 text-amber-800 text-xs flex items-center gap-2">
+                          <IconAlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-600" />
+                          <span>
+                            {cycles.length === 0
+                              ? 'No appraisal cycles found.'
+                              : 'All cycles reached 100% weightage.'}
+                          </span>
                         </div>
                       )}
 
-                      {/* Selected Cycle Details Pill Card */}
+                      {/* Selected Cycle Metadata Info */}
                       {form.cycleId && (() => {
                         const c = cycles.find((x) => x.id === form.cycleId);
                         if (!c) return null;
                         const allocated = getCycleAllocatedWeight(c.id, c.name);
                         const remaining = Math.max(0, 100 - allocated);
                         return (
-                          <div className="mt-2.5 p-3 rounded-xl bg-indigo-50/70 border border-indigo-100 flex flex-col gap-2 text-xs">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-7 h-7 rounded-lg bg-indigo-100 text-[#5E4BE2] flex items-center justify-center shrink-0">
-                                  <IconCalendar className="w-3.5 h-3.5" />
-                                </div>
-                                <div className="min-w-0">
-                                  <span className="font-bold text-slate-900 text-xs block truncate">
-                                    {c.name}
-                                  </span>
-                                  {c.startDate && c.endDate && (
-                                    <span className="text-[11px] text-slate-500 block">
-                                      Evaluation Window: {new Date(c.startDate).toLocaleDateString()} — {new Date(c.endDate).toLocaleDateString()}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              {c.isActive && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 shrink-0">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                  Active
-                                </span>
-                              )}
+                          <div className="mt-2 px-3 py-2 rounded-xl bg-indigo-50/60 border border-indigo-100/70 flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-2 text-slate-600 font-medium truncate">
+                              <IconCalendar className="w-3.5 h-3.5 text-[#5E4BE2] shrink-0" />
+                              <span className="truncate text-[11px]">
+                                {c.startDate && c.endDate
+                                  ? `${new Date(c.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${new Date(c.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
+                                  : 'Active Review Period'}
+                              </span>
                             </div>
-
-                            {/* Weight Allocation Progress Bar */}
-                            <div className="pt-2 border-t border-indigo-100/80 space-y-1">
-                              <div className="flex items-center justify-between text-[11px] font-semibold">
-                                <span className="text-slate-600">Cycle Weight Allocation</span>
-                                <span className="text-indigo-700 font-bold">{allocated}% used ({remaining}% remaining)</span>
-                              </div>
-                              <div className="w-full h-1.5 bg-indigo-100/70 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-[#5E4BE2] rounded-full transition-all"
-                                  style={{ width: `${Math.min(100, allocated)}%` }}
-                                />
-                              </div>
+                            <div className="flex items-center gap-1.5 shrink-0 pl-2">
+                              <span className="text-[11px] font-bold text-[#5E4BE2]">
+                                {remaining}% available
+                              </span>
+                              <span className="text-[10px] text-slate-400">({allocated}% used)</span>
                             </div>
                           </div>
                         );
                       })()}
                     </div>
 
-                    {/* Weightage (%) */}
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="block text-xs font-semibold text-slate-700">
-                          Goal Weightage (%)
+                    {/* Weightage Allocation Card */}
+                    <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/80 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold text-slate-800 flex items-center gap-1">
+                          <span>Goal Weightage</span>
+                          <span className="text-rose-500">*</span>
                         </label>
-                        <span className="text-[11px] text-slate-400 font-medium">
-                          Impact on overall appraisal
+                        <span className="text-xs font-bold text-[#5E4BE2] bg-indigo-50 border border-indigo-100/80 px-2 py-0.5 rounded-md">
+                          {form.weight}% Weight
                         </span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="relative w-28 shrink-0">
-                          <input
-                            type="number"
-                            min="5"
-                            max={(() => {
-                              const selectedCycle = cycles.find((c) => c.id === form.cycleId);
-                              return selectedCycle
-                                ? Math.max(0, 100 - getCycleAllocatedWeight(selectedCycle.id, selectedCycle.name))
-                                : 100;
-                            })()}
-                            step="5"
-                            value={form.weight}
-                            onChange={(e) => setForm({ ...form, weight: Number(e.target.value) || 25 })}
-                            className="w-full px-3.5 py-2.5 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all"
-                          />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
-                            %
-                          </span>
-                        </div>
-                        {/* Quick Presets */}
-                        <div className="flex items-center gap-1.5 flex-wrap">
+
+                      {/* Quick Presets Grid */}
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+                          Quick Presets
+                        </span>
+                        <div className="grid grid-cols-5 gap-1.5">
                           {(() => {
                             const selectedCycle = cycles.find((c) => c.id === form.cycleId);
                             const remaining = selectedCycle
@@ -867,36 +837,81 @@ export const PerformanceGoalsPage: React.FC = () => {
                                 key={w}
                                 type="button"
                                 onClick={() => setForm({ ...form, weight: w })}
-                                className={`px-2.5 py-1.5 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+                                className={`py-1.5 px-2 text-xs font-bold rounded-lg border text-center transition-all cursor-pointer ${
                                   form.weight === w
                                     ? 'bg-[#5E4BE2] text-white border-[#5E4BE2] shadow-2xs'
-                                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                                    : 'bg-white text-slate-700 border-slate-200/90 hover:bg-slate-100/70 hover:border-slate-300'
                                 }`}
                               >
-                                {w}%{w === remaining && remaining < 100 ? ' (Max)' : ''}
+                                {w}%{w === remaining && remaining < 100 ? ' Max' : ''}
                               </button>
                             ));
                           })()}
                         </div>
                       </div>
+
+                      {/* Custom % Input */}
+                      <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between gap-3">
+                        <span className="text-[11px] font-medium text-slate-500">
+                          Or enter custom %:
+                        </span>
+                        <div className="relative w-28">
+                          <input
+                            type="number"
+                            min="5"
+                            max={(() => {
+                              const selectedCycle = cycles.find((c) => c.id === form.cycleId);
+                              return selectedCycle
+                                ? Math.max(0, 100 - getCycleAllocatedWeight(selectedCycle.id, selectedCycle.name))
+                                : 100;
+                            })()}
+                            step="5"
+                            value={form.weight}
+                            onChange={(e) => setForm({ ...form, weight: Number(e.target.value) || 25 })}
+                            style={{ outline: 'none' }}
+                            className="w-full h-8 px-2.5 pr-6 bg-white border border-slate-200/90 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all"
+                          />
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-400 pointer-events-none">
+                            %
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Helpful Evaluation Guidance Tip */}
+                    <div className="p-3.5 rounded-xl bg-blue-50/50 border border-blue-100/80 flex items-start gap-2.5 text-xs text-blue-900">
+                      <IconTarget className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                      <div className="leading-relaxed">
+                        <span className="font-semibold text-blue-950 block">Evaluation Process</span>
+                        <span className="text-blue-700/90 text-[11px]">
+                          Once submitted, your goal will be sent to your reporting manager for review and sign-off.
+                        </span>
+                      </div>
                     </div>
                   </div>
 
                   {/* Drawer Footer */}
-                  <div className="p-4 px-6 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end gap-2.5 shrink-0">
+                  <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/60 flex items-center justify-end gap-3 shrink-0">
                     <button
                       type="button"
                       onClick={() => setIsModalOpen(false)}
-                      className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                      className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      disabled={isSubmitting}
-                      className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] disabled:opacity-50 transition-all shadow-sm shadow-indigo-600/25 cursor-pointer"
+                      disabled={isSubmitting || availableCycles.length === 0}
+                      className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] disabled:opacity-50 transition-all shadow-sm shadow-indigo-600/25 cursor-pointer flex items-center gap-1.5"
                     >
-                      {isSubmitting ? 'Submitting...' : 'Submit Goal'}
+                      {isSubmitting ? (
+                        <>
+                          <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          <span>Submitting...</span>
+                        </>
+                      ) : (
+                        'Submit Goal'
+                      )}
                     </button>
                   </div>
                 </form>

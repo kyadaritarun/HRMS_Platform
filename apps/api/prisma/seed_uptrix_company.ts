@@ -49,11 +49,65 @@ async function main() {
   const defaultPassword = 'Password@123';
   const passwordHash = await bcrypt.hash(defaultPassword, 10);
 
-  // 2. Ensure Enterprise Package (id: 3) or fallback to available
+  // 2. Ensure Enterprise Package (id: 3) or fallback to available with all features active
+  const ALL_FEATURES = [
+    'time_attendance_management',
+    'attendance',
+    'shift_roster',
+    'shift_management',
+    'leave_management',
+    'leaves',
+    'comp_off_management',
+    'comp_off',
+    'compensation_off',
+    'holiday_calendar',
+    'holidays',
+    'payroll',
+    'payroll_management',
+    'loan_advances',
+    'tax_declarations',
+    'compliance_reports',
+    'claim_process_management',
+    'claims',
+    'performance_management',
+    'performance',
+    'employee_appreciation',
+    'appreciations',
+    'policy_documents_management',
+    'policies',
+    'employee_document_management',
+    'documents',
+    'support_ticket_management',
+    'tickets',
+    'ai_assistance',
+    'ai_assistant',
+    'employees_directory',
+    'directory',
+    'org_structure',
+    'asset_management',
+    'assets',
+    'onboarding_management',
+    'onboarding',
+    'employee_training',
+    'background_verification',
+    'activity_logs',
+    'lead_referrals',
+    'referrals',
+    'compliance_management',
+    'compliance',
+    'reports_analytics',
+    'reports',
+  ];
+
   let enterprisePkg = await prisma.package.findFirst({
     where: { name: { contains: 'Enterprise' } },
   });
-  if (!enterprisePkg) {
+  if (enterprisePkg) {
+    await prisma.package.update({
+      where: { id: enterprisePkg.id },
+      data: { enabledFeatures: ALL_FEATURES },
+    });
+  } else {
     enterprisePkg = await prisma.package.findFirst({ orderBy: { id: 'desc' } });
   }
 
@@ -96,6 +150,79 @@ async function main() {
           primaryColor: '#6366F1',
           companyName: 'Uptrix Technologies',
         },
+        sidebarOperations: {
+          hr_operations: true,
+          it_operations: true,
+          finance_operations: true,
+        },
+        performanceCycles: [
+          {
+            id: 'cycle-2026-q4',
+            name: 'Q4 2026 Appraisal Cycle',
+            description: 'Oct 2026 - Dec 2026 Quarterly Performance & OKR Evaluation',
+            startDate: '2026-10-01',
+            endDate: '2026-12-31',
+            isActive: true,
+          },
+          {
+            id: 'cycle-2026-annual',
+            name: 'Annual Review 2026',
+            description: 'Full-Year 2026 Comprehensive Evaluation',
+            startDate: '2026-01-01',
+            endDate: '2026-12-31',
+            isActive: true,
+          },
+        ],
+        claimCategories: [
+          {
+            id: 'cat-travel',
+            name: 'Travel & Transport',
+            maxLimit: 25000,
+            requiresReceipt: true,
+            description: 'Flights, cabs, train tickets, lodging for official company travel.',
+            isActive: true,
+          },
+          {
+            id: 'cat-meals',
+            name: 'Food & Meals',
+            maxLimit: 3000,
+            requiresReceipt: true,
+            description: 'Client lunches, team dinners, or late-night overtime meals.',
+            isActive: true,
+          },
+          {
+            id: 'cat-internet',
+            name: 'Internet & Mobile Reimbursement',
+            maxLimit: 2000,
+            requiresReceipt: true,
+            description: 'Monthly work-from-home broadband and mobile utility bills.',
+            isActive: true,
+          },
+          {
+            id: 'cat-learning',
+            name: 'Learning & Certifications',
+            maxLimit: 15000,
+            requiresReceipt: true,
+            description: 'Professional development courses, books, and exams.',
+            isActive: true,
+          },
+          {
+            id: 'cat-office',
+            name: 'Office Supplies & Peripherals',
+            maxLimit: 10000,
+            requiresReceipt: true,
+            description: 'Desk accessories, monitors, ergonomic accessories.',
+            isActive: true,
+          },
+          {
+            id: 'cat-medical',
+            name: 'Health & Wellness',
+            maxLimit: 5000,
+            requiresReceipt: true,
+            description: 'Annual health checkups and preventative wellness claims.',
+            isActive: true,
+          },
+        ],
       },
       allowedEmailDomains: 'uptrixglobal.com,uptrix.com',
       isActive: true,

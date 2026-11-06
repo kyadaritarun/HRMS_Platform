@@ -153,23 +153,23 @@ export const ManageCyclesPage: React.FC = () => {
 
       {/* Main Table Container Card */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden space-y-4 p-5">
-        {/* Search & Filter Toolbar */}
-        <div className="flex items-center justify-end">
-          {/* Search Input */}
-          <div className="relative w-full max-w-xs">
-            <IconSearch className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium" />
+        {/* Search Toolbar */}
+        <div className="flex items-center justify-start">
+          {/* Search Input on the Left */}
+          <div className="relative w-full max-w-xs sm:max-w-sm">
+            <IconSearch className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium pointer-events-none" />
             <input
               type="text"
               placeholder="Search cycles..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-[#5E4BE2] text-slate-800 placeholder-slate-400"
+              className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50/70 border border-slate-200/90 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] text-slate-800 placeholder-slate-400 transition-all"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 font-medium hover:text-slate-600 p-0.5 cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
               >
                 <IconX className="w-3.5 h-3.5" />
               </button>
