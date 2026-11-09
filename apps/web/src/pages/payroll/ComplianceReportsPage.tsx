@@ -51,6 +51,7 @@ interface ComplianceEmployee {
 
 export const ComplianceReportsPage: React.FC = () => {
   const { company } = useAuth();
+  const statutory = company?.settings?.statutory || (company as any)?.statutory || {};
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
@@ -388,7 +389,9 @@ export const ComplianceReportsPage: React.FC = () => {
         e.calculation?.totalLopDays || 0,
       ];
     });
-    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const estCode = statutory.pfEstablishmentCode || '';
+    const fileHeader = estCode ? `# PF Establishment Code: ${estCode}\n` : '';
+    const csv = fileHeader + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     downloadCsv(`EPFO_ECR_Statement_${month}_${year}.csv`, csv);
   };
 
@@ -409,7 +412,9 @@ export const ComplianceReportsPage: React.FC = () => {
         ee + er,
       ];
     });
-    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const esicReg = statutory.esicRegistrationNumber || '';
+    const fileHeader = esicReg ? `# ESIC Registration Number: ${esicReg}\n` : '';
+    const csv = fileHeader + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     downloadCsv(`ESIC_Monthly_Register_${month}_${year}.csv`, csv);
   };
 
@@ -591,6 +596,11 @@ export const ComplianceReportsPage: React.FC = () => {
             <p className="text-xs text-slate-500 font-medium mt-1">
               Monthly Electronic Challan cum Return (ECR) for Provident Fund submission.
             </p>
+            {statutory.pfEstablishmentCode && (
+              <span className="inline-block mt-1.5 text-[11px] font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                Code: {statutory.pfEstablishmentCode}
+              </span>
+            )}
             <p className="text-lg font-black text-slate-900 mt-2">
               ₹{totals.pf.toLocaleString()}
             </p>
@@ -614,6 +624,11 @@ export const ComplianceReportsPage: React.FC = () => {
             <p className="text-xs text-slate-500 font-medium mt-1">
               Employee State Insurance 0.75% + 3.25% contribution report for eligible wages.
             </p>
+            {statutory.esicRegistrationNumber && (
+              <span className="inline-block mt-1.5 text-[11px] font-mono font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                Reg: {statutory.esicRegistrationNumber}
+              </span>
+            )}
             <p className="text-lg font-black text-slate-900 mt-2">
               ₹{totals.esi.toLocaleString()}
             </p>
@@ -637,6 +652,20 @@ export const ComplianceReportsPage: React.FC = () => {
             <p className="text-xs text-slate-500 font-medium mt-1">
               State Professional Tax (PT) and Section 192 Income Tax TDS withholdings.
             </p>
+            {(statutory.ptrcNumber || statutory.tan) && (
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {statutory.ptrcNumber && (
+                  <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                    PTRC: {statutory.ptrcNumber}
+                  </span>
+                )}
+                {statutory.tan && (
+                  <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                    TAN: {statutory.tan}
+                  </span>
+                )}
+              </div>
+            )}
             <p className="text-lg font-black text-slate-900 mt-2">
               ₹{(totals.pt + totals.tds).toLocaleString()}
             </p>

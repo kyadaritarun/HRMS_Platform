@@ -34,6 +34,8 @@ import { CompanyBillingPage } from './pages/company/CompanyBillingPage';
 import { ActivityLogsPage } from './pages/company/ActivityLogsPage';
 import { BackgroundVerificationPage } from './pages/company/BackgroundVerificationPage';
 import { EmployeeTrainingPage } from './pages/company/EmployeeTrainingPage';
+import { AddonServicesPage } from './pages/company/AddonServicesPage';
+import { EmployeeGiftsPage } from './pages/company/EmployeeGiftsPage';
 
 // Employee & Self Service Pages
 import { EmployeeDashboard } from './pages/employee/EmployeeDashboard';
@@ -240,6 +242,22 @@ export const App: React.FC = () => {
               element={
                 <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
                   <EmployeeTrainingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/company/addon-services"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                  <AddonServicesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/company/employee-gifts"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                  <EmployeeGiftsPage />
                 </ProtectedRoute>
               }
             />

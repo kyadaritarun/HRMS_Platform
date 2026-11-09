@@ -216,6 +216,7 @@ router.get('/companies', async (_req, res, next) => {
         paymentLinkUrl,
         adminContact,
         latestOrder,
+        statutory: settings.statutory || {},
       };
     });
 
@@ -334,6 +335,15 @@ router.post('/companies', validateBody(SuperAdminCreateCompanySchema), async (re
             name: adminName,
             email: adminEmail,
             phone: adminPhone,
+          },
+          statutory: {
+            pan: (data.pan || '').trim().toUpperCase(),
+            tan: (data.tan || '').trim().toUpperCase(),
+            gstin: (data.gstin || '').trim().toUpperCase(),
+            cin: (data.cin || '').trim().toUpperCase(),
+            pfEstablishmentCode: (data.pfEstablishmentCode || '').trim().toUpperCase(),
+            esicRegistrationNumber: (data.esicRegistrationNumber || '').trim(),
+            ptrcNumber: (data.ptrcNumber || '').trim().toUpperCase(),
           },
           billingBreakdown: {
             basePrice,
@@ -532,9 +542,37 @@ router.patch('/companies/:id', validateBody(SuperAdminUpdateCompanySchema), asyn
     const id = Number(req.params.id);
     const data = req.body;
 
-    const updateData: any = { ...data };
+    const existingCompany = await prisma.company.findUnique({ where: { id } });
+    const currentSettings = (existingCompany?.settings && typeof existingCompany.settings === 'object' ? existingCompany.settings : {}) as any;
+
+    const { pan, tan, gstin, cin, pfEstablishmentCode, esicRegistrationNumber, ptrcNumber, ...rest } = data;
+    const updateData: any = { ...rest };
     if (data.subEndDate) updateData.subEndDate = new Date(data.subEndDate);
     if (data.nextPaymentDate) updateData.nextPaymentDate = new Date(data.nextPaymentDate);
+
+    if (
+      pan !== undefined ||
+      tan !== undefined ||
+      gstin !== undefined ||
+      cin !== undefined ||
+      pfEstablishmentCode !== undefined ||
+      esicRegistrationNumber !== undefined ||
+      ptrcNumber !== undefined
+    ) {
+      updateData.settings = {
+        ...currentSettings,
+        statutory: {
+          ...(currentSettings.statutory || {}),
+          ...(pan !== undefined ? { pan: pan.trim().toUpperCase() } : {}),
+          ...(tan !== undefined ? { tan: tan.trim().toUpperCase() } : {}),
+          ...(gstin !== undefined ? { gstin: gstin.trim().toUpperCase() } : {}),
+          ...(cin !== undefined ? { cin: cin.trim().toUpperCase() } : {}),
+          ...(pfEstablishmentCode !== undefined ? { pfEstablishmentCode: pfEstablishmentCode.trim().toUpperCase() } : {}),
+          ...(esicRegistrationNumber !== undefined ? { esicRegistrationNumber: esicRegistrationNumber.trim() } : {}),
+          ...(ptrcNumber !== undefined ? { ptrcNumber: ptrcNumber.trim().toUpperCase() } : {}),
+        },
+      };
+    }
 
     const updated = await prisma.company.update({
       where: { id },

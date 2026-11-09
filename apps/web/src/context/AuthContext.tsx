@@ -25,6 +25,9 @@ export interface Company {
   code: string;
   subdomain: string;
   logo?: string | null;
+  website?: string | null;
+  address?: any;
+  statutory?: any;
   workingDays?: string;
   timezone?: string;
   settings?: any;

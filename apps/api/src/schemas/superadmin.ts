@@ -20,6 +20,14 @@ export const SuperAdminCreateCompanySchema = z.object({
   adminPhone: z.string().optional(),
   paymentStatus: z.enum(['IN_PROCESS', 'PAYMENT_DONE', 'DECLINE']).optional(),
   sendPaymentLink: z.boolean().default(true).optional(),
+  // Statutory, Tax & Compliance Registrations
+  pan: z.string().optional(),
+  tan: z.string().optional(),
+  gstin: z.string().optional(),
+  cin: z.string().optional(),
+  pfEstablishmentCode: z.string().optional(),
+  esicRegistrationNumber: z.string().optional(),
+  ptrcNumber: z.string().optional(),
 });
 
 export const SuperAdminUpdateCompanySchema = SuperAdminCreateCompanySchema.partial().extend({

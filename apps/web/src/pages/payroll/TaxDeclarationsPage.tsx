@@ -38,8 +38,19 @@ export interface TaxEmployee {
 }
 
 export const TaxDeclarationsPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, company } = useAuth();
   const isFinanceOrAdmin = user?.role === 'FINANCE' || user?.role === 'COMPANY_ADMIN' || user?.role === 'PRODUCT_SUPER_ADMIN';
+
+  const formatCompanyAddress = (addr: any) => {
+    if (!addr) return 'Tech Park, Hyderabad, India';
+    if (typeof addr === 'string') return addr;
+    const parts = [addr.street, addr.addressLine2, addr.city, addr.state, addr.pinCode].filter(Boolean);
+    return parts.length > 0 ? parts.join(', ') : 'Tech Park, Hyderabad, India';
+  };
+
+  const statutory = company?.settings?.statutory || (company as any)?.statutory || {};
+  const companyTan = statutory.tan || 'HYDK12891A';
+  const companyPan = statutory.pan || '';
 
   const [records, setRecords] = useState<TaxEmployee[]>([]);
   const [financialYear, setFinancialYear] = useState('2026-2027');
@@ -362,9 +373,13 @@ export const TaxDeclarationsPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-4 pb-4 border-b border-slate-200">
                 <div>
                   <span className="text-slate-500 block font-sans">Name and Address of the Employer:</span>
-                  <span className="font-bold text-slate-900 font-sans">KYADARI TECHNOLOGIES PVT LTD</span>
-                  <span className="block text-slate-500 font-sans">Tech Park, Hyderabad, India</span>
-                  <span className="block font-bold mt-1">TAN: HYDK12891A</span>
+                  <span className="font-bold text-slate-900 font-sans">{company?.name || 'UPTRIX TECHNOLOGIES PVT LTD'}</span>
+                  <span className="block text-slate-500 font-sans">{formatCompanyAddress(company?.address)}</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="font-bold">TAN: {companyTan}</span>
+                    {companyPan && <span className="text-slate-400 font-normal">|</span>}
+                    {companyPan && <span className="font-bold">PAN: {companyPan}</span>}
+                  </div>
                 </div>
                 <div>
                   <span className="text-slate-500 block font-sans">Name and Designation of the Employee:</span>

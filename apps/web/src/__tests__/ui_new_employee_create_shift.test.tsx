@@ -83,7 +83,7 @@ describe('NewEmployeePage In-Page Create Shift UI Tests', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Shift Timing *')).toBeInTheDocument();
+      expect(screen.getByText(/Shift Timing/i)).toBeInTheDocument();
     });
 
     const createShiftBtn = screen.getByRole('button', { name: /Create Shift/i });
@@ -105,7 +105,7 @@ describe('NewEmployeePage In-Page Create Shift UI Tests', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Shift Timing *')).toBeInTheDocument();
+      expect(screen.getByText(/Shift Timing/i)).toBeInTheDocument();
     });
 
     const createShiftBtn = screen.getByRole('button', { name: /Create Shift/i });

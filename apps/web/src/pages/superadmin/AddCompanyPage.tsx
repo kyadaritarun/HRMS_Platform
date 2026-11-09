@@ -18,9 +18,12 @@ import {
   IconWorld,
   IconId,
   IconMapPin,
-  IconArrowRight,
   IconLoader2,
   IconSparkles,
+  IconReceiptTax,
+  IconShieldCheck,
+  IconBuildingBank,
+  IconFileCertificate,
 } from '@tabler/icons-react';
 
 interface PackageOption {
@@ -66,6 +69,14 @@ export const AddCompanyPage: React.FC = () => {
     state: '',
     pinCode: '',
     country: 'India',
+    // Statutory, Tax & Compliance Registrations
+    pan: '',
+    tan: '',
+    gstin: '',
+    cin: '',
+    pfEstablishmentCode: '',
+    esicRegistrationNumber: '',
+    ptrcNumber: '',
   });
 
   // Validation states
@@ -100,6 +111,14 @@ export const AddCompanyPage: React.FC = () => {
     }, 7000);
     return () => clearTimeout(timer);
   }, [toast]);
+
+  // Smooth scroll to section
+  const scrollToSection = (sectionId: string) => {
+    const el = document.getElementById(sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   // Load packages
   useEffect(() => {
@@ -147,6 +166,46 @@ export const AddCompanyPage: React.FC = () => {
       case 'packageId':
         if (!value) return 'Please select a subscription package plan.';
         return '';
+      case 'pan':
+        if (value?.trim()) {
+          const cleanPan = value.trim().toUpperCase();
+          if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(cleanPan)) {
+            return 'PAN must follow standard 10-char format (e.g. AABCK1234D).';
+          }
+        }
+        return '';
+      case 'tan':
+        if (value?.trim()) {
+          const cleanTan = value.trim().toUpperCase();
+          if (!/^[A-Z]{4}[0-9]{5}[A-Z]{1}$/.test(cleanTan)) {
+            return 'TAN must follow standard 10-char format (e.g. HYDK12891A).';
+          }
+        }
+        return '';
+      case 'gstin':
+        if (value?.trim()) {
+          const cleanGst = value.trim().toUpperCase();
+          if (cleanGst.length !== 15) {
+            return 'GSTIN must be exactly 15 characters (e.g. 36AABCK1234D1Z5).';
+          }
+        }
+        return '';
+      case 'cin':
+        if (value?.trim()) {
+          const cleanCin = value.trim().toUpperCase();
+          if (cleanCin.length !== 21) {
+            return 'CIN must be exactly 21 characters (e.g. U72200TG2026PTC123456).';
+          }
+        }
+        return '';
+      case 'esicRegistrationNumber':
+        if (value?.trim()) {
+          const cleanEsic = value.trim();
+          if (!/^\d{17}$/.test(cleanEsic)) {
+            return 'ESIC registration number must be exactly 17 digits.';
+          }
+        }
+        return '';
       default:
         return '';
     }
@@ -154,7 +213,19 @@ export const AddCompanyPage: React.FC = () => {
 
   const validateAll = () => {
     const newErrors: Record<string, string> = {};
-    const fieldsToValidate = ['name', 'subdomain', 'adminName', 'adminEmail', 'adminPhone', 'packageId'];
+    const fieldsToValidate = [
+      'name',
+      'subdomain',
+      'adminName',
+      'adminEmail',
+      'adminPhone',
+      'packageId',
+      'pan',
+      'tan',
+      'gstin',
+      'cin',
+      'esicRegistrationNumber',
+    ];
     fieldsToValidate.forEach((f) => {
       const err = validateField(f, (form as any)[f]);
       if (err) newErrors[f] = err;
@@ -192,49 +263,45 @@ export const AddCompanyPage: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-
-    if (name === 'adminPhone') {
-      const numericVal = value.replace(/\D/g, '').slice(0, 10);
-      setForm((prev) => ({ ...prev, [name]: numericVal }));
-      if (touched[name]) {
-        setErrors((prev) => ({ ...prev, [name]: validateField(name, numericVal) }));
-      }
-      return;
-    }
-
-    if (name === 'subdomain') {
-      const cleanSub = value.toLowerCase().replace(/[^a-z0-9-]/g, '');
-      setForm((prev) => ({ ...prev, [name]: cleanSub }));
-      if (touched[name]) {
-        setErrors((prev) => ({ ...prev, [name]: validateField(name, cleanSub) }));
-      }
-      return;
-    }
-
-    if (name === 'code') {
-      const cleanCode = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
-      setForm((prev) => ({ ...prev, [name]: cleanCode }));
-      return;
-    }
-
     setForm((prev) => ({ ...prev, [name]: value }));
+
     if (touched[name]) {
       setErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
     }
   };
 
+  // Logo file upload handler
   const handleLogoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!file.type.startsWith('image/')) {
+      setToast({
+        title: 'Invalid File Type',
+        message: 'Please upload an image file (PNG, JPG, or SVG).',
+        type: 'error',
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setToast({
+        title: 'File Too Large',
+        message: 'Logo file size must be less than 5MB.',
+        type: 'error',
+      });
+      return;
+    }
+
     setSelectedFile(file);
-    const localUrl = URL.createObjectURL(file);
-    setLogoPreview(localUrl);
+    const localPreview = URL.createObjectURL(file);
+    setLogoPreview(localPreview);
 
     try {
       setIsUploadingLogo(true);
       const formData = new FormData();
-      formData.append('logo', file);
+      formData.append('file', file);
+
       const res = await api.post('/superadmin/upload-logo', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
@@ -280,7 +347,6 @@ export const AddCompanyPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Mark all as touched
     setTouched({
       name: true,
       subdomain: true,
@@ -288,9 +354,31 @@ export const AddCompanyPage: React.FC = () => {
       adminEmail: true,
       adminPhone: true,
       packageId: true,
+      pan: true,
+      tan: true,
+      gstin: true,
+      cin: true,
+      esicRegistrationNumber: true,
     });
 
     if (!validateAll()) {
+      // Find first error and scroll to that section
+      if (validateField('name', form.name) || validateField('subdomain', form.subdomain)) {
+        scrollToSection('section-profile');
+      } else if (validateField('adminName', form.adminName) || validateField('adminEmail', form.adminEmail) || validateField('adminPhone', form.adminPhone)) {
+        scrollToSection('section-admin');
+      } else if (
+        validateField('pan', form.pan) ||
+        validateField('tan', form.tan) ||
+        validateField('gstin', form.gstin) ||
+        validateField('cin', form.cin) ||
+        validateField('esicRegistrationNumber', form.esicRegistrationNumber)
+      ) {
+        scrollToSection('section-statutory');
+      } else if (validateField('packageId', form.packageId)) {
+        scrollToSection('section-billing');
+      }
+
       setToast({
         title: 'Validation Error',
         message: 'Please resolve the highlighted errors in the form before submitting.',
@@ -325,6 +413,13 @@ export const AddCompanyPage: React.FC = () => {
           pinCode: form.pinCode.trim(),
           country: form.country.trim(),
         },
+        pan: form.pan.trim().toUpperCase() || undefined,
+        tan: form.tan.trim().toUpperCase() || undefined,
+        gstin: form.gstin.trim().toUpperCase() || undefined,
+        cin: form.cin.trim().toUpperCase() || undefined,
+        pfEstablishmentCode: form.pfEstablishmentCode.trim().toUpperCase() || undefined,
+        esicRegistrationNumber: form.esicRegistrationNumber.trim() || undefined,
+        ptrcNumber: form.ptrcNumber.trim().toUpperCase() || undefined,
       };
 
       const res = await api.post('/superadmin/companies', payload);
@@ -337,15 +432,14 @@ export const AddCompanyPage: React.FC = () => {
       });
 
       setToast({
-        title: 'Company Created Successfully',
-        message: `Tenant registered and payment link dispatched to ${form.adminEmail.trim()}.`,
+        title: 'Company Workspace Created!',
+        message: `Registered ${form.name}. Payment proposal dispatched to ${form.adminEmail}.`,
         type: 'success',
       });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
-      const msg =
-        err.response?.data?.error ||
-        err.response?.data?.message ||
-        'Failed to register company. Please verify inputs.';
+      console.error('Failed to create company:', err);
+      const msg = err.response?.data?.error || err.response?.data?.message || 'Failed to create company workspace. Please try again.';
       setToast({
         title: 'Registration Failed',
         message: msg,
@@ -384,9 +478,18 @@ export const AddCompanyPage: React.FC = () => {
       state: '',
       pinCode: '',
       country: 'India',
+      pan: '',
+      tan: '',
+      gstin: '',
+      cin: '',
+      pfEstablishmentCode: '',
+      esicRegistrationNumber: '',
+      ptrcNumber: '',
     });
     setSelectedFile(null);
     setLogoPreview(null);
+    setCreatedResult(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const getInputClass = (fieldName: string, basePadding = 'pl-10 pr-3.5') => {
@@ -394,7 +497,7 @@ export const AddCompanyPage: React.FC = () => {
     return `w-full ${basePadding} py-2.5 text-xs font-semibold text-slate-900 rounded-xl transition-all shadow-2xs ${
       hasError
         ? 'bg-rose-50/40 border border-rose-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-rose-500/15 focus:border-rose-500'
-        : 'bg-[#f1f5f9] border border-slate-200 focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2] hover:bg-slate-100 hover:border-slate-300'
+        : 'bg-slate-50/80 border border-slate-200 hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#5E4BE2]/15 focus:border-[#5E4BE2]'
     } placeholder:text-slate-400`;
   };
 
@@ -411,7 +514,7 @@ export const AddCompanyPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 relative max-w-5xl mx-auto pb-16">
+    <div className="space-y-6 relative max-w-5xl mx-auto pb-24">
       {/* ===================== FLOATING TOASTER NOTIFICATION ===================== */}
       {toast && (
         <div className="fixed top-6 right-6 z-50 max-w-sm sm:max-w-md w-[calc(100%-3rem)] pointer-events-auto animate-in slide-in-from-top-4 fade-in duration-200">
@@ -557,148 +660,192 @@ export const AddCompanyPage: React.FC = () => {
           </div>
         </div>
       ) : (
-        /* ===================== MAIN FORM ===================== */
+        /* ===================== ALL 5 SECTIONS ON ONE SINGLE PAGE ===================== */
         <form onSubmit={handleSubmit} noValidate className="space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-8">
-            {/* Section 1: Company Profile & Workspace Identity */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
-                <div className="w-7 h-7 rounded-lg bg-indigo-50 text-[#5E4BE2] flex items-center justify-center shrink-0">
-                  <IconBuilding className="w-4 h-4" />
+          {/* ===================== SECTION 1: COMPANY PROFILE ===================== */}
+          <div
+            id="section-profile"
+            className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 sm:p-7 space-y-6 scroll-mt-24 transition-all"
+          >
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100/70 text-[#5E4BE2] flex items-center justify-center shrink-0">
+                  <IconBuilding className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-xs font-bold text-slate-900">
+                  <h2 className="text-sm font-bold text-slate-900">
                     1. Company Profile &amp; Workspace Identity
                   </h2>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    Workspace name, unique tenant subdomain, and branding details
+                  <p className="text-xs text-slate-500 font-medium">
+                    Workspace branding, unique tenant subdomain, and corporate employee email rules
                   </p>
                 </div>
               </div>
+              <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-indigo-50 text-[#5E4BE2] border border-indigo-100/80">
+                01 • Step 1
+              </span>
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Company Name */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Company Name <span className="text-rose-500">*</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Company Name */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Company Name <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#5E4BE2]">
+                    <IconBuilding className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    name="name"
+                    required
+                    value={form.name}
+                    onChange={handleNameChange}
+                    onBlur={() => handleBlur('name')}
+                    placeholder="e.g. Acme Technologies Pvt Ltd"
+                    className={getInputClass('name')}
+                  />
+                </div>
+                {renderFieldError('name')}
+              </div>
+
+              {/* Subdomain */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Workspace Subdomain <span className="text-rose-500">*</span>
                   </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#5E4BE2]">
-                      <IconBuilding className="w-4 h-4" />
-                    </div>
-                    <input
-                      type="text"
-                      name="name"
-                      required
-                      value={form.name}
-                      onChange={handleNameChange}
-                      onBlur={() => handleBlur('name')}
-                      placeholder="e.g. Acme Technologies Pvt Ltd"
-                      className={getInputClass('name')}
-                    />
-                  </div>
-                  {renderFieldError('name')}
+                  <span className="text-[10px] text-slate-400 font-mono">.uptrix.io</span>
                 </div>
-
-                {/* Subdomain */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-bold text-slate-700">Subdomain <span className="text-rose-500">*</span></label>
-                    <span className="text-[10px] text-slate-400 font-mono">.uptrix.io</span>
+                <div className="relative flex items-center">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-indigo-600">
+                    <IconWorld className="w-4 h-4" />
                   </div>
-                  <div className="relative flex items-center">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-indigo-600">
-                      <IconWorld className="w-4 h-4" />
-                    </div>
-                    <input
-                      type="text"
-                      name="subdomain"
-                      required
-                      value={form.subdomain}
-                      onChange={handleChange}
-                      onBlur={() => handleBlur('subdomain')}
-                      placeholder="acme"
-                      className={getInputClass('subdomain', 'pl-10 pr-24')}
-                    />
-                    <span className="absolute right-3 text-xs font-mono font-semibold text-slate-400 select-none">
-                      .uptrix.io
-                    </span>
-                  </div>
-                  {renderFieldError('subdomain')}
-                  {!errors.subdomain && form.subdomain && (
-                    <p className="text-[11px] text-indigo-600 font-mono mt-1">
-                      URL: https://{form.subdomain}.uptrix.io
-                    </p>
-                  )}
+                  <input
+                    type="text"
+                    name="subdomain"
+                    required
+                    value={form.subdomain}
+                    onChange={handleChange}
+                    onBlur={() => handleBlur('subdomain')}
+                    placeholder="acme"
+                    className={getInputClass('subdomain', 'pl-10 pr-24')}
+                  />
+                  <span className="absolute right-3 text-xs font-mono font-semibold text-slate-400 select-none">
+                    .uptrix.io
+                  </span>
                 </div>
-
-                {/* Company Code */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Company Code</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                      <IconId className="w-4 h-4" />
-                    </div>
-                    <input
-                      type="text"
-                      name="code"
-                      value={form.code}
-                      onChange={handleChange}
-                      placeholder="e.g. ACME"
-                      className={getInputClass('code')}
-                    />
-                  </div>
-                  <span className="text-[10px] text-slate-400 mt-1 block">Used for employee prefixes and records.</span>
-                </div>
-
-                {/* Official Website */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Official Website</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                      <IconWorld className="w-4 h-4" />
-                    </div>
-                    <input
-                      type="url"
-                      name="website"
-                      value={form.website}
-                      onChange={handleChange}
-                      placeholder="https://acme.com"
-                      className={getInputClass('website')}
-                    />
-                  </div>
-                </div>
-
-                {/* Allowed Corporate Email Domains */}
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Authorized Employee Email Domains
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                      <IconMail className="w-4 h-4" />
-                    </div>
-                    <input
-                      type="text"
-                      name="allowedEmailDomains"
-                      value={form.allowedEmailDomains}
-                      onChange={handleChange}
-                      placeholder="e.g. acme.com, acmeglobal.com (comma separated)"
-                      className={getInputClass('allowedEmailDomains')}
-                    />
-                  </div>
-                  <p className="text-[11px] text-slate-500 font-medium mt-1">
-                    Enforces corporate email restrictions so company employees can only be onboarded with these authorized domain(s).
+                {renderFieldError('subdomain')}
+                {!errors.subdomain && form.subdomain && (
+                  <p className="text-[11px] text-indigo-600 font-mono mt-1 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                    <span>https://{form.subdomain}.uptrix.io</span>
                   </p>
-                </div>
+                )}
+              </div>
 
-                {/* Company Logo Upload */}
-                <div className="sm:col-span-2 pt-1">
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Company Logo</label>
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                    <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-[#f1f5f9] hover:bg-slate-100 text-slate-700 text-xs font-bold transition-all shadow-2xs hover:border-slate-300">
+              {/* Company Code */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Company Code</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                    <IconId className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    name="code"
+                    value={form.code}
+                    onChange={handleChange}
+                    placeholder="e.g. ACME"
+                    className={getInputClass('code')}
+                  />
+                </div>
+                <span className="text-[10px] text-slate-400 mt-1 block">Used as prefix for employee IDs and system numbers.</span>
+              </div>
+
+              {/* Official Website */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Official Website</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                    <IconWorld className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="url"
+                    name="website"
+                    value={form.website}
+                    onChange={handleChange}
+                    placeholder="https://acme.com"
+                    className={getInputClass('website')}
+                  />
+                </div>
+              </div>
+
+              {/* Allowed Corporate Email Domains */}
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Authorized Employee Email Domains
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                    <IconMail className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    name="allowedEmailDomains"
+                    value={form.allowedEmailDomains}
+                    onChange={handleChange}
+                    placeholder="e.g. acme.com, acmeglobal.com (comma-separated)"
+                    className={getInputClass('allowedEmailDomains')}
+                  />
+                </div>
+                <p className="text-[11px] text-slate-500 font-medium mt-1">
+                  Restricts employee onboarding so users can only be invited or created using these corporate email domain(s).
+                </p>
+              </div>
+
+              {/* Modern Logo Dropzone / Upload Box */}
+              <div className="sm:col-span-2 pt-1">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Company Logo</label>
+                <div className="p-4 rounded-xl border border-dashed border-slate-300 bg-slate-50/50 hover:bg-slate-50/80 transition-colors flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3.5">
+                    {logoPreview ? (
+                      <div className="relative shrink-0">
+                        <img
+                          src={logoPreview}
+                          alt="Logo preview"
+                          className="w-14 h-14 rounded-xl object-contain border border-slate-200 bg-white p-1.5 shadow-2xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleRemoveLogo}
+                          className="absolute -top-1.5 -right-1.5 p-0.5 rounded-full bg-rose-500 text-white hover:bg-rose-600 shadow-2xs transition-colors cursor-pointer"
+                          title="Remove logo"
+                        >
+                          <IconX className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-14 h-14 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0">
+                        <IconUpload className="w-6 h-6" />
+                      </div>
+                    )}
+
+                    <div>
+                      <p className="text-xs font-bold text-slate-800">
+                        {selectedFile ? selectedFile.name : 'Upload Workspace Brand Logo'}
+                      </p>
+                      <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                        PNG, JPG, or SVG up to 5MB. Recommended square 256x256.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-stretch sm:self-auto justify-end">
+                    <label className="cursor-pointer inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold transition-all shadow-2xs">
                       <IconUpload className="w-4 h-4 text-[#5E4BE2]" />
-                      <span>{isUploadingLogo ? 'Uploading...' : 'Choose Logo Image'}</span>
+                      <span>{isUploadingLogo ? 'Uploading...' : logoPreview ? 'Change Logo' : 'Browse File'}</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -707,243 +854,494 @@ export const AddCompanyPage: React.FC = () => {
                         className="hidden"
                       />
                     </label>
-                    <span className="text-xs text-slate-500 font-medium truncate max-w-xs">
-                      {selectedFile ? selectedFile.name : 'PNG, JPG or SVG (Max 5MB)'}
-                    </span>
-
-                    {logoPreview && (
-                      <div className="flex items-center gap-2 ml-auto">
-                        <img
-                          src={logoPreview}
-                          alt="Logo preview"
-                          className="w-9 h-9 rounded-xl object-contain border border-slate-200 bg-white p-1 shadow-2xs"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleRemoveLogo}
-                          className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                          title="Remove logo"
-                        >
-                          <IconX className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Section 2: Company Admin & Billing Contact */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
-                <div className="w-7 h-7 rounded-lg bg-indigo-50 text-[#5E4BE2] flex items-center justify-center shrink-0">
-                  <IconUser className="w-4 h-4" />
+          {/* ===================== SECTION 2: PRIMARY ADMIN ===================== */}
+          <div
+            id="section-admin"
+            className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 sm:p-7 space-y-6 scroll-mt-24 transition-all"
+          >
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-100/70 text-[#5E4BE2] flex items-center justify-center shrink-0">
+                  <IconUser className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-xs font-bold text-slate-900">
-                    2. Company Admin Contact &amp; Payment Recipient
+                  <h2 className="text-sm font-bold text-slate-900">
+                    2. Primary Administrator &amp; Billing Contact
                   </h2>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    The plan proposal and secure Razorpay payment link will be dispatched to this contact
+                  <p className="text-xs text-slate-500 font-medium">
+                    The subscription proposal, admin credentials, and secure Razorpay payment link will be dispatched to this contact
                   </p>
+                </div>
+              </div>
+              <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-50 text-[#5E4BE2] border border-purple-100/80">
+                02 • Step 2
+              </span>
+            </div>
+
+            {/* Admin Privileges Info Banner */}
+            <div className="p-3.5 rounded-xl bg-indigo-50/70 border border-indigo-100 flex items-start gap-2.5 text-indigo-900">
+              <IconShieldCheck className="w-4 h-4 text-[#5E4BE2] shrink-0 mt-0.5" />
+              <p className="text-xs leading-relaxed">
+                Upon payment settlement, this admin contact will receive root <strong>COMPANY_ADMIN</strong> credentials to configure departments, shifts, employee records, and payroll for this tenant workspace.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Admin Contact Name */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Admin Contact Name <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#5E4BE2]">
+                    <IconUser className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    name="adminName"
+                    required
+                    value={form.adminName}
+                    onChange={handleChange}
+                    onBlur={() => handleBlur('adminName')}
+                    placeholder="e.g. John Doe"
+                    className={getInputClass('adminName')}
+                  />
+                </div>
+                {renderFieldError('adminName')}
+              </div>
+
+              {/* Admin Work Email */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Admin Work Email <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-indigo-600">
+                    <IconMail className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="email"
+                    name="adminEmail"
+                    required
+                    value={form.adminEmail}
+                    onChange={handleChange}
+                    onBlur={() => handleBlur('adminEmail')}
+                    placeholder="admin@acme.com"
+                    className={getInputClass('adminEmail')}
+                  />
+                </div>
+                {renderFieldError('adminEmail')}
+                {!errors.adminEmail && form.adminEmail && (
+                  <p className="text-[10px] text-indigo-600 font-medium mt-1">
+                    Payment link &amp; invite dispatched here immediately.
+                  </p>
+                )}
+              </div>
+
+              {/* Admin Phone */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700">Phone Number</label>
+                  <span className={`text-[10px] font-mono font-bold ${form.adminPhone.length === 10 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                    {form.adminPhone.length}/10 digits
+                  </span>
+                </div>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-600">
+                    <IconPhone className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="tel"
+                    name="adminPhone"
+                    maxLength={10}
+                    value={form.adminPhone}
+                    onChange={handleChange}
+                    onBlur={() => handleBlur('adminPhone')}
+                    placeholder="9876543210"
+                    className={getInputClass('adminPhone')}
+                  />
+                </div>
+                {renderFieldError('adminPhone')}
+              </div>
+            </div>
+          </div>
+
+          {/* ===================== SECTION 3: ADDRESS ===================== */}
+          <div
+            id="section-address"
+            className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 sm:p-7 space-y-6 scroll-mt-24 transition-all"
+          >
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-rose-50 border border-rose-100/70 text-rose-600 flex items-center justify-center shrink-0">
+                  <IconMapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900">
+                    3. Registered Headquarters Address
+                  </h2>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Corporate headquarters and billing location printed on invoices and payslips
+                  </p>
+                </div>
+              </div>
+              <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-100/80">
+                03 • Step 3
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Street Address */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Street Address
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                    <IconMapPin className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    name="street"
+                    value={form.street}
+                    onChange={handleChange}
+                    placeholder="123 Tech Park, 4th Floor"
+                    className={getInputClass('street')}
+                  />
+                </div>
+              </div>
+
+              {/* Address Line 2 */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Suite / Landmark
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                    <IconMapPin className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    name="addressLine2"
+                    value={form.addressLine2}
+                    onChange={handleChange}
+                    placeholder="Opposite Metro Station"
+                    className={getInputClass('addressLine2')}
+                  />
+                </div>
+              </div>
+
+              {/* City & State & PIN */}
+              <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">City</label>
+                  <input
+                    type="text"
+                    name="city"
+                    value={form.city}
+                    onChange={handleChange}
+                    placeholder="Bengaluru"
+                    className={getInputClass('city', 'px-3.5')}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">State</label>
+                  <input
+                    type="text"
+                    name="state"
+                    value={form.state}
+                    onChange={handleChange}
+                    placeholder="Karnataka"
+                    className={getInputClass('state', 'px-3.5')}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">PIN / Postal Code</label>
+                  <input
+                    type="text"
+                    name="pinCode"
+                    value={form.pinCode}
+                    onChange={handleChange}
+                    placeholder="560100"
+                    className={getInputClass('pinCode', 'px-3.5')}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ===================== SECTION 4: STATUTORY & TAX ===================== */}
+          <div
+            id="section-statutory"
+            className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 sm:p-7 space-y-6 scroll-mt-24 transition-all"
+          >
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100/70 text-emerald-600 flex items-center justify-center shrink-0">
+                  <IconFileCertificate className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900">
+                    4. Statutory, Tax &amp; Compliance Registrations
+                  </h2>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Official government tax registrations and statutory codes printed on Form 16, EPFO ECR, ESIC returns &amp; Payslips
+                  </p>
+                </div>
+              </div>
+              <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100/80">
+                04 • Step 4
+              </span>
+            </div>
+
+            {/* Group A: Tax & Corporate Registrations */}
+            <div className="p-4 sm:p-5 rounded-2xl border border-slate-200/80 bg-slate-50/40 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-[#5E4BE2]/10 text-[#5E4BE2] flex items-center justify-center shrink-0">
+                    <IconReceiptTax className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-900">
+                      A. Tax &amp; Corporate Registrations
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      Used for Form 16 certificate generator, TDS returns, and GST invoicing
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Company PAN */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">Company PAN</label>
+                    <span className="text-[10px] font-mono text-slate-400">10 chars</span>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <IconId className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="text"
+                      name="pan"
+                      maxLength={10}
+                      value={form.pan}
+                      onChange={handleChange}
+                      onBlur={() => handleBlur('pan')}
+                      placeholder="AABCK1234D"
+                      className={getInputClass('pan')}
+                    />
+                  </div>
+                  {renderFieldError('pan')}
+                </div>
+
+                {/* Company TAN */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Company TAN
+                    </label>
+                    <span className="text-[10px] font-mono text-slate-400">Form 16 &amp; TDS</span>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <IconReceiptTax className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="text"
+                      name="tan"
+                      maxLength={10}
+                      value={form.tan}
+                      onChange={handleChange}
+                      onBlur={() => handleBlur('tan')}
+                      placeholder="HYDK12891A"
+                      className={getInputClass('tan')}
+                    />
+                  </div>
+                  {renderFieldError('tan')}
+                </div>
+
+                {/* Company GSTIN */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">Company GSTIN</label>
+                    <span className="text-[10px] font-mono text-slate-400">15 chars</span>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <IconBuildingBank className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="text"
+                      name="gstin"
+                      maxLength={15}
+                      value={form.gstin}
+                      onChange={handleChange}
+                      onBlur={() => handleBlur('gstin')}
+                      placeholder="36AABCK1234D1Z5"
+                      className={getInputClass('gstin')}
+                    />
+                  </div>
+                  {renderFieldError('gstin')}
+                </div>
+
+                {/* CIN */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">CIN (Corp ID)</label>
+                    <span className="text-[10px] font-mono text-slate-400">21 chars</span>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <IconShieldCheck className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="text"
+                      name="cin"
+                      maxLength={21}
+                      value={form.cin}
+                      onChange={handleChange}
+                      onBlur={() => handleBlur('cin')}
+                      placeholder="U72200TG2026PTC123456"
+                      className={getInputClass('cin')}
+                    />
+                  </div>
+                  {renderFieldError('cin')}
+                </div>
+              </div>
+            </div>
+
+            {/* Group B: PF & ESIC Statutory Codes */}
+            <div className="p-4 sm:p-5 rounded-2xl border border-slate-200/80 bg-slate-50/40 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <IconShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-900">
+                      B. PF &amp; ESIC Statutory Codes
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      Used for automated EPFO ECR electronic filings, ESIC monthly returns &amp; Professional Tax certificates
+                    </p>
+                  </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {/* Admin Contact Name */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Admin Contact Name <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#5E4BE2]">
-                      <IconUser className="w-4 h-4" />
-                    </div>
-                    <input
-                      type="text"
-                      name="adminName"
-                      required
-                      value={form.adminName}
-                      onChange={handleChange}
-                      onBlur={() => handleBlur('adminName')}
-                      placeholder="e.g. John Doe"
-                      className={getInputClass('adminName')}
-                    />
-                  </div>
-                  {renderFieldError('adminName')}
-                </div>
-
-                {/* Admin Work Email */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Admin Work Email <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-indigo-600">
-                      <IconMail className="w-4 h-4" />
-                    </div>
-                    <input
-                      type="email"
-                      name="adminEmail"
-                      required
-                      value={form.adminEmail}
-                      onChange={handleChange}
-                      onBlur={() => handleBlur('adminEmail')}
-                      placeholder="admin@acme.com"
-                      className={getInputClass('adminEmail')}
-                    />
-                  </div>
-                  {renderFieldError('adminEmail')}
-                  {!errors.adminEmail && form.adminEmail && (
-                    <p className="text-[10px] text-indigo-600 font-medium mt-1">
-                      Payment link dispatched here immediately.
-                    </p>
-                  )}
-                </div>
-
-                {/* Admin Phone */}
+                {/* PF Establishment Code */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-bold text-slate-700">Phone Number</label>
-                    <span className={`text-[10px] font-mono font-bold ${form.adminPhone.length === 10 ? 'text-emerald-600' : 'text-slate-400'}`}>
-                      {form.adminPhone.length}/10 digits
-                    </span>
+                    <label className="block text-xs font-bold text-slate-700">PF Establishment Code</label>
+                    <span className="text-[10px] font-mono text-slate-400">EPFO</span>
                   </div>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-600">
-                      <IconPhone className="w-4 h-4" />
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <IconBuilding className="w-4 h-4" />
                     </div>
                     <input
-                      type="tel"
-                      name="adminPhone"
-                      maxLength={10}
-                      value={form.adminPhone}
+                      type="text"
+                      name="pfEstablishmentCode"
+                      maxLength={22}
+                      value={form.pfEstablishmentCode}
                       onChange={handleChange}
-                      onBlur={() => handleBlur('adminPhone')}
-                      placeholder="9876543210"
-                      className={getInputClass('adminPhone')}
+                      onBlur={() => handleBlur('pfEstablishmentCode')}
+                      placeholder="APHYD0012345000"
+                      className={getInputClass('pfEstablishmentCode')}
                     />
                   </div>
-                  {renderFieldError('adminPhone')}
+                  {renderFieldError('pfEstablishmentCode')}
+                </div>
+
+                {/* ESIC Registration Number */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">ESIC Registration Number</label>
+                    <span className="text-[10px] font-mono text-slate-400">17 digits</span>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <IconShieldCheck className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="text"
+                      name="esicRegistrationNumber"
+                      maxLength={17}
+                      value={form.esicRegistrationNumber}
+                      onChange={handleChange}
+                      onBlur={() => handleBlur('esicRegistrationNumber')}
+                      placeholder="52000123450000001"
+                      className={getInputClass('esicRegistrationNumber')}
+                    />
+                  </div>
+                  {renderFieldError('esicRegistrationNumber')}
+                </div>
+
+                {/* PTRC Number */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">PTRC Number</label>
+                    <span className="text-[10px] font-mono text-slate-400">Prof. Tax</span>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <IconFileCertificate className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="text"
+                      name="ptrcNumber"
+                      maxLength={25}
+                      value={form.ptrcNumber}
+                      onChange={handleChange}
+                      onBlur={() => handleBlur('ptrcNumber')}
+                      placeholder="PT-TG-1029384"
+                      className={getInputClass('ptrcNumber')}
+                    />
+                  </div>
+                  {renderFieldError('ptrcNumber')}
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Section 3: Registered Headquarters Address */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
-                <div className="w-7 h-7 rounded-lg bg-indigo-50 text-[#5E4BE2] flex items-center justify-center shrink-0">
-                  <IconMapPin className="w-4 h-4" />
+          {/* ===================== SECTION 5: PLAN & BILLING ===================== */}
+          <div
+            id="section-billing"
+            className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 sm:p-7 space-y-6 scroll-mt-24 transition-all"
+          >
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-100/70 text-amber-600 flex items-center justify-center shrink-0">
+                  <IconCreditCard className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-xs font-bold text-slate-900">
-                    3. Registered Headquarters Address
+                  <h2 className="text-sm font-bold text-slate-900">
+                    5. Subscription Plan &amp; Billing Selection
                   </h2>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    Corporate headquarters or billing address details
+                  <p className="text-xs text-slate-500 font-medium">
+                    Select package tier, employee seat capacity, and billing interval
                   </p>
                 </div>
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Street Address */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Street Address
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                      <IconMapPin className="w-4 h-4" />
-                    </div>
-                    <input
-                      type="text"
-                      name="street"
-                      value={form.street}
-                      onChange={handleChange}
-                      placeholder="123 Tech Park, 4th Floor"
-                      className={getInputClass('street')}
-                    />
-                  </div>
-                </div>
-
-                {/* Address Line 2 */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Suite / Landmark
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                      <IconMapPin className="w-4 h-4" />
-                    </div>
-                    <input
-                      type="text"
-                      name="addressLine2"
-                      value={form.addressLine2}
-                      onChange={handleChange}
-                      placeholder="Opposite Metro Station"
-                      className={getInputClass('addressLine2')}
-                    />
-                  </div>
-                </div>
-
-                {/* City & State & PIN */}
-                <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">City</label>
-                    <input
-                      type="text"
-                      name="city"
-                      value={form.city}
-                      onChange={handleChange}
-                      placeholder="Bengaluru"
-                      className={getInputClass('city', 'px-3.5')}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">State</label>
-                    <input
-                      type="text"
-                      name="state"
-                      value={form.state}
-                      onChange={handleChange}
-                      placeholder="Karnataka"
-                      className={getInputClass('state', 'px-3.5')}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">PIN / Postal Code</label>
-                    <input
-                      type="text"
-                      name="pinCode"
-                      value={form.pinCode}
-                      onChange={handleChange}
-                      placeholder="560100"
-                      className={getInputClass('pinCode', 'px-3.5')}
-                    />
-                  </div>
-                </div>
-              </div>
+              <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-100/80">
+                05 • Step 5
+              </span>
             </div>
 
-            {/* Section 4: Subscription Plan & Billing Tier */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
-                <div className="w-7 h-7 rounded-lg bg-indigo-50 text-[#5E4BE2] flex items-center justify-center shrink-0">
-                  <IconCreditCard className="w-4 h-4" />
-                </div>
-                <div>
-                  <h2 className="text-xs font-bold text-slate-900">
-                    4. Subscription Plan &amp; Billing Selection
-                  </h2>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    Select package tier, employee limits, and payment cadence
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Left Column: Form Controls */}
+              <div className="lg:col-span-7 space-y-5">
                 {/* Plan Dropdown */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
@@ -992,16 +1390,16 @@ export const AddCompanyPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setForm((prev) => ({ ...prev, planType: 'MONTHLY' }))}
-                      className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                      className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
                         form.planType === 'MONTHLY'
                           ? 'border-[#5E4BE2] bg-indigo-50/80 text-indigo-950 font-bold ring-2 ring-indigo-500/20'
-                          : 'border-slate-200 bg-[#f1f5f9] hover:bg-slate-100 text-slate-700 font-semibold'
+                          : 'border-slate-200 bg-slate-50/70 hover:bg-slate-100 text-slate-700 font-semibold'
                       }`}
                     >
                       <div className="text-xs">Monthly</div>
                       {selectedPackage && (
                         <div className="text-[11px] text-slate-500 font-medium mt-0.5">
-                          ₹{Number(selectedPackage.priceMonthly || 0).toLocaleString()}
+                          ₹{Number(selectedPackage.priceMonthly || 0).toLocaleString('en-IN')}
                         </div>
                       )}
                     </button>
@@ -1009,16 +1407,16 @@ export const AddCompanyPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setForm((prev) => ({ ...prev, planType: 'QUARTERLY' }))}
-                      className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                      className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
                         form.planType === 'QUARTERLY'
                           ? 'border-[#5E4BE2] bg-indigo-50/80 text-indigo-950 font-bold ring-2 ring-indigo-500/20'
-                          : 'border-slate-200 bg-[#f1f5f9] hover:bg-slate-100 text-slate-700 font-semibold'
+                          : 'border-slate-200 bg-slate-50/70 hover:bg-slate-100 text-slate-700 font-semibold'
                       }`}
                     >
                       <div className="text-xs">Quarterly</div>
                       {selectedPackage && (
                         <div className="text-[11px] text-slate-500 font-medium mt-0.5">
-                          ₹{Number(selectedPackage.priceQuarterly || 0).toLocaleString()}
+                          ₹{Number(selectedPackage.priceQuarterly || 0).toLocaleString('en-IN')}
                         </div>
                       )}
                     </button>
@@ -1026,16 +1424,19 @@ export const AddCompanyPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setForm((prev) => ({ ...prev, planType: 'YEARLY' }))}
-                      className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                      className={`p-3 rounded-xl border text-center transition-all cursor-pointer relative ${
                         form.planType === 'YEARLY'
                           ? 'border-emerald-600 bg-emerald-50/80 text-emerald-950 font-bold ring-2 ring-emerald-500/20'
-                          : 'border-slate-200 bg-[#f1f5f9] hover:bg-slate-100 text-slate-700 font-semibold'
+                          : 'border-slate-200 bg-slate-50/70 hover:bg-slate-100 text-slate-700 font-semibold'
                       }`}
                     >
+                      <span className="absolute -top-2 right-2 px-1.5 py-0.2 rounded bg-emerald-600 text-white text-[9px] font-bold uppercase tracking-wider">
+                        Save
+                      </span>
                       <div className="text-xs">Yearly</div>
                       {selectedPackage && (
                         <div className="text-[11px] text-emerald-600 font-bold mt-0.5">
-                          ₹{Number(selectedPackage.priceYearly || 0).toLocaleString()}
+                          ₹{Number(selectedPackage.priceYearly || 0).toLocaleString('en-IN')}
                         </div>
                       )}
                     </button>
@@ -1043,93 +1444,108 @@ export const AddCompanyPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Dynamic Price Breakdown Box */}
-              {selectedPackage && (
-                <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-50 via-indigo-50/20 to-purple-50/30 border border-indigo-100 space-y-3 mt-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-200/80 gap-2">
-                    <div>
-                      <span className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                        {selectedPackage.name}
-                        <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-bold">
-                          {form.planType}
+              {/* Right Column: Live Invoice Summary Card */}
+              <div className="lg:col-span-5">
+                {selectedPackage ? (
+                  <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/30 border border-indigo-100 space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-indigo-100/80">
+                      <div>
+                        <span className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                          {selectedPackage.name}
                         </span>
-                      </span>
-                      <span className="text-[11px] text-slate-500 font-medium block mt-0.5">
-                        Capacity: Up to {selectedPackage.employeeLimit} employee workspace seats
+                        <span className="text-[11px] text-slate-500 font-medium block mt-0.5">
+                          Capacity: Up to {selectedPackage.employeeLimit} seats
+                        </span>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-bold">
+                        {form.planType}
                       </span>
                     </div>
 
-                    <div className="text-left sm:text-right">
-                      <div className="text-xs text-slate-500 font-medium">Total Billed in Razorpay Link:</div>
-                      <div className="text-xl font-black text-indigo-700">
-                        ₹{totalPrice.toLocaleString('en-IN')}
+                    <div className="space-y-2 text-xs">
+                      <div className="flex items-center justify-between text-slate-600">
+                        <span>Plan Base Price</span>
+                        <span className="font-semibold text-slate-800">₹{basePrice.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-600">
+                        <span>GST (18%)</span>
+                        <span className="font-semibold text-slate-800">₹{gst.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="pt-2 border-t border-indigo-100 flex items-center justify-between">
+                        <span className="font-bold text-slate-900 text-xs">Total Razorpay Invoice</span>
+                        <span className="text-lg font-black text-[#5E4BE2]">
+                          ₹{totalPrice.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-indigo-100/70">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-slate-500 font-medium">Initial Status:</span>
+                        <span className="inline-flex items-center gap-1.5 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/70">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                          In Process
+                        </span>
                       </div>
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-slate-600 pt-1">
-                    <div>
-                      <span className="text-slate-500 block text-[10px] uppercase font-bold">
-                        Plan Base Amount
-                      </span>
-                      <span className="font-bold text-slate-800">
-                        ₹{basePrice.toLocaleString('en-IN')}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block text-[10px] uppercase font-bold">
-                        GST (18%)
-                      </span>
-                      <span className="font-bold text-slate-800">
-                        ₹{gst.toLocaleString('en-IN')}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block text-[10px] uppercase font-bold">
-                        Initial Tenant Status
-                      </span>
-                      <span className="inline-flex items-center gap-1 font-bold text-amber-700">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                        In Process (Awaiting Payment)
-                      </span>
-                    </div>
+                ) : (
+                  <div className="p-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 text-center text-xs text-slate-500 font-medium">
+                    Select a package plan from the dropdown to preview live billing calculation.
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ===================== STICKY BOTTOM ACTION BAR ===================== */}
+          <div className="sticky bottom-4 z-20 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 text-[#5E4BE2] flex items-center justify-center shrink-0">
+                <IconSparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-900">
+                  Ready to onboard <span className="text-[#5E4BE2]">{form.name || 'new tenant'}</span>?
+                </p>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  {selectedPackage
+                    ? `Total invoice: ₹${totalPrice.toLocaleString('en-IN')} (${form.planType.toLowerCase()}) • Payment link will be emailed`
+                    : 'Select a package plan above to calculate billing'}
+                </p>
+              </div>
             </div>
 
-            {/* Form Actions Footer */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-100">
-              <p className="text-xs text-slate-500 font-medium">
-                Registering the workspace generates the tenant database entry and emails the payment invoice.
-              </p>
-
-              <div className="flex items-center gap-3 self-end sm:self-center">
-                <button
-                  type="button"
-                  onClick={handleResetForm}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
-                >
-                  Reset Form
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold shadow-md shadow-indigo-600/25 active:scale-[0.98] transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <IconLoader2 className="w-4 h-4 animate-spin" />
-                      <span>Registering Tenant...</span>
-                    </>
-                  ) : (
-                    <>
-                      <IconCreditCard className="w-4 h-4" />
-                      <span>Create Company &amp; Send Payment Link</span>
-                    </>
-                  )}
-                </button>
-              </div>
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+              <button
+                type="button"
+                onClick={handleResetForm}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-600 transition-colors cursor-pointer"
+              >
+                Reset Form
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold shadow-md shadow-indigo-600/25 active:scale-[0.98] transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <>
+                    <IconLoader2 className="w-4 h-4 animate-spin" />
+                    <span>Registering Tenant...</span>
+                  </>
+                ) : (
+                  <>
+                    <IconCreditCard className="w-4 h-4" />
+                    <span>Send Payment Link</span>
+                    {selectedPackage && (
+                      <span className="px-2 py-0.5 rounded-md bg-white/20 text-white text-[11px] font-mono">
+                        ₹{totalPrice.toLocaleString('en-IN')}
+                      </span>
+                    )}
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </form>

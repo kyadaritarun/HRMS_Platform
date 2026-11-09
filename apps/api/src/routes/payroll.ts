@@ -615,6 +615,8 @@ router.get('/payslips/:id/pdf', async (req, res, next) => {
 
     const pdfBuffer = await generatePayslipPdf({
       companyName: payslip.company.name,
+      companyAddress: payslip.company.address,
+      companyStatutory: (payslip.company.settings as any)?.statutory,
       employeeName: `${payslip.employee.firstName} ${payslip.employee.lastName}`,
       employeeNumber: payslip.employee.employeeNumber,
       jobTitle: payslip.employee.jobTitle,

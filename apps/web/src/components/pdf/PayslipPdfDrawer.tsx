@@ -63,6 +63,8 @@ export interface PayslipPdfDrawerProps {
     name?: string;
     subdomain?: string;
     address?: any;
+    settings?: any;
+    statutory?: any;
   } | null;
   onClose: () => void;
   onDownloadPdf?: (id: number | string, month: number, year: number) => void;
@@ -156,6 +158,23 @@ export const PayslipPdfDrawer: React.FC<PayslipPdfDrawerProps> = ({
   };
 
   const companyNameStr = getSafeString(company?.name, 'UPTRIX TECHNOLOGIES');
+
+  // Format Company Address
+  const formatAddress = (addr: any): string => {
+    if (!addr) return '';
+    if (typeof addr === 'string') return addr;
+    const parts = [addr.street, addr.addressLine2, addr.city, addr.state, addr.pinCode].filter(Boolean);
+    return parts.join(', ');
+  };
+  const companyAddressStr = formatAddress(company?.address);
+
+  // Statutory Details
+  const statutory = company?.settings?.statutory || (company as any)?.statutory || {};
+  const statutoryItems: string[] = [];
+  if (statutory.cin) statutoryItems.push(`CIN: ${statutory.cin}`);
+  if (statutory.gstin) statutoryItems.push(`GSTIN: ${statutory.gstin}`);
+  if (statutory.pan) statutoryItems.push(`PAN: ${statutory.pan}`);
+  if (statutory.pfEstablishmentCode) statutoryItems.push(`PF Est: ${statutory.pfEstablishmentCode}`);
 
 
   const c = payslip.calculation || {};
@@ -392,10 +411,20 @@ export const PayslipPdfDrawer: React.FC<PayslipPdfDrawerProps> = ({
             >
               <div>
                 {/* 1. Company Header */}
-                <div className="text-center pb-3">
+                <div className="text-center pb-3 space-y-1">
                   <h1 className="text-lg sm:text-xl font-bold uppercase tracking-wider text-slate-900">
                     {companyNameStr}
                   </h1>
+                  {companyAddressStr && (
+                    <p className="text-[11px] text-slate-600 font-medium">
+                      {companyAddressStr}
+                    </p>
+                  )}
+                  {statutoryItems.length > 0 && (
+                    <p className="text-[10px] font-mono text-slate-500 font-semibold tracking-wide">
+                      {statutoryItems.join('  •  ')}
+                    </p>
+                  )}
                 </div>
 
                 {/* 2. Sub-Banner */}

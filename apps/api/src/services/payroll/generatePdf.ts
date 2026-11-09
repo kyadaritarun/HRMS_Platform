@@ -65,6 +65,8 @@ function numberToWordsINR(amount: number): string {
 
 export function generatePayslipPdf(data: {
   companyName: string;
+  companyAddress?: any;
+  companyStatutory?: any;
   employeeName: string;
   employeeNumber?: string;
   jobTitle?: string;
@@ -97,10 +99,46 @@ export function generatePayslipPdf(data: {
       const topY = 35;
 
       // 2. Company Header
-      doc.font('Helvetica-Bold').fontSize(16).fillColor('#0F172A').text(data.companyName.toUpperCase(), leftX, 48, { width: contentW, align: 'center' });
+      let companyAddressStr = '';
+      if (data.companyAddress) {
+        if (typeof data.companyAddress === 'string') {
+          companyAddressStr = data.companyAddress;
+        } else if (typeof data.companyAddress === 'object') {
+          const parts = [
+            data.companyAddress.street,
+            data.companyAddress.addressLine2,
+            data.companyAddress.city,
+            data.companyAddress.state,
+            data.companyAddress.pinCode,
+          ].filter(Boolean);
+          companyAddressStr = parts.join(', ');
+        }
+      }
+
+      const statutory = data.companyStatutory || {};
+      const statParts: string[] = [];
+      if (statutory.cin) statParts.push(`CIN: ${statutory.cin}`);
+      if (statutory.gstin) statParts.push(`GSTIN: ${statutory.gstin}`);
+      if (statutory.pan) statParts.push(`PAN: ${statutory.pan}`);
+      if (statutory.pfEstablishmentCode) statParts.push(`PF Est: ${statutory.pfEstablishmentCode}`);
+      const statutoryStr = statParts.join('  •  ');
+
+      let currentHeaderY = 44;
+      doc.font('Helvetica-Bold').fontSize(14).fillColor('#0F172A').text(data.companyName.toUpperCase(), leftX, currentHeaderY, { width: contentW, align: 'center' });
+      currentHeaderY += 18;
+
+      if (companyAddressStr) {
+        doc.font('Helvetica').fontSize(7.5).fillColor('#475569').text(companyAddressStr, leftX, currentHeaderY, { width: contentW, align: 'center' });
+        currentHeaderY += 11;
+      }
+
+      if (statutoryStr) {
+        doc.font('Helvetica').fontSize(7).fillColor('#64748B').text(statutoryStr, leftX, currentHeaderY, { width: contentW, align: 'center' });
+        currentHeaderY += 11;
+      }
 
       // Title Sub-Banner
-      const bannerY = 74;
+      const bannerY = Math.max(74, currentHeaderY + 4);
       doc.rect(leftX, bannerY, contentW, 20).fill('#F1F5F9');
       doc.moveTo(leftX, bannerY).lineTo(rightX, bannerY).lineWidth(1).strokeColor('#1E293B').stroke();
       doc.moveTo(leftX, bannerY + 20).lineTo(rightX, bannerY + 20).lineWidth(1).strokeColor('#1E293B').stroke();
