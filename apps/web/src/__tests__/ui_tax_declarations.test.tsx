@@ -99,4 +99,21 @@ describe('Tax Declarations Page UI Tests', () => {
       );
     });
   });
+
+  it('2. Self-Service Tax Declarations: shows only logged in user declaration even for Company Admin or Finance', async () => {
+    // Current user in mock is id: 1 (Chandra Kali)
+    render(<TaxDeclarationsPage selfServiceOnly={true} />);
+
+    expect(screen.getByText('Tax Declarations')).toBeInTheDocument();
+
+    await waitFor(() => {
+      // Chandra Kali (id: 1, current user) should be present
+      expect(screen.getByText('Chandra Kali')).toBeInTheDocument();
+      // Srikanth Admin (id: 2, other user) should NOT be present
+      expect(screen.queryByText('Srikanth Admin')).not.toBeInTheDocument();
+    });
+
+    // In self service, Lock Verified button should not be present
+    expect(screen.queryByText('Lock Verified for Payroll')).not.toBeInTheDocument();
+  });
 });

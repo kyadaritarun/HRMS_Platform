@@ -415,7 +415,7 @@ export const RolesHierarchyPage: React.FC = () => {
         <div>
           <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
             <IconNetwork className="w-5 h-5 text-indigo-600 shrink-0" />
-            <span>Roles &amp; Hierarchy</span>
+            <span>Org Structure</span>
           </h1>
           <p className="text-xs text-slate-500 font-medium mt-0.5">
             Role-based access matrix, granular HR sub-permissions, and direct manager reporting assignments.

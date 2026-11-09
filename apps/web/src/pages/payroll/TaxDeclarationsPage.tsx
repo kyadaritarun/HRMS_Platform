@@ -37,9 +37,19 @@ export interface TaxEmployee {
   proofFilesCount: number;
 }
 
-export const TaxDeclarationsPage: React.FC = () => {
+export interface TaxDeclarationsPageProps {
+  selfServiceOnly?: boolean;
+}
+
+export const TaxDeclarationsPage: React.FC<TaxDeclarationsPageProps> = ({ selfServiceOnly }) => {
   const { user, company } = useAuth();
   const isFinanceOrAdmin = user?.role === 'FINANCE' || user?.role === 'COMPANY_ADMIN' || user?.role === 'PRODUCT_SUPER_ADMIN';
+
+  // Determine if this is the self-service view
+  const isSelfService =
+    selfServiceOnly !== undefined
+      ? selfServiceOnly
+      : typeof window !== 'undefined' && window.location?.pathname === '/tax-declarations';
 
   const formatCompanyAddress = (addr: any) => {
     if (!addr) return 'Tech Park, Hyderabad, India';
@@ -84,6 +94,11 @@ export const TaxDeclarationsPage: React.FC = () => {
 
   const filteredRecords = useMemo(() => {
     return records.filter((r) => {
+      // In Self Service mode (/tax-declarations), every role (including COMPANY_ADMIN) only sees their own declaration
+      if (isSelfService) {
+        return r.id === user?.id;
+      }
+
       if (!isFinanceOrAdmin && r.id !== user?.id) {
         return false;
       }
@@ -103,7 +118,7 @@ export const TaxDeclarationsPage: React.FC = () => {
       }
       return true;
     });
-  }, [records, activeTab, search, isFinanceOrAdmin, user?.id]);
+  }, [records, activeTab, search, isFinanceOrAdmin, isSelfService, user?.id]);
 
   const paginatedRecords = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -184,10 +199,12 @@ export const TaxDeclarationsPage: React.FC = () => {
         <div>
           <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
             <IconFileCertificate className="w-5 h-5 text-indigo-600 shrink-0" />
-            <span>Tax Proofs & Form 16</span>
+            <span>{isSelfService ? 'Tax Declarations' : 'Tax Proofs & Form 16'}</span>
           </h1>
           <p className="text-xs text-slate-500 font-medium mt-0.5">
-            Review employee investment declarations (80C, 80D, HRA), audit proof attachments, and generate Form 16.
+            {isSelfService
+              ? 'View your investment declarations (80C, 80D, HRA), tax regime, and download your Form 16.'
+              : 'Review employee investment declarations (80C, 80D, HRA), audit proof attachments, and generate Form 16.'}
           </p>
         </div>
 
@@ -201,7 +218,7 @@ export const TaxDeclarationsPage: React.FC = () => {
             <option value="2025-2026">FY 2025-2026 (AY 2026-2027)</option>
           </select>
 
-          {isFinanceOrAdmin && (
+          {!isSelfService && isFinanceOrAdmin && (
             <button
               onClick={handleLockAll}
               className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 active:scale-[0.98] transition-all cursor-pointer"
@@ -213,42 +230,44 @@ export const TaxDeclarationsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter Toolbar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-        {/* Search on the Left */}
-        <div className="relative flex-1 max-w-md">
-          <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Search by employee name, PAN, or department..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="w-full pl-10 pr-4 py-2 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all text-slate-800"
-          />
-        </div>
+      {/* Filter Toolbar (Only in Finance Operations audit view) */}
+      {!isSelfService && (
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          {/* Search on the Left */}
+          <div className="relative flex-1 max-w-md">
+            <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search by employee name, PAN, or department..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-10 pr-4 py-2 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all text-slate-800"
+            />
+          </div>
 
-        {/* Dropdown Filter on the Right */}
-        <div className="relative min-w-[200px] shrink-0">
-          <select
-            value={activeTab}
-            onChange={(e) => {
-              setActiveTab(e.target.value as 'ALL' | 'PENDING' | 'VERIFIED' | 'LOCKED');
-              setCurrentPage(1);
-            }}
-            className="w-full pl-9 pr-8 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200/90 rounded-xl shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 appearance-none cursor-pointer hover:border-slate-300 transition-colors"
-          >
-            <option value="ALL">All Declarations</option>
-            <option value="PENDING">Pending Audit</option>
-            <option value="VERIFIED">Verified</option>
-            <option value="LOCKED">Locked</option>
-          </select>
-          <IconFilter className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          {/* Dropdown Filter on the Right */}
+          <div className="relative min-w-[200px] shrink-0">
+            <select
+              value={activeTab}
+              onChange={(e) => {
+                setActiveTab(e.target.value as 'ALL' | 'PENDING' | 'VERIFIED' | 'LOCKED');
+                setCurrentPage(1);
+              }}
+              className="w-full pl-9 pr-8 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200/90 rounded-xl shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 appearance-none cursor-pointer hover:border-slate-300 transition-colors"
+            >
+              <option value="ALL">All Declarations</option>
+              <option value="PENDING">Pending Audit</option>
+              <option value="VERIFIED">Verified</option>
+              <option value="LOCKED">Locked</option>
+            </select>
+            <IconFilter className="w-3.5 h-3.5 text-slate-500 font-medium absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Table */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
@@ -310,7 +329,7 @@ export const TaxDeclarationsPage: React.FC = () => {
                   </td>
                   <td className="px-5 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-1.5">
-                      {isFinanceOrAdmin && emp.status === 'PENDING_REVIEW' && (
+                      {!isSelfService && isFinanceOrAdmin && emp.status === 'PENDING_REVIEW' && (
                         <button
                           onClick={() => handleVerify(emp.id)}
                           title="Verify Proofs"

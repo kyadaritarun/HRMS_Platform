@@ -121,9 +121,9 @@ describe('Roles & Hierarchy Access for Finance and IT Roles', () => {
       </MemoryRouter>
     );
 
-    // Verify Roles & Hierarchy header is rendered, NOT Employee Dashboard Mock
+    // Verify Org Structure header is rendered, NOT Employee Dashboard Mock
     await waitFor(() => {
-      expect(screen.getByText(/Roles & Hierarchy/i)).toBeInTheDocument();
+      expect(screen.getByText(/Org Structure/i)).toBeInTheDocument();
       expect(screen.queryByText('Employee Dashboard Mock')).not.toBeInTheDocument();
     });
 
@@ -192,7 +192,7 @@ describe('Roles & Hierarchy Access for Finance and IT Roles', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Roles & Hierarchy/i)).toBeInTheDocument();
+      expect(screen.getByText(/Org Structure/i)).toBeInTheDocument();
       expect(screen.queryByText('Employee Dashboard Mock')).not.toBeInTheDocument();
     });
   });

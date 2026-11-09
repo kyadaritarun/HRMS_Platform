@@ -513,7 +513,7 @@ export const App: React.FC = () => {
               path="/payroll/tax-declarations"
               element={
                 <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'FINANCE']}>
-                  <TaxDeclarationsPage />
+                  <TaxDeclarationsPage selfServiceOnly={false} />
                 </ProtectedRoute>
               }
             />
@@ -526,7 +526,7 @@ export const App: React.FC = () => {
             <Route path="/comp-off" element={<MyCompOffPage />} />
             <Route path="/claims" element={<ClaimsPage />} />
             <Route path="/loans-advances" element={<LoansAdvancesPage />} />
-            <Route path="/tax-declarations" element={<TaxDeclarationsPage />} />
+            <Route path="/tax-declarations" element={<TaxDeclarationsPage selfServiceOnly={true} />} />
             <Route path="/tickets" element={<TicketsPage />} />
             <Route path="/payroll/my-payslips" element={<MyPayslipsPage />} />
             <Route path="/payroll/payslips" element={<MyPayslipsPage />} />

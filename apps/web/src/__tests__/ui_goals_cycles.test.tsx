@@ -200,15 +200,18 @@ describe('Performance Goals - Cycles Dropdown UI Tests', () => {
     expect(optionValues).toContain('cycle-2026-q2');
   });
 
-  it('5. Renders top KPI cards: Goals for Present Year, Number Submitted, Number Progressed, Number Completed', async () => {
+  it('5. Renders toolbar with search bar on left without KPI cards', async () => {
     render(<PerformanceGoalsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Goals for Present Year')).toBeInTheDocument();
-      expect(screen.getByText('Number Submitted')).toBeInTheDocument();
-      expect(screen.getByText('Number Progressed')).toBeInTheDocument();
-      expect(screen.getByText('Number Completed')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Search goals or cycles...')).toBeInTheDocument();
     });
+
+    // Verify top KPI cards have been removed as per clean UI design
+    expect(screen.queryByText('Goals for Present Year')).not.toBeInTheDocument();
+    expect(screen.queryByText('Number Submitted')).not.toBeInTheDocument();
+    expect(screen.queryByText('Number Progressed')).not.toBeInTheDocument();
+    expect(screen.queryByText('Number Completed')).not.toBeInTheDocument();
   });
 
   it('6. Renders table with 4 columns: Goal, Cycle, Approval, Action and supports view details & cancellation', async () => {

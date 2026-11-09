@@ -127,19 +127,15 @@ describe('Company Goals & Performance Objectives Alignment UI Tests', () => {
     expect(screen.getByText('VP Engineering')).toBeInTheDocument();
   });
 
-  it('2. PerformanceGoalsPage: displays Company Strategic Goals showcase on page mount', async () => {
+  it('2. PerformanceGoalsPage: maintains clean toolbar with search on left without redundant company goals button in table', async () => {
     render(<PerformanceGoalsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Company Strategic Goals & Priorities')).toBeInTheDocument();
-      expect(screen.getByText('2 Strategic Objectives')).toBeInTheDocument();
-      expect(screen.getByText('Accelerate Enterprise Revenue to $15M ARR')).toBeInTheDocument();
-      expect(screen.getByText('Cloud Architecture Scalability & 99.99% Uptime')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Search goals or cycles...')).toBeInTheDocument();
     });
 
-    // Check progress and owner are displayed
-    expect(screen.getByText(/CEO & Leadership/)).toBeInTheDocument();
-    expect(screen.getByText(/VP Engineering/)).toBeInTheDocument();
+    // Company goals are shown inside Create New Goal modal, not cluttering the table
+    expect(screen.queryByRole('button', { name: /^Company Goals$/i })).not.toBeInTheDocument();
   });
 
   it('3. PerformanceGoalsPage: shows alignment badge in table row and inside goal details drawer', async () => {

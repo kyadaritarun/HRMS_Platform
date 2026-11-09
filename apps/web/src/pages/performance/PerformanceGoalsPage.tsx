@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../../api/client';
 import {
@@ -124,16 +124,44 @@ export const PerformanceGoalsPage: React.FC = () => {
   const [goals, setGoals] = useState<GoalRequest[]>([]);
   const [cycles, setCycles] = useState<PerformanceCycle[]>([]);
   const [companyGoals, setCompanyGoals] = useState<CompanyGoalItem[]>([]);
-  const [isCompanyGoalsExpanded, setIsCompanyGoalsExpanded] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isCompanyGoalsLoading, setIsCompanyGoalsLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showDrawerCompanyGoals, setShowDrawerCompanyGoals] = useState(false);
+  const [isCompanyGoalDropdownOpen, setIsCompanyGoalDropdownOpen] = useState(false);
+  const companyGoalDropdownRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<'ALL' | 'IN_PROGRESS' | 'DONE' | 'PENDING'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGoalForView, setSelectedGoalForView] = useState<GoalRequest | null>(null);
   const [goalToCancel, setGoalToCancel] = useState<GoalRequest | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        companyGoalDropdownRef.current &&
+        !companyGoalDropdownRef.current.contains(e.target as Node)
+      ) {
+        setIsCompanyGoalDropdownOpen(false);
+      }
+    };
+    if (isCompanyGoalDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isCompanyGoalDropdownOpen]);
+
+  const handleSelectCompanyGoal = (goalId: string) => {
+    const selected = companyGoals.find((cg) => cg.id === goalId);
+    setForm((prev) => ({
+      ...prev,
+      companyGoalId: goalId,
+      companyGoalTitle: selected ? selected.title : '',
+    }));
+    setIsCompanyGoalDropdownOpen(false);
+  };
 
   // Form State
   const [form, setForm] = useState({
@@ -242,6 +270,16 @@ export const PerformanceGoalsPage: React.FC = () => {
   };
 
   const handleCycleChange = (cycleId: string) => {
+    if (!cycleId) {
+      setForm((prev) => ({
+        ...prev,
+        cycleId: '',
+        startDate: '',
+        endDate: '',
+        weight: prev.weight || 25,
+      }));
+      return;
+    }
     const selected = cycles.find((c) => c.id === cycleId);
     const allocated = selected ? getCycleAllocatedWeight(selected.id, selected.name) : 0;
     const remaining = Math.max(0, 100 - allocated);
@@ -261,16 +299,8 @@ export const PerformanceGoalsPage: React.FC = () => {
       setError('Title and description are required');
       return;
     }
-    if (!form.cycleId && availableCycles.length > 0) {
-      setError('Please select an appraisal cycle');
-      return;
-    }
-    if (availableCycles.length === 0) {
-      setError('All appraisal cycles are already 100% allocated with existing goals.');
-      return;
-    }
 
-    const selectedCycle = cycles.find((c) => c.id === form.cycleId);
+    const selectedCycle = form.cycleId ? cycles.find((c) => c.id === form.cycleId) : undefined;
     if (selectedCycle) {
       const allocated = getCycleAllocatedWeight(selectedCycle.id, selectedCycle.name);
       const remaining = 100 - allocated;
@@ -361,23 +391,6 @@ export const PerformanceGoalsPage: React.FC = () => {
     }
   };
 
-  // KPI Counters: Goals for present year, number submitted, number progressed, number completed
-  const currentYear = new Date().getFullYear();
-  const presentYearGoals = goals.filter((g) => {
-    const createdYear = new Date(g.createdAt).getFullYear();
-    const startYear = g.startDate ? new Date(g.startDate).getFullYear() : null;
-    return createdYear === currentYear || startYear === currentYear;
-  });
-  const presentYearCount = presentYearGoals.length;
-
-  const submittedCount = goals.filter((g) => g.status === 'PENDING').length;
-
-  const progressedCount = goals.filter(
-    (g) => g.status === 'APPROVED' && (g.meta?.goalStatus === 'IN_PROGRESS' || g.meta?.goalStatus === 'NOT_STARTED')
-  ).length;
-
-  const completedCount = goals.filter((g) => g.meta?.goalStatus === 'DONE').length;
-
   const filteredGoals = goals.filter((g) => {
     // 1. Status Filter
     if (activeTab === 'PENDING' && g.status !== 'PENDING') return false;
@@ -443,216 +456,12 @@ export const PerformanceGoalsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* KPI Counters: Goals for present year, number submitted, number progressed, number completed */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* 1. Goals for Present Year */}
-        <div
-          onClick={() => setActiveTab('ALL')}
-          className={`bg-white rounded-2xl border p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-all cursor-pointer ${
-            activeTab === 'ALL' ? 'ring-2 ring-[#5E4BE2] border-[#5E4BE2]/50' : 'border-slate-200'
-          }`}
-          title="Filter: All Goals"
-        >
-          <div>
-            <span className="text-xs font-bold text-slate-500">Goals for Present Year</span>
-            <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-              {presentYearCount}
-            </div>
-            <div className="text-[11px] font-bold text-indigo-600 mt-2">
-              All tracked in {currentYear}
-            </div>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2]">
-            <IconTarget className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* 2. Number Submitted */}
-        <div
-          onClick={() => setActiveTab('PENDING')}
-          className={`bg-white rounded-2xl border p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-all cursor-pointer ${
-            activeTab === 'PENDING' ? 'ring-2 ring-amber-600 border-amber-300' : 'border-slate-200'
-          }`}
-          title="Filter: Pending Manager Approval"
-        >
-          <div>
-            <span className="text-xs font-bold text-slate-500">Number Submitted</span>
-            <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-              {submittedCount}
-            </div>
-            <div className="text-[11px] font-bold text-amber-600 mt-2">
-              Awaiting manager sign-off
-            </div>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
-            <IconClock className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* 3. Number Progressed */}
-        <div
-          onClick={() => setActiveTab('IN_PROGRESS')}
-          className={`bg-white rounded-2xl border p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-all cursor-pointer ${
-            activeTab === 'IN_PROGRESS' ? 'ring-2 ring-purple-600 border-purple-300' : 'border-slate-200'
-          }`}
-          title="Filter: In Progress"
-        >
-          <div>
-            <span className="text-xs font-bold text-slate-500">Number Progressed</span>
-            <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-              {progressedCount}
-            </div>
-            <div className="text-[11px] font-bold text-purple-600 mt-2">
-              Goals underway
-            </div>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
-            <IconTrendingUp className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* 4. Number Completed */}
-        <div
-          onClick={() => setActiveTab('DONE')}
-          className={`bg-white rounded-2xl border p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-all cursor-pointer ${
-            activeTab === 'DONE' ? 'ring-2 ring-emerald-600 border-emerald-300' : 'border-slate-200'
-          }`}
-          title="Filter: Completed / Achieved"
-        >
-          <div>
-            <span className="text-xs font-bold text-slate-500">Number Completed</span>
-            <div className="text-2xl font-black text-slate-900 mt-1 leading-none tracking-tight">
-              {completedCount}
-            </div>
-            <div className="text-[11px] font-bold text-emerald-600 mt-2">
-              Successfully fulfilled
-            </div>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-            <IconAward className="w-5 h-5" />
-          </div>
-        </div>
-      </div>
-
-      {/* Company Strategic Goals Showcase */}
-      {companyGoals.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-          <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50/80 via-white to-indigo-50/30">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0">
-                <IconBuilding className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-bold text-slate-900">
-                    Company Strategic Goals & Priorities
-                  </h3>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#5E4BE2]/10 text-[#5E4BE2] border border-[#5E4BE2]/20">
-                    {companyGoals.length} Strategic Objectives
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">
-                  Organizational priorities set by leadership. Align your performance objectives to support these targets.
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsCompanyGoalsExpanded(!isCompanyGoalsExpanded)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-colors self-start sm:self-center cursor-pointer"
-            >
-              <span>{isCompanyGoalsExpanded ? 'Hide Goals' : 'View Company Goals'}</span>
-              {isCompanyGoalsExpanded ? (
-                <IconChevronUp className="w-4 h-4 text-slate-400" />
-              ) : (
-                <IconChevronDown className="w-4 h-4 text-slate-400" />
-              )}
-            </button>
-          </div>
-
-          {isCompanyGoalsExpanded && (
-            <div className="p-4 sm:p-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                {companyGoals.map((cg) => {
-                  const style = COMPANY_GOAL_CATEGORY_STYLES[cg.category] || DEFAULT_CATEGORY_STYLE;
-                  return (
-                    <div
-                      key={cg.id}
-                      className="rounded-xl border border-slate-200/80 bg-slate-50/40 hover:bg-white hover:border-[#5E4BE2]/40 hover:shadow-xs transition-all p-3.5 flex flex-col justify-between group"
-                    >
-                      <div>
-                        <div className="flex items-center justify-between gap-2 mb-2">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border ${style.bg} ${style.text} ${style.border}`}
-                          >
-                            {cg.category}
-                          </span>
-                          <span
-                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                              cg.status === 'COMPLETED'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : cg.status === 'ON_TRACK'
-                                ? 'bg-blue-100 text-blue-800'
-                                : cg.status === 'AT_RISK'
-                                ? 'bg-rose-100 text-rose-800'
-                                : 'bg-slate-100 text-slate-700'
-                            }`}
-                          >
-                            {cg.status === 'ON_TRACK' ? 'On Track' : cg.status === 'AT_RISK' ? 'At Risk' : cg.status === 'COMPLETED' ? 'Completed' : 'Planned'}
-                          </span>
-                        </div>
-                        <h4 className="text-xs font-bold text-slate-900 group-hover:text-[#5E4BE2] transition-colors line-clamp-2">
-                          {cg.title}
-                        </h4>
-                        <p className="text-[11px] text-slate-500 line-clamp-2 mt-1">
-                          {cg.description}
-                        </p>
-                      </div>
-
-                      <div className="mt-3 pt-2.5 border-t border-slate-200/60 space-y-2">
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-slate-500 font-medium truncate max-w-[120px]">
-                            {cg.targetMetric || 'Strategic Milestone'}
-                          </span>
-                          <span className="font-bold text-slate-900 shrink-0">{cg.progress}%</span>
-                        </div>
-                        <div className="w-full bg-slate-200/80 rounded-full h-1.5 overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all ${style.bar}`}
-                            style={{ width: `${Math.min(100, Math.max(0, cg.progress))}%` }}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
-                          <span className="truncate">Owner: {cg.ownerName}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenCreateModal(cg.id)}
-                            className="text-[#5E4BE2] hover:text-[#4B39C3] font-bold inline-flex items-center gap-0.5 hover:underline cursor-pointer"
-                          >
-                            + Align Goal
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Main Table Container Card: Goal, cycle, approval, action */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden space-y-4 p-5">
         {/* Table Toolbar */}
-        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 text-slate-700 text-xs font-bold shrink-0">
-            <IconTarget className="w-4 h-4 text-[#5E4BE2]" />
-            <span>Tracked Objectives ({filteredGoals.length})</span>
-          </div>
-
-          {/* Search Input */}
-          <div className="relative w-full max-w-xs">
+        <div className="flex items-center justify-between">
+          {/* Search Input on Left */}
+          <div className="relative w-full max-w-xs sm:max-w-sm">
             <IconSearch className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
@@ -909,8 +718,9 @@ export const PerformanceGoalsPage: React.FC = () => {
                 {/* Form Body - scrollable */}
                 <form onSubmit={handleCreate} className="flex flex-col flex-1 min-h-0">
                   <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                    {/* 1. Objective Title */}
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
                         Objective Title <span className="text-rose-500">*</span>
                       </label>
                       <input
@@ -919,12 +729,13 @@ export const PerformanceGoalsPage: React.FC = () => {
                         value={form.title}
                         onChange={(e) => setForm({ ...form, title: e.target.value })}
                         placeholder="e.g. Optimize API latency & achieve 99.9% uptime"
-                        className="w-full px-3.5 py-2.5 bg-slate-50/70 border border-slate-200/90 rounded-xl text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all"
                       />
                     </div>
 
+                    {/* 2. Key Results & Metrics */}
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
                         Key Results & Success Metrics <span className="text-rose-500">*</span>
                       </label>
                       <textarea
@@ -933,148 +744,40 @@ export const PerformanceGoalsPage: React.FC = () => {
                         value={form.reason}
                         onChange={(e) => setForm({ ...form, reason: e.target.value })}
                         placeholder="Detail the measurable metrics and targets..."
-                        className="w-full p-3.5 bg-slate-50/70 border border-slate-200/90 rounded-xl text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all resize-none"
+                        className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all resize-none"
                       />
                     </div>
 
-                    {/* Aligned Company Strategic Goal */}
-                    <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/80 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <label htmlFor="company-goal-select" className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-                          <IconBuilding className="w-3.5 h-3.5 text-[#5E4BE2]" />
-                          <span>Aligned Company Strategic Goal</span>
-                          <span className="text-[10px] font-normal text-slate-400">(Recommended)</span>
-                        </label>
-                        {companyGoals.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => setShowDrawerCompanyGoals(!showDrawerCompanyGoals)}
-                            className="text-[11px] font-bold text-[#5E4BE2] hover:text-[#4B39C3] hover:underline cursor-pointer"
-                          >
-                            {showDrawerCompanyGoals ? 'Hide Overview' : `Browse Goals (${companyGoals.length})`}
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Dropdown to select company goal */}
-                      <div className="relative">
-                        <select
-                          id="company-goal-select"
-                          value={form.companyGoalId}
-                          onChange={(e) => {
-                            const selected = companyGoals.find((cg) => cg.id === e.target.value);
-                            setForm((prev) => ({
-                              ...prev,
-                              companyGoalId: e.target.value,
-                              companyGoalTitle: selected ? selected.title : '',
-                            }));
-                          }}
-                          className="w-full appearance-none px-3.5 py-2.5 pr-10 bg-white border border-slate-200/90 rounded-xl text-xs sm:text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all cursor-pointer"
-                        >
-                          <option value="">None / Standalone Personal Objective</option>
-                          {companyGoals.map((cg) => (
-                            <option key={cg.id} value={cg.id}>
-                              [{cg.category}] {cg.title} ({cg.targetMetric})
-                            </option>
-                          ))}
-                        </select>
-                        <IconChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      </div>
-
-                      {/* Selected Company Goal Preview Card */}
-                      {form.companyGoalId && (() => {
-                        const selectedCg = companyGoals.find((cg) => cg.id === form.companyGoalId);
-                        if (!selectedCg) return null;
-                        const style = COMPANY_GOAL_CATEGORY_STYLES[selectedCg.category] || DEFAULT_CATEGORY_STYLE;
-                        return (
-                          <div className="p-3 rounded-xl bg-white border border-indigo-100 shadow-2xs space-y-1.5 animate-in fade-in">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${style.bg} ${style.text} ${style.border}`}>
-                                {selectedCg.category}
-                              </span>
-                              <span className="text-[10px] font-bold text-slate-500">
-                                Target: {selectedCg.targetMetric}
-                              </span>
-                            </div>
-                            <div className="text-xs font-bold text-slate-900">
-                              {selectedCg.title}
-                            </div>
-                            <p className="text-[11px] text-slate-600 line-clamp-2">
-                              {selectedCg.description}
-                            </p>
-                            <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-100">
-                              <span>Pillar Owner: {selectedCg.ownerName}</span>
-                              <span className="font-semibold text-emerald-600">Company Progress: {selectedCg.progress}%</span>
-                            </div>
-                          </div>
-                        );
-                      })()}
-
-                      {/* Collapsible reference list of all company goals to browse */}
-                      {showDrawerCompanyGoals && (
-                        <div className="p-3 bg-white rounded-xl border border-slate-200/90 space-y-2 max-h-56 overflow-y-auto animate-in fade-in">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                            Available Company Goals ({companyGoals.length})
-                          </span>
-                          {companyGoals.map((cg) => {
-                            const isSelected = form.companyGoalId === cg.id;
-                            return (
-                              <div
-                                key={cg.id}
-                                onClick={() => {
-                                  setForm((prev) => ({
-                                    ...prev,
-                                    companyGoalId: cg.id,
-                                    companyGoalTitle: cg.title,
-                                  }));
-                                }}
-                                className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all ${
-                                  isSelected
-                                    ? 'bg-indigo-50/80 border-[#5E4BE2] ring-1 ring-[#5E4BE2]'
-                                    : 'bg-slate-50/60 border-slate-200/80 hover:bg-slate-100/70 hover:border-slate-300'
-                                }`}
-                              >
-                                <div className="flex items-center justify-between gap-1 mb-1">
-                                  <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded">
-                                    {cg.category}
-                                  </span>
-                                  <span className="text-[10px] text-slate-500 font-medium">
-                                    {cg.targetMetric}
-                                  </span>
-                                </div>
-                                <div className="text-xs font-bold text-slate-900 line-clamp-1">
-                                  {cg.title}
-                                </div>
-                                <div className="text-[10px] text-slate-500 line-clamp-1 mt-0.5">
-                                  {cg.description}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Appraisal Cycle Selection */}
+                    {/* 3. Appraisal Cycle */}
                     <div>
-                      <label htmlFor="cycle-select" className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        Appraisal Cycle <span className="text-rose-500">*</span>
-                      </label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label htmlFor="cycle-select" className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                          <span>Appraisal Cycle</span>
+                          <span className="text-[11px] font-normal text-slate-400">(Optional)</span>
+                        </label>
+                        {form.cycleId && (() => {
+                          const c = cycles.find((x) => x.id === form.cycleId);
+                          if (!c) return null;
+                          const allocated = getCycleAllocatedWeight(c.id, c.name);
+                          const remaining = Math.max(0, 100 - allocated);
+                          return (
+                            <span className="text-[11px] font-bold text-[#5E4BE2]">
+                              {remaining}% weight available
+                            </span>
+                          );
+                        })()}
+                      </div>
                       <div className="relative">
                         <select
                           id="cycle-select"
-                          required
                           value={form.cycleId}
                           onChange={(e) => handleCycleChange(e.target.value)}
-                          style={{ outline: 'none' }}
-                          className="w-full appearance-none px-3.5 py-2.5 pr-10 bg-slate-50/70 border border-slate-200/90 rounded-xl text-xs sm:text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all cursor-pointer"
+                          className="w-full appearance-none px-3.5 py-2.5 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all cursor-pointer"
                         >
                           <option value="">
                             {cycles.length === 0
                               ? 'No cycle available'
-                              : availableCycles.length === 0
-                              ? 'All cycles 100% allocated'
-                              : 'Select appraisal cycle...'}
+                              : 'None / No Appraisal Cycle'}
                           </option>
                           {availableCycles.map((c) => {
                             const allocated = getCycleAllocatedWeight(c.id, c.name);
@@ -1089,125 +792,199 @@ export const PerformanceGoalsPage: React.FC = () => {
                         <IconChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                       </div>
 
-                      {availableCycles.length === 0 && (
-                        <div className="mt-2 p-2.5 rounded-xl bg-amber-50/90 border border-amber-200/80 text-amber-800 text-xs flex items-center gap-2">
+                      {availableCycles.length === 0 && cycles.length > 0 && (
+                        <div className="mt-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
                           <IconAlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-600" />
                           <span>
-                            {cycles.length === 0
-                              ? 'No appraisal cycles found.'
-                              : 'All cycles reached 100% weightage.'}
+                            All appraisal cycles reached 100% weightage. You can still submit this goal without an appraisal cycle.
                           </span>
                         </div>
                       )}
 
-                      {/* Selected Cycle Metadata Info */}
                       {form.cycleId && (() => {
                         const c = cycles.find((x) => x.id === form.cycleId);
-                        if (!c) return null;
-                        const allocated = getCycleAllocatedWeight(c.id, c.name);
-                        const remaining = Math.max(0, 100 - allocated);
+                        if (!c || !c.startDate || !c.endDate) return null;
                         return (
-                          <div className="mt-2 px-3 py-2 rounded-xl bg-indigo-50/60 border border-indigo-100/70 flex items-center justify-between text-xs">
-                            <div className="flex items-center gap-2 text-slate-600 font-medium truncate">
-                              <IconCalendar className="w-3.5 h-3.5 text-[#5E4BE2] shrink-0" />
-                              <span className="truncate text-[11px]">
-                                {c.startDate && c.endDate
-                                  ? `${new Date(c.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${new Date(c.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
-                                  : 'Active Review Period'}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1.5 shrink-0 pl-2">
-                              <span className="text-[11px] font-bold text-[#5E4BE2]">
-                                {remaining}% available
-                              </span>
-                              <span className="text-[10px] text-slate-400">({allocated}% used)</span>
-                            </div>
-                          </div>
+                          <p className="text-[11px] text-slate-400 mt-1 font-medium flex items-center gap-1">
+                            <IconCalendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span>
+                              {new Date(c.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – {new Date(c.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </span>
+                          </p>
                         );
                       })()}
                     </div>
 
-                    {/* Weightage Allocation Card */}
-                    <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/80 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-semibold text-slate-800 flex items-center gap-1">
-                          <span>Goal Weightage</span>
-                          <span className="text-rose-500">*</span>
+                    {/* 4. Aligned Company Strategic Goal */}
+                    <div ref={companyGoalDropdownRef} className="relative">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label htmlFor="company-goal-select" className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                          <IconBuilding className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                          <span>Aligned Company Strategic Goal</span>
+                          <span className="text-[11px] font-normal text-slate-400">(Optional)</span>
                         </label>
-                        <span className="text-xs font-bold text-[#5E4BE2] bg-indigo-50 border border-indigo-100/80 px-2 py-0.5 rounded-md">
-                          {form.weight}% Weight
-                        </span>
+                        {companyGoals.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setIsCompanyGoalDropdownOpen(!isCompanyGoalDropdownOpen)}
+                            className="text-[11px] font-bold text-[#5E4BE2] hover:text-[#4B39C3] hover:underline cursor-pointer"
+                          >
+                            Browse Goals ({companyGoals.length})
+                          </button>
+                        )}
                       </div>
 
-                      {/* Quick Presets Grid */}
-                      <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
-                          Quick Presets
-                        </span>
-                        <div className="grid grid-cols-5 gap-1.5">
-                          {(() => {
-                            const selectedCycle = cycles.find((c) => c.id === form.cycleId);
-                            const remaining = selectedCycle
-                              ? Math.max(0, 100 - getCycleAllocatedWeight(selectedCycle.id, selectedCycle.name))
-                              : 100;
-                            const presets = [10, 20, 25, 50].filter((w) => w <= remaining);
-                            if (remaining > 0 && !presets.includes(remaining) && remaining <= 100) {
-                              presets.push(remaining);
-                              presets.sort((a, b) => a - b);
-                            }
-                            return presets.map((w) => (
-                              <button
-                                key={w}
-                                type="button"
-                                onClick={() => setForm({ ...form, weight: w })}
-                                className={`py-1.5 px-2 text-xs font-bold rounded-lg border text-center transition-all cursor-pointer ${
-                                  form.weight === w
-                                    ? 'bg-[#5E4BE2] text-white border-[#5E4BE2] shadow-2xs'
-                                    : 'bg-white text-slate-700 border-slate-200/90 hover:bg-slate-100/70 hover:border-slate-300'
+                      {/* Accessible select for automation & unit tests */}
+                      <select
+                        id="company-goal-select"
+                        aria-label="Aligned Company Strategic Goal"
+                        value={form.companyGoalId}
+                        onChange={(e) => handleSelectCompanyGoal(e.target.value)}
+                        className="sr-only"
+                        tabIndex={-1}
+                      >
+                        <option value="">None / Standalone Personal Objective</option>
+                        {companyGoals.map((cg) => (
+                          <option key={cg.id} value={cg.id}>
+                            {cg.title}
+                          </option>
+                        ))}
+                      </select>
+
+                      {/* Visible Custom Dropdown Trigger */}
+                      <div
+                        onClick={() => setIsCompanyGoalDropdownOpen(!isCompanyGoalDropdownOpen)}
+                        className={`w-full min-h-[42px] px-3.5 py-2 bg-slate-50 hover:bg-white border rounded-xl flex items-center justify-between gap-2 transition-all cursor-pointer ${
+                          isCompanyGoalDropdownOpen
+                            ? 'border-[#5E4BE2] ring-2 ring-[#5E4BE2]/20 bg-white'
+                            : 'border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        {form.companyGoalId ? (() => {
+                          const selectedCg = companyGoals.find((cg) => cg.id === form.companyGoalId);
+                          if (!selectedCg) {
+                            return (
+                              <span className="text-xs font-medium text-slate-400">
+                                None / Standalone Personal Objective
+                              </span>
+                            );
+                          }
+                          return (
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <span className="text-xs font-semibold text-slate-900 truncate">
+                                {selectedCg.title}
+                              </span>
+                            </div>
+                          );
+                        })() : (
+                          <span className="text-xs font-medium text-slate-500">
+                            None / Standalone Personal Objective
+                          </span>
+                        )}
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          {form.companyGoalId && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSelectCompanyGoal('');
+                              }}
+                              className="p-1 hover:bg-slate-200/60 rounded-md text-slate-400 hover:text-slate-600 transition-colors"
+                              title="Clear selection"
+                            >
+                              <IconX className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <IconChevronDown
+                            className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+                              isCompanyGoalDropdownOpen ? 'rotate-180 text-[#5E4BE2]' : ''
+                            }`}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Custom Dropdown Menu */}
+                      {isCompanyGoalDropdownOpen && (
+                        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-64 overflow-y-auto divide-y divide-slate-100">
+                          {/* Option: None */}
+                          <div
+                            onClick={() => handleSelectCompanyGoal('')}
+                            className={`p-3 hover:bg-slate-50 cursor-pointer transition-colors flex items-center justify-between gap-3 ${
+                              !form.companyGoalId ? 'bg-indigo-50/50' : ''
+                            }`}
+                          >
+                            <div>
+                              <div className="text-xs font-bold text-slate-800">
+                                None / Standalone Personal Objective
+                              </div>
+                              <div className="text-[11px] text-slate-400 font-medium mt-0.5">
+                                Individual goal not directly aligned to organizational targets
+                              </div>
+                            </div>
+                            {!form.companyGoalId && (
+                              <IconCheck className="w-4 h-4 text-[#5E4BE2] shrink-0" />
+                            )}
+                          </div>
+
+                          {/* List of Company Goals */}
+                          {companyGoals.map((cg) => {
+                            const isSelected = form.companyGoalId === cg.id;
+                            return (
+                              <div
+                                key={cg.id}
+                                onClick={() => handleSelectCompanyGoal(cg.id)}
+                                className={`p-3 hover:bg-slate-50 cursor-pointer transition-colors flex items-start justify-between gap-3 ${
+                                  isSelected ? 'bg-indigo-50/50' : ''
                                 }`}
                               >
-                                {w}%{w === remaining && remaining < 100 ? ' Max' : ''}
-                              </button>
-                            ));
-                          })()}
+                                <div className="min-w-0 flex-1 space-y-0.5">
+                                  <div className="text-xs font-bold text-slate-900 leading-snug">
+                                    {cg.title}
+                                  </div>
+                                  <div className="text-[11px] text-slate-400 font-medium">
+                                    Executive Owner: {cg.ownerName}
+                                  </div>
+                                </div>
+                                {isSelected && (
+                                  <IconCheck className="w-4 h-4 text-[#5E4BE2] shrink-0 mt-1" />
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
-                      </div>
-
-                      {/* Custom % Input */}
-                      <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between gap-3">
-                        <span className="text-[11px] font-medium text-slate-500">
-                          Or enter custom %:
-                        </span>
-                        <div className="relative w-28">
-                          <input
-                            type="number"
-                            min="5"
-                            max={(() => {
-                              const selectedCycle = cycles.find((c) => c.id === form.cycleId);
-                              return selectedCycle
-                                ? Math.max(0, 100 - getCycleAllocatedWeight(selectedCycle.id, selectedCycle.name))
-                                : 100;
-                            })()}
-                            step="5"
-                            value={form.weight}
-                            onChange={(e) => setForm({ ...form, weight: Number(e.target.value) || 25 })}
-                            style={{ outline: 'none' }}
-                            className="w-full h-8 px-2.5 pr-6 bg-white border border-slate-200/90 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all"
-                          />
-                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-400 pointer-events-none">
-                            %
-                          </span>
-                        </div>
-                      </div>
+                      )}
                     </div>
 
-                    {/* Helpful Evaluation Guidance Tip */}
-                    <div className="p-3.5 rounded-xl bg-blue-50/50 border border-blue-100/80 flex items-start gap-2.5 text-xs text-blue-900">
-                      <IconTarget className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                      <div className="leading-relaxed">
-                        <span className="font-semibold text-blue-950 block">Evaluation Process</span>
-                        <span className="text-blue-700/90 text-[11px]">
-                          Once submitted, your goal will be sent to your reporting manager for review and sign-off.
+                    {/* 5. Goal Weightage */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Goal Weightage (%) <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          required
+                          min="1"
+                          max={(() => {
+                            const selectedCycle = cycles.find((c) => c.id === form.cycleId);
+                            return selectedCycle
+                              ? Math.max(0, 100 - getCycleAllocatedWeight(selectedCycle.id, selectedCycle.name))
+                              : 100;
+                          })()}
+                          step="1"
+                          value={form.weight ?? ''}
+                          onChange={(e) =>
+                            setForm({
+                              ...form,
+                              weight: e.target.value === '' ? ('' as any) : Number(e.target.value),
+                            })
+                          }
+                          placeholder="e.g. 25"
+                          className="w-full px-3.5 py-2.5 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all"
+                        />
+                        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
+                          %
                         </span>
                       </div>
                     </div>

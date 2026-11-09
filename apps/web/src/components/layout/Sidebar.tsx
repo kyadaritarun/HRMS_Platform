@@ -205,7 +205,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
             { label: 'Appreciations', path: '/appreciations', icon: IconHeartHandshake, feature: 'employee_appreciation' },
 
             // Organization & Policies
-            { label: 'Roles & Hierarchy', path: '/company/roles-hierarchy', icon: IconNetwork },
+            { label: 'Org Structure', path: '/company/roles-hierarchy', icon: IconNetwork },
             { label: 'Policies', path: '/policies', icon: IconFileText, feature: 'policy_documents_management' },
             { label: 'My Documents', path: '/my-documents', icon: IconFolderCheck, feature: 'employee_document_management' },
 
@@ -328,7 +328,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           { label: 'Appreciations', path: '/appreciations', icon: IconHeartHandshake, feature: 'employee_appreciation' },
 
           // Organization & Policies
-          { label: 'Roles & Hierarchy', path: '/company/roles-hierarchy', icon: IconNetwork },
+          { label: 'Org Structure', path: '/company/roles-hierarchy', icon: IconNetwork },
           { label: 'Policies', path: '/policies', icon: IconFileText, feature: 'policy_documents_management' },
           { label: 'My Documents', path: '/my-documents', icon: IconFolderCheck, feature: 'employee_document_management' },
 

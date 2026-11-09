@@ -224,6 +224,16 @@ router.put('/:id', async (req, res, next) => {
       return next(new AppError(400, 'CANNOT_EDIT', 'Only pending requests can be edited'));
     }
 
+    if (request.type === 'LEAVE' && startDate !== undefined) {
+      const s = new Date(startDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      s.setHours(0, 0, 0, 0);
+      if (s.getTime() < today.getTime()) {
+        return next(new AppError(400, 'PAST_DATE_NOT_ALLOWED', 'Leave cannot be applied for past dates'));
+      }
+    }
+
     const data: any = {};
     if (reason !== undefined) data.reason = reason;
     if (title !== undefined) data.title = title;

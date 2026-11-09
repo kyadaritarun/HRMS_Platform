@@ -2276,62 +2276,6 @@ router.get('/roles-hierarchy', roleGuard('COMPANY_ADMIN', 'HR', 'FINANCE', 'IT',
   }
 });
 
-// Default initial company strategic goals if none configured
-const INITIAL_COMPANY_GOALS = [
-  {
-    id: 'cgoal-1',
-    title: 'Accelerate Enterprise ARR Growth to $10M',
-    description: 'Scale corporate sales pipeline, expand annual contract values, and boost customer upsell expansion across key market segments.',
-    category: 'Revenue & Growth',
-    targetPeriod: 'FY 2026-27',
-    targetMetric: '$10M ARR',
-    progress: 68,
-    status: 'ON_TRACK',
-    ownerName: 'Executive Leadership',
-    createdAt: '2026-01-01T00:00:00.000Z',
-    updatedAt: '2026-01-15T00:00:00.000Z',
-  },
-  {
-    id: 'cgoal-2',
-    title: 'Enhance Product Reliability, Speed & AI Copilots',
-    description: 'Deploy real-time automation copilots, reduce p99 response times to <120ms, and maintain 99.95% system uptime across all regions.',
-    category: 'Product & Technology',
-    targetPeriod: 'FY 2026-27',
-    targetMetric: '99.95% Uptime',
-    progress: 82,
-    status: 'ON_TRACK',
-    ownerName: 'Engineering & Product',
-    createdAt: '2026-01-01T00:00:00.000Z',
-    updatedAt: '2026-01-20T00:00:00.000Z',
-  },
-  {
-    id: 'cgoal-3',
-    title: 'World-Class Customer Satisfaction & Retention',
-    description: 'Deliver seamless client onboarding, lower first-response support ticket resolution to under 2 hours, and achieve NPS > 65.',
-    category: 'Customer Success',
-    targetPeriod: 'FY 2026-27',
-    targetMetric: 'CSAT 95% / NPS 65+',
-    progress: 74,
-    status: 'ON_TRACK',
-    ownerName: 'Customer Support & Success',
-    createdAt: '2026-01-01T00:00:00.000Z',
-    updatedAt: '2026-02-01T00:00:00.000Z',
-  },
-  {
-    id: 'cgoal-4',
-    title: 'High-Performance Culture, Learning & Employee Well-being',
-    description: 'Empower transparent career progression, reduce voluntary staff churn to <5%, and foster leadership mentorship tracks.',
-    category: 'People & Culture',
-    targetPeriod: 'FY 2026-27',
-    targetMetric: '<5% Voluntary Churn',
-    progress: 55,
-    status: 'ON_TRACK',
-    ownerName: 'People & HR Operations',
-    createdAt: '2026-01-01T00:00:00.000Z',
-    updatedAt: '2026-02-10T00:00:00.000Z',
-  },
-];
-
 // GET /company/goals (Accessible to all company members for OKR alignment)
 router.get('/goals', async (req, res, next) => {
   try {
@@ -2341,16 +2285,24 @@ router.get('/goals', async (req, res, next) => {
       select: { settings: true },
     });
     const settings = (company?.settings as any) || {};
+    let companyGoals: any[] = Array.isArray(settings.companyGoals) ? settings.companyGoals : [];
 
-    if (!Array.isArray(settings.companyGoals) || settings.companyGoals.length === 0) {
-      settings.companyGoals = [...INITIAL_COMPANY_GOALS];
+    // Clean up legacy hardcoded dummy goals if present in settings
+    const hasLegacyInitial = companyGoals.some((g: any) =>
+      ['cgoal-1', 'cgoal-2', 'cgoal-3', 'cgoal-4'].includes(g.id)
+    );
+    if (hasLegacyInitial) {
+      companyGoals = companyGoals.filter(
+        (g: any) => !['cgoal-1', 'cgoal-2', 'cgoal-3', 'cgoal-4'].includes(g.id)
+      );
+      settings.companyGoals = companyGoals;
       await prisma.company.update({
         where: { id: companyId },
         data: { settings },
       });
     }
 
-    return res.json({ companyGoals: settings.companyGoals });
+    return res.json({ companyGoals });
   } catch (error) {
     next(error);
   }
@@ -2380,7 +2332,7 @@ router.post('/goals', roleGuard('COMPANY_ADMIN'), async (req, res, next) => {
       select: { settings: true },
     });
     const settings = (company?.settings as any) || {};
-    const existing = Array.isArray(settings.companyGoals) ? settings.companyGoals : [...INITIAL_COMPANY_GOALS];
+    const existing = Array.isArray(settings.companyGoals) ? settings.companyGoals : [];
 
     const nowIso = new Date().toISOString();
     const newGoal = {
@@ -2422,7 +2374,7 @@ router.patch('/goals/:id', roleGuard('COMPANY_ADMIN'), async (req, res, next) =>
       select: { settings: true },
     });
     const settings = (company?.settings as any) || {};
-    const existing = Array.isArray(settings.companyGoals) ? settings.companyGoals : [...INITIAL_COMPANY_GOALS];
+    const existing = Array.isArray(settings.companyGoals) ? settings.companyGoals : [];
 
     const goalIndex = existing.findIndex((g: any) => g.id === goalId);
     if (goalIndex === -1) {
@@ -2469,7 +2421,7 @@ router.delete('/goals/:id', roleGuard('COMPANY_ADMIN'), async (req, res, next) =
       select: { settings: true },
     });
     const settings = (company?.settings as any) || {};
-    const existing = Array.isArray(settings.companyGoals) ? settings.companyGoals : [...INITIAL_COMPANY_GOALS];
+    const existing = Array.isArray(settings.companyGoals) ? settings.companyGoals : [];
 
     settings.companyGoals = existing.filter((g: any) => g.id !== goalId);
 

@@ -71,6 +71,14 @@ export const MyLeavesPage: React.FC = () => {
     setCurrentPage(1);
   }, [selectedTypeFilter]);
 
+  const getTodayDateString = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const [form, setForm] = useState<{
     leaveTypeId: string;
     startDate: string;
@@ -109,10 +117,11 @@ export const MyLeavesPage: React.FC = () => {
 
   const handleOpenNew = () => {
     setEditingReqId(null);
+    const todayStr = getTodayDateString();
     setForm({
       leaveTypeId: '',
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: new Date().toISOString().split('T')[0],
+      startDate: todayStr,
+      endDate: todayStr,
       reason: '',
       attachmentUrl: '',
       attachmentName: '',
@@ -153,7 +162,22 @@ export const MyLeavesPage: React.FC = () => {
 
   const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.leaveTypeId || !form.reason.trim()) return;
+    if (!form.leaveTypeId || !form.reason.trim()) {
+      setError('Please select a leave category and enter a reason');
+      return;
+    }
+
+    const todayStr = getTodayDateString();
+    if (!editingReqId && form.startDate < todayStr) {
+      setError('Start date cannot be in the past. Please select today or a future date.');
+      return;
+    }
+
+    if (form.endDate < form.startDate) {
+      setError('End date cannot be before start date.');
+      return;
+    }
+
     setError(null);
     setIsSubmitting(true);
     try {
@@ -180,8 +204,8 @@ export const MyLeavesPage: React.FC = () => {
       setEditingReqId(null);
       setForm({
         leaveTypeId: '',
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: new Date().toISOString().split('T')[0],
+        startDate: todayStr,
+        endDate: todayStr,
         reason: '',
         attachmentUrl: '',
         attachmentName: '',
@@ -846,8 +870,16 @@ export const MyLeavesPage: React.FC = () => {
                       <input
                         type="date"
                         required
+                        min={editingReqId ? undefined : getTodayDateString()}
                         value={form.startDate}
-                        onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                        onChange={(e) => {
+                          const newStart = e.target.value;
+                          setForm((prev) => ({
+                            ...prev,
+                            startDate: newStart,
+                            endDate: prev.endDate < newStart ? newStart : prev.endDate,
+                          }));
+                        }}
                         className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800"
                       />
                     </div>
@@ -858,6 +890,7 @@ export const MyLeavesPage: React.FC = () => {
                       <input
                         type="date"
                         required
+                        min={form.startDate || getTodayDateString()}
                         value={form.endDate}
                         onChange={(e) => setForm({ ...form, endDate: e.target.value })}
                         className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800"

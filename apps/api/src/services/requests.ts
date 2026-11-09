@@ -143,6 +143,15 @@ export async function createRequest(opts: {
       throw new AppError(400, 'INVALID_DATE_RANGE', 'Start date cannot be after end date');
     }
 
+    // Reject past dates for leave applications (dates before today)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDateOnly = new Date(parsedStartDate);
+    startDateOnly.setHours(0, 0, 0, 0);
+    if (startDateOnly.getTime() < today.getTime()) {
+      throw new AppError(400, 'PAST_DATE_NOT_ALLOWED', 'Leave cannot be applied for past dates');
+    }
+
     const leaveType = await prisma.leaveType.findFirst({
       where: { id: opts.leaveTypeId, companyId: opts.companyId, isActive: true },
     });
