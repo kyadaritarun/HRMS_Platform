@@ -14,11 +14,69 @@ import {
   IconAward,
   IconTrendingUp,
   IconChevronDown,
+  IconChevronUp,
   IconSearch,
   IconEye,
   IconTrash,
   IconLoader2,
+  IconBuilding,
+  IconCompass,
+  IconSparkles,
 } from '@tabler/icons-react';
+
+export interface CompanyGoalItem {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  targetPeriod: string;
+  targetMetric: string;
+  progress: number;
+  status: 'ON_TRACK' | 'AT_RISK' | 'COMPLETED' | 'PLANNED';
+  ownerName: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+const COMPANY_GOAL_CATEGORY_STYLES: Record<string, { bg: string; text: string; border: string; bar: string }> = {
+  'Revenue & Growth': {
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-700',
+    border: 'border-emerald-200/80',
+    bar: 'bg-emerald-500',
+  },
+  'Product & Technology': {
+    bg: 'bg-blue-50',
+    text: 'text-blue-700',
+    border: 'border-blue-200/80',
+    bar: 'bg-blue-500',
+  },
+  'Customer Success': {
+    bg: 'bg-amber-50',
+    text: 'text-amber-700',
+    border: 'border-amber-200/80',
+    bar: 'bg-amber-500',
+  },
+  'People & Culture': {
+    bg: 'bg-purple-50',
+    text: 'text-purple-700',
+    border: 'border-purple-200/80',
+    bar: 'bg-[#5E4BE2]',
+  },
+  'Operational Excellence': {
+    bg: 'bg-slate-100',
+    text: 'text-slate-700',
+    border: 'border-slate-300',
+    bar: 'bg-slate-600',
+  },
+};
+
+const DEFAULT_CATEGORY_STYLE = {
+  bg: 'bg-indigo-50',
+  text: 'text-[#5E4BE2]',
+  border: 'border-indigo-100',
+  bar: 'bg-[#5E4BE2]',
+};
 
 interface GoalComment {
   authorId: number;
@@ -51,6 +109,8 @@ interface GoalRequest {
     weight?: number;
     goalStatus?: 'NOT_STARTED' | 'IN_PROGRESS' | 'DONE';
     comments?: GoalComment[];
+    companyGoalId?: string;
+    companyGoalTitle?: string;
   } | null;
   approver?: {
     id: number;
@@ -63,8 +123,12 @@ interface GoalRequest {
 export const PerformanceGoalsPage: React.FC = () => {
   const [goals, setGoals] = useState<GoalRequest[]>([]);
   const [cycles, setCycles] = useState<PerformanceCycle[]>([]);
+  const [companyGoals, setCompanyGoals] = useState<CompanyGoalItem[]>([]);
+  const [isCompanyGoalsExpanded, setIsCompanyGoalsExpanded] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCompanyGoalsLoading, setIsCompanyGoalsLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showDrawerCompanyGoals, setShowDrawerCompanyGoals] = useState(false);
   const [activeTab, setActiveTab] = useState<'ALL' | 'IN_PROGRESS' | 'DONE' | 'PENDING'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGoalForView, setSelectedGoalForView] = useState<GoalRequest | null>(null);
@@ -79,6 +143,8 @@ export const PerformanceGoalsPage: React.FC = () => {
     startDate: '',
     endDate: '',
     weight: 25,
+    companyGoalId: '',
+    companyGoalTitle: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,6 +183,18 @@ export const PerformanceGoalsPage: React.FC = () => {
     }
   };
 
+  const fetchCompanyGoals = async () => {
+    setIsCompanyGoalsLoading(true);
+    try {
+      const res = await api.get('/company/goals');
+      setCompanyGoals(res.data?.companyGoals || []);
+    } catch (err) {
+      console.warn('Failed to load company goals:', err);
+    } finally {
+      setIsCompanyGoalsLoading(false);
+    }
+  };
+
   const fetchGoals = async () => {
     setIsLoading(true);
     try {
@@ -134,14 +212,21 @@ export const PerformanceGoalsPage: React.FC = () => {
   useEffect(() => {
     fetchGoals();
     fetchCycles();
+    fetchCompanyGoals();
   }, []);
 
-  const handleOpenCreateModal = () => {
+  const handleOpenCreateModal = (preselectedCompanyGoalId?: string | React.MouseEvent) => {
     setError(null);
+    setShowDrawerCompanyGoals(false);
     const eligible = cycles.filter((c) => getCycleAllocatedWeight(c.id, c.name) < 100);
     const defaultCycle = eligible.find((c) => c.isActive) || eligible[0];
     const allocated = defaultCycle ? getCycleAllocatedWeight(defaultCycle.id, defaultCycle.name) : 0;
     const remaining = Math.max(0, 100 - allocated);
+
+    const goalId = typeof preselectedCompanyGoalId === 'string' ? preselectedCompanyGoalId : undefined;
+    const matchedCompanyGoal = goalId
+      ? companyGoals.find((cg) => cg.id === goalId)
+      : undefined;
 
     setForm({
       title: '',
@@ -150,6 +235,8 @@ export const PerformanceGoalsPage: React.FC = () => {
       startDate: defaultCycle?.startDate ? defaultCycle.startDate.split('T')[0] : '',
       endDate: defaultCycle?.endDate ? defaultCycle.endDate.split('T')[0] : '',
       weight: Math.min(25, remaining > 0 ? remaining : 25),
+      companyGoalId: matchedCompanyGoal ? matchedCompanyGoal.id : '',
+      companyGoalTitle: matchedCompanyGoal ? matchedCompanyGoal.title : '',
     });
     setIsModalOpen(true);
   };
@@ -214,6 +301,8 @@ export const PerformanceGoalsPage: React.FC = () => {
           weight: Number(form.weight) || 25,
           goalStatus: 'NOT_STARTED',
           comments: [],
+          companyGoalId: form.companyGoalId || undefined,
+          companyGoalTitle: form.companyGoalTitle || undefined,
         },
       });
       setIsModalOpen(false);
@@ -224,6 +313,8 @@ export const PerformanceGoalsPage: React.FC = () => {
         startDate: '',
         endDate: '',
         weight: 25,
+        companyGoalId: '',
+        companyGoalTitle: '',
       });
       fetchGoals();
     } catch (err: any) {
@@ -443,6 +534,114 @@ export const PerformanceGoalsPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Company Strategic Goals Showcase */}
+      {companyGoals.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+          <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50/80 via-white to-indigo-50/30">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0">
+                <IconBuilding className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Company Strategic Goals & Priorities
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#5E4BE2]/10 text-[#5E4BE2] border border-[#5E4BE2]/20">
+                    {companyGoals.length} Strategic Objectives
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  Organizational priorities set by leadership. Align your performance objectives to support these targets.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsCompanyGoalsExpanded(!isCompanyGoalsExpanded)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-colors self-start sm:self-center cursor-pointer"
+            >
+              <span>{isCompanyGoalsExpanded ? 'Hide Goals' : 'View Company Goals'}</span>
+              {isCompanyGoalsExpanded ? (
+                <IconChevronUp className="w-4 h-4 text-slate-400" />
+              ) : (
+                <IconChevronDown className="w-4 h-4 text-slate-400" />
+              )}
+            </button>
+          </div>
+
+          {isCompanyGoalsExpanded && (
+            <div className="p-4 sm:p-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                {companyGoals.map((cg) => {
+                  const style = COMPANY_GOAL_CATEGORY_STYLES[cg.category] || DEFAULT_CATEGORY_STYLE;
+                  return (
+                    <div
+                      key={cg.id}
+                      className="rounded-xl border border-slate-200/80 bg-slate-50/40 hover:bg-white hover:border-[#5E4BE2]/40 hover:shadow-xs transition-all p-3.5 flex flex-col justify-between group"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border ${style.bg} ${style.text} ${style.border}`}
+                          >
+                            {cg.category}
+                          </span>
+                          <span
+                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                              cg.status === 'COMPLETED'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : cg.status === 'ON_TRACK'
+                                ? 'bg-blue-100 text-blue-800'
+                                : cg.status === 'AT_RISK'
+                                ? 'bg-rose-100 text-rose-800'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            {cg.status === 'ON_TRACK' ? 'On Track' : cg.status === 'AT_RISK' ? 'At Risk' : cg.status === 'COMPLETED' ? 'Completed' : 'Planned'}
+                          </span>
+                        </div>
+                        <h4 className="text-xs font-bold text-slate-900 group-hover:text-[#5E4BE2] transition-colors line-clamp-2">
+                          {cg.title}
+                        </h4>
+                        <p className="text-[11px] text-slate-500 line-clamp-2 mt-1">
+                          {cg.description}
+                        </p>
+                      </div>
+
+                      <div className="mt-3 pt-2.5 border-t border-slate-200/60 space-y-2">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-slate-500 font-medium truncate max-w-[120px]">
+                            {cg.targetMetric || 'Strategic Milestone'}
+                          </span>
+                          <span className="font-bold text-slate-900 shrink-0">{cg.progress}%</span>
+                        </div>
+                        <div className="w-full bg-slate-200/80 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${style.bar}`}
+                            style={{ width: `${Math.min(100, Math.max(0, cg.progress))}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                          <span className="truncate">Owner: {cg.ownerName}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCreateModal(cg.id)}
+                            className="text-[#5E4BE2] hover:text-[#4B39C3] font-bold inline-flex items-center gap-0.5 hover:underline cursor-pointer"
+                          >
+                            + Align Goal
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Main Table Container Card: Goal, cycle, approval, action */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden space-y-4 p-5">
         {/* Table Toolbar */}
@@ -547,6 +746,12 @@ export const PerformanceGoalsPage: React.FC = () => {
                                   }`}
                                 >
                                   {progress === 'DONE' ? 'Completed' : progress === 'IN_PROGRESS' ? 'In Progress' : 'Not Started'}
+                                </span>
+                              )}
+                              {meta.companyGoalTitle && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200/80 shrink-0" title={`Aligned to company goal: ${meta.companyGoalTitle}`}>
+                                  <IconCompass className="w-3 h-3 text-purple-600" />
+                                  <span>Aligned: {meta.companyGoalTitle}</span>
                                 </span>
                               )}
                             </div>
@@ -730,6 +935,124 @@ export const PerformanceGoalsPage: React.FC = () => {
                         placeholder="Detail the measurable metrics and targets..."
                         className="w-full p-3.5 bg-slate-50/70 border border-slate-200/90 rounded-xl text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all resize-none"
                       />
+                    </div>
+
+                    {/* Aligned Company Strategic Goal */}
+                    <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/80 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label htmlFor="company-goal-select" className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+                          <IconBuilding className="w-3.5 h-3.5 text-[#5E4BE2]" />
+                          <span>Aligned Company Strategic Goal</span>
+                          <span className="text-[10px] font-normal text-slate-400">(Recommended)</span>
+                        </label>
+                        {companyGoals.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setShowDrawerCompanyGoals(!showDrawerCompanyGoals)}
+                            className="text-[11px] font-bold text-[#5E4BE2] hover:text-[#4B39C3] hover:underline cursor-pointer"
+                          >
+                            {showDrawerCompanyGoals ? 'Hide Overview' : `Browse Goals (${companyGoals.length})`}
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Dropdown to select company goal */}
+                      <div className="relative">
+                        <select
+                          id="company-goal-select"
+                          value={form.companyGoalId}
+                          onChange={(e) => {
+                            const selected = companyGoals.find((cg) => cg.id === e.target.value);
+                            setForm((prev) => ({
+                              ...prev,
+                              companyGoalId: e.target.value,
+                              companyGoalTitle: selected ? selected.title : '',
+                            }));
+                          }}
+                          className="w-full appearance-none px-3.5 py-2.5 pr-10 bg-white border border-slate-200/90 rounded-xl text-xs sm:text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all cursor-pointer"
+                        >
+                          <option value="">None / Standalone Personal Objective</option>
+                          {companyGoals.map((cg) => (
+                            <option key={cg.id} value={cg.id}>
+                              [{cg.category}] {cg.title} ({cg.targetMetric})
+                            </option>
+                          ))}
+                        </select>
+                        <IconChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      </div>
+
+                      {/* Selected Company Goal Preview Card */}
+                      {form.companyGoalId && (() => {
+                        const selectedCg = companyGoals.find((cg) => cg.id === form.companyGoalId);
+                        if (!selectedCg) return null;
+                        const style = COMPANY_GOAL_CATEGORY_STYLES[selectedCg.category] || DEFAULT_CATEGORY_STYLE;
+                        return (
+                          <div className="p-3 rounded-xl bg-white border border-indigo-100 shadow-2xs space-y-1.5 animate-in fade-in">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${style.bg} ${style.text} ${style.border}`}>
+                                {selectedCg.category}
+                              </span>
+                              <span className="text-[10px] font-bold text-slate-500">
+                                Target: {selectedCg.targetMetric}
+                              </span>
+                            </div>
+                            <div className="text-xs font-bold text-slate-900">
+                              {selectedCg.title}
+                            </div>
+                            <p className="text-[11px] text-slate-600 line-clamp-2">
+                              {selectedCg.description}
+                            </p>
+                            <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-100">
+                              <span>Pillar Owner: {selectedCg.ownerName}</span>
+                              <span className="font-semibold text-emerald-600">Company Progress: {selectedCg.progress}%</span>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Collapsible reference list of all company goals to browse */}
+                      {showDrawerCompanyGoals && (
+                        <div className="p-3 bg-white rounded-xl border border-slate-200/90 space-y-2 max-h-56 overflow-y-auto animate-in fade-in">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                            Available Company Goals ({companyGoals.length})
+                          </span>
+                          {companyGoals.map((cg) => {
+                            const isSelected = form.companyGoalId === cg.id;
+                            return (
+                              <div
+                                key={cg.id}
+                                onClick={() => {
+                                  setForm((prev) => ({
+                                    ...prev,
+                                    companyGoalId: cg.id,
+                                    companyGoalTitle: cg.title,
+                                  }));
+                                }}
+                                className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all ${
+                                  isSelected
+                                    ? 'bg-indigo-50/80 border-[#5E4BE2] ring-1 ring-[#5E4BE2]'
+                                    : 'bg-slate-50/60 border-slate-200/80 hover:bg-slate-100/70 hover:border-slate-300'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between gap-1 mb-1">
+                                  <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded">
+                                    {cg.category}
+                                  </span>
+                                  <span className="text-[10px] text-slate-500 font-medium">
+                                    {cg.targetMetric}
+                                  </span>
+                                </div>
+                                <div className="text-xs font-bold text-slate-900 line-clamp-1">
+                                  {cg.title}
+                                </div>
+                                <div className="text-[10px] text-slate-500 line-clamp-1 mt-0.5">
+                                  {cg.description}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
 
                     {/* Appraisal Cycle Selection */}
@@ -1104,6 +1427,24 @@ export const PerformanceGoalsPage: React.FC = () => {
                       </p>
                     </div>
                   </div>
+
+                  {/* Aligned Company Strategic Goal */}
+                  {selectedGoalForView.meta?.companyGoalTitle && (
+                    <div className="p-3.5 bg-indigo-50/70 border border-indigo-100 rounded-xl space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
+                          <IconCompass className="w-3.5 h-3.5 text-[#5E4BE2]" />
+                          <span>Aligned Company Strategic Goal</span>
+                        </span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white border border-indigo-200 text-[#5E4BE2]">
+                          Strategic Pillar
+                        </span>
+                      </div>
+                      <div className="text-xs font-bold text-slate-900 mt-1">
+                        {selectedGoalForView.meta.companyGoalTitle}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Details Grid */}
                   <div className="grid grid-cols-2 gap-3 pt-2">

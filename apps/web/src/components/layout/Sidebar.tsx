@@ -234,6 +234,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           roles: ['COMPANY_ADMIN'],
           subItems: [
             { label: 'Company Dashboard', path: '/company/dashboard', icon: IconSmartHome, roles: ['COMPANY_ADMIN'] },
+            { label: 'Company Goals', path: '/company/goals', icon: IconTarget, roles: ['COMPANY_ADMIN'] },
             { label: 'Create Employee', path: '/company/employees/new', icon: IconUserPlus, permission: 'employees', roles: ['COMPANY_ADMIN', 'HR'] },
             { label: 'Add-on Services', path: '/company/addon-services', icon: IconSparkles, roles: ['COMPANY_ADMIN', 'HR'] },
             { label: 'Billing', path: '/company/billing', icon: IconCreditCard, roles: ['COMPANY_ADMIN'] },

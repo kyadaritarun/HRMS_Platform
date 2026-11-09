@@ -61,6 +61,7 @@ import { PerformanceGoalsPage } from './pages/performance/PerformanceGoalsPage';
 import { RolesHierarchyPage } from './pages/company/RolesHierarchyPage';
 import { ManageCyclesPage } from './pages/company/ManageCyclesPage';
 import { ClaimCategoriesPage } from './pages/company/ClaimCategoriesPage';
+import { CompanyGoalsPage } from './pages/company/CompanyGoalsPage';
 import { OfferLettersPage } from './pages/company/OfferLettersPage';
 import { ExitManagementPage } from './pages/company/ExitManagementPage';
 import { HrLettersPage } from './pages/company/HrLettersPage';
@@ -426,6 +427,14 @@ export const App: React.FC = () => {
               element={
                 <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
                   <ClaimCategoriesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/company/goals"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN']}>
+                  <CompanyGoalsPage />
                 </ProtectedRoute>
               }
             />

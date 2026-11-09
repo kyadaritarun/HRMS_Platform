@@ -2276,4 +2276,212 @@ router.get('/roles-hierarchy', roleGuard('COMPANY_ADMIN', 'HR', 'FINANCE', 'IT',
   }
 });
 
+// Default initial company strategic goals if none configured
+const INITIAL_COMPANY_GOALS = [
+  {
+    id: 'cgoal-1',
+    title: 'Accelerate Enterprise ARR Growth to $10M',
+    description: 'Scale corporate sales pipeline, expand annual contract values, and boost customer upsell expansion across key market segments.',
+    category: 'Revenue & Growth',
+    targetPeriod: 'FY 2026-27',
+    targetMetric: '$10M ARR',
+    progress: 68,
+    status: 'ON_TRACK',
+    ownerName: 'Executive Leadership',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-15T00:00:00.000Z',
+  },
+  {
+    id: 'cgoal-2',
+    title: 'Enhance Product Reliability, Speed & AI Copilots',
+    description: 'Deploy real-time automation copilots, reduce p99 response times to <120ms, and maintain 99.95% system uptime across all regions.',
+    category: 'Product & Technology',
+    targetPeriod: 'FY 2026-27',
+    targetMetric: '99.95% Uptime',
+    progress: 82,
+    status: 'ON_TRACK',
+    ownerName: 'Engineering & Product',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-20T00:00:00.000Z',
+  },
+  {
+    id: 'cgoal-3',
+    title: 'World-Class Customer Satisfaction & Retention',
+    description: 'Deliver seamless client onboarding, lower first-response support ticket resolution to under 2 hours, and achieve NPS > 65.',
+    category: 'Customer Success',
+    targetPeriod: 'FY 2026-27',
+    targetMetric: 'CSAT 95% / NPS 65+',
+    progress: 74,
+    status: 'ON_TRACK',
+    ownerName: 'Customer Support & Success',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-02-01T00:00:00.000Z',
+  },
+  {
+    id: 'cgoal-4',
+    title: 'High-Performance Culture, Learning & Employee Well-being',
+    description: 'Empower transparent career progression, reduce voluntary staff churn to <5%, and foster leadership mentorship tracks.',
+    category: 'People & Culture',
+    targetPeriod: 'FY 2026-27',
+    targetMetric: '<5% Voluntary Churn',
+    progress: 55,
+    status: 'ON_TRACK',
+    ownerName: 'People & HR Operations',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-02-10T00:00:00.000Z',
+  },
+];
+
+// GET /company/goals (Accessible to all company members for OKR alignment)
+router.get('/goals', async (req, res, next) => {
+  try {
+    const companyId = req.user!.companyId!;
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { settings: true },
+    });
+    const settings = (company?.settings as any) || {};
+
+    if (!Array.isArray(settings.companyGoals) || settings.companyGoals.length === 0) {
+      settings.companyGoals = [...INITIAL_COMPANY_GOALS];
+      await prisma.company.update({
+        where: { id: companyId },
+        data: { settings },
+      });
+    }
+
+    return res.json({ companyGoals: settings.companyGoals });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /company/goals (Create or add new company goal - Company Admin only)
+router.post('/goals', roleGuard('COMPANY_ADMIN'), async (req, res, next) => {
+  try {
+    const companyId = req.user!.companyId!;
+    const {
+      title,
+      description,
+      category = 'Revenue & Growth',
+      targetPeriod = 'FY 2026-27',
+      targetMetric = '',
+      progress = 0,
+      status = 'ON_TRACK',
+      ownerName = 'Executive Leadership',
+    } = req.body;
+
+    if (!title || typeof title !== 'string' || !title.trim()) {
+      return res.status(400).json({ error: 'Company goal title is required' });
+    }
+
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { settings: true },
+    });
+    const settings = (company?.settings as any) || {};
+    const existing = Array.isArray(settings.companyGoals) ? settings.companyGoals : [...INITIAL_COMPANY_GOALS];
+
+    const nowIso = new Date().toISOString();
+    const newGoal = {
+      id: `cgoal-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      title: title.trim(),
+      description: (description || '').trim(),
+      category: category.trim(),
+      targetPeriod: targetPeriod.trim(),
+      targetMetric: targetMetric.trim(),
+      progress: Math.min(100, Math.max(0, Number(progress) || 0)),
+      status,
+      ownerName: ownerName.trim(),
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+
+    settings.companyGoals = [newGoal, ...existing];
+
+    await prisma.company.update({
+      where: { id: companyId },
+      data: { settings },
+    });
+
+    return res.status(201).json({ success: true, goal: newGoal, companyGoals: settings.companyGoals });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PATCH /company/goals/:id (Update company goal - Company Admin only)
+router.patch('/goals/:id', roleGuard('COMPANY_ADMIN'), async (req, res, next) => {
+  try {
+    const companyId = req.user!.companyId!;
+    const goalId = req.params.id;
+    const { title, description, category, targetPeriod, targetMetric, progress, status, ownerName } = req.body;
+
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { settings: true },
+    });
+    const settings = (company?.settings as any) || {};
+    const existing = Array.isArray(settings.companyGoals) ? settings.companyGoals : [...INITIAL_COMPANY_GOALS];
+
+    const goalIndex = existing.findIndex((g: any) => g.id === goalId);
+    if (goalIndex === -1) {
+      return res.status(404).json({ error: 'Company goal not found' });
+    }
+
+    const nowIso = new Date().toISOString();
+    const current = existing[goalIndex];
+    const updated = {
+      ...current,
+      ...(title !== undefined ? { title: title.trim() } : {}),
+      ...(description !== undefined ? { description: description.trim() } : {}),
+      ...(category !== undefined ? { category: category.trim() } : {}),
+      ...(targetPeriod !== undefined ? { targetPeriod: targetPeriod.trim() } : {}),
+      ...(targetMetric !== undefined ? { targetMetric: targetMetric.trim() } : {}),
+      ...(progress !== undefined ? { progress: Math.min(100, Math.max(0, Number(progress) || 0)) } : {}),
+      ...(status !== undefined ? { status } : {}),
+      ...(ownerName !== undefined ? { ownerName: ownerName.trim() } : {}),
+      updatedAt: nowIso,
+    };
+
+    existing[goalIndex] = updated;
+    settings.companyGoals = existing;
+
+    await prisma.company.update({
+      where: { id: companyId },
+      data: { settings },
+    });
+
+    return res.json({ success: true, goal: updated, companyGoals: settings.companyGoals });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// DELETE /company/goals/:id (Delete company goal - Company Admin only)
+router.delete('/goals/:id', roleGuard('COMPANY_ADMIN'), async (req, res, next) => {
+  try {
+    const companyId = req.user!.companyId!;
+    const goalId = req.params.id;
+
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { settings: true },
+    });
+    const settings = (company?.settings as any) || {};
+    const existing = Array.isArray(settings.companyGoals) ? settings.companyGoals : [...INITIAL_COMPANY_GOALS];
+
+    settings.companyGoals = existing.filter((g: any) => g.id !== goalId);
+
+    await prisma.company.update({
+      where: { id: companyId },
+      data: { settings },
+    });
+
+    return res.json({ success: true, companyGoals: settings.companyGoals });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
