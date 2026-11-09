@@ -761,14 +761,17 @@ export const BackgroundVerificationPage: React.FC = () => {
 
                     {/* Actions - Blurred */}
                     <td className="px-4 py-3.5 text-right filter blur-[4px] select-none pointer-events-none opacity-60">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenDrawer(r)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition-colors cursor-pointer"
-                      >
-                        <IconEye className="w-3.5 h-3.5" />
-                        <span>Review</span>
-                      </button>
+                      <div className="flex items-center justify-end">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenDrawer(r)}
+                          title="Review"
+                          aria-label="Review"
+                          className="w-8 h-8 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition-colors cursor-pointer inline-flex items-center justify-center"
+                        >
+                          <IconEye className="w-4 h-4 stroke-[1.8]" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

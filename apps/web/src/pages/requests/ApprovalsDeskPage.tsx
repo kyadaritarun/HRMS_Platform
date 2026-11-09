@@ -495,25 +495,17 @@ export const ApprovalsDeskPage: React.FC = () => {
 
                     {/* Action button */}
                     <td className="px-4 py-3.5 text-right whitespace-nowrap">
-                      {req.status === 'PENDING' ? (
+                      <div className="flex items-center justify-end gap-1.5">
                         <button
                           type="button"
                           onClick={() => handleOpenReview(req)}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white font-semibold text-xs shadow-xs hover:shadow-md transition-all cursor-pointer whitespace-nowrap active:scale-95"
+                          title={req.status === 'PENDING' ? 'Review Request' : 'View Details'}
+                          aria-label={req.status === 'PENDING' ? 'Review Request' : 'View Details'}
+                          className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-[#5E4BE2] hover:border-indigo-300 flex items-center justify-center shadow-2xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
                         >
-                          <IconFileSearch className="w-3.5 h-3.5" />
-                          <span>Review Request</span>
+                          <IconEye className="w-4 h-4 stroke-[1.8]" />
                         </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenReview(req)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs shadow-2xs transition-all cursor-pointer whitespace-nowrap"
-                        >
-                          <IconEye className="w-3.5 h-3.5 text-slate-500 font-medium" />
-                          <span>View Details</span>
-                        </button>
-                      )}
+                      </div>
                     </td>
                   </tr>
                 ))
