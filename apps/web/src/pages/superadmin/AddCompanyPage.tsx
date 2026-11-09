@@ -148,9 +148,6 @@ export const AddCompanyPage: React.FC = () => {
         if (value.trim().length < 2) return 'Company name must be at least 2 characters.';
         return '';
       case 'subdomain':
-        if (!value?.trim()) return 'Subdomain is required.';
-        if (!/^[a-z0-9-]+$/.test(value.trim())) return 'Subdomain can only contain lowercase letters, numbers, and hyphens.';
-        if (value.trim().length < 2) return 'Subdomain must be at least 2 characters.';
         return '';
       case 'adminName':
         if (!value?.trim()) return 'Admin contact name is required.';
@@ -215,7 +212,6 @@ export const AddCompanyPage: React.FC = () => {
     const newErrors: Record<string, string> = {};
     const fieldsToValidate = [
       'name',
-      'subdomain',
       'adminName',
       'adminEmail',
       'adminPhone',
@@ -363,7 +359,7 @@ export const AddCompanyPage: React.FC = () => {
 
     if (!validateAll()) {
       // Find first error and scroll to that section
-      if (validateField('name', form.name) || validateField('subdomain', form.subdomain)) {
+      if (validateField('name', form.name)) {
         scrollToSection('section-profile');
       } else if (validateField('adminName', form.adminName) || validateField('adminEmail', form.adminEmail) || validateField('adminPhone', form.adminPhone)) {
         scrollToSection('section-admin');
@@ -390,9 +386,11 @@ export const AddCompanyPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
+      const autoSub = form.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const generatedSubdomain = form.subdomain?.trim().toLowerCase() || autoSub || `cmp${Date.now()}`;
       const payload = {
         name: form.name.trim(),
-        subdomain: form.subdomain.trim().toLowerCase(),
+        subdomain: generatedSubdomain,
         code: form.code.trim().toUpperCase() || form.name.replace(/[^a-zA-Z]/g, '').slice(0, 5).toUpperCase() || 'CMP',
         logo: form.logoUrl || null,
         website: form.website.trim() || null,
@@ -708,41 +706,6 @@ export const AddCompanyPage: React.FC = () => {
                   />
                 </div>
                 {renderFieldError('name')}
-              </div>
-
-              {/* Subdomain */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-bold text-slate-700">
-                    Workspace Subdomain <span className="text-rose-500">*</span>
-                  </label>
-                  <span className="text-[10px] text-slate-400 font-mono">.uptrix.io</span>
-                </div>
-                <div className="relative flex items-center">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-indigo-600">
-                    <IconWorld className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="text"
-                    name="subdomain"
-                    required
-                    value={form.subdomain}
-                    onChange={handleChange}
-                    onBlur={() => handleBlur('subdomain')}
-                    placeholder="acme"
-                    className={getInputClass('subdomain', 'pl-10 pr-24')}
-                  />
-                  <span className="absolute right-3 text-xs font-mono font-semibold text-slate-400 select-none">
-                    .uptrix.io
-                  </span>
-                </div>
-                {renderFieldError('subdomain')}
-                {!errors.subdomain && form.subdomain && (
-                  <p className="text-[11px] text-indigo-600 font-mono mt-1 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                    <span>https://{form.subdomain}.uptrix.io</span>
-                  </p>
-                )}
               </div>
 
               {/* Company Code */}

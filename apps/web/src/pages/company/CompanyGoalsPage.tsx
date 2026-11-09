@@ -323,7 +323,7 @@ export const CompanyGoalsPage: React.FC = () => {
           className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 transition-all active:scale-[0.98] cursor-pointer shrink-0"
         >
           <IconPlus className="w-4 h-4" />
-          <span>Add Company Goal</span>
+          <span>Add Goal</span>
         </button>
       </div>
       
@@ -535,7 +535,7 @@ export const CompanyGoalsPage: React.FC = () => {
                   </div>
                   <div>
                     <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                      {editingGoal ? 'Edit Company Goal' : 'Add Strategic Company Goal'}
+                      {editingGoal ? 'Edit Company Goal' : 'Add Company Goal'}
                     </h2>
                     <p className="text-[11px] text-slate-500 font-medium mt-0.5">
                       This goal will be available to all employees for performance alignment

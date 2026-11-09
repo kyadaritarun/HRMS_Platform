@@ -740,7 +740,6 @@ export const CompaniesPage: React.FC = () => {
               <tr>
                 <th className="px-5 py-3.5">Company Name</th>
                 <th className="px-5 py-3.5">Email</th>
-                <th className="px-5 py-3.5">Account URL</th>
                 <th className="px-5 py-3.5">Plan</th>
                 <th className="px-5 py-3.5">Admin</th>
                 <th className="px-5 py-3.5">Created Date</th>
@@ -751,13 +750,13 @@ export const CompaniesPage: React.FC = () => {
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-10 text-center text-slate-500 font-medium">
+                  <td colSpan={7} className="px-5 py-10 text-center text-slate-500 font-medium">
                     <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-brand-600" />
                   </td>
                 </tr>
               ) : displayedCompanies.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-12 text-center text-slate-500 font-medium">
+                  <td colSpan={7} className="px-5 py-12 text-center text-slate-500 font-medium">
                     No companies found matching current filters.
                   </td>
                 </tr>
@@ -818,18 +817,6 @@ export const CompaniesPage: React.FC = () => {
 
                       {/* EMAIL */}
                       <td className="px-5 py-4 text-slate-600 font-normal">{emailDisplay}</td>
-
-                      {/* ACCOUNT URL */}
-                      <td className="px-5 py-4">
-                        <a
-                          href={`https://${accountUrl}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-blue-600 hover:text-blue-800 hover:underline font-medium break-all"
-                        >
-                          {accountUrl}
-                        </a>
-                      </td>
 
                       {/* PLAN */}
                       <td className="px-5 py-4">
@@ -1182,12 +1169,6 @@ export const CompaniesPage: React.FC = () => {
                 Basic Info
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-4 gap-x-6 text-xs sm:text-sm">
-                <div>
-                  <span className="text-xs text-slate-500 font-normal block mb-1">Account URL</span>
-                  <span className="text-slate-900 font-semibold text-xs sm:text-sm break-all">
-                    {selectedCompany.subdomain}.peopleplus.uptrix.io
-                  </span>
-                </div>
                 <div>
                   <span className="text-xs text-slate-500 font-normal block mb-1">Website</span>
                   <span className="text-slate-900 font-semibold text-xs sm:text-sm truncate block">

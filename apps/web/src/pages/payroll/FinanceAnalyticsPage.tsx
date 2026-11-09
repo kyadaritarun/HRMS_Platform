@@ -54,19 +54,12 @@ export const FinanceAnalyticsPage: React.FC = () => {
 
   // Compute live payroll metrics
   const summary = useMemo(() => {
-    const rawEmps = employees.length > 0 ? employees : [
-      { employee: { department: 'Engineering & Tech', firstName: 'Rahul', lastName: 'Sharma' }, calculation: { grossEarnings: 145000, netSalary: 122000, tds: 15000, baseSalary: 72500 } },
-      { employee: { department: 'Engineering & Tech', firstName: 'Priya', lastName: 'Nair' }, calculation: { grossEarnings: 110000, netSalary: 94000, tds: 10000, baseSalary: 55000 } },
-      { employee: { department: 'Product & Design', firstName: 'Ankit', lastName: 'Verma' }, calculation: { grossEarnings: 95000, netSalary: 82000, tds: 8000, baseSalary: 47500 } },
-      { employee: { department: 'Sales & Business Dev', firstName: 'Sneha', lastName: 'Kulkarni' }, calculation: { grossEarnings: 120000, netSalary: 102000, tds: 12000, baseSalary: 60000 } },
-      { employee: { department: 'Human Resources', firstName: 'Rohan', lastName: 'Mehta' }, calculation: { grossEarnings: 80000, netSalary: 71000, tds: 4000, baseSalary: 40000 } },
-      { employee: { department: 'Finance & Accounts', firstName: 'Deepak', lastName: 'Joshi' }, calculation: { grossEarnings: 130000, netSalary: 110000, tds: 13000, baseSalary: 65000 } },
-    ];
+    const rawEmps = employees;
 
-    const monthlyGross = rawEmps.reduce((acc, e) => acc + (e.calculation?.grossEarnings || e.calculation?.baseSalary || 80000), 0);
-    const monthlyNet = rawEmps.reduce((acc, e) => acc + (e.calculation?.netSalary || 70000), 0);
+    const monthlyGross = rawEmps.reduce((acc, e) => acc + (e.calculation?.grossEarnings || e.calculation?.baseSalary || 0), 0);
+    const monthlyNet = rawEmps.reduce((acc, e) => acc + (e.calculation?.netSalary || 0), 0);
     const monthlyTds = rawEmps.reduce((acc, e) => acc + (e.calculation?.tds || 0), 0);
-    const monthlyPt = rawEmps.length * 200; // Rs 200 PT standard
+    const monthlyPt = rawEmps.length > 0 ? rawEmps.length * 200 : 0; // Rs 200 PT standard
 
     // Employer statutory liability: PF 12% + ESIC 3.25% + Gratuity provision
     const employerPf = Math.round(monthlyGross * 0.12);
@@ -76,25 +69,25 @@ export const FinanceAnalyticsPage: React.FC = () => {
     const monthlyCompanyCost = monthlyGross + employerStatutory;
     const annualizedCtc = monthlyCompanyCost * 12;
     const headcount = rawEmps.length;
-    const avgCostPerEmp = Math.round(monthlyCompanyCost / (headcount || 1));
+    const avgCostPerEmp = headcount > 0 ? Math.round(monthlyCompanyCost / headcount) : 0;
 
     // Percentages of total company cost
-    const netPercent = Math.round((monthlyNet / (monthlyCompanyCost || 1)) * 100);
-    const statutoryPercent = Math.round((employerStatutory / (monthlyCompanyCost || 1)) * 100);
-    const taxPercent = Math.max(1, 100 - netPercent - statutoryPercent);
+    const netPercent = monthlyCompanyCost > 0 ? Math.round((monthlyNet / monthlyCompanyCost) * 100) : 0;
+    const statutoryPercent = monthlyCompanyCost > 0 ? Math.round((employerStatutory / monthlyCompanyCost) * 100) : 0;
+    const taxPercent = monthlyCompanyCost > 0 ? Math.max(0, 100 - netPercent - statutoryPercent) : 0;
 
     // Spend vs Budget
     const monthsPassed = month <= 3 ? month + 9 : month - 3; // FY April - March
     const spentToDate = Math.round(monthlyCompanyCost * Math.max(1, monthsPassed));
     const remainingBudget = Math.max(0, annualBudget - spentToDate);
-    const budgetUtilizedPercent = Math.min(100, Math.round((spentToDate / annualBudget) * 100));
-    const runwayMonths = (remainingBudget / Math.max(1, monthlyCompanyCost)).toFixed(1);
+    const budgetUtilizedPercent = annualBudget > 0 ? Math.min(100, Math.round((spentToDate / annualBudget) * 100)) : 0;
+    const runwayMonths = monthlyCompanyCost > 0 ? (remainingBudget / monthlyCompanyCost).toFixed(1) : '12.0+';
 
     // Department grouping
     const deptMap: Record<string, { headcount: number; monthly: number }> = {};
     rawEmps.forEach((e) => {
       const dept = e.employee?.department?.name || e.employee?.department || 'General';
-      const gross = e.calculation?.grossEarnings || 80000;
+      const gross = e.calculation?.grossEarnings || 0;
       if (!deptMap[dept]) {
         deptMap[dept] = { headcount: 0, monthly: 0 };
       }
@@ -104,14 +97,15 @@ export const FinanceAnalyticsPage: React.FC = () => {
 
     const deptBreakdown: DeptCost[] = Object.keys(deptMap).map((d) => {
       const val = deptMap[d];
-      const percent = Math.round((val.monthly / (monthlyGross || 1)) * 100);
+      const roundedMonthly = Math.round(val.monthly);
+      const percent = monthlyGross > 0 ? Math.round((val.monthly / monthlyGross) * 100) : 0;
       return {
         department: d,
         headcount: val.headcount,
-        monthlySpend: val.monthly,
-        annualSpend: val.monthly * 12,
+        monthlySpend: roundedMonthly,
+        annualSpend: Math.round(val.monthly * 12),
         percentOfTotal: percent,
-        avgSalary: Math.round(val.monthly / val.headcount),
+        avgSalary: val.headcount > 0 ? Math.round(val.monthly / val.headcount) : 0,
       };
     }).sort((a, b) => b.monthlySpend - a.monthlySpend);
 
@@ -366,50 +360,60 @@ export const FinanceAnalyticsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-              <tr className="hover:bg-slate-50/60 transition-colors">
-                <td className="px-5 py-3.5 font-bold text-slate-900">Employees' Provident Fund (EPF/EPS)</td>
-                <td className="px-5 py-3.5 text-slate-600">EPFO India</td>
-                <td className="px-5 py-3.5 text-right font-black text-slate-900">₹{summary.employerPf.toLocaleString('en-IN')}</td>
-                <td className="px-5 py-3.5 text-slate-600">15th of next month</td>
-                <td className="px-5 py-3.5 text-right">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    On Track
-                  </span>
-                </td>
-              </tr>
-              <tr className="hover:bg-slate-50/60 transition-colors">
-                <td className="px-5 py-3.5 font-bold text-slate-900">Employee State Insurance (ESIC)</td>
-                <td className="px-5 py-3.5 text-slate-600">ESIC Medical Fund</td>
-                <td className="px-5 py-3.5 text-right font-black text-slate-900">₹{summary.employerEsi.toLocaleString('en-IN')}</td>
-                <td className="px-5 py-3.5 text-slate-600">15th of next month</td>
-                <td className="px-5 py-3.5 text-right">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    On Track
-                  </span>
-                </td>
-              </tr>
-              <tr className="hover:bg-slate-50/60 transition-colors">
-                <td className="px-5 py-3.5 font-bold text-slate-900">Income Tax TDS (Section 192)</td>
-                <td className="px-5 py-3.5 text-slate-600">Income Tax Department</td>
-                <td className="px-5 py-3.5 text-right font-black text-slate-900">₹{summary.monthlyTds.toLocaleString('en-IN')}</td>
-                <td className="px-5 py-3.5 text-slate-600">7th of next month</td>
-                <td className="px-5 py-3.5 text-right">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                    Pending Challan
-                  </span>
-                </td>
-              </tr>
-              <tr className="hover:bg-slate-50/60 transition-colors">
-                <td className="px-5 py-3.5 font-bold text-slate-900">Professional Tax (PT)</td>
-                <td className="px-5 py-3.5 text-slate-600">State Commercial Taxes</td>
-                <td className="px-5 py-3.5 text-right font-black text-slate-900">₹{summary.monthlyPt.toLocaleString('en-IN')}</td>
-                <td className="px-5 py-3.5 text-slate-600">Last day of month</td>
-                <td className="px-5 py-3.5 text-right">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    On Track
-                  </span>
-                </td>
-              </tr>
+              {summary.headcount === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-5 py-8 text-center text-slate-400 font-medium">
+                    No active employees or payroll data recorded for this period.
+                  </td>
+                </tr>
+              ) : (
+                <>
+                  <tr className="hover:bg-slate-50/60 transition-colors">
+                    <td className="px-5 py-3.5 font-bold text-slate-900">Employees' Provident Fund (EPF/EPS)</td>
+                    <td className="px-5 py-3.5 text-slate-600">EPFO India</td>
+                    <td className="px-5 py-3.5 text-right font-black text-slate-900">₹{summary.employerPf.toLocaleString('en-IN')}</td>
+                    <td className="px-5 py-3.5 text-slate-600">15th of next month</td>
+                    <td className="px-5 py-3.5 text-right">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        On Track
+                      </span>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-slate-50/60 transition-colors">
+                    <td className="px-5 py-3.5 font-bold text-slate-900">Employee State Insurance (ESIC)</td>
+                    <td className="px-5 py-3.5 text-slate-600">ESIC Medical Fund</td>
+                    <td className="px-5 py-3.5 text-right font-black text-slate-900">₹{summary.employerEsi.toLocaleString('en-IN')}</td>
+                    <td className="px-5 py-3.5 text-slate-600">15th of next month</td>
+                    <td className="px-5 py-3.5 text-right">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        On Track
+                      </span>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-slate-50/60 transition-colors">
+                    <td className="px-5 py-3.5 font-bold text-slate-900">Income Tax TDS (Section 192)</td>
+                    <td className="px-5 py-3.5 text-slate-600">Income Tax Department</td>
+                    <td className="px-5 py-3.5 text-right font-black text-slate-900">₹{summary.monthlyTds.toLocaleString('en-IN')}</td>
+                    <td className="px-5 py-3.5 text-slate-600">7th of next month</td>
+                    <td className="px-5 py-3.5 text-right">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        Pending Challan
+                      </span>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-slate-50/60 transition-colors">
+                    <td className="px-5 py-3.5 font-bold text-slate-900">Professional Tax (PT)</td>
+                    <td className="px-5 py-3.5 text-slate-600">State Commercial Taxes</td>
+                    <td className="px-5 py-3.5 text-right font-black text-slate-900">₹{summary.monthlyPt.toLocaleString('en-IN')}</td>
+                    <td className="px-5 py-3.5 text-slate-600">Last day of month</td>
+                    <td className="px-5 py-3.5 text-right">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        On Track
+                      </span>
+                    </td>
+                  </tr>
+                </>
+              )}
             </tbody>
           </table>
         </div>
