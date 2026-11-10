@@ -158,13 +158,29 @@ export const AddCompanyPage: React.FC = () => {
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim())) return 'Please enter a valid work email address.';
         return '';
       case 'adminPhone':
-        if (value?.trim() && !/^\d{10}$/.test(value.trim())) return 'Phone number must be exactly 10 digits.';
+        if (!value?.trim()) return 'Phone number is required.';
+        if (!/^\d{10}$/.test(value.trim().replace(/[\s-]/g, ''))) return 'Phone number must be exactly 10 digits.';
+        return '';
+      case 'street':
+        if (!value?.trim()) return 'Street address is required.';
+        if (value.trim().length < 3) return 'Street address must be at least 3 characters.';
+        return '';
+      case 'city':
+        if (!value?.trim()) return 'City is required.';
+        return '';
+      case 'state':
+        if (!value?.trim()) return 'State is required.';
+        return '';
+      case 'pinCode':
+        if (!value?.trim()) return 'PIN code is required.';
+        if (!/^\d{6}$/.test(value.trim())) return 'PIN code must be a 6-digit number.';
         return '';
       case 'packageId':
         if (!value) return 'Please select a subscription package plan.';
         return '';
       case 'pan':
-        if (value?.trim()) {
+        if (!value?.trim()) return 'Company PAN is required.';
+        {
           const cleanPan = value.trim().toUpperCase();
           if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(cleanPan)) {
             return 'PAN must follow standard 10-char format (e.g. AABCK1234D).';
@@ -172,7 +188,8 @@ export const AddCompanyPage: React.FC = () => {
         }
         return '';
       case 'tan':
-        if (value?.trim()) {
+        if (!value?.trim()) return 'Company TAN is required.';
+        {
           const cleanTan = value.trim().toUpperCase();
           if (!/^[A-Z]{4}[0-9]{5}[A-Z]{1}$/.test(cleanTan)) {
             return 'TAN must follow standard 10-char format (e.g. HYDK12891A).';
@@ -180,7 +197,8 @@ export const AddCompanyPage: React.FC = () => {
         }
         return '';
       case 'gstin':
-        if (value?.trim()) {
+        if (!value?.trim()) return 'Company GSTIN is required.';
+        {
           const cleanGst = value.trim().toUpperCase();
           if (cleanGst.length !== 15) {
             return 'GSTIN must be exactly 15 characters (e.g. 36AABCK1234D1Z5).';
@@ -188,20 +206,28 @@ export const AddCompanyPage: React.FC = () => {
         }
         return '';
       case 'cin':
-        if (value?.trim()) {
+        if (!value?.trim()) return 'CIN is required.';
+        {
           const cleanCin = value.trim().toUpperCase();
           if (cleanCin.length !== 21) {
             return 'CIN must be exactly 21 characters (e.g. U72200TG2026PTC123456).';
           }
         }
         return '';
+      case 'pfEstablishmentCode':
+        if (!value?.trim()) return 'PF establishment code is required.';
+        return '';
       case 'esicRegistrationNumber':
-        if (value?.trim()) {
+        if (!value?.trim()) return 'ESIC registration number is required.';
+        {
           const cleanEsic = value.trim();
           if (!/^\d{17}$/.test(cleanEsic)) {
             return 'ESIC registration number must be exactly 17 digits.';
           }
         }
+        return '';
+      case 'ptrcNumber':
+        if (!value?.trim()) return 'PTRC number is required.';
         return '';
       default:
         return '';
@@ -215,12 +241,18 @@ export const AddCompanyPage: React.FC = () => {
       'adminName',
       'adminEmail',
       'adminPhone',
+      'street',
+      'city',
+      'state',
+      'pinCode',
       'packageId',
       'pan',
       'tan',
       'gstin',
       'cin',
+      'pfEstablishmentCode',
       'esicRegistrationNumber',
+      'ptrcNumber',
     ];
     fieldsToValidate.forEach((f) => {
       const err = validateField(f, (form as any)[f]);
@@ -349,26 +381,45 @@ export const AddCompanyPage: React.FC = () => {
       adminName: true,
       adminEmail: true,
       adminPhone: true,
+      street: true,
+      city: true,
+      state: true,
+      pinCode: true,
       packageId: true,
       pan: true,
       tan: true,
       gstin: true,
       cin: true,
+      pfEstablishmentCode: true,
       esicRegistrationNumber: true,
+      ptrcNumber: true,
     });
 
     if (!validateAll()) {
       // Find first error and scroll to that section
       if (validateField('name', form.name)) {
         scrollToSection('section-profile');
-      } else if (validateField('adminName', form.adminName) || validateField('adminEmail', form.adminEmail) || validateField('adminPhone', form.adminPhone)) {
+      } else if (
+        validateField('adminName', form.adminName) ||
+        validateField('adminEmail', form.adminEmail) ||
+        validateField('adminPhone', form.adminPhone)
+      ) {
         scrollToSection('section-admin');
+      } else if (
+        validateField('street', form.street) ||
+        validateField('city', form.city) ||
+        validateField('state', form.state) ||
+        validateField('pinCode', form.pinCode)
+      ) {
+        scrollToSection('section-address');
       } else if (
         validateField('pan', form.pan) ||
         validateField('tan', form.tan) ||
         validateField('gstin', form.gstin) ||
         validateField('cin', form.cin) ||
-        validateField('esicRegistrationNumber', form.esicRegistrationNumber)
+        validateField('pfEstablishmentCode', form.pfEstablishmentCode) ||
+        validateField('esicRegistrationNumber', form.esicRegistrationNumber) ||
+        validateField('ptrcNumber', form.ptrcNumber)
       ) {
         scrollToSection('section-statutory');
       } else if (validateField('packageId', form.packageId)) {
@@ -679,9 +730,6 @@ export const AddCompanyPage: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-indigo-50 text-[#5E4BE2] border border-indigo-100/80">
-                01 • Step 1
-              </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -842,9 +890,6 @@ export const AddCompanyPage: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-50 text-[#5E4BE2] border border-purple-100/80">
-                02 • Step 2
-              </span>
             </div>
 
             {/* Admin Privileges Info Banner */}
@@ -910,7 +955,9 @@ export const AddCompanyPage: React.FC = () => {
               {/* Admin Phone */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-bold text-slate-700">Phone Number</label>
+                  <label className="block text-xs font-bold text-slate-700">
+                    Phone Number <span className="text-rose-500">*</span>
+                  </label>
                   <span className={`text-[10px] font-mono font-bold ${form.adminPhone.length === 10 ? 'text-emerald-600' : 'text-slate-400'}`}>
                     {form.adminPhone.length}/10 digits
                   </span>
@@ -922,6 +969,7 @@ export const AddCompanyPage: React.FC = () => {
                   <input
                     type="tel"
                     name="adminPhone"
+                    required
                     maxLength={10}
                     value={form.adminPhone}
                     onChange={handleChange}
@@ -947,23 +995,20 @@ export const AddCompanyPage: React.FC = () => {
                 </div>
                 <div>
                   <h2 className="text-sm font-bold text-slate-900">
-                    3. Registered Headquarters Address
+                    3. Registered Headquarters Address <span className="text-rose-500">*</span>
                   </h2>
                   <p className="text-xs text-slate-500 font-medium">
                     Corporate headquarters and billing location printed on invoices and payslips
                   </p>
                 </div>
               </div>
-              <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-100/80">
-                03 • Step 3
-              </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Street Address */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Street Address
+                  Street Address <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
@@ -972,18 +1017,21 @@ export const AddCompanyPage: React.FC = () => {
                   <input
                     type="text"
                     name="street"
+                    required
                     value={form.street}
                     onChange={handleChange}
+                    onBlur={() => handleBlur('street')}
                     placeholder="123 Tech Park, 4th Floor"
                     className={getInputClass('street')}
                   />
                 </div>
+                {renderFieldError('street')}
               </div>
 
               {/* Address Line 2 */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Suite / Landmark
+                  Suite / Landmark <span className="text-slate-400 font-normal">(Optional)</span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
@@ -994,6 +1042,7 @@ export const AddCompanyPage: React.FC = () => {
                     name="addressLine2"
                     value={form.addressLine2}
                     onChange={handleChange}
+                    onBlur={() => handleBlur('addressLine2')}
                     placeholder="Opposite Metro Station"
                     className={getInputClass('addressLine2')}
                   />
@@ -1003,39 +1052,60 @@ export const AddCompanyPage: React.FC = () => {
               {/* City & State & PIN */}
               <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">City</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    City <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
                     name="city"
+                    required
                     value={form.city}
                     onChange={handleChange}
+                    onBlur={() => handleBlur('city')}
                     placeholder="Bengaluru"
                     className={getInputClass('city', 'px-3.5')}
                   />
+                  {renderFieldError('city')}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">State</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    State <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
                     name="state"
+                    required
                     value={form.state}
                     onChange={handleChange}
+                    onBlur={() => handleBlur('state')}
                     placeholder="Karnataka"
                     className={getInputClass('state', 'px-3.5')}
                   />
+                  {renderFieldError('state')}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">PIN / Postal Code</label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      PIN / Postal Code <span className="text-rose-500">*</span>
+                    </label>
+                    <span className={`text-[10px] font-mono font-bold ${form.pinCode.length === 6 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                      {form.pinCode.length}/6 digits
+                    </span>
+                  </div>
                   <input
                     type="text"
                     name="pinCode"
+                    maxLength={6}
+                    required
                     value={form.pinCode}
                     onChange={handleChange}
+                    onBlur={() => handleBlur('pinCode')}
                     placeholder="560100"
                     className={getInputClass('pinCode', 'px-3.5')}
                   />
+                  {renderFieldError('pinCode')}
                 </div>
               </div>
             </div>
@@ -1053,16 +1123,21 @@ export const AddCompanyPage: React.FC = () => {
                 </div>
                 <div>
                   <h2 className="text-sm font-bold text-slate-900">
-                    4. Statutory, Tax &amp; Compliance Registrations
+                    4. Statutory, Tax &amp; Compliance Registrations <span className="text-rose-500">*</span>
                   </h2>
                   <p className="text-xs text-slate-500 font-medium">
                     Official government tax registrations and statutory codes printed on Form 16, EPFO ECR, ESIC returns &amp; Payslips
                   </p>
                 </div>
               </div>
-              <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100/80">
-                04 • Step 4
-              </span>
+            </div>
+
+            {/* Statutory Authenticity Note */}
+            <div className="p-3.5 rounded-xl bg-amber-50/90 border border-amber-200/90 flex items-start gap-2.5 text-xs text-amber-950">
+              <IconAlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+              <p className="text-[11px] leading-relaxed">
+                <strong>Mandatory Real Information:</strong> Please enter authentic, government-registered details. This data is used directly on official employee payslips, Form 16, EPFO ECR, and tax filings—do not submit fake or placeholder codes.
+              </p>
             </div>
 
             {/* Group A: Tax & Corporate Registrations */}
@@ -1087,7 +1162,9 @@ export const AddCompanyPage: React.FC = () => {
                 {/* Company PAN */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-bold text-slate-700">Company PAN</label>
+                    <label className="block text-xs font-bold text-slate-700">
+                      Company PAN <span className="text-rose-500">*</span>
+                    </label>
                     <span className="text-[10px] font-mono text-slate-400">10 chars</span>
                   </div>
                   <div className="relative">
@@ -1097,6 +1174,7 @@ export const AddCompanyPage: React.FC = () => {
                     <input
                       type="text"
                       name="pan"
+                      required
                       maxLength={10}
                       value={form.pan}
                       onChange={handleChange}
@@ -1112,7 +1190,7 @@ export const AddCompanyPage: React.FC = () => {
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-xs font-bold text-slate-700">
-                      Company TAN
+                      Company TAN <span className="text-rose-500">*</span>
                     </label>
                     <span className="text-[10px] font-mono text-slate-400">Form 16 &amp; TDS</span>
                   </div>
@@ -1123,6 +1201,7 @@ export const AddCompanyPage: React.FC = () => {
                     <input
                       type="text"
                       name="tan"
+                      required
                       maxLength={10}
                       value={form.tan}
                       onChange={handleChange}
@@ -1137,7 +1216,9 @@ export const AddCompanyPage: React.FC = () => {
                 {/* Company GSTIN */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-bold text-slate-700">Company GSTIN</label>
+                    <label className="block text-xs font-bold text-slate-700">
+                      Company GSTIN <span className="text-rose-500">*</span>
+                    </label>
                     <span className="text-[10px] font-mono text-slate-400">15 chars</span>
                   </div>
                   <div className="relative">
@@ -1147,6 +1228,7 @@ export const AddCompanyPage: React.FC = () => {
                     <input
                       type="text"
                       name="gstin"
+                      required
                       maxLength={15}
                       value={form.gstin}
                       onChange={handleChange}
@@ -1161,7 +1243,9 @@ export const AddCompanyPage: React.FC = () => {
                 {/* CIN */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-bold text-slate-700">CIN (Corp ID)</label>
+                    <label className="block text-xs font-bold text-slate-700">
+                      CIN (Corp ID) <span className="text-rose-500">*</span>
+                    </label>
                     <span className="text-[10px] font-mono text-slate-400">21 chars</span>
                   </div>
                   <div className="relative">
@@ -1171,6 +1255,7 @@ export const AddCompanyPage: React.FC = () => {
                     <input
                       type="text"
                       name="cin"
+                      required
                       maxLength={21}
                       value={form.cin}
                       onChange={handleChange}
@@ -1206,7 +1291,9 @@ export const AddCompanyPage: React.FC = () => {
                 {/* PF Establishment Code */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-bold text-slate-700">PF Establishment Code</label>
+                    <label className="block text-xs font-bold text-slate-700">
+                      PF Establishment Code <span className="text-rose-500">*</span>
+                    </label>
                     <span className="text-[10px] font-mono text-slate-400">EPFO</span>
                   </div>
                   <div className="relative">
@@ -1216,6 +1303,7 @@ export const AddCompanyPage: React.FC = () => {
                     <input
                       type="text"
                       name="pfEstablishmentCode"
+                      required
                       maxLength={22}
                       value={form.pfEstablishmentCode}
                       onChange={handleChange}
@@ -1230,7 +1318,9 @@ export const AddCompanyPage: React.FC = () => {
                 {/* ESIC Registration Number */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-bold text-slate-700">ESIC Registration Number</label>
+                    <label className="block text-xs font-bold text-slate-700">
+                      ESIC Registration Number <span className="text-rose-500">*</span>
+                    </label>
                     <span className="text-[10px] font-mono text-slate-400">17 digits</span>
                   </div>
                   <div className="relative">
@@ -1240,6 +1330,7 @@ export const AddCompanyPage: React.FC = () => {
                     <input
                       type="text"
                       name="esicRegistrationNumber"
+                      required
                       maxLength={17}
                       value={form.esicRegistrationNumber}
                       onChange={handleChange}
@@ -1254,7 +1345,9 @@ export const AddCompanyPage: React.FC = () => {
                 {/* PTRC Number */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-bold text-slate-700">PTRC Number</label>
+                    <label className="block text-xs font-bold text-slate-700">
+                      PTRC Number <span className="text-rose-500">*</span>
+                    </label>
                     <span className="text-[10px] font-mono text-slate-400">Prof. Tax</span>
                   </div>
                   <div className="relative">
@@ -1264,6 +1357,7 @@ export const AddCompanyPage: React.FC = () => {
                     <input
                       type="text"
                       name="ptrcNumber"
+                      required
                       maxLength={25}
                       value={form.ptrcNumber}
                       onChange={handleChange}
@@ -1297,9 +1391,6 @@ export const AddCompanyPage: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-100/80">
-                05 • Step 5
-              </span>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -1457,6 +1548,45 @@ export const AddCompanyPage: React.FC = () => {
                     Select a package plan from the dropdown to preview live billing calculation.
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+
+          {/* ===================== DATA ACCURACY & STATUTORY DISCLAIMER NOTE ===================== */}
+          <div className="rounded-2xl border border-amber-200/90 bg-gradient-to-r from-amber-50/90 via-orange-50/60 to-amber-50/90 p-5 sm:p-6 shadow-xs space-y-3">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-800 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                <IconAlertCircle className="w-5 h-5 text-amber-700 stroke-[2.2]" />
+              </div>
+              <div className="space-y-1.5 flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-md bg-amber-200/80 text-amber-900 text-[10px] font-black uppercase tracking-wider">
+                    Important Notice • Data Authenticity
+                  </span>
+                  <span className="text-[11px] text-amber-800 font-semibold">
+                    Legal &amp; Statutory Compliance
+                  </span>
+                </div>
+                <h4 className="text-xs sm:text-sm font-bold text-amber-950">
+                  Please ensure all company &amp; statutory data entered is authentic and not fake
+                </h4>
+                <p className="text-xs text-amber-900/90 leading-relaxed font-medium">
+                  You are manually providing all company, contact, address, and statutory registration details. <strong>Please make sure you do not enter fake or dummy data.</strong> This information is actively used across the system for generating <strong>official Employee Payslips</strong>, computing <strong>Tax Deductions, Form 16 &amp; TDS filings</strong>, executing <strong>EPFO ECR &amp; ESIC monthly compliance returns</strong>, and issuing <strong>GST Tax Invoices</strong>. Submitting inaccurate or fabricated data can compromise statutory validity and lead to regulatory discrepancies.
+                </p>
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 pt-1.5 text-[11px] font-bold text-amber-900">
+                  <span className="inline-flex items-center gap-1.5">
+                    <IconCheck className="w-3.5 h-3.5 text-amber-700 stroke-[2.5]" />
+                    Directly embedded in Employee Payslips
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <IconCheck className="w-3.5 h-3.5 text-amber-700 stroke-[2.5]" />
+                    Used for Form 16, TDS &amp; Tax filings
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <IconCheck className="w-3.5 h-3.5 text-amber-700 stroke-[2.5]" />
+                    Printed on GST Billing Invoices &amp; Legal Records
+                  </span>
+                </div>
               </div>
             </div>
           </div>

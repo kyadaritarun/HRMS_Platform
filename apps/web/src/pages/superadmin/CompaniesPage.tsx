@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import api from '../../api/client';
 import {
@@ -13,7 +14,6 @@ import {
   IconDots,
   IconEye,
   IconUserPlus,
-  IconCloudUpload,
   IconEdit,
   IconTrash,
   IconX,
@@ -30,6 +30,8 @@ import {
   IconSparkles,
   IconClock,
   IconFilter,
+  IconExternalLink,
+  IconFileCertificate,
 } from '@tabler/icons-react';
 
 interface CompanyAdmin {
@@ -54,6 +56,8 @@ interface CompanyItem {
   subStartDate?: string;
   subEndDate?: string;
   nextPaymentDate?: string;
+  workingDays?: string;
+  timezone?: string;
   isActive: boolean;
   paymentStatus?: 'IN_PROCESS' | 'PAYMENT_DONE' | 'DECLINE';
   paymentLinkUrl?: string;
@@ -75,6 +79,16 @@ interface CompanyItem {
   allowedEmailDomains?: string;
   users?: CompanyAdmin[];
   _count?: { users: number };
+  statutory?: {
+    pan?: string;
+    tan?: string;
+    gstin?: string;
+    cin?: string;
+    pfEstablishmentCode?: string;
+    esicRegistrationNumber?: string;
+    ptrcNumber?: string;
+  };
+  settings?: any;
 }
 
 export const CompaniesPage: React.FC = () => {
@@ -94,14 +108,38 @@ export const CompaniesPage: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState<number>(10);
   const [currentPage, setCurrentPage] = useState<number>(1);
 
-  // Dropdown menu state
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  // Floating action dropdown menu state
+  const [activeMenu, setActiveMenu] = useState<{
+    company: CompanyItem;
+    rect: DOMRect;
+  } | null>(null);
+
+  // Close floating dropdown on scroll, resize, or Escape key
+  useEffect(() => {
+    if (!activeMenu) return;
+    const handleScroll = (e: Event) => {
+      if ((e.target as HTMLElement)?.closest?.('.company-dropdown-menu')) return;
+      setActiveMenu(null);
+    };
+    const handleResize = () => setActiveMenu(null);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setActiveMenu(null);
+    };
+
+    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [activeMenu]);
 
   // Modals state
   const [selectedCompany, setSelectedCompany] = useState<CompanyItem | null>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [adminModalOpen, setAdminModalOpen] = useState(false);
-  const [domainModalOpen, setDomainModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
 
   // Company Contacts View state
@@ -132,11 +170,6 @@ export const CompaniesPage: React.FC = () => {
     null
   );
 
-  // Deploy Domain Form
-  const [customDomainInput, setCustomDomainInput] = useState('');
-  const [domainSubmitting, setDomainSubmitting] = useState(false);
-  const [domainMsg, setDomainMsg] = useState<string | null>(null);
-
   // Edit Company Form
   const [editForm, setEditForm] = useState({
     name: '',
@@ -146,6 +179,20 @@ export const CompaniesPage: React.FC = () => {
     website: '',
     allowedEmailDomains: '',
     isActive: true,
+    // Registered Headquarters Address
+    street: '',
+    addressLine2: '',
+    city: '',
+    state: '',
+    pinCode: '',
+    // Statutory, Tax & Compliance Registrations
+    pan: '',
+    tan: '',
+    gstin: '',
+    cin: '',
+    pfEstablishmentCode: '',
+    esicRegistrationNumber: '',
+    ptrcNumber: '',
   });
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
@@ -187,11 +234,6 @@ export const CompaniesPage: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-
-    // Close action dropdown on outside click
-    const handleOutsideClick = () => setOpenMenuId(null);
-    window.addEventListener('click', handleOutsideClick);
-    return () => window.removeEventListener('click', handleOutsideClick);
   }, []);
 
   const handleDeleteCompany = async (company: CompanyItem) => {
@@ -311,28 +353,16 @@ export const CompaniesPage: React.FC = () => {
     }
   };
 
-  const handleDeployDomain = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedCompany) return;
-    setDomainSubmitting(true);
-    setDomainMsg(null);
-    try {
-      await api.post(`/superadmin/companies/${selectedCompany.id}/deploy-domain`, {
-        customDomain: customDomainInput,
-      });
-      setDomainMsg('Domain updated and configured successfully!');
-      fetchData();
-    } catch (err: any) {
-      setDomainMsg(
-        err.response?.data?.error || err.response?.data?.message || 'Failed to configure domain'
-      );
-    } finally {
-      setDomainSubmitting(false);
-    }
-  };
-
   const handleOpenEditModal = (company: CompanyItem) => {
     setSelectedCompany(company);
+    const addr = (typeof company.address === 'string'
+      ? (() => { try { return JSON.parse(company.address); } catch { return {}; } })()
+      : (company.address || {})) as any;
+    const settings = (typeof company.settings === 'string'
+      ? (() => { try { return JSON.parse(company.settings); } catch { return {}; } })()
+      : (company.settings || {})) as any;
+    const stat = (company.statutory || settings.statutory || (company as any).statutory || {}) as any;
+
     setEditForm({
       name: company.name || '',
       subdomain: company.subdomain || '',
@@ -341,6 +371,20 @@ export const CompaniesPage: React.FC = () => {
       website: company.website || '',
       allowedEmailDomains: company.allowedEmailDomains || '',
       isActive: company.isActive,
+      // Headquarters Address
+      street: addr.street || addr.line1 || '',
+      addressLine2: addr.addressLine2 || addr.line2 || '',
+      city: addr.city || '',
+      state: addr.state || '',
+      pinCode: addr.pinCode || addr.pincode || addr.zip || '',
+      // Statutory
+      pan: stat.pan || (company as any).pan || '',
+      tan: stat.tan || (company as any).tan || '',
+      gstin: stat.gstin || (company as any).gstin || '',
+      cin: stat.cin || (company as any).cin || '',
+      pfEstablishmentCode: stat.pfEstablishmentCode || (company as any).pfEstablishmentCode || '',
+      esicRegistrationNumber: stat.esicRegistrationNumber || (company as any).esicRegistrationNumber || '',
+      ptrcNumber: stat.ptrcNumber || (company as any).ptrcNumber || '',
     });
     setEditError(null);
     setEditModalOpen(true);
@@ -352,7 +396,7 @@ export const CompaniesPage: React.FC = () => {
     setEditSubmitting(true);
     setEditError(null);
     try {
-      await api.patch(`/superadmin/companies/${selectedCompany.id}`, {
+      const res = await api.patch(`/superadmin/companies/${selectedCompany.id}`, {
         name: editForm.name.trim(),
         subdomain: editForm.subdomain.trim().toLowerCase(),
         packageId: editForm.packageId ? Number(editForm.packageId) : null,
@@ -360,7 +404,25 @@ export const CompaniesPage: React.FC = () => {
         website: editForm.website.trim() || null,
         allowedEmailDomains: editForm.allowedEmailDomains.trim(),
         isActive: editForm.isActive,
+        address: {
+          street: editForm.street.trim(),
+          addressLine2: editForm.addressLine2.trim(),
+          city: editForm.city.trim(),
+          state: editForm.state.trim(),
+          pinCode: editForm.pinCode.trim(),
+          country: 'India',
+        },
+        pan: editForm.pan.trim().toUpperCase(),
+        tan: editForm.tan.trim().toUpperCase(),
+        gstin: editForm.gstin.trim().toUpperCase(),
+        cin: editForm.cin.trim().toUpperCase(),
+        pfEstablishmentCode: editForm.pfEstablishmentCode.trim().toUpperCase(),
+        esicRegistrationNumber: editForm.esicRegistrationNumber.trim(),
+        ptrcNumber: editForm.ptrcNumber.trim().toUpperCase(),
       });
+      if (res.data?.company) {
+        setSelectedCompany(res.data.company);
+      }
       setEditModalOpen(false);
       fetchData();
     } catch (err: any) {
@@ -427,7 +489,14 @@ export const CompaniesPage: React.FC = () => {
   const formatDetailAddress = (addr: any) => {
     if (!addr) return '-';
     if (typeof addr === 'string') return addr.trim() || '-';
-    const parts = [addr.street || addr.line1, addr.city, addr.state, addr.pincode || addr.zip, addr.country].filter(Boolean);
+    const parts = [
+      addr.street || addr.line1,
+      addr.addressLine2 || addr.line2,
+      addr.city,
+      addr.state,
+      addr.pinCode || addr.pincode || addr.zip,
+      addr.country,
+    ].filter(Boolean);
     return parts.length > 0 ? parts.join(', ') : '-';
   };
 
@@ -886,169 +955,27 @@ export const CompaniesPage: React.FC = () => {
                       </td>
 
                       {/* ACTIONS: White squircle button with blue dots */}
-                      <td className="px-5 py-4 text-right relative">
+                      <td className="px-5 py-4 text-right">
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setOpenMenuId(openMenuId === c.id ? null : c.id);
+                            if (activeMenu?.company.id === c.id) {
+                              setActiveMenu(null);
+                            } else {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setActiveMenu({ company: c, rect });
+                            }
                           }}
-                          className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-blue-600 flex items-center justify-center shadow-2xs transition-colors ml-auto cursor-pointer"
+                          className={`w-8 h-8 rounded-xl border ${
+                            activeMenu?.company.id === c.id
+                              ? 'border-blue-500 bg-blue-50 text-blue-600'
+                              : 'border-slate-200 bg-white hover:bg-slate-50 text-blue-600'
+                          } flex items-center justify-center shadow-2xs transition-colors ml-auto cursor-pointer`}
                           title="Actions"
                         >
                           <IconDots className="w-4 h-4" />
                         </button>
-
-                        {/* Floating Action Dropdown Menu */}
-                        {openMenuId === c.id && (
-                          <div
-                            onClick={(e) => e.stopPropagation()}
-                            className="absolute right-5 mt-1.5 w-52 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-40 text-left text-xs animate-in fade-in zoom-in-95"
-                          >
-                            {/* Action to Create Admin if Payment Done & No Admin yet */}
-                            {pStatus === 'PAYMENT_DONE' && !primaryAdmin && (
-                              <button
-                                onClick={() => {
-                                  setOpenMenuId(null);
-                                  handleOpenAddAdmin(c);
-                                }}
-                                className="w-full px-3.5 py-2 text-blue-700 bg-blue-50/70 hover:bg-blue-100/70 flex items-center gap-2.5 transition-colors font-bold border-b border-blue-100"
-                              >
-                                <IconUserPlus className="w-4 h-4 text-blue-600" />
-                                Create Company Admin
-                              </button>
-                            )}
-
-                            {/* In Process Payment Options */}
-                            {pStatus === 'IN_PROCESS' && (
-                              <>
-                                {c.paymentLinkUrl && (
-                                  <button
-                                    onClick={() => {
-                                      setOpenMenuId(null);
-                                      handleCopyPaymentLink(c.paymentLinkUrl!);
-                                    }}
-                                    className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium"
-                                  >
-                                    <IconCopy className="w-4 h-4 text-slate-500 font-medium" />
-                                    Copy Payment Link
-                                  </button>
-                                )}
-                                <button
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    handleResendPaymentLink(c.id);
-                                  }}
-                                  className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium"
-                                >
-                                  <IconMail className="w-4 h-4 text-slate-500 font-medium" />
-                                  Resend Payment Link
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    handleMarkPayment(c.id, 'PAYMENT_DONE');
-                                  }}
-                                  className="w-full px-3.5 py-2 text-emerald-700 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors font-bold"
-                                >
-                                  <IconCheck className="w-4 h-4 text-emerald-600" />
-                                  Confirm Payment (Mark Done)
-                                </button>
-                                <div className="border-t border-slate-100 my-1" />
-                              </>
-                            )}
-
-                            {/* Declined Options */}
-                            {pStatus === 'DECLINE' && (
-                              <>
-                                <button
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    handleResendPaymentLink(c.id);
-                                  }}
-                                  className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium"
-                                >
-                                  <IconMail className="w-4 h-4 text-slate-500 font-medium" />
-                                  Resend Payment Link
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    handleMarkPayment(c.id, 'PAYMENT_DONE');
-                                  }}
-                                  className="w-full px-3.5 py-2 text-emerald-700 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors font-medium"
-                                >
-                                  <IconCheck className="w-4 h-4 text-emerald-600" />
-                                  Mark as Payment Done
-                                </button>
-                                <div className="border-t border-slate-100 my-1" />
-                              </>
-                            )}
-
-                            <button
-                              onClick={() => {
-                                setSelectedCompany(c);
-                                setViewModalOpen(true);
-                                setOpenMenuId(null);
-                              }}
-                              className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium"
-                            >
-                              <IconEye className="w-4 h-4 text-slate-500 font-medium" />
-                              View Details
-                            </button>
-
-                            {primaryAdmin && (
-                              <button
-                                onClick={() => {
-                                  handleOpenContacts(c);
-                                  setOpenMenuId(null);
-                                }}
-                                className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium"
-                              >
-                                <IconUsers className="w-4 h-4 text-slate-500 font-medium" />
-                                Admin Contacts
-                              </button>
-                            )}
-
-                            <button
-                              onClick={() => {
-                                setSelectedCompany(c);
-                                setCustomDomainInput(c.customDomain || '');
-                                setDomainMsg(null);
-                                setDomainModalOpen(true);
-                                setOpenMenuId(null);
-                              }}
-                              className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium"
-                            >
-                              <IconCloudUpload className="w-4 h-4 text-slate-500 font-medium" />
-                              Deploy Domain
-                            </button>
-
-                            <button
-                              onClick={() => {
-                                handleOpenEditModal(c);
-                                setOpenMenuId(null);
-                              }}
-                              className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium"
-                            >
-                              <IconEdit className="w-4 h-4 text-slate-500 font-medium" />
-                              Edit Company
-                            </button>
-
-                            <div className="border-t border-slate-100 my-1" />
-
-                            <button
-                              onClick={() => {
-                                handleDeleteCompany(c);
-                                setOpenMenuId(null);
-                              }}
-                              className="w-full px-3.5 py-2 text-rose-600 hover:bg-rose-50 flex items-center gap-2.5 transition-colors font-medium"
-                            >
-                              <IconTrash className="w-4 h-4 text-rose-500" />
-                              Delete
-                            </button>
-                          </div>
-                        )}
                       </td>
                     </tr>
                   );
@@ -1094,164 +1021,514 @@ export const CompaniesPage: React.FC = () => {
         </>
       )}
 
-      {/* 1. VIEW COMPANY MODAL */}
-      {viewModalOpen && selectedCompany && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 overflow-y-auto"
-          onClick={() => setViewModalOpen(false)}
-        >
+      {/* 1. VIEW COMPANY RIGHT-SIDE DRAWER */}
+      {viewModalOpen && selectedCompany && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] overflow-hidden">
+          {/* Backdrop */}
           <div
-            className="bg-white rounded-2xl sm:rounded-3xl max-w-[650px] w-full p-6 sm:p-7 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 my-6 relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight">
-                Company Detail
-              </h2>
-              <button
-                type="button"
-                onClick={() => setViewModalOpen(false)}
-                className="w-6 h-6 rounded-full bg-slate-500 hover:bg-slate-600 text-white flex items-center justify-center transition-colors cursor-pointer shadow-xs"
-                title="Close"
-              >
-                <IconX className="w-3.5 h-3.5" stroke={2.5} />
-              </button>
-            </div>
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+            onClick={() => setViewModalOpen(false)}
+          />
 
-            {/* Top Company Info Box */}
-            <div className="bg-[#f8fafc] rounded-xl p-4 sm:p-5 flex items-center justify-between border border-slate-100/90 mb-6">
-              <div className="flex items-center gap-3.5 min-w-0">
-                {/* Avatar Circle */}
-                <div className="w-12 h-12 rounded-full bg-white border border-slate-200/90 shadow-2xs flex items-center justify-center text-slate-800 font-bold text-base shrink-0 uppercase overflow-hidden">
-                  {selectedCompany.logo ? (
-                    <img
-                      src={selectedCompany.logo}
-                      alt={selectedCompany.name}
-                      className="w-full h-full object-contain p-1"
-                      onError={(e) => {
-                        (e.target as HTMLElement).style.display = 'none';
-                      }}
-                    />
+          {/* Slide-over Drawer Container Flush to the Right */}
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+            <div
+              className="w-screen max-w-2xl sm:max-w-3xl bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 pointer-events-auto animate-in slide-in-from-right duration-300 overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drawer Top Header */}
+              <div className="p-5 sm:p-6 border-b border-slate-100 bg-white flex items-center justify-between shrink-0 gap-4">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className={`w-12 h-12 rounded-2xl ${getCompanyAvatarColor(selectedCompany.name)} flex items-center justify-center font-bold text-lg text-white shadow-sm shrink-0 uppercase overflow-hidden`}>
+                    {selectedCompany.logo ? (
+                      <img
+                        src={selectedCompany.logo}
+                        alt={selectedCompany.name}
+                        className="w-full h-full object-contain p-1 bg-white"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      selectedCompany.name.charAt(0) || 'C'
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-base sm:text-lg font-black text-slate-900 leading-snug truncate">
+                        {selectedCompany.name}
+                      </h2>
+                      <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-mono text-[11px] font-bold">
+                        {selectedCompany.code}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 font-medium truncate mt-0.5 flex items-center gap-1.5">
+                      <IconWorld className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                      <span className="font-mono">{selectedCompany.subdomain}.uptrix.io</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5 shrink-0">
+                  {/* Status Badge */}
+                  {selectedCompany.paymentStatus === 'IN_PROCESS' || (!selectedCompany.isActive && !selectedCompany.users?.length) ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 text-xs font-bold border border-amber-200 shadow-2xs">
+                      <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                      In Process
+                    </span>
+                  ) : selectedCompany.isActive ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 shadow-2xs">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      Active
+                    </span>
                   ) : (
-                    selectedCompany.name.charAt(0) || 'C'
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 text-rose-700 text-xs font-bold border border-rose-200 shadow-2xs">
+                      <span className="w-2 h-2 rounded-full bg-rose-500" />
+                      Inactive
+                    </span>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setViewModalOpen(false)}
+                    className="w-8 h-8 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+                    title="Close"
+                  >
+                    <IconX className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Drawer Scrollable Content */}
+              <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 text-xs bg-slate-50/50">
+                {/* 1. Primary Admin & Contact Person Card */}
+                <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-indigo-50 text-[#5E4BE2] flex items-center justify-center shrink-0">
+                        <IconUsers className="w-4 h-4" />
+                      </div>
+                      <h3 className="font-bold text-slate-900 text-xs sm:text-sm">
+                        Primary Administrator &amp; Account Contact
+                      </h3>
+                    </div>
+                    {selectedCompany.users && selectedCompany.users.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleOpenContacts(selectedCompany);
+                        }}
+                        className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer flex items-center gap-1"
+                      >
+                        <span>View All Admins</span>
+                        <span>({selectedCompany.users.length})</span>
+                      </button>
+                    ) : (
+                      selectedCompany.paymentStatus === 'PAYMENT_DONE' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleOpenAddAdmin(selectedCompany);
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold cursor-pointer"
+                        >
+                          + Create Admin
+                        </button>
+                      )
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <span className="text-[11px] text-slate-500 block mb-0.5">Admin Name</span>
+                      <span className="font-bold text-slate-800 text-xs block">
+                        {selectedCompany.adminContact?.name ||
+                          (selectedCompany.users?.[0]?.firstName
+                            ? `${selectedCompany.users[0].firstName} ${selectedCompany.users[0].lastName || ''}`.trim()
+                            : selectedCompany.name + ' Admin')}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-slate-500 block mb-0.5">Work Email</span>
+                      <span className="font-mono text-slate-800 text-xs block truncate" title={selectedCompany.adminContact?.email || selectedCompany.users?.[0]?.email || '-'}>
+                        {selectedCompany.adminContact?.email || selectedCompany.users?.[0]?.email || '-'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-slate-500 block mb-0.5">Phone Number</span>
+                      <span className="font-mono text-slate-800 text-xs block">
+                        {selectedCompany.adminContact?.phone || selectedCompany.users?.[0]?.phone || '-'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Subscription, Plan & Payment Card */}
+                <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                        <IconCreditCard className="w-4 h-4" />
+                      </div>
+                      <h3 className="font-bold text-slate-900 text-xs sm:text-sm">
+                        Subscription Plan &amp; Billing
+                      </h3>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full bg-indigo-50 text-[#5E4BE2] text-[10px] font-bold">
+                      {selectedCompany.planType || 'MONTHLY'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <span className="text-[11px] text-slate-500 block mb-0.5">Plan Name</span>
+                      <span className="font-bold text-slate-800 text-xs block">
+                        {selectedCompany.package?.name || 'Standard Plan'}
+                      </span>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">
+                        Capacity: Up to {selectedCompany.package?.employeeLimit || 10} seats
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-slate-500 block mb-0.5">Subscription Amount</span>
+                      <span className="text-sm font-black text-[#5E4BE2] block">
+                        ₹{Number(selectedCompany.subAmount || selectedCompany.package?.priceMonthly || 0).toLocaleString('en-IN')}
+                      </span>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">
+                        Incl. 18% GST
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-slate-500 block mb-0.5">Registration &amp; Expiry</span>
+                      <span className="font-medium text-slate-800 text-xs block">
+                        Started: {formatDetailDate(selectedCompany.subStartDate || selectedCompany.createdAt)}
+                      </span>
+                      <span className="text-[10px] text-slate-500 block mt-0.5">
+                        Expires: {formatDetailExpiry(selectedCompany)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Payment Status & Link Bar */}
+                  {selectedCompany.paymentStatus === 'IN_PROCESS' && (
+                    <div className="p-3.5 rounded-xl bg-amber-50/90 border border-amber-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block">
+                          Payment Proposal Sent • Awaiting Payment
+                        </span>
+                        {selectedCompany.paymentLinkUrl && (
+                          <span className="font-mono text-amber-900 truncate block text-[11px] mt-0.5">
+                            {selectedCompany.paymentLinkUrl}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {selectedCompany.paymentLinkUrl && (
+                          <button
+                            type="button"
+                            onClick={() => handleCopyPaymentLink(selectedCompany.paymentLinkUrl!)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-amber-300 text-amber-900 hover:bg-amber-100/60 font-bold text-[11px] cursor-pointer"
+                          >
+                            <IconCopy className="w-3.5 h-3.5" />
+                            <span>Copy Link</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleResendPaymentLink(selectedCompany.id)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-amber-300 text-amber-900 hover:bg-amber-100/60 font-bold text-[11px] cursor-pointer"
+                        >
+                          <IconMail className="w-3.5 h-3.5" />
+                          <span>Resend</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleMarkPayment(selectedCompany.id, 'PAYMENT_DONE');
+                            setViewModalOpen(false);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] cursor-pointer shadow-2xs"
+                        >
+                          <IconCheck className="w-3.5 h-3.5" />
+                          <span>Confirm Payment</span>
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
-                <div className="min-w-0">
-                  <h3 className="text-base font-bold text-slate-900 leading-snug truncate">
-                    {selectedCompany.name}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-500 mt-0.5 truncate font-normal">
-                    {selectedCompany.users?.[0]?.email || selectedCompany.website || `${selectedCompany.subdomain}@uptrix.io`}
-                  </p>
+
+                {/* 3. Registered Headquarters Address Card */}
+                {(() => {
+                  const addr = (typeof selectedCompany.address === 'string'
+                    ? (() => { try { return JSON.parse(selectedCompany.address); } catch { return {}; } })()
+                    : (selectedCompany.address || {})) as any;
+                  const street = addr.street || addr.line1 || '';
+                  const suite = addr.addressLine2 || addr.line2 || '';
+                  const city = addr.city || '';
+                  const state = addr.state || '';
+                  const pin = addr.pinCode || addr.pincode || addr.zip || '';
+                  const country = addr.country || 'India';
+                  const hasAddress = Boolean(street || city || state || pin);
+
+                  return (
+                    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                            <IconMapPin className="w-4 h-4" />
+                          </div>
+                          <h3 className="font-bold text-slate-900 text-xs sm:text-sm">
+                            Registered Headquarters Address
+                          </h3>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditModal(selectedCompany)}
+                          className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
+                        >
+                          {hasAddress ? 'Edit Address' : '+ Add Address'}
+                        </button>
+                      </div>
+
+                      {hasAddress ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <span className="text-[11px] text-slate-500 block mb-0.5">Street Address</span>
+                            <span className="font-medium text-slate-800 text-xs block">
+                              {street || '-'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[11px] text-slate-500 block mb-0.5">Suite / Landmark</span>
+                            <span className="font-medium text-slate-800 text-xs block">
+                              {suite || '-'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[11px] text-slate-500 block mb-0.5">City &amp; State</span>
+                            <span className="font-medium text-slate-800 text-xs block">
+                              {[city, state].filter(Boolean).join(', ') || '-'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[11px] text-slate-500 block mb-0.5">PIN Code &amp; Country</span>
+                            <span className="font-medium text-slate-800 text-xs block">
+                              {[pin, country].filter(Boolean).join(', ') || '-'}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="py-3 px-4 rounded-xl bg-slate-50/80 border border-slate-200/70 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                          <div className="text-xs text-slate-600">
+                            No registered headquarters address entered yet for this tenant.
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditModal(selectedCompany)}
+                            className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shrink-0 cursor-pointer shadow-2xs"
+                          >
+                            + Enter Address
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* 4. Statutory, Tax & Compliance Registrations Card */}
+                {(() => {
+                  const settings = (typeof selectedCompany.settings === 'string'
+                    ? (() => { try { return JSON.parse(selectedCompany.settings); } catch { return {}; } })()
+                    : (selectedCompany.settings || {})) as any;
+                  const statutory = (selectedCompany.statutory || settings.statutory || (selectedCompany as any).statutory || {}) as any;
+
+                  const pan = statutory.pan || (selectedCompany as any).pan || '';
+                  const tan = statutory.tan || (selectedCompany as any).tan || '';
+                  const gstin = statutory.gstin || (selectedCompany as any).gstin || '';
+                  const cin = statutory.cin || (selectedCompany as any).cin || '';
+                  const pfEstablishmentCode = statutory.pfEstablishmentCode || (selectedCompany as any).pfEstablishmentCode || '';
+                  const esicRegistrationNumber = statutory.esicRegistrationNumber || (selectedCompany as any).esicRegistrationNumber || '';
+                  const ptrcNumber = statutory.ptrcNumber || (selectedCompany as any).ptrcNumber || '';
+
+                  const hasStatutory = Boolean(pan || tan || gstin || cin || pfEstablishmentCode || esicRegistrationNumber || ptrcNumber);
+
+                  return (
+                    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                            <IconFileCertificate className="w-4 h-4" />
+                          </div>
+                          <h3 className="font-bold text-slate-900 text-xs sm:text-sm">
+                            Statutory, Tax &amp; Compliance Registrations
+                          </h3>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditModal(selectedCompany)}
+                          className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
+                        >
+                          {hasStatutory ? 'Edit Statutory Details' : '+ Add Statutory Details'}
+                        </button>
+                      </div>
+
+                      {hasStatutory ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                          <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                            <span className="text-[10px] text-slate-500 font-bold uppercase block mb-1">Company PAN</span>
+                            <span className="font-mono font-bold text-slate-900 text-xs">
+                              {pan || '-'}
+                            </span>
+                          </div>
+                          <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                            <span className="text-[10px] text-slate-500 font-bold uppercase block mb-1">Company TAN</span>
+                            <span className="font-mono font-bold text-slate-900 text-xs">
+                              {tan || '-'}
+                            </span>
+                          </div>
+                          <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                            <span className="text-[10px] text-slate-500 font-bold uppercase block mb-1">Company GSTIN</span>
+                            <span className="font-mono font-bold text-slate-900 text-xs">
+                              {gstin || '-'}
+                            </span>
+                          </div>
+                          <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                            <span className="text-[10px] text-slate-500 font-bold uppercase block mb-1">CIN (Corp ID)</span>
+                            <span className="font-mono font-bold text-slate-900 text-xs">
+                              {cin || '-'}
+                            </span>
+                          </div>
+                          <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                            <span className="text-[10px] text-slate-500 font-bold uppercase block mb-1">PF Code</span>
+                            <span className="font-mono font-bold text-slate-900 text-xs">
+                              {pfEstablishmentCode || '-'}
+                            </span>
+                          </div>
+                          <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                            <span className="text-[10px] text-slate-500 font-bold uppercase block mb-1">ESIC Reg. No.</span>
+                            <span className="font-mono font-bold text-slate-900 text-xs">
+                              {esicRegistrationNumber || '-'}
+                            </span>
+                          </div>
+                          <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 sm:col-span-2">
+                            <span className="text-[10px] text-slate-500 font-bold uppercase block mb-1">PTRC Number</span>
+                            <span className="font-mono font-bold text-slate-900 text-xs">
+                              {ptrcNumber || '-'}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-4 rounded-xl bg-purple-50/70 border border-purple-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                          <div>
+                            <div className="font-bold text-slate-900 text-xs">
+                              Statutory registrations not yet recorded
+                            </div>
+                            <div className="text-[11px] text-slate-600 mt-0.5">
+                              This tenant was created without PAN, TAN, GSTIN, CIN, PF or ESIC codes. Enter them to generate valid payslips &amp; tax filings.
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditModal(selectedCompany)}
+                            className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs shrink-0 cursor-pointer shadow-2xs whitespace-nowrap"
+                          >
+                            + Configure Registrations
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* 5. Workspace Identity & System Configuration Card */}
+                <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
+                  <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+                    <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                      <IconBuilding className="w-4 h-4" />
+                    </div>
+                    <h3 className="font-bold text-slate-900 text-xs sm:text-sm">
+                      Workspace Identity &amp; System Configuration
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <span className="text-[11px] text-slate-500 block mb-0.5">Tenant Subdomain</span>
+                      <span className="font-mono font-bold text-slate-900 text-xs">
+                        {selectedCompany.subdomain}.uptrix.io
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-slate-500 block mb-0.5">Allowed Email Domains</span>
+                      <span className="font-mono text-slate-800 text-xs">
+                        {selectedCompany.allowedEmailDomains || '-'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-slate-500 block mb-0.5">Official Website</span>
+                      {selectedCompany.website ? (
+                        <a
+                          href={selectedCompany.website.startsWith('http') ? selectedCompany.website : `https://${selectedCompany.website}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium text-blue-600 hover:underline flex items-center gap-1 text-xs"
+                        >
+                          <span className="truncate">{selectedCompany.website}</span>
+                          <IconExternalLink className="w-3 h-3 shrink-0" />
+                        </a>
+                      ) : (
+                        <span className="text-slate-400 font-normal">-</span>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-slate-500 block mb-0.5">Working Days</span>
+                      <span className="font-medium text-slate-800 text-xs capitalize">
+                        {selectedCompany.workingDays || 'Mon - Fri'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-slate-500 block mb-0.5">Timezone</span>
+                      <span className="font-mono text-slate-800 text-xs">
+                        {selectedCompany.timezone || 'Asia/Kolkata'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-slate-500 block mb-0.5">Total Users / Employees</span>
+                      <span className="font-bold text-slate-900 text-xs">
+                        {selectedCompany._count?.users ?? selectedCompany.users?.length ?? 0} active
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Status Badge */}
-              <div className="shrink-0 pl-3">
-                {selectedCompany.isActive ? (
-                  <span className="px-3.5 py-1.5 rounded-lg bg-[#00c950] text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
-                    Active
-                  </span>
-                ) : (
-                  <span className="px-3.5 py-1.5 rounded-lg bg-rose-500 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
-                    Inactive
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Basic Info */}
-            <div className="mb-6">
-              <h4 className="text-sm font-bold text-slate-900 tracking-tight mb-3.5">
-                Basic Info
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-4 gap-x-6 text-xs sm:text-sm">
-                <div>
-                  <span className="text-xs text-slate-500 font-normal block mb-1">Website</span>
-                  <span className="text-slate-900 font-semibold text-xs sm:text-sm truncate block">
-                    {selectedCompany.website || '-'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-xs text-slate-500 font-normal block mb-1">Allowed Domains</span>
-                  <span className="text-slate-900 font-semibold text-xs sm:text-sm truncate block">
-                    {selectedCompany.allowedEmailDomains || '-'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-xs text-slate-500 font-normal block mb-1">Currency</span>
-                  <span className="text-slate-900 font-semibold text-xs sm:text-sm">
-                    {(selectedCompany.package as any)?.currency || '-'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-xs text-slate-500 font-normal block mb-1">Language</span>
-                  <span className="text-slate-900 font-semibold text-xs sm:text-sm">
-                    -
-                  </span>
-                </div>
-                <div>
-                  <span className="text-xs text-slate-500 font-normal block mb-1">Address</span>
-                  <span className="text-slate-900 font-semibold text-xs sm:text-sm">
-                    {formatDetailAddress(selectedCompany.address)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div className="border-b border-slate-100 my-6" />
-
-            {/* Plan Details */}
-            <div>
-              <h4 className="text-sm font-bold text-slate-900 tracking-tight mb-3.5">
-                Plan Details
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-4 gap-x-6 text-xs sm:text-sm">
-                <div>
-                  <span className="text-xs text-slate-500 font-normal block mb-1">Plan Name</span>
-                  <span className="text-slate-900 font-semibold text-xs sm:text-sm">
-                    {selectedCompany.package?.name || 'Enterprice'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-xs text-slate-500 font-normal block mb-1">Plan Type</span>
-                  <span className="text-slate-900 font-semibold text-xs sm:text-sm">
-                    {selectedCompany.planType
-                      ? selectedCompany.planType.charAt(0).toUpperCase() +
-                        selectedCompany.planType.slice(1).toLowerCase()
-                      : 'Monthly'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-xs text-slate-500 font-normal block mb-1">Price</span>
-                  <span className="text-slate-900 font-semibold text-xs sm:text-sm">
-                    {selectedCompany.subAmount !== undefined && selectedCompany.subAmount !== null
-                      ? Number(selectedCompany.subAmount).toFixed(2)
-                      : selectedCompany.package && (selectedCompany.package as any).priceMonthly !== undefined
-                      ? Number((selectedCompany.package as any).priceMonthly).toFixed(2)
-                      : '5000.00'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-xs text-slate-500 font-normal block mb-1">Register Date</span>
-                  <span className="text-slate-900 font-semibold text-xs sm:text-sm">
-                    {formatDetailDate(selectedCompany.subStartDate || selectedCompany.createdAt)}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-xs text-slate-500 font-normal block mb-1">Expiring On</span>
-                  <span className="text-slate-900 font-semibold text-xs sm:text-sm">
-                    {formatDetailExpiry(selectedCompany)}
-                  </span>
+              {/* Drawer Sticky Footer */}
+              <div className="p-4 sm:p-5 border-t border-slate-100 bg-white flex items-center justify-between gap-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setViewModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-xs transition-colors cursor-pointer"
+                >
+                  Close Drawer
+                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setViewModalOpen(false);
+                      handleOpenEditModal(selectedCompany);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
+                  >
+                    <IconEdit className="w-3.5 h-3.5" />
+                    <span>Edit Company</span>
+                  </button>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* 2. ADD COMPANY ADMIN MODAL */}
@@ -1388,181 +1665,294 @@ export const CompaniesPage: React.FC = () => {
         </div>
       )}
 
-      {/* 3. DEPLOY DOMAIN MODAL */}
-      {domainModalOpen && selectedCompany && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 my-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <IconCloudUpload className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">Deploy Domain</h3>
-                  <p className="text-[11px] text-slate-500 font-medium">{selectedCompany.name}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setDomainModalOpen(false)}
-                className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 font-medium hover:text-slate-700 flex items-center justify-center"
-              >
-                <IconX className="w-5 h-5" />
-              </button>
-            </div>
-
-            {domainMsg && (
-              <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-xs">
-                {domainMsg}
-              </div>
-            )}
-
-            <form onSubmit={handleDeployDomain} className="space-y-3.5 text-xs">
-              <div>
-                <label className="block font-medium text-slate-500 mb-1">Standard Subdomain</label>
-                <div className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-mono">
-                  {selectedCompany.subdomain}.peopleplus.uptrix.io
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-medium text-slate-700 mb-1">Custom Domain</label>
-                <input
-                  type="text"
-                  placeholder="e.g. hrms.mycompany.com"
-                  value={customDomainInput}
-                  onChange={(e) => setCustomDomainInput(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-brand-600 font-mono"
-                />
-                <p className="text-[11px] text-slate-500 font-medium mt-1">
-                  Point your DNS CNAME record to <code className="bg-slate-100 px-1 py-0.5 rounded">cname.uptrix.io</code>
-                </p>
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setDomainModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold"
-                >
-                  Close
-                </button>
-                <button
-                  type="submit"
-                  disabled={domainSubmitting}
-                  className="px-5 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold disabled:opacity-50"
-                >
-                  {domainSubmitting ? 'Deploying...' : 'Save & Deploy'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* 4. EDIT COMPANY MODAL */}
+      {/* 3. EDIT COMPANY MODAL */}
       {editModalOpen && selectedCompany && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 my-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 my-6 space-y-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
                   <IconEdit className="w-4 h-4" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-900">Edit Company Details</h3>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Edit Company Details</h3>
+                  <p className="text-[11px] text-slate-500 font-medium">{selectedCompany.name} ({selectedCompany.code})</p>
+                </div>
               </div>
               <button
                 onClick={() => setEditModalOpen(false)}
-                className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 font-medium hover:text-slate-700 flex items-center justify-center"
+                className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 font-medium hover:text-slate-700 flex items-center justify-center cursor-pointer"
               >
                 <IconX className="w-5 h-5" />
               </button>
             </div>
 
             {editError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs shrink-0">
                 {editError}
               </div>
             )}
 
-            <form onSubmit={handleSaveEdit} className="space-y-3.5 text-xs">
+            <form onSubmit={handleSaveEdit} className="space-y-5 text-xs overflow-y-auto pr-1 flex-1">
+              {/* SECTION A: Basic & Subscription */}
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Company Name <span className="text-rose-500">*</span></label>
-                <input
-                  type="text"
-                  required
-                  value={editForm.name}
-                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-brand-600"
-                />
-              </div>
+                <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider mb-2.5 flex items-center gap-1.5 text-indigo-700">
+                  <IconBuilding className="w-3.5 h-3.5" />
+                  <span>Company Profile &amp; Plan</span>
+                </h4>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-medium text-slate-700 mb-1">Company Name <span className="text-rose-500">*</span></label>
+                      <input
+                        type="text"
+                        required
+                        value={editForm.name}
+                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-indigo-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-medium text-slate-700 mb-1">Subdomain <span className="text-rose-500">*</span></label>
+                      <input
+                        type="text"
+                        required
+                        value={editForm.subdomain}
+                        onChange={(e) => setEditForm({ ...editForm, subdomain: e.target.value.toLowerCase() })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono focus:outline-indigo-600"
+                      />
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-medium text-slate-700 mb-1">Package Plan</label>
-                  <select
-                    value={editForm.packageId}
-                    onChange={(e) => setEditForm({ ...editForm, packageId: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-brand-600"
-                  >
-                    <option value="">Select Package</option>
-                    {packages.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-medium text-slate-700 mb-1">Package Plan</label>
+                      <select
+                        value={editForm.packageId}
+                        onChange={(e) => setEditForm({ ...editForm, packageId: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-indigo-600 bg-white"
+                      >
+                        <option value="">Select Package</option>
+                        {packages.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block font-medium text-slate-700 mb-1">Plan Frequency</label>
+                      <select
+                        value={editForm.planType}
+                        onChange={(e) => setEditForm({ ...editForm, planType: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-indigo-600 bg-white"
+                      >
+                        <option value="MONTHLY">Monthly</option>
+                        <option value="QUARTERLY">Quarterly</option>
+                        <option value="YEARLY">Yearly</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-medium text-slate-700 mb-1">Website</label>
+                      <input
+                        type="url"
+                        placeholder="https://company.com"
+                        value={editForm.website}
+                        onChange={(e) => setEditForm({ ...editForm, website: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-indigo-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-medium text-slate-700 mb-1">Status</label>
+                      <select
+                        value={editForm.isActive ? 'ACTIVE' : 'INACTIVE'}
+                        onChange={(e) => setEditForm({ ...editForm, isActive: e.target.value === 'ACTIVE' })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-indigo-600 bg-white"
+                      >
+                        <option value="ACTIVE">Active</option>
+                        <option value="INACTIVE">Suspended / Inactive</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block font-medium text-slate-700 mb-1">Plan Frequency</label>
-                  <select
-                    value={editForm.planType}
-                    onChange={(e) => setEditForm({ ...editForm, planType: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-brand-600"
-                  >
-                    <option value="MONTHLY">Monthly</option>
-                    <option value="QUARTERLY">Quarterly</option>
-                    <option value="YEARLY">Yearly</option>
-                  </select>
+              </div>
+
+              {/* SECTION B: Headquarters Address */}
+              <div className="pt-3 border-t border-slate-100">
+                <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider mb-2.5 flex items-center gap-1.5 text-rose-700">
+                  <IconMapPin className="w-3.5 h-3.5" />
+                  <span>Registered Headquarters Address</span>
+                </h4>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-medium text-slate-700 mb-1">Street Address</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 101, Business Towers"
+                        value={editForm.street}
+                        onChange={(e) => setEditForm({ ...editForm, street: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-indigo-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-medium text-slate-700 mb-1">Suite / Floor / Landmark</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 4th Floor, Sector 62"
+                        value={editForm.addressLine2}
+                        onChange={(e) => setEditForm({ ...editForm, addressLine2: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-indigo-600"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block font-medium text-slate-700 mb-1">City</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Bengaluru"
+                        value={editForm.city}
+                        onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-indigo-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-medium text-slate-700 mb-1">State</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Karnataka"
+                        value={editForm.state}
+                        onChange={(e) => setEditForm({ ...editForm, state: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-indigo-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-medium text-slate-700 mb-1">PIN Code</label>
+                      <input
+                        type="text"
+                        placeholder="6 digits"
+                        maxLength={6}
+                        value={editForm.pinCode}
+                        onChange={(e) => setEditForm({ ...editForm, pinCode: e.target.value.replace(/\D/g, '') })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-indigo-600 font-mono"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block font-medium text-slate-700 mb-1">Website</label>
-                <input
-                  type="url"
-                  placeholder="https://company.com"
-                  value={editForm.website}
-                  onChange={(e) => setEditForm({ ...editForm, website: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-brand-600"
-                />
+              {/* SECTION C: Statutory, Tax & Compliance Registrations */}
+              <div className="pt-3 border-t border-slate-100">
+                <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider mb-2.5 flex items-center gap-1.5 text-purple-700">
+                  <IconFileCertificate className="w-3.5 h-3.5" />
+                  <span>Statutory, Tax &amp; Compliance Registrations</span>
+                </h4>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-medium text-slate-700 mb-1">Company PAN (10 chars)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. ABCDE1234F"
+                        maxLength={10}
+                        value={editForm.pan}
+                        onChange={(e) => setEditForm({ ...editForm, pan: e.target.value.toUpperCase() })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs uppercase font-mono focus:outline-indigo-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-medium text-slate-700 mb-1">Company TAN (10 chars)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. BLRA12345C"
+                        maxLength={10}
+                        value={editForm.tan}
+                        onChange={(e) => setEditForm({ ...editForm, tan: e.target.value.toUpperCase() })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs uppercase font-mono focus:outline-indigo-600"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-medium text-slate-700 mb-1">GSTIN (15 chars)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 29ABCDE1234F1Z5"
+                        maxLength={15}
+                        value={editForm.gstin}
+                        onChange={(e) => setEditForm({ ...editForm, gstin: e.target.value.toUpperCase() })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs uppercase font-mono focus:outline-indigo-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-medium text-slate-700 mb-1">CIN (Corp ID, 21 chars)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. U72200KA2020PTC123456"
+                        maxLength={21}
+                        value={editForm.cin}
+                        onChange={(e) => setEditForm({ ...editForm, cin: e.target.value.toUpperCase() })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs uppercase font-mono focus:outline-indigo-600"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block font-medium text-slate-700 mb-1">PF Code</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. KN/BLR/0012345/000"
+                        value={editForm.pfEstablishmentCode}
+                        onChange={(e) => setEditForm({ ...editForm, pfEstablishmentCode: e.target.value.toUpperCase() })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs uppercase font-mono focus:outline-indigo-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-medium text-slate-700 mb-1">ESIC Reg. No. (17 digits)</label>
+                      <input
+                        type="text"
+                        placeholder="17 digits"
+                        maxLength={17}
+                        value={editForm.esicRegistrationNumber}
+                        onChange={(e) => setEditForm({ ...editForm, esicRegistrationNumber: e.target.value.replace(/\D/g, '') })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono focus:outline-indigo-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-medium text-slate-700 mb-1">PTRC Number</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 27000000000P"
+                        value={editForm.ptrcNumber}
+                        onChange={(e) => setEditForm({ ...editForm, ptrcNumber: e.target.value.toUpperCase() })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs uppercase font-mono focus:outline-indigo-600"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block font-medium text-slate-700 mb-1">Status</label>
-                <select
-                  value={editForm.isActive ? 'ACTIVE' : 'INACTIVE'}
-                  onChange={(e) => setEditForm({ ...editForm, isActive: e.target.value === 'ACTIVE' })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-brand-600"
-                >
-                  <option value="ACTIVE">Active</option>
-                  <option value="INACTIVE">Suspended / Inactive</option>
-                </select>
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100 shrink-0">
                 <button
                   type="button"
                   onClick={() => setEditModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold"
+                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={editSubmitting}
-                  className="px-5 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold disabled:opacity-50 cursor-pointer shadow-xs"
                 >
-                  {editSubmitting ? 'Saving...' : 'Save Changes'}
+                  {editSubmitting ? 'Saving Changes...' : 'Save Changes'}
                 </button>
               </div>
             </form>
@@ -1652,6 +2042,193 @@ export const CompaniesPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ===================== FLOATING ROW ACTION DROPDOWN PORTAL ===================== */}
+      {activeMenu && typeof document !== 'undefined' && createPortal(
+        (() => {
+          const c = activeMenu.company;
+          const primaryAdmin = c.users && c.users.length > 0 ? c.users[0] : null;
+          const pStatus = c.paymentStatus || (primaryAdmin ? 'PAYMENT_DONE' : 'IN_PROCESS');
+
+          const rect = activeMenu.rect;
+          const menuWidth = 224;
+          const spaceBelow = window.innerHeight - rect.bottom;
+          const spaceAbove = rect.top;
+          // If less than 320px below and there's more space above, open upward
+          const openUpward = spaceBelow < 320 && spaceAbove > spaceBelow;
+
+          // Align right edge with the button's right edge
+          let left = rect.right - menuWidth;
+          if (left + menuWidth > window.innerWidth - 12) {
+            left = window.innerWidth - menuWidth - 12;
+          }
+          if (left < 12) left = 12;
+
+          const maxMenuHeight = openUpward
+            ? Math.max(spaceAbove - 16, 180)
+            : Math.max(spaceBelow - 16, 180);
+
+          const cardStyle: React.CSSProperties = {
+            position: 'fixed',
+            left: `${left}px`,
+            width: `${menuWidth}px`,
+            maxHeight: `${maxMenuHeight}px`,
+            overflowY: 'auto',
+            zIndex: 99999,
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+            ...(openUpward
+              ? { bottom: `${window.innerHeight - rect.top + 6}px` }
+              : { top: `${rect.bottom + 6}px` }),
+          };
+
+          return (
+            <div className="fixed inset-0 z-[99999]">
+              {/* Invisible Backdrop to close on click outside */}
+              <div
+                className="fixed inset-0 bg-transparent"
+                onClick={() => setActiveMenu(null)}
+              />
+
+              {/* Floating Action Dropdown Menu */}
+              <div
+                style={cardStyle}
+                onClick={(e) => e.stopPropagation()}
+                className="company-dropdown-menu bg-white rounded-2xl border border-slate-200/90 py-1.5 text-left text-xs animate-in fade-in zoom-in-95"
+              >
+                {/* Action to Create Admin if Payment Done & No Admin yet */}
+                {pStatus === 'PAYMENT_DONE' && !primaryAdmin && (
+                  <button
+                    onClick={() => {
+                      setActiveMenu(null);
+                      handleOpenAddAdmin(c);
+                    }}
+                    className="w-full px-3.5 py-2 text-blue-700 bg-blue-50/70 hover:bg-blue-100/70 flex items-center gap-2.5 transition-colors font-bold border-b border-blue-100 cursor-pointer"
+                  >
+                    <IconUserPlus className="w-4 h-4 text-blue-600" />
+                    Create Company Admin
+                  </button>
+                )}
+
+                {/* In Process Payment Options */}
+                {pStatus === 'IN_PROCESS' && (
+                  <>
+                    {c.paymentLinkUrl && (
+                      <button
+                        onClick={() => {
+                          setActiveMenu(null);
+                          handleCopyPaymentLink(c.paymentLinkUrl!);
+                        }}
+                        className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium cursor-pointer"
+                      >
+                        <IconCopy className="w-4 h-4 text-slate-500 font-medium" />
+                        Copy Payment Link
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setActiveMenu(null);
+                        handleResendPaymentLink(c.id);
+                      }}
+                      className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium cursor-pointer"
+                    >
+                      <IconMail className="w-4 h-4 text-slate-500 font-medium" />
+                      Resend Payment Link
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActiveMenu(null);
+                        handleMarkPayment(c.id, 'PAYMENT_DONE');
+                      }}
+                      className="w-full px-3.5 py-2 text-emerald-700 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors font-bold cursor-pointer"
+                    >
+                      <IconCheck className="w-4 h-4 text-emerald-600" />
+                      Confirm Payment (Mark Done)
+                    </button>
+                    <div className="border-t border-slate-100 my-1" />
+                  </>
+                )}
+
+                {/* Declined Options */}
+                {pStatus === 'DECLINE' && (
+                  <>
+                    <button
+                      onClick={() => {
+                        setActiveMenu(null);
+                        handleResendPaymentLink(c.id);
+                      }}
+                      className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium cursor-pointer"
+                    >
+                      <IconMail className="w-4 h-4 text-slate-500 font-medium" />
+                      Resend Payment Link
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActiveMenu(null);
+                        handleMarkPayment(c.id, 'PAYMENT_DONE');
+                      }}
+                      className="w-full px-3.5 py-2 text-emerald-700 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors font-medium cursor-pointer"
+                    >
+                      <IconCheck className="w-4 h-4 text-emerald-600" />
+                      Mark as Payment Done
+                    </button>
+                    <div className="border-t border-slate-100 my-1" />
+                  </>
+                )}
+
+                <button
+                  onClick={() => {
+                    setSelectedCompany(c);
+                    setViewModalOpen(true);
+                    setActiveMenu(null);
+                  }}
+                  className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium cursor-pointer"
+                >
+                  <IconEye className="w-4 h-4 text-slate-500 font-medium" />
+                  View Details
+                </button>
+
+                {primaryAdmin && (
+                  <button
+                    onClick={() => {
+                      handleOpenContacts(c);
+                      setActiveMenu(null);
+                    }}
+                    className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium cursor-pointer"
+                  >
+                    <IconUsers className="w-4 h-4 text-slate-500 font-medium" />
+                    Admin Contacts
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    handleOpenEditModal(c);
+                    setActiveMenu(null);
+                  }}
+                  className="w-full px-3.5 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors font-medium cursor-pointer"
+                >
+                  <IconEdit className="w-4 h-4 text-slate-500 font-medium" />
+                  Edit Company
+                </button>
+
+                <div className="border-t border-slate-100 my-1" />
+
+                <button
+                  onClick={() => {
+                    handleDeleteCompany(c);
+                    setActiveMenu(null);
+                  }}
+                  className="w-full px-3.5 py-2 text-rose-600 hover:bg-rose-50 flex items-center gap-2.5 transition-colors font-medium cursor-pointer"
+                >
+                  <IconTrash className="w-4 h-4 text-rose-500" />
+                  Delete
+                </button>
+              </div>
+            </div>
+          );
+        })(),
+        document.body
       )}
 
 

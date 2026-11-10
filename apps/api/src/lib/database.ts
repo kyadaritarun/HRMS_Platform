@@ -21,7 +21,12 @@ dotenv.config();
  */
 export function buildDatabaseUrl(): string {
   if (process.env.DATABASE_URL && process.env.DATABASE_URL.trim()) {
-    return process.env.DATABASE_URL.trim();
+    const raw = process.env.DATABASE_URL.trim();
+    if (!raw.includes('connection_limit=')) {
+      const sep = raw.includes('?') ? '&' : '?';
+      return `${raw}${sep}connection_limit=3&pool_timeout=10`;
+    }
+    return raw;
   }
 
   const host = process.env.DB_HOST || '127.0.0.1';
@@ -30,8 +35,8 @@ export function buildDatabaseUrl(): string {
   const user = encodeURIComponent(process.env.DB_USER || '');
   const password = encodeURIComponent(process.env.DB_PASSWORD || '');
   const schema = process.env.DB_SCHEMA || 'public';
-  const connectionLimit = process.env.DB_CONNECTION_LIMIT || (process.env.NODE_ENV === 'production' ? '10' : '2');
-  const poolTimeout = process.env.DB_POOL_TIMEOUT || '20';
+  const connectionLimit = process.env.DB_CONNECTION_LIMIT || (process.env.NODE_ENV === 'production' ? '5' : '3');
+  const poolTimeout = process.env.DB_POOL_TIMEOUT || '10';
 
   return `postgresql://${user}:${password}@${host}:${port}/${dbName}?schema=${schema}&connection_limit=${connectionLimit}&pool_timeout=${poolTimeout}`;
 }

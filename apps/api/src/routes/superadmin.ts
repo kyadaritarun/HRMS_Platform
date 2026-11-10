@@ -20,6 +20,20 @@ import { getHelplineConfig, updateHelplineConfig } from '../services/helplineSer
 
 const router = Router();
 
+const safeParseJson = (val: any) => {
+  if (!val) return {};
+  if (typeof val === 'object') return val;
+  if (typeof val === 'string') {
+    try {
+      const parsed = JSON.parse(val);
+      return typeof parsed === 'object' && parsed !== null ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+  return {};
+};
+
 // Super Admin platform routes bypass tenant resolution
 router.use(authMiddleware);
 router.use(roleGuard('PRODUCT_SUPER_ADMIN'));
@@ -187,7 +201,18 @@ router.get('/companies', async (_req, res, next) => {
     });
 
     const enrichedCompanies = companies.map((c: any) => {
-      const settings = (c.settings && typeof c.settings === 'object' ? c.settings : {}) as any;
+      const settings = safeParseJson(c.settings);
+      const address = safeParseJson(c.address);
+      const statutoryRaw = safeParseJson(settings.statutory || c.statutory || {});
+      const statutory = {
+        pan: statutoryRaw.pan || c.pan || '',
+        tan: statutoryRaw.tan || c.tan || '',
+        gstin: statutoryRaw.gstin || c.gstin || '',
+        cin: statutoryRaw.cin || c.cin || '',
+        pfEstablishmentCode: statutoryRaw.pfEstablishmentCode || c.pfEstablishmentCode || '',
+        esicRegistrationNumber: statutoryRaw.esicRegistrationNumber || c.esicRegistrationNumber || '',
+        ptrcNumber: statutoryRaw.ptrcNumber || c.ptrcNumber || '',
+      };
       const latestOrder = c.paymentOrders && c.paymentOrders.length > 0 ? c.paymentOrders[0] : null;
 
       let paymentStatus: 'IN_PROCESS' | 'PAYMENT_DONE' | 'DECLINE' = 'IN_PROCESS';
@@ -210,13 +235,17 @@ router.get('/companies', async (_req, res, next) => {
 
       const paymentLinkUrl = latestOrder?.paymentLinkUrl || settings.paymentLinkUrl || '';
 
+      const normalizedAddress = typeof c.address === 'string' && Object.keys(address).length > 0 ? address : (c.address || {});
+
       return {
         ...c,
+        address: normalizedAddress,
+        settings,
         paymentStatus,
         paymentLinkUrl,
         adminContact,
         latestOrder,
-        statutory: settings.statutory || {},
+        statutory,
       };
     });
 
@@ -530,7 +559,28 @@ router.get('/companies/:id', async (req, res, next) => {
       return next(new AppError(404, 'NOT_FOUND', 'Company not found'));
     }
 
-    return res.json({ company });
+    const settings = safeParseJson(company.settings);
+    const statutoryRaw = safeParseJson(settings.statutory || (company as any).statutory || {});
+    const statutory = {
+      pan: statutoryRaw.pan || (company as any).pan || '',
+      tan: statutoryRaw.tan || (company as any).tan || '',
+      gstin: statutoryRaw.gstin || (company as any).gstin || '',
+      cin: statutoryRaw.cin || (company as any).cin || '',
+      pfEstablishmentCode: statutoryRaw.pfEstablishmentCode || (company as any).pfEstablishmentCode || '',
+      esicRegistrationNumber: statutoryRaw.esicRegistrationNumber || (company as any).esicRegistrationNumber || '',
+      ptrcNumber: statutoryRaw.ptrcNumber || (company as any).ptrcNumber || '',
+    };
+    const address = safeParseJson(company.address);
+    const normalizedAddress = typeof company.address === 'string' && Object.keys(address).length > 0 ? address : (company.address || {});
+
+    return res.json({
+      company: {
+        ...company,
+        settings,
+        statutory,
+        address: normalizedAddress,
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -543,12 +593,19 @@ router.patch('/companies/:id', validateBody(SuperAdminUpdateCompanySchema), asyn
     const data = req.body;
 
     const existingCompany = await prisma.company.findUnique({ where: { id } });
-    const currentSettings = (existingCompany?.settings && typeof existingCompany.settings === 'object' ? existingCompany.settings : {}) as any;
+    if (!existingCompany) {
+      return next(new AppError(404, 'NOT_FOUND', 'Company not found'));
+    }
+    const currentSettings = safeParseJson(existingCompany.settings);
+    const currentStatutory = safeParseJson(currentSettings.statutory);
 
-    const { pan, tan, gstin, cin, pfEstablishmentCode, esicRegistrationNumber, ptrcNumber, ...rest } = data;
+    const { pan, tan, gstin, cin, pfEstablishmentCode, esicRegistrationNumber, ptrcNumber, address, ...rest } = data;
     const updateData: any = { ...rest };
     if (data.subEndDate) updateData.subEndDate = new Date(data.subEndDate);
     if (data.nextPaymentDate) updateData.nextPaymentDate = new Date(data.nextPaymentDate);
+    if (address !== undefined) {
+      updateData.address = address;
+    }
 
     if (
       pan !== undefined ||
@@ -559,27 +616,54 @@ router.patch('/companies/:id', validateBody(SuperAdminUpdateCompanySchema), asyn
       esicRegistrationNumber !== undefined ||
       ptrcNumber !== undefined
     ) {
+      const updatedStatutory = {
+        ...currentStatutory,
+        ...(pan !== undefined ? { pan: pan.trim().toUpperCase() } : {}),
+        ...(tan !== undefined ? { tan: tan.trim().toUpperCase() } : {}),
+        ...(gstin !== undefined ? { gstin: gstin.trim().toUpperCase() } : {}),
+        ...(cin !== undefined ? { cin: cin.trim().toUpperCase() } : {}),
+        ...(pfEstablishmentCode !== undefined ? { pfEstablishmentCode: pfEstablishmentCode.trim().toUpperCase() } : {}),
+        ...(esicRegistrationNumber !== undefined ? { esicRegistrationNumber: esicRegistrationNumber.trim() } : {}),
+        ...(ptrcNumber !== undefined ? { ptrcNumber: ptrcNumber.trim().toUpperCase() } : {}),
+      };
       updateData.settings = {
         ...currentSettings,
-        statutory: {
-          ...(currentSettings.statutory || {}),
-          ...(pan !== undefined ? { pan: pan.trim().toUpperCase() } : {}),
-          ...(tan !== undefined ? { tan: tan.trim().toUpperCase() } : {}),
-          ...(gstin !== undefined ? { gstin: gstin.trim().toUpperCase() } : {}),
-          ...(cin !== undefined ? { cin: cin.trim().toUpperCase() } : {}),
-          ...(pfEstablishmentCode !== undefined ? { pfEstablishmentCode: pfEstablishmentCode.trim().toUpperCase() } : {}),
-          ...(esicRegistrationNumber !== undefined ? { esicRegistrationNumber: esicRegistrationNumber.trim() } : {}),
-          ...(ptrcNumber !== undefined ? { ptrcNumber: ptrcNumber.trim().toUpperCase() } : {}),
-        },
+        statutory: updatedStatutory,
       };
     }
 
     const updated = await prisma.company.update({
       where: { id },
       data: updateData,
+      include: {
+        package: true,
+        invoices: true,
+        _count: { select: { users: true, departments: true } },
+      },
     });
 
-    return res.json({ company: updated });
+    const finalSettings = safeParseJson(updated.settings);
+    const finalStatutoryRaw = safeParseJson(finalSettings.statutory);
+    const finalStatutory = {
+      pan: finalStatutoryRaw.pan || (updated as any).pan || '',
+      tan: finalStatutoryRaw.tan || (updated as any).tan || '',
+      gstin: finalStatutoryRaw.gstin || (updated as any).gstin || '',
+      cin: finalStatutoryRaw.cin || (updated as any).cin || '',
+      pfEstablishmentCode: finalStatutoryRaw.pfEstablishmentCode || (updated as any).pfEstablishmentCode || '',
+      esicRegistrationNumber: finalStatutoryRaw.esicRegistrationNumber || (updated as any).esicRegistrationNumber || '',
+      ptrcNumber: finalStatutoryRaw.ptrcNumber || (updated as any).ptrcNumber || '',
+    };
+    const finalAddress = safeParseJson(updated.address);
+    const normalizedFinalAddress = typeof updated.address === 'string' && Object.keys(finalAddress).length > 0 ? finalAddress : (updated.address || {});
+
+    return res.json({
+      company: {
+        ...updated,
+        settings: finalSettings,
+        statutory: finalStatutory,
+        address: normalizedFinalAddress,
+      },
+    });
   } catch (error) {
     next(error);
   }
