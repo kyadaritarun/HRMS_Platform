@@ -48,7 +48,7 @@ router.get('/', async (req, res, next) => {
         where,
         include: {
           user: {
-            select: { id: true, firstName: true, lastName: true, email: true, jobTitle: true },
+            select: { id: true, firstName: true, lastName: true, email: true, jobTitle: true, profilePhoto: true },
           },
           approver: {
             select: { id: true, firstName: true, lastName: true, email: true },
