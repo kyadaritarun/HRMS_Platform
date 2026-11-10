@@ -24,9 +24,15 @@ import {
 import { SettingsModal } from '../SettingsModal';
 import { TermsAndConditionsModal, PrivacyPolicyModal } from '../LegalModals';
 import { getAvatarColor } from '../../utils/avatarColors';
+import { getFilteredCategories, getSearchableSidebarItems } from './sidebarNavigation';
+import {
+  SidebarOpsVisibility,
+  getSidebarOpsVisibility,
+  SIDEBAR_OPS_EVENT,
+} from '../../utils/sidebarPreferences';
 
 export const AppLayout: React.FC = () => {
-  const { user, company, logout } = useAuth();
+  const { user, company, logout, hasHrPermission } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const isAssistantActive = location.pathname === '/assistant';
@@ -207,15 +213,56 @@ export const AppLayout: React.FC = () => {
   };
 
 
-  // Quick navigation items for search autocomplete
-  const quickLinks = [
-    { label: 'All Companies', path: '/super-admin/companies', icon: IconBuildingSkyscraper, category: 'Tenants' },
-    { label: 'Add Super Admin', path: '/super-admin/super-admins/add', icon: IconShieldLock, category: 'Security' },
-    { label: 'Packages & Pricing', path: '/super-admin/packages', icon: IconPackage, category: 'Billing' },
-    { label: 'My Profile', path: '/profile', icon: IconUser, category: 'Account' },
-  ].filter((item) =>
-    searchQuery.trim() === '' || item.label.toLowerCase().includes(searchQuery.toLowerCase())
+  // Sidebar Ops Visibility Preferences (for Company Admin module controls)
+  const [sidebarOpsPrefs, setSidebarOpsPrefs] = useState<SidebarOpsVisibility>(() =>
+    getSidebarOpsVisibility(user?.id, company?.settings)
   );
+
+  useEffect(() => {
+    setSidebarOpsPrefs(getSidebarOpsVisibility(user?.id, company?.settings));
+
+    const handlePrefsChange = () => {
+      setSidebarOpsPrefs(getSidebarOpsVisibility(user?.id, company?.settings));
+    };
+
+    window.addEventListener(SIDEBAR_OPS_EVENT, handlePrefsChange);
+    window.addEventListener('storage', handlePrefsChange);
+
+    return () => {
+      window.removeEventListener(SIDEBAR_OPS_EVENT, handlePrefsChange);
+      window.removeEventListener('storage', handlePrefsChange);
+    };
+  }, [user?.id, company?.settings]);
+
+  // Search items strictly limited to the user's accessible sidebar items
+  const searchableSidebarItems = useMemo(() => {
+    if (!user) return [];
+    const visibleCategories = getFilteredCategories(user, company, hasHrPermission, sidebarOpsPrefs);
+    const items = getSearchableSidebarItems(visibleCategories);
+
+    // My Profile is universally accessible
+    if (user.role !== 'PRODUCT_SUPER_ADMIN') {
+      items.push({
+        id: 'account-profile',
+        label: 'My Profile',
+        path: '/profile',
+        icon: IconUser,
+        category: 'Account',
+      });
+    }
+
+    return items;
+  }, [user, company, hasHrPermission, sidebarOpsPrefs]);
+
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+    return searchableSidebarItems.filter(
+      (item) =>
+        item.label.toLowerCase().includes(q) ||
+        item.category.toLowerCase().includes(q)
+    );
+  }, [searchableSidebarItems, searchQuery]);
 
   return (
     <div className="min-h-screen bg-[#f1f5f9] flex">
@@ -240,49 +287,59 @@ export const AppLayout: React.FC = () => {
               <IconMenu2 className="w-5 h-5" />
             </button>
 
-            {/* Global Search Input */}
+            {/* Sidebar Navigation Search Bar */}
             <div className="relative w-full max-w-md">
-              <IconSearch className="w-4 h-4 text-slate-500 font-medium absolute left-3.5 top-2.5 pointer-events-none" />
+              <IconSearch className="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5 pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search companies, tenants, users..."
+                placeholder="Search navigation..."
                 className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50/90 border border-slate-200/80 text-xs font-medium text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-[#4338ca] focus:bg-white transition-all"
               />
 
-              {/* Autocomplete Dropdown */}
+              {/* Autocomplete Dropdown - strictly limited to user's sidebar pages */}
               {searchFocused && searchQuery.trim().length > 0 && (
-                <div className="absolute left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in">
-                  <div className="px-3 py-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                    Quick Results
+                <div className="absolute left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in max-h-80 overflow-y-auto">
+                  <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between border-b border-slate-100 pb-1.5 mb-1">
+                    <span>Sidebar Menu</span>
+                    <span className="text-[10px] font-semibold text-slate-500">
+                      {searchResults.length} {searchResults.length === 1 ? 'page' : 'pages'}
+                    </span>
                   </div>
-                  {quickLinks.length > 0 ? (
-                    quickLinks.map((ql) => {
-                      const Icon = ql.icon;
+                  {searchResults.length > 0 ? (
+                    searchResults.map((item) => {
+                      const Icon = item.icon;
                       return (
                         <button
-                          key={ql.path}
+                          key={item.id}
                           onMouseDown={() => {
-                            navigate(ql.path);
+                            navigate(item.path);
                             setSearchQuery('');
+                            setSearchFocused(false);
                           }}
-                          className="w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
+                          className="w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer group"
                         >
-                          <div className="flex items-center gap-2.5">
-                            <Icon className="w-4 h-4 text-indigo-600" />
-                            <span className="font-medium">{ql.label}</span>
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-7 h-7 rounded-lg bg-indigo-50 text-[#5E4BE2] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                              <Icon className="w-3.5 h-3.5" />
+                            </div>
+                            <span className="font-semibold text-slate-800 truncate group-hover:text-[#5E4BE2] transition-colors">
+                              {item.label}
+                            </span>
                           </div>
-                          <span className="text-[10px] text-slate-500 font-medium bg-slate-100 px-1.5 py-0.5 rounded">
-                            {ql.category}
+                          <span className="text-[10px] text-slate-500 font-medium bg-slate-100 px-2 py-0.5 rounded-full ml-2 shrink-0">
+                            {item.category}
                           </span>
                         </button>
                       );
                     })
                   ) : (
-                    <div className="px-3 py-2 text-xs text-slate-500 font-medium">No matching results found</div>
+                    <div className="px-3 py-4 text-xs text-slate-400 text-center font-medium">
+                      No matching page found in your sidebar
+                    </div>
                   )}
                 </div>
               )}
