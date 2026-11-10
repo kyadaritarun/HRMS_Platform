@@ -1596,7 +1596,7 @@ export const CompanyDashboard: React.FC = () => {
             <div className="flex items-center justify-between pb-3">
               <div className="flex items-center gap-2">
                 <IconUsers className="w-4 h-4 text-indigo-600" />
-                <h3 className="font-bold text-slate-900 text-sm">Employee Directory (Top)</h3>
+                <h3 className="font-bold text-slate-900 text-sm">Employee Directory</h3>
               </div>
               <button
                 onClick={() => navigate('/company/employees')}
@@ -1703,9 +1703,7 @@ export const CompanyDashboard: React.FC = () => {
               <div className="flex items-center gap-2">
                 <IconAward className="w-4 h-4 text-amber-500" />
                 <h3 className="font-bold text-slate-900 text-sm">Work Anniversaries</h3>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/60">
-                  Milestones
-                </span>
+               
               </div>
               <button
                 onClick={() => navigate('/company/employees')}
