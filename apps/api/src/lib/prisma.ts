@@ -1,4 +1,6 @@
+import './database.js';
 import { PrismaClient } from '@prisma/client';
+import { buildDatabaseUrl } from './database.js';
 
 declare global {
   // eslint-disable-next-line no-var
@@ -8,6 +10,11 @@ declare global {
 export const prisma =
   global.prisma ||
   new PrismaClient({
+    datasources: {
+      db: {
+        url: buildDatabaseUrl(),
+      },
+    },
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   });
 

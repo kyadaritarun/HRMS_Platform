@@ -70,9 +70,14 @@ interface Department {
 }
 
 export const EmployeesPage: React.FC = () => {
-  const { user, hasHrPermission } = useAuth();
+  const { user, company, hasHrPermission, hasFeature } = useAuth();
   const isCompanyAdmin = user?.role === 'COMPANY_ADMIN' || user?.role === 'PRODUCT_SUPER_ADMIN';
   const isHr = user?.role === 'HR';
+
+  // Role permissions based on organization subscription package
+  const hasHrModule = hasFeature('hr_operations') || hasFeature('leave_management') || hasFeature('time_attendance_management');
+  const hasFinanceModule = hasFeature('finance_operations') || hasFeature('payroll');
+  const hasItModule = hasFeature('it_operations') || hasFeature('asset_management') || hasFeature('onboarding_management');
   const [searchParams, setSearchParams] = useSearchParams();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -245,7 +250,15 @@ export const EmployeesPage: React.FC = () => {
         firstName: editForm.firstName.trim(),
         lastName: editForm.lastName.trim(),
         phone: editForm.phone.trim(),
-        role: isCompanyAdmin ? (['HR', 'FINANCE', 'IT'].includes(editForm.role) ? editForm.role : 'EMPLOYEE') : 'EMPLOYEE',
+        role: isCompanyAdmin
+          ? (editForm.role === 'HR' && hasHrModule
+              ? 'HR'
+              : editForm.role === 'FINANCE' && hasFinanceModule
+              ? 'FINANCE'
+              : editForm.role === 'IT' && hasItModule
+              ? 'IT'
+              : 'EMPLOYEE')
+          : 'EMPLOYEE',
         workMode: editForm.workMode,
         employmentType: editForm.employmentType,
         shiftTiming: selectedShiftTiming,
@@ -458,6 +471,27 @@ export const EmployeesPage: React.FC = () => {
         {/* Actions CTA */}
         {canAdd && (
           <div className="flex items-center gap-2">
+            {typeof company?.package?.employeeLimit === 'number' && (
+              <div
+                className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 shadow-2xs ${
+                  kpiStats.active >= company.package.employeeLimit
+                    ? 'bg-rose-50 text-rose-700 border-rose-200'
+                    : 'bg-white text-slate-700 border-slate-200'
+                }`}
+              >
+                <IconUsers className="w-3.5 h-3.5 text-slate-400" />
+                <span>Seats:</span>
+                <span
+                  className={
+                    kpiStats.active >= company.package.employeeLimit
+                      ? 'text-rose-600 font-extrabold'
+                      : 'text-[#5E4BE2] font-extrabold'
+                  }
+                >
+                  {kpiStats.active} / {company.package.employeeLimit}
+                </span>
+              </div>
+            )}
             <Link
               to="/company/activity-logs"
               className="flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 shadow-2xs transition-all active:scale-[0.98] cursor-pointer"
@@ -1399,9 +1433,15 @@ export const EmployeesPage: React.FC = () => {
                         <option value="EMPLOYEE">Staff Employee</option>
                         {isCompanyAdmin && (
                           <>
-                            <option value="HR">HR</option>
-                            <option value="FINANCE">Finance</option>
-                            <option value="IT">IT</option>
+                            <option value="HR" disabled={!hasHrModule}>
+                              HR {!hasHrModule ? '(Requires HR Module in Plan 🔒)' : ''}
+                            </option>
+                            <option value="FINANCE" disabled={!hasFinanceModule}>
+                              Finance {!hasFinanceModule ? '(Requires Finance Module in Plan 🔒)' : ''}
+                            </option>
+                            <option value="IT" disabled={!hasItModule}>
+                              IT {!hasItModule ? '(Requires IT Module in Plan 🔒)' : ''}
+                            </option>
                           </>
                         )}
                       </select>

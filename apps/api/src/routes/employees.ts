@@ -137,6 +137,47 @@ router.post(
         return next(new AppError(404, 'NOT_FOUND', 'Company not found'));
       }
 
+      // 1b. Role check against organization package plan
+      if (company.package?.enabledFeatures) {
+        const enabled = (company.package.enabledFeatures as string[]) || [];
+        if (data.role === 'IT') {
+          const hasIt = enabled.some((f) => ['it_operations', 'asset_management', 'onboarding_management'].includes(f));
+          if (!hasIt) {
+            return next(
+              new AppError(
+                403,
+                'ROLE_NOT_IN_PLAN',
+                'Your organization subscription package does not include the IT Operations / IT Role module. Please contact Super Admin to upgrade.'
+              )
+            );
+          }
+        }
+        if (data.role === 'FINANCE') {
+          const hasFinance = enabled.some((f) => ['finance_operations', 'payroll'].includes(f));
+          if (!hasFinance) {
+            return next(
+              new AppError(
+                403,
+                'ROLE_NOT_IN_PLAN',
+                'Your organization subscription package does not include the Finance Operations / Finance Role module. Please contact Super Admin to upgrade.'
+              )
+            );
+          }
+        }
+        if (data.role === 'HR') {
+          const hasHr = enabled.some((f) => ['hr_operations', 'leave_management', 'time_attendance_management'].includes(f));
+          if (!hasHr) {
+            return next(
+              new AppError(
+                403,
+                'ROLE_NOT_IN_PLAN',
+                'Your organization subscription package does not include the HR Role module. Please contact Super Admin to upgrade.'
+              )
+            );
+          }
+        }
+      }
+
       const activeEmployeeCount = await prisma.user.count({
         where: { companyId, isActive: true },
       });
@@ -499,13 +540,13 @@ router.post(
       const activeEmployeeCount = await prisma.user.count({
         where: { companyId, isActive: true },
       });
-      const seatLimit = Math.max(company.package?.employeeLimit ?? 2500, 2500);
+      const seatLimit = company.package?.employeeLimit ?? 10;
       if (activeEmployeeCount + employees.length > seatLimit) {
         return next(
           new AppError(
             400,
             'SEAT_LIMIT_EXCEEDED',
-            `Cannot import ${employees.length} employees. Current active: ${activeEmployeeCount}/${seatLimit} seats. Please upgrade your package subscription.`
+            `Cannot import ${employees.length} employees. Subscribed seat limit would be exceeded (${activeEmployeeCount + employees.length}/${seatLimit} seats). Please upgrade your package subscription.`
           )
         );
       }
@@ -816,6 +857,53 @@ router.patch(
         if (req.user!.role === 'COMPANY_ADMIN' && data.role === 'COMPANY_ADMIN') {
           return next(new AppError(403, 'FORBIDDEN', 'Company Admin cannot assign Company Admin role.'));
         }
+
+        if (data.role !== employee.role) {
+          const company = await prisma.company.findUnique({
+            where: { id: companyId },
+            include: { package: true },
+          });
+
+          if (company?.package?.enabledFeatures) {
+            const enabled = (company.package.enabledFeatures as string[]) || [];
+            if (data.role === 'IT') {
+              const hasIt = enabled.some((f) => ['it_operations', 'asset_management', 'onboarding_management'].includes(f));
+              if (!hasIt) {
+                return next(
+                  new AppError(
+                    403,
+                    'ROLE_NOT_IN_PLAN',
+                    'Your organization subscription package does not include the IT Operations / IT Role module. Please contact Super Admin to upgrade.'
+                  )
+                );
+              }
+            }
+            if (data.role === 'FINANCE') {
+              const hasFinance = enabled.some((f) => ['finance_operations', 'payroll'].includes(f));
+              if (!hasFinance) {
+                return next(
+                  new AppError(
+                    403,
+                    'ROLE_NOT_IN_PLAN',
+                    'Your organization subscription package does not include the Finance Operations / Finance Role module. Please contact Super Admin to upgrade.'
+                  )
+                );
+              }
+            }
+            if (data.role === 'HR') {
+              const hasHr = enabled.some((f) => ['hr_operations', 'leave_management', 'time_attendance_management'].includes(f));
+              if (!hasHr) {
+                return next(
+                  new AppError(
+                    403,
+                    'ROLE_NOT_IN_PLAN',
+                    'Your organization subscription package does not include the HR Role module. Please contact Super Admin to upgrade.'
+                  )
+                );
+              }
+            }
+          }
+        }
       }
 
       if (data.email) {
@@ -1026,6 +1114,24 @@ router.patch('/:id/reactivate', roleGuard('COMPANY_ADMIN', 'HR'), hrPermission('
     });
     if (!employee) {
       return next(new AppError(404, 'NOT_FOUND', 'Employee not found'));
+    }
+
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      include: { package: true },
+    });
+    const seatLimit = company?.package?.employeeLimit ?? 10;
+    const activeEmployeeCount = await prisma.user.count({
+      where: { companyId, isActive: true },
+    });
+    if (activeEmployeeCount >= seatLimit) {
+      return next(
+        new AppError(
+          400,
+          'SEAT_LIMIT_EXCEEDED',
+          `Cannot reactivate employee. Subscribed seat limit reached (${activeEmployeeCount}/${seatLimit} seats). Please upgrade your package subscription.`
+        )
+      );
     }
 
     await prisma.user.update({

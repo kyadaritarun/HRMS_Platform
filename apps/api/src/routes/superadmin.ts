@@ -1032,6 +1032,43 @@ function enrichPackageDetails(pkg: any) {
   };
 }
 
+// Helper to create a package safely and automatically resolve PostgreSQL auto-increment sequence drift
+async function createPackageSafely(packageData: any) {
+  try {
+    await prisma.$executeRawUnsafe(
+      `SELECT setval(pg_get_serial_sequence('"Package"', 'id'), COALESCE((SELECT MAX(id) FROM "Package"), 1));`
+    );
+  } catch {}
+
+  try {
+    return await prisma.package.create({ data: packageData });
+  } catch (err: any) {
+    if (
+      err.code === 'P2002' ||
+      String(err?.message || '').includes('Unique constraint failed on the fields: (`id`)') ||
+      String(err?.message || '').includes('Package_pkey')
+    ) {
+      const maxPkg = await prisma.package.findFirst({ orderBy: { id: 'desc' }, select: { id: true } });
+      const nextId = (maxPkg?.id || 0) + 1;
+
+      const created = await prisma.package.create({
+        data: {
+          ...packageData,
+          id: nextId,
+        },
+      });
+
+      // Synchronize sequence so future inserts without explicit ID succeed
+      await prisma.$executeRawUnsafe(
+        `SELECT setval(pg_get_serial_sequence('"Package"', 'id'), ${nextId});`
+      ).catch(() => {});
+
+      return created;
+    }
+    throw err;
+  }
+}
+
 // GET /superadmin/packages
 router.get('/packages', async (_req, res, next) => {
   try {
@@ -1052,7 +1089,7 @@ router.get('/packages', async (_req, res, next) => {
             (plan.name === 'Custom Plan' && p.name.toLowerCase().includes('enterprise'))
         );
         if (!exists) {
-          await prisma.package.create({ data: plan as any });
+          await createPackageSafely(plan as any);
         }
       }
       packages = await prisma.package.findMany({
@@ -1084,18 +1121,16 @@ router.post('/packages', validateBody(SuperAdminPackageSchema), async (req, res,
       }
     }
 
-    const pkg = await prisma.package.create({
-      data: {
-        name: packageName,
-        description: data.description || (data.companyName ? `Tailored plan for ${data.companyName}` : ''),
-        currency: data.currency || 'INR',
-        priceMonthly: data.priceMonthly,
-        priceQuarterly: data.priceQuarterly,
-        priceYearly: data.priceYearly,
-        employeeLimit: data.employeeLimit || 10,
-        billingDefault: data.billingDefault || 'MONTHLY',
-        enabledFeatures: data.enabledFeatures as any,
-      },
+    const pkg = await createPackageSafely({
+      name: packageName,
+      description: data.description || (data.companyName ? `Tailored plan for ${data.companyName}` : ''),
+      currency: data.currency || 'INR',
+      priceMonthly: data.priceMonthly,
+      priceQuarterly: data.priceQuarterly,
+      priceYearly: data.priceYearly,
+      employeeLimit: data.employeeLimit || 10,
+      billingDefault: data.billingDefault || 'MONTHLY',
+      enabledFeatures: data.enabledFeatures as any,
     });
 
     return res.status(201).json({ package: enrichPackageDetails(pkg) });
@@ -1110,15 +1145,23 @@ router.patch('/packages/:id', validateBody(SuperAdminPackageSchema.partial()), a
     const id = Number(req.params.id);
     const data = req.body;
 
+    const updateData: any = {};
+    if (data.name !== undefined) updateData.name = data.name.trim();
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.currency !== undefined) updateData.currency = data.currency;
+    if (data.priceMonthly !== undefined) updateData.priceMonthly = data.priceMonthly;
+    if (data.priceQuarterly !== undefined) updateData.priceQuarterly = data.priceQuarterly;
+    if (data.priceYearly !== undefined) updateData.priceYearly = data.priceYearly;
+    if (data.employeeLimit !== undefined) updateData.employeeLimit = data.employeeLimit;
+    if (data.billingDefault !== undefined) updateData.billingDefault = data.billingDefault;
+    if (data.enabledFeatures !== undefined) updateData.enabledFeatures = data.enabledFeatures as any;
+
     const updated = await prisma.package.update({
       where: { id },
-      data: {
-        ...data,
-        enabledFeatures: data.enabledFeatures ? (data.enabledFeatures as any) : undefined,
-      },
+      data: updateData,
     });
 
-    return res.json({ package: updated });
+    return res.json({ package: enrichPackageDetails(updated) });
   } catch (error) {
     next(error);
   }

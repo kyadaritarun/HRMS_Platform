@@ -1,4 +1,5 @@
 
+import '../src/lib/database.js';
 import { PrismaClient, Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
@@ -106,9 +107,23 @@ async function main() {
         'compliance',
         'reports_analytics',
         'reports',
+        'exit_management',
+        'exits',
+        'settlement',
+        'company_goals',
+        'goals',
+        'departments',
+        'department_management',
+        'billing',
+        'billing_management',
       ],
     },
   });
+
+  // Reset sequence for Package table so autoincrement works seamlessly
+  await prisma.$executeRawUnsafe(
+    `SELECT setval(pg_get_serial_sequence('"Package"', 'id'), COALESCE((SELECT MAX(id) FROM "Package"), 1));`
+  ).catch(() => {});
 
   // 2. Super Admin User (Platform Scope - companyId: null)
   const superAdminPass = await bcrypt.hash('SuperAdmin@123', 12);

@@ -7,6 +7,7 @@ import { AppLayout } from './components/layout/AppLayout';
 // Auth Pages
 import { LoginPage } from './pages/auth/LoginPage';
 import { ChangePasswordPage } from './pages/auth/ChangePasswordPage';
+import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import { HostedPaymentPage } from './pages/checkout/HostedPaymentPage';
 
 // Super Admin Pages
@@ -102,6 +103,7 @@ export const App: React.FC = () => {
           {/* Public Auth & Checkout Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/change-password" element={<ChangePasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/checkout/pay" element={<HostedPaymentPage />} />
 
           {/* Root Redirect */}

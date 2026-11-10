@@ -31,6 +31,7 @@ import {
   IconExternalLink,
   IconPlus,
   IconLoader2,
+  IconUsers,
 } from '@tabler/icons-react';
 import BulkEmployeeImport from './BulkEmployeeImport';
 import { ShiftTiming, formatShiftOption } from '../../utils/shifts';
@@ -56,10 +57,18 @@ interface UploadedDoc {
 
 
 export const NewEmployeePage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, company, hasFeature } = useAuth();
   const navigate = useNavigate();
   const isCompanyAdmin = user?.role === 'COMPANY_ADMIN' || user?.role === 'PRODUCT_SUPER_ADMIN';
   const isHr = user?.role === 'HR';
+
+  // Role permissions based on organization subscription package
+  const hasHrModule = hasFeature('hr_operations') || hasFeature('leave_management') || hasFeature('time_attendance_management');
+  const hasFinanceModule = hasFeature('finance_operations') || hasFeature('payroll');
+  const hasItModule = hasFeature('it_operations') || hasFeature('asset_management') || hasFeature('onboarding_management');
+  const [activeEmployeeCount, setActiveEmployeeCount] = useState<number | null>(null);
+  const seatLimit = typeof company?.package?.employeeLimit === 'number' ? company.package.employeeLimit : null;
+  const isSeatLimitReached = seatLimit !== null && activeEmployeeCount !== null && activeEmployeeCount >= seatLimit;
   const [departments, setDepartments] = useState<Department[]>([]);
   const [managers, setManagers] = useState<Manager[]>([]);
   const [allowedDomains, setAllowedDomains] = useState<string[]>([]);
@@ -561,6 +570,7 @@ export const NewEmployeePage: React.FC = () => {
         ]);
         setDepartments(deptsRes.data?.departments || []);
         setManagers(empsRes.data?.items || []);
+        setActiveEmployeeCount(empsRes.data?.total ?? empsRes.data?.items?.length ?? 0);
         const comp = settingsRes.data?.company;
         const rawDomains = comp?.allowedEmailDomains?.trim() || (comp?.subdomain ? `${comp.subdomain}.com` : '');
         const parsed = (comp?.domainsAllowed as string[]) || (rawDomains ? rawDomains.split(',').map((d: string) => d.trim().replace(/^@/, '').toLowerCase()).filter(Boolean) : []);
@@ -611,9 +621,13 @@ export const NewEmployeePage: React.FC = () => {
     }
 
     if (name === 'role') {
-      const allowedRole = isCompanyAdmin
-        ? (['HR', 'FINANCE', 'IT'].includes(value) ? value : 'EMPLOYEE')
-        : 'EMPLOYEE';
+      let allowedRole = 'EMPLOYEE';
+      if (isCompanyAdmin) {
+        if (value === 'HR' && hasHrModule) allowedRole = 'HR';
+        else if (value === 'FINANCE' && hasFinanceModule) allowedRole = 'FINANCE';
+        else if (value === 'IT' && hasItModule) allowedRole = 'IT';
+        else allowedRole = 'EMPLOYEE';
+      }
       setForm((prev) => ({ ...prev, role: allowedRole }));
       if (touched.role) validateField('role', allowedRole);
       return;
@@ -653,6 +667,15 @@ export const NewEmployeePage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setToast(null);
+
+    if (isSeatLimitReached) {
+      setToast({
+        title: 'Seat Limit Reached',
+        message: `Your organization has reached the subscribed seat limit of ${seatLimit} seats. Please contact Super Admin to upgrade your package subscription.`,
+        type: 'error',
+      });
+      return;
+    }
 
     const validationErrors = validateAll(form);
     if (Object.keys(validationErrors).length > 0) {
@@ -698,7 +721,15 @@ export const NewEmployeePage: React.FC = () => {
         dateOfBirth: form.dateOfBirth ? form.dateOfBirth : undefined,
         username: form.username.trim(),
         phone: form.phone.trim(),
-        role: isCompanyAdmin ? (['HR', 'FINANCE', 'IT'].includes(form.role) ? form.role : 'EMPLOYEE') : 'EMPLOYEE',
+        role: isCompanyAdmin
+          ? (form.role === 'HR' && hasHrModule
+              ? 'HR'
+              : form.role === 'FINANCE' && hasFinanceModule
+              ? 'FINANCE'
+              : form.role === 'IT' && hasItModule
+              ? 'IT'
+              : 'EMPLOYEE')
+          : 'EMPLOYEE',
         jobTitle: form.jobTitle.trim(),
         workMode: form.workMode,
         employmentType: form.workType, // 'PERMANENT' or 'CONTRACT'
@@ -882,8 +913,40 @@ export const NewEmployeePage: React.FC = () => {
               <span>Single Form</span>
             </button>
           )}
+
+          {/* Seat Capacity Pill beside Bulk Upload */}
+          {seatLimit !== null && (
+            <div
+              className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 shadow-2xs ${
+                isSeatLimitReached
+                  ? 'bg-rose-50 text-rose-700 border-rose-200'
+                  : 'bg-white text-slate-700 border-slate-200'
+              }`}
+              title={`${activeEmployeeCount ?? 0} active members of ${seatLimit} allowed seats used (${company?.package?.name || 'Package'})`}
+            >
+              <IconUsers className="w-3.5 h-3.5 text-slate-400" />
+              <span>Seats:</span>
+              <span
+                className={
+                  isSeatLimitReached
+                    ? 'text-rose-600 font-extrabold'
+                    : 'text-[#5E4BE2] font-extrabold'
+                }
+              >
+                {activeEmployeeCount ?? 0}/{seatLimit}
+              </span>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Warning banner shown ONLY if seat limit is reached */}
+      {isSeatLimitReached && (
+        <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-semibold flex items-center gap-2">
+          <IconAlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+          <span>Organization seat limit reached ({activeEmployeeCount}/{seatLimit} seats). Upgrading your subscription package is required to add more employees.</span>
+        </div>
+      )}
 
       {onboardingMode === 'bulk' ? (
         <BulkEmployeeImport
@@ -1262,9 +1325,15 @@ export const NewEmployeePage: React.FC = () => {
                       <option value="EMPLOYEE">Staff Employee</option>
                       {isCompanyAdmin && (
                         <>
-                          <option value="HR">HR</option>
-                          <option value="FINANCE">Finance</option>
-                          <option value="IT">IT</option>
+                          <option value="HR" disabled={!hasHrModule}>
+                            HR {!hasHrModule ? '(Requires HR Module in Plan 🔒)' : ''}
+                          </option>
+                          <option value="FINANCE" disabled={!hasFinanceModule}>
+                            Finance {!hasFinanceModule ? '(Requires Finance Module in Plan 🔒)' : ''}
+                          </option>
+                          <option value="IT" disabled={!hasItModule}>
+                            IT {!hasItModule ? '(Requires IT Module in Plan 🔒)' : ''}
+                          </option>
                         </>
                       )}
                     </select>
@@ -1593,15 +1662,16 @@ export const NewEmployeePage: React.FC = () => {
                 </Link>
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
+                  disabled={isSubmitting || isSeatLimitReached}
+                  title={isSeatLimitReached ? `Seat limit reached (${activeEmployeeCount}/${seatLimit} seats used)` : undefined}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] text-white text-xs font-bold rounded-xl shadow-sm shadow-indigo-600/25 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
                     'Creating Employee...'
                   ) : (
                     <>
                       <IconCheck className="w-4 h-4" />
-                      <span>Create Employee</span>
+                      <span>{isSeatLimitReached ? 'Seat Limit Reached' : 'Create Employee'}</span>
                     </>
                   )}
                 </button>

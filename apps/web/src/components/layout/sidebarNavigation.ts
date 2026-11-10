@@ -148,16 +148,16 @@ export function getSidebarCategories(user: any): NavCategory[] {
           { label: 'Comp Off', path: '/comp-off', icon: IconCalendarEvent, feature: 'comp_off_management' },
           { label: 'Payslips', path: '/payroll/my-payslips', icon: IconReceipt2, feature: 'payroll' },
           { label: 'Claims', path: '/claims', icon: IconCash, feature: 'claim_process_management' },
-          { label: 'Loans & Advances', path: '/loans-advances', icon: IconPigMoney, feature: 'payroll' },
-          { label: 'Tax Declarations', path: '/tax-declarations', icon: IconFileCertificate, feature: 'payroll' },
+          { label: 'Loans & Advances', path: '/loans-advances', icon: IconPigMoney, feature: 'loan_advances' },
+          { label: 'Tax Declarations', path: '/tax-declarations', icon: IconFileCertificate, feature: 'tax_declarations' },
           { label: 'Performance Goals', path: '/performance/my-goals', icon: IconTarget, feature: 'performance_management' },
           { label: 'Appreciations', path: '/appreciations', icon: IconHeartHandshake, feature: 'employee_appreciation' },
-          { label: 'Org Structure', path: '/company/roles-hierarchy', icon: IconNetwork },
+          { label: 'Org Structure', path: '/company/roles-hierarchy', icon: IconNetwork, feature: 'employees_directory' },
           { label: 'Policies', path: '/policies', icon: IconFileText, feature: 'policy_documents_management' },
           { label: 'My Documents', path: '/my-documents', icon: IconFolderCheck, feature: 'employee_document_management' },
           { label: 'Tickets', path: '/tickets', icon: IconHelpCircle, feature: 'support_ticket_management' },
           { label: 'AI Assistant', path: '/assistant', icon: IconSparkles, feature: 'ai_assistance' },
-          { label: 'Employee Referrals', path: '/referrals', icon: IconBriefcase },
+          { label: 'Employee Referrals', path: '/referrals', icon: IconBriefcase, feature: 'lead_referrals' },
         ],
       },
       {
@@ -179,11 +179,11 @@ export function getSidebarCategories(user: any): NavCategory[] {
         roles: ['COMPANY_ADMIN'],
         subItems: [
           { label: 'Company Dashboard', path: '/company/dashboard', icon: IconSmartHome, roles: ['COMPANY_ADMIN'] },
-          { label: 'Company Goals', path: '/company/goals', icon: IconTarget, roles: ['COMPANY_ADMIN'] },
-          { label: 'Create Employee', path: '/company/employees/new', icon: IconUserPlus, permission: 'employees', roles: ['COMPANY_ADMIN', 'HR'] },
+          { label: 'Company Goals', path: '/company/goals', icon: IconTarget, roles: ['COMPANY_ADMIN'], feature: 'company_goals' },
+          { label: 'Create Employee', path: '/company/employees/new', icon: IconUserPlus, permission: 'employees', roles: ['COMPANY_ADMIN', 'HR'], feature: 'employees_directory' },
           { label: 'Add-on Services', path: '/company/addon-services', icon: IconSparkles, roles: ['COMPANY_ADMIN', 'HR'] },
-          { label: 'Billing', path: '/company/billing', icon: IconCreditCard, roles: ['COMPANY_ADMIN'] },
-          { label: 'Activity Logs', path: '/company/activity-logs', icon: IconHistory, roles: ['COMPANY_ADMIN'] },
+          { label: 'Billing', path: '/company/billing', icon: IconCreditCard, roles: ['COMPANY_ADMIN'], feature: 'billing' },
+          { label: 'Activity Logs', path: '/company/activity-logs', icon: IconHistory, roles: ['COMPANY_ADMIN'], feature: 'activity_logs' },
         ],
       },
       {
@@ -192,17 +192,17 @@ export function getSidebarCategories(user: any): NavCategory[] {
         icon: IconBriefcase,
         roles: ['COMPANY_ADMIN', 'HR'],
         subItems: [
-          { label: 'Departments', path: '/company/departments', icon: IconBriefcase },
-          { label: 'Shift Management', path: '/company/shift-roster', icon: IconClock },
+          { label: 'Departments', path: '/company/departments', icon: IconBriefcase, feature: 'departments' },
+          { label: 'Shift Management', path: '/company/shift-roster', icon: IconClock, feature: 'shift_management' },
           { label: 'Holiday Calendar', path: '/company/holidays', icon: IconCalendarEvent, feature: 'holiday_calendar' },
           { label: 'Leave Types', path: '/company/leaves/types', icon: IconFileCertificate, feature: 'leave_management' },
           { label: 'Manage Policies', path: '/company/policies/manage', icon: IconFileText, feature: 'policy_documents_management' },
-          { label: 'Create Employee', path: '/company/employees/new', icon: IconUserPlus, permission: 'employees', roles: ['HR'] },
-          { label: 'Employees', path: '/company/employees', icon: IconUsers, permission: 'employees' },
+          { label: 'Create Employee', path: '/company/employees/new', icon: IconUserPlus, permission: 'employees', roles: ['HR'], feature: 'employees_directory' },
+          { label: 'Employees', path: '/company/employees', icon: IconUsers, permission: 'employees', feature: 'employees_directory' },
           { label: 'Employee Attendance', path: '/company/attendance', icon: IconClock, permission: 'attendance', feature: 'time_attendance_management' },
           { label: 'Manage Cycles', path: '/company/cycles', icon: IconCalendarEvent, feature: 'performance_management' },
           { label: 'Claim Categories', path: '/company/claims/categories', icon: IconReceipt2, feature: 'claim_process_management' },
-          { label: 'Activity Logs', path: '/company/activity-logs', icon: IconHistory, roles: ['HR'] },
+          { label: 'Activity Logs', path: '/company/activity-logs', icon: IconHistory, roles: ['HR'], feature: 'activity_logs' },
         ],
       },
       {
@@ -211,8 +211,8 @@ export function getSidebarCategories(user: any): NavCategory[] {
         icon: IconDevices,
         roles: ['COMPANY_ADMIN', 'IT'],
         subItems: [
-          { label: 'Assets', path: '/company/assets', icon: IconDevices },
-          { label: 'Onboarding', path: '/company/onboarding', icon: IconChecklist },
+          { label: 'Assets', path: '/company/assets', icon: IconDevices, feature: 'asset_management' },
+          { label: 'Onboarding', path: '/company/onboarding', icon: IconChecklist, feature: 'onboarding_management' },
         ],
       },
       {
@@ -227,7 +227,7 @@ export function getSidebarCategories(user: any): NavCategory[] {
           { label: 'Loans & Advances', path: '/payroll/loans-advances', icon: IconPigMoney, feature: 'payroll' },
           { label: 'Tax Proofs & Form 16', path: '/payroll/tax-declarations', icon: IconFileCertificate, feature: 'payroll' },
           { label: 'Compliance & Bank Payout', path: '/payroll/compliance-reports', icon: IconBuildingBank, feature: 'payroll' },
-          { label: 'Exit & F&F Settlement', path: '/company/exits', icon: IconDoorExit },
+          { label: 'Exit & F&F Settlement', path: '/company/exits', icon: IconDoorExit, feature: 'exit_management' },
         ],
       },
     ];
@@ -255,16 +255,16 @@ export function getSidebarCategories(user: any): NavCategory[] {
         { label: 'Comp Off', path: '/comp-off', icon: IconCalendarEvent, feature: 'comp_off_management' },
         { label: 'Payslips', path: '/payroll/my-payslips', icon: IconReceipt2, feature: 'payroll' },
         { label: 'Claims', path: '/claims', icon: IconCash, feature: 'claim_process_management' },
-        { label: 'Loans & Advances', path: '/loans-advances', icon: IconPigMoney, feature: 'payroll' },
-        { label: 'Tax Declarations', path: '/tax-declarations', icon: IconFileCertificate, feature: 'payroll' },
+        { label: 'Loans & Advances', path: '/loans-advances', icon: IconPigMoney, feature: 'loan_advances' },
+        { label: 'Tax Declarations', path: '/tax-declarations', icon: IconFileCertificate, feature: 'tax_declarations' },
         { label: 'Performance Goals', path: '/performance/my-goals', icon: IconTarget, feature: 'performance_management' },
         { label: 'Appreciations', path: '/appreciations', icon: IconHeartHandshake, feature: 'employee_appreciation' },
-        { label: 'Org Structure', path: '/company/roles-hierarchy', icon: IconNetwork },
+        { label: 'Org Structure', path: '/company/roles-hierarchy', icon: IconNetwork, feature: 'employees_directory' },
         { label: 'Policies', path: '/policies', icon: IconFileText, feature: 'policy_documents_management' },
         { label: 'My Documents', path: '/my-documents', icon: IconFolderCheck, feature: 'employee_document_management' },
         { label: 'Tickets', path: '/tickets', icon: IconHelpCircle, feature: 'support_ticket_management' },
         { label: 'AI Assistant', path: '/assistant', icon: IconSparkles, feature: 'ai_assistance' },
-        { label: 'Employee Referrals', path: '/referrals', icon: IconBriefcase },
+        { label: 'Employee Referrals', path: '/referrals', icon: IconBriefcase, feature: 'lead_referrals' },
       ],
     },
     ...(isManagerUser
@@ -299,9 +299,26 @@ export function getFilteredCategories(
     .filter((cat) => cat.roles.includes(user.role))
     .filter((cat) => {
       if (user.role === 'COMPANY_ADMIN') {
-        if (cat.id === 'hr_operations' && !sidebarOpsPrefs.hr_operations) return false;
-        if (cat.id === 'it_operations' && !sidebarOpsPrefs.it_operations) return false;
-        if (cat.id === 'finance_operations' && !sidebarOpsPrefs.finance_operations) return false;
+        const pkgFeatures = (company?.package?.enabledFeatures as string[]) || [];
+
+        if (cat.id === 'hr_operations') {
+          if (!sidebarOpsPrefs.hr_operations) return false;
+          if (pkgFeatures.length > 0 && !pkgFeatures.some((f) => ['hr_operations', 'leave_management', 'time_attendance_management'].includes(f))) {
+            return false;
+          }
+        }
+        if (cat.id === 'it_operations') {
+          if (!sidebarOpsPrefs.it_operations) return false;
+          if (pkgFeatures.length > 0 && !pkgFeatures.some((f) => ['it_operations', 'asset_management', 'onboarding_management'].includes(f))) {
+            return false;
+          }
+        }
+        if (cat.id === 'finance_operations') {
+          if (!sidebarOpsPrefs.finance_operations) return false;
+          if (pkgFeatures.length > 0 && !pkgFeatures.some((f) => ['finance_operations', 'payroll'].includes(f))) {
+            return false;
+          }
+        }
       }
       return true;
     })

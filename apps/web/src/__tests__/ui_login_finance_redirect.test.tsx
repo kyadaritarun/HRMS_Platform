@@ -94,13 +94,14 @@ describe('LoginPage Finance Landing Redirection Tests', () => {
       </MemoryRouter>
     );
 
-    // Expand demo credentials accordion
-    const demoAccordionBtn = screen.getByText(/1-Click Demo Logins/i);
-    fireEvent.click(demoAccordionBtn);
-
-    // Find and click the Finance demo persona row/button
-    const financePersonaBtn = screen.getByText('sushanth@uptrixglobal.com');
-    fireEvent.click(financePersonaBtn);
+    // Fill in credentials and submit
+    fireEvent.change(screen.getByPlaceholderText(/Username or Email/i), {
+      target: { value: 'sushanth@uptrixglobal.com' },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/^Password$/i), {
+      target: { value: 'Password@123' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Login/i }));
 
     await waitFor(() => {
       expect(mockLogin).toHaveBeenCalledWith({
@@ -173,13 +174,14 @@ describe('LoginPage Finance Landing Redirection Tests', () => {
       </MemoryRouter>
     );
 
-    // Expand demo credentials accordion
-    const demoAccordionBtn = screen.getByText(/1-Click Demo Logins/i);
-    fireEvent.click(demoAccordionBtn);
-
-    // Find and click the IT demo persona row/button
-    const itPersonaBtn = screen.getByText('tarun@uptrixglobal.com');
-    fireEvent.click(itPersonaBtn);
+    // Fill in credentials and submit
+    fireEvent.change(screen.getByPlaceholderText(/Username or Email/i), {
+      target: { value: 'tarun@uptrixglobal.com' },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/^Password$/i), {
+      target: { value: 'Password@123' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Login/i }));
 
     await waitFor(() => {
       expect(mockLogin).toHaveBeenCalledWith({

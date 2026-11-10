@@ -41,83 +41,245 @@ export interface PackageItem {
   createdAt?: string;
 }
 
-export const AVAILABLE_FEATURES = [
+export interface FeatureDefinition {
+  key: string;
+  name: string;
+  description: string;
+  tag?: string;
+}
+
+export interface FeatureGroup {
+  id: string;
+  title: string;
+  badge: string;
+  badgeColor: string;
+  description: string;
+  features: FeatureDefinition[];
+}
+
+export const FEATURE_GROUPS: FeatureGroup[] = [
   {
-    key: 'time_attendance_management',
-    name: 'Time and Attendance Management',
-    description: 'Attendance, attendance reports, settings, and regularization workflows.',
+    id: 'pillars',
+    title: '1. Operational Roles & Department Pillars',
+    badge: '3 Pillars',
+    badgeColor: 'bg-purple-100 text-purple-700 border-purple-200',
+    description: 'Enables administrative company departments and unlocks assigning HR, Finance, and IT staff roles.',
+    features: [
+      {
+        key: 'hr_operations',
+        name: 'HR Department & Role',
+        description: 'Permits creating HR accounts and grants access to company HR management workflows.',
+        tag: 'Role: HR',
+      },
+      {
+        key: 'finance_operations',
+        name: 'Finance Department & Role',
+        description: 'Permits creating Finance accounts and grants access to financial payroll operations.',
+        tag: 'Role: Finance',
+      },
+      {
+        key: 'it_operations',
+        name: 'IT Department & Role',
+        description: 'Permits creating IT accounts and grants access to hardware assets and onboarding.',
+        tag: 'Role: IT',
+      },
+    ],
   },
   {
-    key: 'leave_management',
-    name: 'Leave Management',
-    description: 'Leave requests, leave approvals, leave types, and exports.',
+    id: 'ess',
+    title: '2. Employee Self Service (ESS)',
+    badge: '15 Tiles',
+    badgeColor: 'bg-blue-100 text-blue-700 border-blue-200',
+    description: 'Granular self-service tiles visible to all staff employees and managers.',
+    features: [
+      {
+        key: 'time_attendance_management',
+        name: 'Attendance',
+        description: 'Daily web punch clock-in/out, attendance history, and regularization requests.',
+      },
+      {
+        key: 'leave_management',
+        name: 'Leaves',
+        description: 'Apply for leaves, view balances (Annual, Sick, Casual), and request approvals.',
+      },
+      {
+        key: 'comp_off',
+        name: 'Comp Off',
+        description: 'Apply for compensatory off days earned from overtime or weekend work.',
+      },
+      {
+        key: 'payroll',
+        name: 'Payslips',
+        description: 'View and download monthly payslips with earnings and deduction breakdowns.',
+      },
+      {
+        key: 'claims',
+        name: 'Expense Claims',
+        description: 'Submit expense reimbursement claims, attach receipts, and track approval status.',
+      },
+      {
+        key: 'loan_advances',
+        name: 'Loans & Advances',
+        description: 'Apply for company salary advances or personal loans with EMI deduction schedules.',
+      },
+      {
+        key: 'tax_declarations',
+        name: 'Tax Declarations',
+        description: 'Select tax regime (Old vs New), declare Section 80C/80D deductions, and upload proofs.',
+      },
+      {
+        key: 'performance',
+        name: 'Performance Goals',
+        description: 'Set quarterly goals, track key results (OKRs), and submit self-appraisal ratings.',
+      },
+      {
+        key: 'appreciations',
+        name: 'Appreciations',
+        description: 'Send peer kudos and recognition badges to colleagues across the company.',
+      },
+      {
+        key: 'employees_directory',
+        name: 'Org Structure',
+        description: 'Interactive company organization chart, department structure, and reporting lines.',
+      },
+      {
+        key: 'policies',
+        name: 'Policies',
+        description: 'Browse company policy manuals and digitally sign policy acknowledgements.',
+      },
+      {
+        key: 'documents',
+        name: 'My Documents',
+        description: 'Personal document locker for contracts, appraisal letters, and identity proofs.',
+      },
+      {
+        key: 'support_ticket_management',
+        name: 'Support Tickets',
+        description: 'Raise internal helpdesk support tickets for IT, HR, and facilities issues.',
+      },
+      {
+        key: 'ai_assistant',
+        name: 'AI HR Assistant',
+        description: 'Conversational HR assistant for instant answers on leaves, policies, and holidays.',
+      },
+      {
+        key: 'lead_referrals',
+        name: 'Employee Referrals',
+        description: 'Submit candidate resumes or sales leads and track referral cash rewards.',
+      },
+    ],
   },
   {
-    key: 'claims',
-    name: 'Claim Process Management',
-    description: 'Expense claims, claim approvals, and claim categories.',
+    id: 'hr_suite',
+    title: '3. HR & Workforce Operations',
+    badge: '4 Modules',
+    badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    description: 'Workforce management tools for HR and administrative managers.',
+    features: [
+      {
+        key: 'shift_management',
+        name: 'Shift Management & Rosters',
+        description: 'Custom work shifts, rotational rosters, shift assignments, and coverage planning.',
+      },
+      {
+        key: 'holiday_calendar',
+        name: 'Holiday Calendar',
+        description: 'Publish and manage company annual holidays and regional festival calendars.',
+      },
+      {
+        key: 'leave_types',
+        name: 'Leave Types Configuration',
+        description: 'Configure custom leave categories, annual accrual rates, and carry-forward rules.',
+      },
+      {
+        key: 'appraisal_cycles',
+        name: 'Performance Review Cycles',
+        description: 'Launch company appraisal cycles, manage review questionnaires, and rating scales.',
+      },
+    ],
   },
   {
-    key: 'support_ticket_management',
-    name: 'Support Ticket Management',
-    description: 'Employee tickets, ticket assignments, and ticket management.',
+    id: 'finance_suite',
+    title: '4. Finance & Statutory Suite',
+    badge: '4 Modules',
+    badgeColor: 'bg-amber-100 text-amber-700 border-amber-200',
+    description: 'Financial payroll processing and compliance governance tools.',
+    features: [
+      {
+        key: 'salary_master',
+        name: 'Salary Master & Components',
+        description: 'Configure employee salary structures, allowances, basic pay, and deduction rules.',
+      },
+      {
+        key: 'form16_tax',
+        name: 'Tax Proofs & Form 16',
+        description: 'HR and Finance verification of employee 80C tax proofs and Form 16 distribution.',
+      },
+      {
+        key: 'compliance_management',
+        name: 'Statutory Compliance & Payout',
+        description: 'PF, ESI, TDS challan summaries, and automated bank payout CSV generation.',
+      },
+      {
+        key: 'exit_management',
+        name: 'Exit & Full & Final Settlement',
+        description: 'Employee resignation clearance, notice period tracking, and F&F settlement.',
+      },
+    ],
   },
   {
-    key: 'performance',
-    name: 'Performance Management',
-    description: 'Performance cycles, goals, and manager review flows.',
+    id: 'it_suite',
+    title: '5. IT Operations & Hardware Suite',
+    badge: '2 Modules',
+    badgeColor: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+    description: 'Device lifecycle, asset tracking, and IT provisioning checklists.',
+    features: [
+      {
+        key: 'asset_management',
+        name: 'Hardware & Asset Inventory',
+        description: 'Track laptops, monitors, accessories, serial numbers, warranty, and return status.',
+      },
+      {
+        key: 'onboarding_management',
+        name: 'Employee Onboarding Checklists',
+        description: 'Digital onboarding checklists, hardware provisioning tasks, and software access.',
+      },
+    ],
   },
   {
-    key: 'policies',
-    name: 'Policy Documents Management',
-    description: 'Policy publishing, acknowledgements, and policy management.',
-  },
-  {
-    key: 'documents',
-    name: 'Employee Document Management',
-    description: 'My documents, employee document records, and HR review.',
-  },
-  {
-    key: 'appreciations',
-    name: 'Employee Appreciation',
-    description: 'Peer appreciation and recognition activity.',
-  },
-  {
-    key: 'payroll',
-    name: 'Payroll',
-    description: 'Payroll processing and payslip generation.',
-  },
-  {
-    key: 'compliance_management',
-    name: 'Compliance Management',
-    description: 'Statutory compliance and reporting.',
-  },
-  {
-    key: 'reports_analytics',
-    name: 'Reports & Analytics',
-    description: 'Comprehensive organizational reporting.',
-  },
-  {
-    key: 'ai_assistant',
-    name: 'AI Assistance',
-    description: 'Employee HR assistant for policies, leave, attendance, and holidays.',
-  },
-  {
-    key: 'holiday_calendar',
-    name: 'Holiday Calendar',
-    description: 'Company holiday management and holiday calendar visibility.',
-  },
-  {
-    key: 'employees_directory',
-    name: 'Employees Directory',
-    description: 'Organization structure and employee directory visibility.',
-  },
-  {
-    key: 'comp_off',
-    name: 'Compensation Off Management',
-    description: 'Comp off requests and approval workflows.',
+    id: 'governance',
+    title: '6. Company Governance & Administration',
+    badge: '4 Modules',
+    badgeColor: 'bg-slate-100 text-slate-700 border-slate-200',
+    description: 'High-level business settings and security audit controls.',
+    features: [
+      {
+        key: 'company_goals',
+        name: 'Company Goals & OKRs',
+        description: 'Set company-level objectives, track milestones, and quarterly performance goals.',
+      },
+      {
+        key: 'departments',
+        name: 'Company Departments',
+        description: 'Create business divisions, departments, codes, and designate department leads.',
+      },
+      {
+        key: 'billing',
+        name: 'Billing & Subscription Management',
+        description: 'Manage current plan tier, view invoices, download payment receipts, and upgrade.',
+      },
+      {
+        key: 'activity_logs',
+        name: 'Activity & Audit Logs',
+        description: 'Real-time audit log of user logins, employee creations, edits, and administrative actions.',
+      },
+    ],
   },
 ];
+
+export const AVAILABLE_FEATURES = Array.from(
+  new Map(FEATURE_GROUPS.flatMap((g) => g.features).map((f) => [f.key, f])).values()
+);
 
 const INITIAL_FORM = {
   id: undefined as number | undefined,
@@ -887,38 +1049,112 @@ export const PackagesPage: React.FC = () => {
                 />
               </div>
 
-              {/* Included Modules / Features Checklist */}
+              {/* Included Modules / Categorized Features Checklist */}
               <div>
-                <label className="block text-xs font-bold text-slate-900 mb-1">Included Modules</label>
-                <p className="text-[11px] text-slate-500 font-medium mb-3">
-                  Check modules available to companies on this package plan:
-                </p>
+                <div className="flex items-center justify-between mb-1">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-900">Included Modules &amp; Role Permissions</label>
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      Select operations, roles, and employee self-service capabilities for this package:
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (form.enabledFeatures.length === AVAILABLE_FEATURES.length) {
+                        setForm((prev) => ({ ...prev, enabledFeatures: [] }));
+                      } else {
+                        setForm((prev) => ({
+                          ...prev,
+                          enabledFeatures: AVAILABLE_FEATURES.map((f) => f.key),
+                        }));
+                      }
+                    }}
+                    className="text-[11px] font-bold text-[#5E4BE2] hover:text-[#4a3ab8] hover:underline cursor-pointer transition-colors shrink-0 ml-2"
+                  >
+                    {form.enabledFeatures.length === AVAILABLE_FEATURES.length
+                      ? 'Deselect All (Clear All)'
+                      : `Select All (Unlock All ${AVAILABLE_FEATURES.length})`}
+                  </button>
+                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto p-3 border border-slate-200 rounded-xl bg-slate-50/50">
-                  {AVAILABLE_FEATURES.map((feat) => {
-                    const isChecked = form.enabledFeatures.includes(feat.key);
+                <div className="space-y-4 max-h-[380px] overflow-y-auto p-3.5 border border-slate-200 rounded-xl bg-slate-50/60 scrollbar-thin scrollbar-thumb-slate-300 mt-2">
+                  {FEATURE_GROUPS.map((group) => {
+                    const groupKeys = group.features.map((f) => f.key);
+                    const selectedCount = groupKeys.filter((k) => form.enabledFeatures.includes(k)).length;
+                    const isAllSelected = selectedCount === groupKeys.length;
+
+                    const toggleGroup = () => {
+                      if (isAllSelected) {
+                        setForm((prev) => ({
+                          ...prev,
+                          enabledFeatures: prev.enabledFeatures.filter((k) => !groupKeys.includes(k)),
+                        }));
+                      } else {
+                        setForm((prev) => ({
+                          ...prev,
+                          enabledFeatures: Array.from(new Set([...prev.enabledFeatures, ...groupKeys])),
+                        }));
+                      }
+                    };
+
                     return (
-                      <label
-                        key={feat.key}
-                        className={`flex items-start gap-2.5 p-2 rounded-lg border text-xs cursor-pointer transition-colors ${
-                          isChecked
-                            ? 'bg-indigo-50 border-indigo-200 text-indigo-950 font-semibold'
-                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => toggleFeature(feat.key)}
-                          className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                        />
-                        <div className="leading-tight">
-                          <div className="font-semibold">{feat.name}</div>
-                          <div className="text-[10px] text-slate-500 font-normal mt-0.5 leading-snug">
-                            {feat.description}
+                      <div key={group.id} className="bg-white rounded-xl border border-slate-200 p-3 shadow-2xs">
+                        <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-900">{group.title}</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${group.badgeColor}`}>
+                              {selectedCount}/{group.features.length}
+                            </span>
                           </div>
+                          <button
+                            type="button"
+                            onClick={toggleGroup}
+                            className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
+                          >
+                            {isAllSelected ? 'Deselect Section' : 'Select All in Section'}
+                          </button>
                         </div>
-                      </label>
+                        <p className="text-[10.5px] text-slate-500 mb-2 leading-relaxed">
+                          {group.description}
+                        </p>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                          {group.features.map((feat) => {
+                            const isChecked = form.enabledFeatures.includes(feat.key);
+                            return (
+                              <label
+                                key={feat.key}
+                                className={`flex items-start gap-2.5 p-2 rounded-lg border text-xs cursor-pointer transition-colors ${
+                                  isChecked
+                                    ? 'bg-indigo-50/80 border-indigo-200 text-indigo-950 font-semibold'
+                                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => toggleFeature(feat.key)}
+                                  className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                />
+                                <div className="leading-tight min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-semibold truncate">{feat.name}</span>
+                                    {feat.tag && (
+                                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-purple-100 text-purple-700">
+                                        {feat.tag}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-[10px] text-slate-500 font-normal mt-0.5 leading-snug line-clamp-2">
+                                    {feat.description}
+                                  </div>
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
                     );
                   })}
                 </div>

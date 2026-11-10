@@ -1,3 +1,4 @@
+import './lib/database.js';
 import 'dotenv/config';
 import app from './app.js';
 import { checkAndSendExpiryAlerts } from './services/subscriptionBilling.js';

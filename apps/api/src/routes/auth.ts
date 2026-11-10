@@ -265,19 +265,55 @@ router.post('/forgot-password', validateBody(ForgotPasswordSchema), async (req, 
     });
 
     if (user) {
+      const jwtSecret = process.env.JWT_SECRET || 'uptrix-secret-jwt-key-2026-super-secure';
       const resetToken = jwt.sign(
-        { userId: user.id, purpose: 'password_reset' },
-        process.env.JWT_SECRET || 'secret',
+        { userId: user.id, email: user.email, purpose: 'password_reset' },
+        jwtSecret,
         { expiresIn: '1h' }
       );
 
-      await sendEmail({
-        companyId: user.companyId || undefined,
-        to: user.email,
-        subject: 'Password Reset Request — Uptrix HRMS',
-        html: `<p>Hello ${user.firstName},</p><p>Use the following token to reset your password: <code>${resetToken}</code></p>`,
-        category: 'AUTH',
-      });
+      const frontendUrl =
+        process.env.FRONTEND_URL ||
+        (process.env.APP_DOMAIN ? `https://${process.env.APP_DOMAIN}` : 'http://localhost:3000');
+      const resetLink = `${frontendUrl.replace(/\/$/, '')}/reset-password?token=${resetToken}`;
+
+      try {
+        await sendEmail({
+          companyId: user.companyId || undefined,
+          to: user.email,
+          subject: 'Reset Your Password — Uptrix HRMS',
+          html: `
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px;">
+              <div style="text-align: center; margin-bottom: 24px;">
+                <h1 style="color: #4f46e5; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">Uptrix HRMS</h1>
+                <p style="color: #64748b; font-size: 13px; margin: 4px 0 0 0;">Workforce & Operations Management</p>
+              </div>
+              <div style="padding: 24px; background: #f8fafc; border-radius: 12px; border: 1px solid #edf2f7;">
+                <h2 style="color: #0f172a; margin-top: 0; font-size: 18px; font-weight: 700;">Password Reset Request</h2>
+                <p style="color: #334155; font-size: 14px; line-height: 1.6;">Hello ${user.firstName || 'there'},</p>
+                <p style="color: #334155; font-size: 14px; line-height: 1.6;">
+                  We received a request to reset the password for your account (<strong>${user.email}</strong>). Click the button below to choose a new password:
+                </p>
+                <div style="text-align: center; margin: 28px 0;">
+                  <a href="${resetLink}" target="_blank" style="background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); color: #ffffff; padding: 12px 28px; border-radius: 10px; font-weight: bold; text-decoration: none; font-size: 14px; display: inline-block; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);">
+                    Reset Password
+                  </a>
+                </div>
+                <p style="color: #64748b; font-size: 12px; line-height: 1.5; margin-bottom: 0;">
+                  If the button above does not work, copy and paste this link into your browser:<br/>
+                  <a href="${resetLink}" style="color: #4f46e5; word-break: break-all;">${resetLink}</a>
+                </p>
+              </div>
+              <p style="color: #94a3b8; font-size: 11px; line-height: 1.5; margin-top: 20px; text-align: center;">
+                This link will expire in <strong>1 hour</strong>. If you did not make this request, you can safely ignore this email — your password will remain unchanged.
+              </p>
+            </div>
+          `,
+          category: 'AUTH',
+        });
+      } catch (mailErr: any) {
+        console.error('[Forgot Password Email Error]', mailErr?.message || mailErr);
+      }
     }
 
     return res.json({
@@ -293,15 +329,16 @@ router.post('/forgot-password', validateBody(ForgotPasswordSchema), async (req, 
 router.post('/reset-password', validateBody(ResetPasswordSchema), async (req, res, next) => {
   try {
     const { token, newPassword } = req.body;
+    const jwtSecret = process.env.JWT_SECRET || 'uptrix-secret-jwt-key-2026-super-secure';
     let payload: any;
     try {
-      payload = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+      payload = jwt.verify(token, jwtSecret);
     } catch {
-      return next(new AppError(400, 'INVALID_RESET_TOKEN', 'Reset token is invalid or expired'));
+      return next(new AppError(400, 'INVALID_RESET_TOKEN', 'Reset token is invalid or expired. Please request a new one.'));
     }
 
     if (payload.purpose !== 'password_reset') {
-      return next(new AppError(400, 'INVALID_RESET_TOKEN', 'Invalid reset token'));
+      return next(new AppError(400, 'INVALID_RESET_TOKEN', 'Invalid reset token.'));
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 12);
@@ -313,7 +350,7 @@ router.post('/reset-password', validateBody(ResetPasswordSchema), async (req, re
       },
     });
 
-    return res.json({ success: true, message: 'Password has been reset successfully' });
+    return res.json({ success: true, message: 'Password has been reset successfully. You can now log in.' });
   } catch (error) {
     next(error);
   }
