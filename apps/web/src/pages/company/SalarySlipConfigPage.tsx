@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -9,22 +9,14 @@ import {
   IconUpload,
   IconTrash,
   IconPrinter,
-  IconDownload,
   IconRefresh,
   IconDeviceFloppy,
-  IconInfoCircle,
-  IconEye,
-  IconMail,
   IconPhone,
   IconWorld,
-  IconMapPin,
-  IconUser,
-  IconBriefcase,
-  IconCalendar,
-  IconCoin,
-  IconShieldLock,
   IconFileCertificate,
 } from '@tabler/icons-react';
+import { PayslipSheet, PayslipCustomConfig } from '../../components/pdf/PayslipSheet';
+import { PayslipData } from '../../components/pdf/PayslipPdfDrawer';
 
 interface EmployeeSample {
   id: number;
@@ -40,20 +32,7 @@ interface EmployeeSample {
   department?: { id: number; name: string } | null;
 }
 
-interface PayslipConfig {
-  companyName: string;
-  companyAddress: string;
-  contact: string;
-  websiteOrEmail: string;
-  logoUrl: string;
-  autoReleasePayslip: boolean;
-  branchWisePayslip: boolean;
-  showLoanDetails: boolean;
-  showAttendanceSummary: boolean;
-  customNote: string;
-}
-
-const DEFAULT_CONFIG: PayslipConfig = {
+const DEFAULT_CONFIG: PayslipCustomConfig = {
   companyName: '',
   companyAddress: '',
   contact: '',
@@ -67,11 +46,11 @@ const DEFAULT_CONFIG: PayslipConfig = {
 };
 
 export const SalarySlipConfigPage: React.FC = () => {
-  const { user, company } = useAuth();
+  const { company } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [config, setConfig] = useState<PayslipConfig>(DEFAULT_CONFIG);
-  const [initialConfig, setInitialConfig] = useState<PayslipConfig>(DEFAULT_CONFIG);
+  const [config, setConfig] = useState<PayslipCustomConfig>(DEFAULT_CONFIG);
+  const [initialConfig, setInitialConfig] = useState<PayslipCustomConfig>(DEFAULT_CONFIG);
   const [employees, setEmployees] = useState<EmployeeSample[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('sample');
 
@@ -80,13 +59,11 @@ export const SalarySlipConfigPage: React.FC = () => {
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // Show Toast
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
   };
 
-  // Fetch Payslip Settings and sample staff
   useEffect(() => {
     fetchSettings();
   }, []);
@@ -109,13 +86,12 @@ export const SalarySlipConfigPage: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Failed to load payslip settings:', err);
-      // Fallback to company context
-      const fallbackConfig: PayslipConfig = {
+      const fallbackConfig: PayslipCustomConfig = {
         ...DEFAULT_CONFIG,
         companyName: company?.name || 'Company Name',
         companyAddress: typeof company?.address === 'string' ? company?.address : '',
         logoUrl: company?.logo || '',
-        websiteOrEmail: company?.website || '',
+        websiteOrEmail: (company as any)?.website || '',
       };
       setConfig(fallbackConfig);
       setInitialConfig(fallbackConfig);
@@ -158,7 +134,7 @@ export const SalarySlipConfigPage: React.FC = () => {
   // Handle Save
   const handleSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!config.companyName.trim()) {
+    if (!config.companyName?.trim()) {
       showToast('Company Name is required', 'error');
       return;
     }
@@ -178,98 +154,114 @@ export const SalarySlipConfigPage: React.FC = () => {
     }
   };
 
-  // Handle Reset
   const handleReset = () => {
     setConfig(initialConfig);
     showToast('Reset back to last saved configuration');
   };
 
-  // Active employee for preview
-  const currentPreviewEmployee = React.useMemo(() => {
+  // Construct active preview data conforming strictly to project PayslipData
+  const previewPayslipData: PayslipData = useMemo(() => {
     if (selectedEmployeeId === 'sample' || !employees.length) {
       return {
-        name: 'Rahul Sharma',
-        code: 'EMP-001',
-        designation: 'Senior Software Engineer',
-        department: 'Engineering',
-        doj: '15-06-2023',
-        uan: '101234567890',
-        workLocation: config.branchWisePayslip ? 'Hyderabad H.Q. Branch' : 'Hyderabad',
-        bankName: 'HDFC Bank',
-        bankAccount: '•••• •••• 4589',
-        ifscCode: 'HDFC0001234',
-        branchName: 'Kukatpally',
-        pfNumber: 'TS/HYD/0045612/000/00001',
-        esicNumber: '31000987650000001',
-        basicSalary: 25000,
-        hra: 12500,
-        specialAllowance: 7500,
-        bonus: 5000,
-        grossEarnings: 50000,
-        pf: 1800,
-        pt: 200,
-        tds: 1500,
-        lop: 0,
-        totalDeductions: 3500,
-        netSalary: 46500,
+        month: 11,
+        year: 2026,
+        status: 'PUBLISHED',
+        employee: {
+          id: 1,
+          employeeNumber: 'EMP-001',
+          firstName: 'Rahul',
+          lastName: 'Sharma',
+          jobTitle: 'Senior Software Engineer',
+          department: 'Engineering',
+          bankName: 'HDFC Bank',
+          bankAccountMasked: '•••• •••• 4589',
+          uanNumber: '101234567890',
+          pfNumber: 'TS/HYD/0045612/000/00001',
+          dateOfJoining: '2023-06-15',
+        },
+        calculation: {
+          baseSalary: 50000,
+          basicSalary: 25000,
+          hra: 12500,
+          specialAllowance: 7500,
+          bonus: 5000,
+          grossSalary: 50000,
+          grossEarnings: 50000,
+          pf: 1800,
+          pt: 200,
+          tds: 1500,
+          lopDeduction: 0,
+          totalDeductions: 3500,
+          netSalary: 46500,
+          workingDaysCount: 26,
+          presentDays: 22,
+          paidLeaveDays: 2,
+          totalLopDays: 0,
+          paymentMode: 'Bank Transfer',
+          currency: 'INR',
+          remarks: config.customNote || 'Monthly verified computerized payroll statement.',
+        },
       };
     }
 
     const emp = employees.find((e) => String(e.id) === selectedEmployeeId);
-    if (!emp) return null;
-
-    const baseSalary = Number(emp.monthlySalary) || 45000;
+    const baseSalary = Number(emp?.monthlySalary) || 45000;
     const basic = Math.round(baseSalary * 0.5);
     const hra = Math.round(baseSalary * 0.25);
     const special = Math.round(baseSalary * 0.15);
     const bonus = Math.round(baseSalary * 0.1);
     const gross = basic + hra + special + bonus;
-
     const pf = Math.round(basic * 0.12);
     const pt = 200;
     const tds = Math.round(gross * 0.05);
     const deductions = pf + pt + tds;
     const net = gross - deductions;
-
-    const bank = (emp.bankDetails as any) || {};
+    const bank = (emp?.bankDetails as any) || {};
 
     return {
-      name: `${emp.firstName} ${emp.lastName}`.trim(),
-      code: emp.employeeNumber || `EMP-${String(emp.id).padStart(3, '0')}`,
-      designation: emp.jobTitle || 'Team Member',
-      department: emp.department?.name || 'General',
-      doj: emp.joiningDate ? new Date(emp.joiningDate).toLocaleDateString('en-GB') : '01-01-2024',
-      uan: bank.uanNumber || '100987654321',
-      workLocation: config.branchWisePayslip ? 'Main Regional Branch' : 'Corporate HQ',
-      bankName: bank.bankName || 'State Bank of India',
-      bankAccount: bank.accountNumber ? `•••• •••• ${bank.accountNumber.slice(-4)}` : '•••• •••• 9812',
-      ifscCode: bank.ifscCode || 'SBIN0001234',
-      branchName: bank.branchName || 'Central Branch',
-      pfNumber: bank.pfNumber || 'PF-EST-88765432',
-      esicNumber: bank.esicNumber || 'ESIC-9988776655',
-      basicSalary: basic,
-      hra,
-      specialAllowance: special,
-      bonus,
-      grossEarnings: gross,
-      pf,
-      pt,
-      tds,
-      lop: 0,
-      totalDeductions: deductions,
-      netSalary: net,
+      month: 11,
+      year: 2026,
+      status: 'PUBLISHED',
+      employee: {
+        id: emp?.id,
+        employeeNumber: emp?.employeeNumber || `EMP-${String(emp?.id).padStart(3, '0')}`,
+        firstName: emp?.firstName || 'Employee',
+        lastName: emp?.lastName || '',
+        jobTitle: emp?.jobTitle || 'Staff',
+        department: emp?.department?.name || 'General',
+        bankName: bank.bankName || 'State Bank of India',
+        bankAccountMasked: bank.accountNumber ? `•••• •••• ${bank.accountNumber.slice(-4)}` : '•••• •••• 9812',
+        uanNumber: bank.uanNumber || '100987654321',
+        pfNumber: bank.pfNumber || 'PF-EST-88765432',
+        dateOfJoining: emp?.joiningDate ? String(emp.joiningDate) : '2024-01-01',
+      },
+      calculation: {
+        baseSalary,
+        basicSalary: basic,
+        hra,
+        specialAllowance: special,
+        bonus,
+        grossSalary: gross,
+        grossEarnings: gross,
+        pf,
+        pt,
+        tds,
+        lopDeduction: 0,
+        totalDeductions: deductions,
+        netSalary: net,
+        workingDaysCount: 26,
+        presentDays: 22,
+        paidLeaveDays: 2,
+        totalLopDays: 0,
+        paymentMode: 'Bank Transfer',
+        currency: emp?.currency || 'INR',
+        remarks: config.customNote || 'Monthly verified computerized payroll statement.',
+      },
     };
-  }, [selectedEmployeeId, employees, config.branchWisePayslip]);
+  }, [selectedEmployeeId, employees, config.customNote]);
 
   const handlePrint = () => {
     window.print();
-  };
-
-  const formatCurrency = (amt: number) => {
-    return amt.toLocaleString('en-IN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
   };
 
   return (
@@ -280,10 +272,10 @@ export const SalarySlipConfigPage: React.FC = () => {
           body * {
             visibility: hidden;
           }
-          #payslip-paper-preview, #payslip-paper-preview * {
+          #printable-payslip-sheet, #printable-payslip-sheet * {
             visibility: visible;
           }
-          #payslip-paper-preview {
+          #printable-payslip-sheet {
             position: absolute;
             left: 0;
             top: 0;
@@ -291,7 +283,7 @@ export const SalarySlipConfigPage: React.FC = () => {
             margin: 0 !important;
             padding: 20px !important;
             box-shadow: none !important;
-            border: 1px solid #cbd5e1 !important;
+            border: 1px solid #1e293b !important;
           }
         }
       `}</style>
@@ -329,7 +321,7 @@ export const SalarySlipConfigPage: React.FC = () => {
             Salary Slip Configuration &amp; Template
           </h1>
           <p className="text-xs text-slate-500 font-medium mt-1">
-            Customize company header details, branding, automated releases, and review real-time employee payslips.
+            Customize company header details, branding, automated releases, and review real-time employee payslips in the project's official format.
           </p>
         </div>
 
@@ -421,7 +413,7 @@ export const SalarySlipConfigPage: React.FC = () => {
                       )}
                     </div>
                     <p className="text-[11px] text-slate-400">
-                      PNG, JPG, or SVG up to 5MB. Rendered in the top left corner of the slip.
+                      PNG, JPG, or SVG up to 5MB. Rendered directly on the company header.
                     </p>
                   </div>
                 </div>
@@ -434,7 +426,7 @@ export const SalarySlipConfigPage: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  value={config.companyName}
+                  value={config.companyName || ''}
                   onChange={(e) => setConfig((prev) => ({ ...prev, companyName: e.target.value }))}
                   placeholder="e.g. WhiteScholars EduFutures Academy Private Limited"
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all"
@@ -448,9 +440,9 @@ export const SalarySlipConfigPage: React.FC = () => {
                   Address <span className="text-rose-500">*</span>
                 </label>
                 <textarea
-                  value={config.companyAddress}
+                  value={config.companyAddress || ''}
                   onChange={(e) => setConfig((prev) => ({ ...prev, companyAddress: e.target.value }))}
-                  placeholder="e.g. 5th Floor, Aero Hamd Building, Above HDFC Bank, Pillar no. 675A, Kukatpally, Hyderabad 500 072"
+                  placeholder="e.g. 5th Floor, Aero Hamd Building, Above HDFC Bank, Kukatpally, Hyderabad 500 072"
                   rows={2}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all resize-none"
                   required
@@ -466,7 +458,7 @@ export const SalarySlipConfigPage: React.FC = () => {
                   <IconPhone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                   <input
                     type="text"
-                    value={config.contact}
+                    value={config.contact || ''}
                     onChange={(e) => setConfig((prev) => ({ ...prev, contact: e.target.value }))}
                     placeholder="e.g. +91 98765 43210 / 040-2345678"
                     className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all"
@@ -484,7 +476,7 @@ export const SalarySlipConfigPage: React.FC = () => {
                   <IconWorld className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                   <input
                     type="text"
-                    value={config.websiteOrEmail}
+                    value={config.websiteOrEmail || ''}
                     onChange={(e) => setConfig((prev) => ({ ...prev, websiteOrEmail: e.target.value }))}
                     placeholder="e.g. info@whitescholars.com / www.whitescholars.com"
                     className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all"
@@ -493,7 +485,7 @@ export const SalarySlipConfigPage: React.FC = () => {
               </div>
             </div>
 
-            {/* 2. Display Toggles Card (Matching User's Screenshot Exactly) */}
+            {/* 2. Display Toggles Card */}
             <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
@@ -537,7 +529,7 @@ export const SalarySlipConfigPage: React.FC = () => {
                 <div>
                   <span className="text-xs font-bold text-slate-800">Branch Wise Payslip</span>
                   <p className="text-[11px] text-slate-500 font-medium">
-                    Print specific branch office location and branch code on the payslip header.
+                    Print employee branch location and branch office details on the employee grid.
                   </p>
                 </div>
                 <button
@@ -629,7 +621,7 @@ export const SalarySlipConfigPage: React.FC = () => {
                   Custom Legal Disclaimer / Note
                 </label>
                 <textarea
-                  value={config.customNote}
+                  value={config.customNote || ''}
                   onChange={(e) => setConfig((prev) => ({ ...prev, customNote: e.target.value }))}
                   placeholder="e.g. This is a computer generated payslip and does not require an authorized signature."
                   rows={2}
@@ -670,9 +662,9 @@ export const SalarySlipConfigPage: React.FC = () => {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
               </span>
-              <span className="text-xs font-bold text-slate-800">Live Payslip Preview</span>
+              <span className="text-xs font-bold text-slate-800">Official Project Payslip Preview</span>
               <span className="text-[10px] font-semibold text-slate-400 hidden sm:inline">
-                (Matches printed document)
+                (100% matched with in-app view &amp; PDF)
               </span>
             </div>
 
@@ -693,364 +685,13 @@ export const SalarySlipConfigPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Payslip Paper Sheet (Styled to match the uploaded screenshot with exact layout) */}
-          <div
-            id="payslip-paper-preview"
-            className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6 text-slate-900 font-sans transition-all"
-          >
-            {/* Header Section */}
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-2">
-              <div className="space-y-1.5 max-w-md">
-                {config.logoUrl && (
-                  <div className="mb-2">
-                    <img
-                      src={config.logoUrl}
-                      alt="Company Logo"
-                      className="h-10 max-w-[180px] object-contain"
-                    />
-                  </div>
-                )}
-                <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
-                  {config.companyName || 'Your Company Name'}
-                </h2>
-                {config.companyAddress && (
-                  <p className="text-[11px] text-slate-500 leading-relaxed font-normal">
-                    {config.companyAddress}
-                  </p>
-                )}
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500 font-normal pt-0.5">
-                  {config.contact && (
-                    <span className="flex items-center gap-1">
-                      <IconPhone className="w-3 h-3 text-slate-400" />
-                      {config.contact}
-                    </span>
-                  )}
-                  {config.websiteOrEmail && (
-                    <span className="flex items-center gap-1">
-                      <IconMail className="w-3 h-3 text-slate-400" />
-                      {config.websiteOrEmail}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="sm:text-right shrink-0">
-                <span className="text-xs font-bold text-slate-800">
-                  Payslip from — November 2026
-                </span>
-                {config.branchWisePayslip && (
-                  <span className="block text-[11px] font-medium text-[#5E4BE2] mt-0.5">
-                    Branch: {currentPreviewEmployee?.workLocation || 'Main Branch'}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="h-px bg-slate-200" />
-
-            {/* Employee Details Section */}
-            <div>
-              <h3 className="text-xs font-bold text-slate-900 mb-3 tracking-wide">
-                Employee Details
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-xs">
-                {/* Left Column */}
-                <div className="space-y-1.5">
-                  <div className="grid grid-cols-12">
-                    <span className="col-span-5 text-slate-600 font-medium">Employee Name</span>
-                    <span className="col-span-1 text-slate-400">:</span>
-                    <span className="col-span-6 font-bold text-slate-900 truncate">
-                      {currentPreviewEmployee?.name}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-12">
-                    <span className="col-span-5 text-slate-600 font-medium">Code</span>
-                    <span className="col-span-1 text-slate-400">:</span>
-                    <span className="col-span-6 font-medium text-slate-800">
-                      {currentPreviewEmployee?.code}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-12">
-                    <span className="col-span-5 text-slate-600 font-medium">Designation</span>
-                    <span className="col-span-1 text-slate-400">:</span>
-                    <span className="col-span-6 font-medium text-slate-800">
-                      {currentPreviewEmployee?.designation}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-12">
-                    <span className="col-span-5 text-slate-600 font-medium">Department</span>
-                    <span className="col-span-1 text-slate-400">:</span>
-                    <span className="col-span-6 font-medium text-slate-800">
-                      {currentPreviewEmployee?.department}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-12">
-                    <span className="col-span-5 text-slate-600 font-medium">Date of Joining</span>
-                    <span className="col-span-1 text-slate-400">:</span>
-                    <span className="col-span-6 font-medium text-slate-800">
-                      {currentPreviewEmployee?.doj}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-12">
-                    <span className="col-span-5 text-slate-600 font-medium">UAN Number</span>
-                    <span className="col-span-1 text-slate-400">:</span>
-                    <span className="col-span-6 font-medium text-slate-800 font-mono text-[11px]">
-                      {currentPreviewEmployee?.uan}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-12">
-                    <span className="col-span-5 text-slate-600 font-medium">Work Location</span>
-                    <span className="col-span-1 text-slate-400">:</span>
-                    <span className="col-span-6 font-medium text-slate-800">
-                      {currentPreviewEmployee?.workLocation}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Right Column */}
-                <div className="space-y-1.5">
-                  <div className="grid grid-cols-12">
-                    <span className="col-span-5 text-slate-600 font-medium">Bank Name</span>
-                    <span className="col-span-1 text-slate-400">:</span>
-                    <span className="col-span-6 font-medium text-slate-800">
-                      {currentPreviewEmployee?.bankName}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-12">
-                    <span className="col-span-5 text-slate-600 font-medium">Bank A/C No.</span>
-                    <span className="col-span-1 text-slate-400">:</span>
-                    <span className="col-span-6 font-medium text-slate-800 font-mono text-[11px]">
-                      {currentPreviewEmployee?.bankAccount}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-12">
-                    <span className="col-span-5 text-slate-600 font-medium">IFSC Code</span>
-                    <span className="col-span-1 text-slate-400">:</span>
-                    <span className="col-span-6 font-medium text-slate-800 font-mono text-[11px]">
-                      {currentPreviewEmployee?.ifscCode}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-12">
-                    <span className="col-span-5 text-slate-600 font-medium">Branch Name</span>
-                    <span className="col-span-1 text-slate-400">:</span>
-                    <span className="col-span-6 font-medium text-slate-800">
-                      {currentPreviewEmployee?.branchName}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-12">
-                    <span className="col-span-5 text-slate-600 font-medium">PF Number</span>
-                    <span className="col-span-1 text-slate-400">:</span>
-                    <span className="col-span-6 font-medium text-slate-800 font-mono text-[11px]">
-                      {currentPreviewEmployee?.pfNumber}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-12">
-                    <span className="col-span-5 text-slate-600 font-medium">ESIC Number</span>
-                    <span className="col-span-1 text-slate-400">:</span>
-                    <span className="col-span-6 font-medium text-slate-800 font-mono text-[11px]">
-                      {currentPreviewEmployee?.esicNumber}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Earnings & Deductions Table (Matching the Screenshot) */}
-            <div className="border border-slate-200 rounded-xl overflow-hidden">
-              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-200">
-                {/* Earnings Side */}
-                <div>
-                  <div className="bg-slate-50/80 px-4 py-2 border-b border-slate-200 flex items-center justify-between text-xs font-bold text-slate-800">
-                    <span className="w-1/2">Earnings</span>
-                    <span className="w-1/4 text-right">Monthly Value (Rs.)</span>
-                    <span className="w-1/4 text-right">Amount (Rs.)</span>
-                  </div>
-                  <div className="p-4 space-y-2 text-xs divide-y divide-slate-50">
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="w-1/2 text-slate-600 font-medium">Basic Salary</span>
-                      <span className="w-1/4 text-right font-mono text-slate-700">
-                        {formatCurrency(currentPreviewEmployee?.basicSalary || 0)}
-                      </span>
-                      <span className="w-1/4 text-right font-mono text-slate-900 font-semibold">
-                        {formatCurrency(currentPreviewEmployee?.basicSalary || 0)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="w-1/2 text-slate-600 font-medium">House Rent Allowance (HRA)</span>
-                      <span className="w-1/4 text-right font-mono text-slate-700">
-                        {formatCurrency(currentPreviewEmployee?.hra || 0)}
-                      </span>
-                      <span className="w-1/4 text-right font-mono text-slate-900 font-semibold">
-                        {formatCurrency(currentPreviewEmployee?.hra || 0)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="w-1/2 text-slate-600 font-medium">Special Allowance</span>
-                      <span className="w-1/4 text-right font-mono text-slate-700">
-                        {formatCurrency(currentPreviewEmployee?.specialAllowance || 0)}
-                      </span>
-                      <span className="w-1/4 text-right font-mono text-slate-900 font-semibold">
-                        {formatCurrency(currentPreviewEmployee?.specialAllowance || 0)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="w-1/2 text-slate-600 font-medium">Performance Bonus</span>
-                      <span className="w-1/4 text-right font-mono text-slate-700">
-                        {formatCurrency(currentPreviewEmployee?.bonus || 0)}
-                      </span>
-                      <span className="w-1/4 text-right font-mono text-slate-900 font-semibold">
-                        {formatCurrency(currentPreviewEmployee?.bonus || 0)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="bg-slate-50/90 px-4 py-2.5 border-t border-slate-200 flex items-center justify-between text-xs font-bold text-slate-900">
-                    <span className="w-1/2">Total Gross Earnings</span>
-                    <span className="w-1/4 text-right font-mono">
-                      {formatCurrency(currentPreviewEmployee?.grossEarnings || 0)}
-                    </span>
-                    <span className="w-1/4 text-right font-mono text-[#5E4BE2]">
-                      {formatCurrency(currentPreviewEmployee?.grossEarnings || 0)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Deductions Side */}
-                <div>
-                  <div className="bg-slate-50/80 px-4 py-2 border-b border-slate-200 flex items-center justify-between text-xs font-bold text-slate-800">
-                    <span className="w-2/3">Deductions</span>
-                    <span className="w-1/3 text-right">Amount (Rs.)</span>
-                  </div>
-                  <div className="p-4 space-y-2 text-xs divide-y divide-slate-50">
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="w-2/3 text-slate-600 font-medium">Provident Fund (PF)</span>
-                      <span className="w-1/3 text-right font-mono text-slate-900 font-semibold">
-                        {formatCurrency(currentPreviewEmployee?.pf || 0)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="w-2/3 text-slate-600 font-medium">Professional Tax (PT)</span>
-                      <span className="w-1/3 text-right font-mono text-slate-900 font-semibold">
-                        {formatCurrency(currentPreviewEmployee?.pt || 0)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="w-2/3 text-slate-600 font-medium">Income Tax (TDS)</span>
-                      <span className="w-1/3 text-right font-mono text-slate-900 font-semibold">
-                        {formatCurrency(currentPreviewEmployee?.tds || 0)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="w-2/3 text-slate-600 font-medium">Loss of Pay (LOP)</span>
-                      <span className="w-1/3 text-right font-mono text-slate-900 font-semibold">
-                        {formatCurrency(currentPreviewEmployee?.lop || 0)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="bg-slate-50/90 px-4 py-2.5 border-t border-slate-200 flex items-center justify-between text-xs font-bold text-slate-900">
-                    <span className="w-2/3">Total Deductions</span>
-                    <span className="w-1/3 text-right font-mono text-rose-600">
-                      {formatCurrency(currentPreviewEmployee?.totalDeductions || 0)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Net Pay Highlight Bar */}
-              <div className="bg-indigo-50/40 border-t border-slate-200 px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <span className="text-xs font-bold text-slate-800">
-                  Net Salary Payable (Take-Home):
-                </span>
-                <span className="text-base font-extrabold text-[#5E4BE2] font-mono">
-                  ₹{formatCurrency(currentPreviewEmployee?.netSalary || 0)}
-                </span>
-              </div>
-            </div>
-
-            {/* Attendance Summary Box (Exact match to bottom box in user's image) */}
-            {config.showAttendanceSummary && (
-              <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/50">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center text-xs">
-                  {/* Total Payable Days */}
-                  <div className="md:col-span-4 flex items-center justify-center md:justify-start border-b md:border-b-0 md:border-r border-slate-200 pb-2 md:pb-0 md:pr-4">
-                    <div className="text-center md:text-left">
-                      <span className="text-xs font-bold text-slate-800 block">
-                        Total Payable Days
-                      </span>
-                      <span className="text-lg font-extrabold text-slate-900 font-mono">
-                        26 Days
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Middle Column */}
-                  <div className="md:col-span-4 space-y-1 text-slate-700 font-medium border-b md:border-b-0 md:border-r border-slate-200 pb-2 md:pb-0 md:pr-4">
-                    <div className="flex items-center justify-between">
-                      <span>Worked Day</span>
-                      <span className="font-mono font-bold text-slate-900">: 22</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Holiday</span>
-                      <span className="font-mono font-bold text-slate-900">: 02</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Paid Leaves</span>
-                      <span className="font-mono font-bold text-slate-900">: 02</span>
-                    </div>
-                  </div>
-
-                  {/* Right Column */}
-                  <div className="md:col-span-4 space-y-1 text-slate-700 font-medium">
-                    <div className="flex items-center justify-between">
-                      <span>Weekly Off</span>
-                      <span className="font-mono font-bold text-slate-900">: 04</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Unpaid Days</span>
-                      <span className="font-mono font-bold text-slate-900">: 00</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Loan Details Box (Rendered conditionally when Show Loan Details is ON) */}
-            {config.showLoanDetails && (
-              <div className="border border-indigo-100 rounded-xl p-4 bg-indigo-50/30">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <IconCoin className="w-4 h-4 text-[#5E4BE2]" />
-                    Company Loan &amp; Advance Recovery
-                  </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-[#5E4BE2]">
-                    Active Balance
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-xs">
-                  <div>
-                    <span className="text-slate-500 block text-[11px]">Total Loan Amount</span>
-                    <span className="font-mono font-bold text-slate-800">₹25,000.00</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[11px]">Monthly Installment</span>
-                    <span className="font-mono font-bold text-slate-800">₹2,500.00</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[11px]">Remaining Balance</span>
-                    <span className="font-mono font-bold text-[#5E4BE2]">₹15,000.00</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Footer Disclaimer */}
-            {config.customNote && (
-              <div className="text-center pt-2">
-                <p className="text-[10px] text-slate-400 italic">
-                  {config.customNote}
-                </p>
-              </div>
-            )}
+          {/* Official Project Payslip Document Sheet */}
+          <div className="flex justify-center bg-slate-200/60 p-4 sm:p-6 rounded-2xl border border-slate-300/80 overflow-x-auto shadow-inner">
+            <PayslipSheet
+              payslip={previewPayslipData}
+              company={company}
+              customConfig={config}
+            />
           </div>
         </div>
       </div>

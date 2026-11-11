@@ -1,6 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { IconArrowLeft, IconPrinter, IconX, IconReceipt2, IconDownload } from '@tabler/icons-react';
+import { PayslipSheet } from './PayslipSheet';
 
 export interface PayslipData {
   id?: number | string;
@@ -403,151 +404,11 @@ export const PayslipPdfDrawer: React.FC<PayslipPdfDrawerProps> = ({
 
           {/* Drawer Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex justify-center">
-            {/* The Printable Payslip Document matching generatePdf.ts */}
-            <div
-              id="printable-payslip-sheet"
-              className="bg-white rounded-lg shadow-xl border border-slate-800 p-6 sm:p-8 w-full max-w-3xl text-slate-900 font-sans text-xs flex flex-col justify-between"
-              style={{ minHeight: '820px' }}
-            >
-              <div>
-                {/* 1. Company Header */}
-                <div className="text-center pb-3 space-y-1">
-                  <h1 className="text-lg sm:text-xl font-bold uppercase tracking-wider text-slate-900">
-                    {companyNameStr}
-                  </h1>
-                  {companyAddressStr && (
-                    <p className="text-[11px] text-slate-600 font-medium">
-                      {companyAddressStr}
-                    </p>
-                  )}
-                  {statutoryItems.length > 0 && (
-                    <p className="text-[10px] font-mono text-slate-500 font-semibold tracking-wide">
-                      {statutoryItems.join('  •  ')}
-                    </p>
-                  )}
-                </div>
-
-                {/* 2. Sub-Banner */}
-                <div className="bg-slate-100 py-1.5 px-4 border-y border-slate-800 text-center font-bold text-[11px] uppercase tracking-wider text-slate-900">
-                  PAYSLIP FOR THE MONTH OF {monthName.toUpperCase()} {payslip.year}
-                </div>
-
-                {/* 3. Employee & Working Days Structured Matrix */}
-                <div className="border-b border-slate-800 divide-y divide-slate-300 text-xs">
-                  {empRows.map((row, idx) => (
-                    <div key={idx} className="grid grid-cols-2 divide-x divide-slate-800">
-                      <div className="grid grid-cols-12 divide-x divide-slate-300 py-1 px-2">
-                        <span className="col-span-5 font-bold text-slate-700 text-[11px] pl-1">
-                          {row[0].label}
-                        </span>
-                        <span className="col-span-7 font-normal text-slate-900 text-[11px] pl-2 truncate" title={row[0].val}>
-                          {row[0].val}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-12 divide-x divide-slate-300 py-1 px-2">
-                        <span className="col-span-5 font-bold text-slate-700 text-[11px] pl-1">
-                          {row[1].label}
-                        </span>
-                        <span className="col-span-7 font-normal text-slate-900 text-[11px] pl-2 truncate" title={row[1].val}>
-                          {row[1].val}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* 4. Salary Table Header (Earnings vs Deductions) */}
-                <div className="grid grid-cols-2 bg-slate-100 border-b border-slate-800 divide-x divide-slate-800 font-bold text-[11px] text-slate-900">
-                  <div className="flex justify-between py-1.5 px-3">
-                    <span>EARNINGS HEAD</span>
-                    <span>AMOUNT ({currency})</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 px-3">
-                    <span>DEDUCTIONS HEAD</span>
-                    <span>AMOUNT ({currency})</span>
-                  </div>
-                </div>
-
-                {/* 5. Earnings & Deductions Dual Table Body */}
-                <div className="divide-y divide-slate-200 border-b border-slate-800 text-[11px]">
-                  {Array.from({ length: rowCount }).map((_, i) => {
-                    const e = earningsData[i];
-                    const d = deductionsData[i];
-                    return (
-                      <div key={i} className="grid grid-cols-2 divide-x divide-slate-800 hover:bg-slate-50/50">
-                        {/* Earnings Column */}
-                        <div className="flex justify-between py-1.5 px-3">
-                          <span className="text-slate-800">{e ? e.name : '—'}</span>
-                          <span className="font-medium text-slate-900">
-                            {e ? formatMoney(e.val, '') : '—'}
-                          </span>
-                        </div>
-                        {/* Deductions Column */}
-                        <div className="flex justify-between py-1.5 px-3">
-                          <span className="text-slate-800">{d ? d.name : '—'}</span>
-                          <span className={`font-medium ${d && d.val > 0 ? 'text-slate-900' : 'text-slate-500'}`}>
-                            {d ? formatMoney(d.val, '') : '—'}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* 6. Totals Row */}
-                <div className="grid grid-cols-2 bg-slate-50 border-b border-slate-800 divide-x divide-slate-800 font-bold text-[11px] text-slate-900">
-                  <div className="flex justify-between py-2 px-3">
-                    <span>Total Earnings (Gross):</span>
-                    <span>{formatMoney(grossEarnings, '')}</span>
-                  </div>
-                  <div className="flex justify-between py-2 px-3">
-                    <span>Total Deductions:</span>
-                    <span>{formatMoney(totalDeductions, '')}</span>
-                  </div>
-                </div>
-
-                {/* 7. Net Take-Home Pay Box */}
-                <div className="bg-slate-100 py-2.5 px-3 border-b border-slate-800 flex justify-between items-center font-bold text-slate-900">
-                  <span className="text-xs uppercase tracking-wider">NET PAYABLE SALARY:</span>
-                  <span className="text-sm sm:text-base font-black">
-                    {formatMoney(netSalary, currency)}
-                  </span>
-                </div>
-
-                {/* 8. Amount in Words */}
-                <div className="py-2 px-3 border-b border-slate-800 text-xs">
-                  <span className="font-bold text-slate-700 mr-2">Amount in Words:</span>
-                  <span className="font-medium text-slate-900">{numberToWordsINR(netSalary)}</span>
-                </div>
-
-                {/* 9. Payment Advice & Policy Notes */}
-                <div className="p-3 border-b border-slate-800 text-[11px] space-y-1 bg-white">
-                  <div className="font-bold text-slate-900 mb-1">Payment Advice &amp; Policy Notes:</div>
-                  <div className="text-slate-700 pl-2">
-                    • Mode of Transfer: {paymentMode} to {bankName} (A/C: {bankAccount}).
-                  </div>
-                  <div className="text-slate-700 pl-2">
-                    • Daily Calculation Rate: {formatMoney(dailyRate, currency)} per workable day (Base Salary ÷ {workingDays} workable days).
-                  </div>
-                  <div className="text-slate-700 pl-2">
-                    • Attendance &amp; LOP: Computed strictly on system check-ins. {lopDays} days LOP deduction applied.
-                  </div>
-                  <div className="text-slate-700 pl-2">
-                    • Remarks: {c.remarks || 'Monthly verified computerized payroll statement.'}
-                  </div>
-                </div>
-
-                {/* 10. System Generated Salary Statement Notice */}
-                <div className="text-center py-3 text-xs font-semibold text-slate-700">
-                  System Generated Salary Statement
-                </div>
-              </div>
-
-              {/* 11. Official Footer */}
-              <div className="text-center text-[10px] text-slate-500 font-medium pt-3 border-t border-slate-200">
-                Confidential • Corporate Payroll Record • System Generated by Uptrix HRMS Platform
-              </div>
-            </div>
+            <PayslipSheet
+              payslip={payslip}
+              company={company}
+              customConfig={(company?.settings as any)?.payslipConfig}
+            />
           </div>
         </div>
       </div>
