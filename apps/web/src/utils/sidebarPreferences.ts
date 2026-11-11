@@ -1,13 +1,17 @@
 import api from '../api/client';
 
 export interface SidebarOpsVisibility {
+  company_operations: boolean;
   hr_operations: boolean;
+  reports_operations: boolean;
   it_operations: boolean;
   finance_operations: boolean;
 }
 
 export const DEFAULT_SIDEBAR_OPS_VISIBILITY: SidebarOpsVisibility = {
+  company_operations: true,
   hr_operations: true,
+  reports_operations: true,
   it_operations: true,
   finance_operations: true,
 };
@@ -29,7 +33,9 @@ export const getSidebarOpsVisibility = (
   if (companySettings?.sidebarOperations) {
     const dbOps = companySettings.sidebarOperations;
     return {
+      company_operations: dbOps.company_operations !== false,
       hr_operations: dbOps.hr_operations !== false,
+      reports_operations: dbOps.reports_operations !== false,
       it_operations: dbOps.it_operations !== false,
       finance_operations: dbOps.finance_operations !== false,
     };
@@ -41,7 +47,9 @@ export const getSidebarOpsVisibility = (
     if (!raw) return DEFAULT_SIDEBAR_OPS_VISIBILITY;
     const parsed = JSON.parse(raw);
     return {
+      company_operations: parsed.company_operations !== false,
       hr_operations: parsed.hr_operations !== false,
+      reports_operations: parsed.reports_operations !== false,
       it_operations: parsed.it_operations !== false,
       finance_operations: parsed.finance_operations !== false,
     };
@@ -58,7 +66,9 @@ export const fetchSidebarOpsFromDb = async (userId?: string | number): Promise<S
     const res = await api.get('/company/sidebar-operations');
     if (res.data?.sidebarOperations) {
       const dbOps: SidebarOpsVisibility = {
+        company_operations: res.data.sidebarOperations.company_operations !== false,
         hr_operations: res.data.sidebarOperations.hr_operations !== false,
+        reports_operations: res.data.sidebarOperations.reports_operations !== false,
         it_operations: res.data.sidebarOperations.it_operations !== false,
         finance_operations: res.data.sidebarOperations.finance_operations !== false,
       };

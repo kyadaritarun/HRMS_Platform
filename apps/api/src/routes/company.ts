@@ -598,7 +598,9 @@ router.get('/sidebar-operations', roleGuard('COMPANY_ADMIN'), async (req, res, n
     });
     const settings = (company?.settings as any) || {};
     const sidebarOperations = {
+      company_operations: settings.sidebarOperations?.company_operations !== false,
       hr_operations: settings.sidebarOperations?.hr_operations !== false,
+      reports_operations: settings.sidebarOperations?.reports_operations !== false,
       it_operations: settings.sidebarOperations?.it_operations !== false,
       finance_operations: settings.sidebarOperations?.finance_operations !== false,
     };
@@ -618,7 +620,9 @@ router.put('/sidebar-operations', roleGuard('COMPANY_ADMIN'), async (req, res, n
     });
     const currentSettings = (company?.settings as any) || {};
     const updatedSidebarOps = {
+      company_operations: req.body.company_operations !== false,
       hr_operations: req.body.hr_operations !== false,
+      reports_operations: req.body.reports_operations !== false,
       it_operations: req.body.it_operations !== false,
       finance_operations: req.body.finance_operations !== false,
     };

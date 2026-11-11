@@ -12,6 +12,8 @@ import {
   IconBriefcase,
   IconDevices,
   IconCash,
+  IconBuildingSkyscraper,
+  IconFileAnalytics,
 } from '@tabler/icons-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
@@ -247,6 +249,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   </div>
 
                   <div className="space-y-3">
+                    {/* Company Operations */}
+                    <label
+                      className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all ${
+                        user?.role === 'COMPANY_ADMIN' ? 'cursor-pointer' : 'cursor-default'
+                      } ${
+                        sidebarOps.company_operations
+                          ? 'border-indigo-200/90 bg-indigo-50/20 shadow-2xs'
+                          : 'border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 opacity-70'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={sidebarOps.company_operations}
+                        disabled={user?.role !== 'COMPANY_ADMIN'}
+                        onChange={(e) =>
+                          setSidebarOps((prev) => ({ ...prev, company_operations: e.target.checked }))
+                        }
+                        className="mt-0.5 rounded text-[#5E4BE2] focus:ring-[#5E4BE2] w-4 h-4 cursor-pointer accent-[#5E4BE2] disabled:cursor-not-allowed"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <IconBuildingSkyscraper className="w-4 h-4 text-[#5E4BE2]" />
+                            <span className="text-xs font-bold text-slate-800">Company</span>
+                          </div>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              sidebarOps.company_operations
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
+                                : 'bg-slate-100 text-slate-500 border border-slate-200/60'
+                            }`}
+                          >
+                            {sidebarOps.company_operations ? 'Active' : 'Disabled'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 font-medium mt-1 leading-relaxed">
+                          Company Dashboard, Goals, Create Employee, Add-on Services, Billing &amp; Activity Logs
+                        </p>
+                      </div>
+                    </label>
+
                     {/* HR Operations */}
                     <label
                       className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all ${
@@ -284,6 +327,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                         </div>
                         <p className="text-[11px] text-slate-500 font-medium mt-1 leading-relaxed">
                           Departments, Shift &amp; Roster, Holidays, Leaves, Policies, Employees &amp; Attendance
+                        </p>
+                      </div>
+                    </label>
+
+                    {/* Reports */}
+                    <label
+                      className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all ${
+                        user?.role === 'COMPANY_ADMIN' ? 'cursor-pointer' : 'cursor-default'
+                      } ${
+                        sidebarOps.reports_operations
+                          ? 'border-indigo-200/90 bg-indigo-50/20 shadow-2xs'
+                          : 'border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 opacity-70'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={sidebarOps.reports_operations}
+                        disabled={user?.role !== 'COMPANY_ADMIN'}
+                        onChange={(e) =>
+                          setSidebarOps((prev) => ({ ...prev, reports_operations: e.target.checked }))
+                        }
+                        className="mt-0.5 rounded text-[#5E4BE2] focus:ring-[#5E4BE2] w-4 h-4 cursor-pointer accent-[#5E4BE2] disabled:cursor-not-allowed"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <IconFileAnalytics className="w-4 h-4 text-[#5E4BE2]" />
+                            <span className="text-xs font-bold text-slate-800">Reports</span>
+                          </div>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              sidebarOps.reports_operations
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
+                                : 'bg-slate-100 text-slate-500 border border-slate-200/60'
+                            }`}
+                          >
+                            {sidebarOps.reports_operations ? 'Active' : 'Disabled'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 font-medium mt-1 leading-relaxed">
+                          Daily Punch Report, Leave Taken Report, and operational analytics
                         </p>
                       </div>
                     </label>

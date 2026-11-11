@@ -327,11 +327,17 @@ export function getFilteredCategories(
       }
 
       if (user.role === 'COMPANY_ADMIN') {
+        if (cat.id === 'company') {
+          if (!sidebarOpsPrefs.company_operations) return false;
+        }
         if (cat.id === 'hr_operations') {
           if (!sidebarOpsPrefs.hr_operations) return false;
           if (pkgFeatures.length > 0 && !pkgFeatures.some((f) => ['hr_operations', 'leave_management', 'time_attendance_management'].includes(f))) {
             return false;
           }
+        }
+        if (cat.id === 'reports') {
+          if (!sidebarOpsPrefs.reports_operations) return false;
         }
         if (cat.id === 'it_operations') {
           if (!sidebarOpsPrefs.it_operations) return false;
