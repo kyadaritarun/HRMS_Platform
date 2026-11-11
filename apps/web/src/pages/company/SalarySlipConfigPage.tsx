@@ -349,9 +349,9 @@ export const SalarySlipConfigPage: React.FC = () => {
       </div>
 
       {/* Main Two-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Settings & Customization Form (5 Cols) */}
-        <div className="lg:col-span-5 space-y-5">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+        {/* Left Column: Settings & Customization Form (4 Cols on xl) */}
+        <div className="xl:col-span-4 space-y-5">
           <form onSubmit={handleSave} className="space-y-5">
             {/* 1. Company Branding Card */}
             <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
@@ -653,8 +653,8 @@ export const SalarySlipConfigPage: React.FC = () => {
           </form>
         </div>
 
-        {/* Right Column: Live Interactive Payslip Preview (7 Cols) */}
-        <div className="lg:col-span-7 space-y-4">
+        {/* Right Column: Live Interactive Payslip Preview (8 Cols on xl) */}
+        <div className="xl:col-span-8 space-y-4">
           {/* Preview Controls Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
             <div className="flex items-center gap-2">

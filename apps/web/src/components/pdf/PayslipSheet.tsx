@@ -33,11 +33,11 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
-function formatMoney(amount: number | undefined | null, showDecimals: boolean = true): string {
+function formatMoney(amount: number | undefined | null): string {
   const num = Number(amount || 0);
   return num.toLocaleString('en-IN', {
-    minimumFractionDigits: showDecimals ? 2 : 0,
-    maximumFractionDigits: showDecimals ? 2 : 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   });
 }
 
@@ -241,12 +241,12 @@ export const PayslipSheet: React.FC<PayslipSheetProps> = ({
   return (
     <div
       id="printable-payslip-sheet"
-      className={`bg-white rounded-xl shadow-lg border border-slate-200/90 p-6 sm:p-10 w-full max-w-4xl text-slate-900 font-sans text-xs flex flex-col justify-between space-y-6 ${className}`}
+      className={`bg-white rounded-2xl shadow-xl border border-slate-200/90 p-6 sm:p-10 w-full min-w-[700px] max-w-[860px] text-slate-900 font-sans text-xs flex flex-col justify-between space-y-6 ${className}`}
       style={{ minHeight: '850px' }}
     >
       <div className="space-y-6">
         {/* 1. Header Section (Exact match to screenshot) */}
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div className="flex items-end justify-between gap-4">
           <div className="space-y-1.5 max-w-xl">
             {logoUrl && (
               <div className="mb-2">
@@ -274,7 +274,7 @@ export const PayslipSheet: React.FC<PayslipSheetProps> = ({
             )}
           </div>
 
-          <div className="sm:text-right shrink-0 pt-2 sm:pt-6">
+          <div className="text-right shrink-0 whitespace-nowrap pb-0.5">
             <span className="text-xs sm:text-sm font-bold text-slate-900">
               Payslip from — {monthName} {payslip.year}
             </span>
@@ -290,199 +290,177 @@ export const PayslipSheet: React.FC<PayslipSheetProps> = ({
             Employee Details
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2 text-xs">
+          <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-xs">
             {/* Left Column */}
             <div className="space-y-2">
-              <div className="grid grid-cols-12 items-baseline">
-                <span className="col-span-5 text-slate-700 font-medium">Employee Name</span>
-                <span className="col-span-1 text-slate-400">:</span>
-                <span className="col-span-6 font-semibold text-slate-900 truncate">
+              <div className="flex items-center text-xs">
+                <span className="w-36 text-slate-700 font-medium shrink-0">Employee Name</span>
+                <span className="w-4 text-slate-400 shrink-0 text-center">:</span>
+                <span className="font-semibold text-slate-900 truncate pl-1">
                   {toTitleCase(empName)}
                 </span>
               </div>
-              <div className="grid grid-cols-12 items-baseline">
-                <span className="col-span-5 text-slate-700 font-medium">Code</span>
-                <span className="col-span-1 text-slate-400">:</span>
-                <span className="col-span-6 text-slate-800">
-                  {empCode}
-                </span>
+              <div className="flex items-center text-xs">
+                <span className="w-36 text-slate-700 font-medium shrink-0">Code</span>
+                <span className="w-4 text-slate-400 shrink-0 text-center">:</span>
+                <span className="text-slate-800 pl-1">{empCode}</span>
               </div>
-              <div className="grid grid-cols-12 items-baseline">
-                <span className="col-span-5 text-slate-700 font-medium">Designation</span>
-                <span className="col-span-1 text-slate-400">:</span>
-                <span className="col-span-6 text-slate-800">
-                  {empDesignation}
-                </span>
+              <div className="flex items-center text-xs">
+                <span className="w-36 text-slate-700 font-medium shrink-0">Designation</span>
+                <span className="w-4 text-slate-400 shrink-0 text-center">:</span>
+                <span className="text-slate-800 pl-1 truncate">{empDesignation}</span>
               </div>
-              <div className="grid grid-cols-12 items-baseline">
-                <span className="col-span-5 text-slate-700 font-medium">Department</span>
-                <span className="col-span-1 text-slate-400">:</span>
-                <span className="col-span-6 text-slate-800">
-                  {empDept}
-                </span>
+              <div className="flex items-center text-xs">
+                <span className="w-36 text-slate-700 font-medium shrink-0">Department</span>
+                <span className="w-4 text-slate-400 shrink-0 text-center">:</span>
+                <span className="text-slate-800 pl-1">{empDept}</span>
               </div>
-              <div className="grid grid-cols-12 items-baseline">
-                <span className="col-span-5 text-slate-700 font-medium">Date of Joining</span>
-                <span className="col-span-1 text-slate-400">:</span>
-                <span className="col-span-6 text-slate-800">
-                  {dojFormatted}
-                </span>
+              <div className="flex items-center text-xs">
+                <span className="w-36 text-slate-700 font-medium shrink-0">Date of Joining</span>
+                <span className="w-4 text-slate-400 shrink-0 text-center">:</span>
+                <span className="text-slate-800 pl-1">{dojFormatted}</span>
               </div>
-              <div className="grid grid-cols-12 items-baseline">
-                <span className="col-span-5 text-slate-700 font-medium">UAN Number</span>
-                <span className="col-span-1 text-slate-400">:</span>
-                <span className="col-span-6 text-slate-800 font-mono text-[11px]">
-                  {uanNumber}
-                </span>
+              <div className="flex items-center text-xs">
+                <span className="w-36 text-slate-700 font-medium shrink-0">UAN Number</span>
+                <span className="w-4 text-slate-400 shrink-0 text-center">:</span>
+                <span className="text-slate-800 font-mono text-[11px] pl-1">{uanNumber}</span>
               </div>
-              <div className="grid grid-cols-12 items-baseline">
-                <span className="col-span-5 text-slate-700 font-medium">Work Location</span>
-                <span className="col-span-1 text-slate-400">:</span>
-                <span className="col-span-6 text-slate-800">
-                  {workLocation}
-                </span>
+              <div className="flex items-center text-xs">
+                <span className="w-36 text-slate-700 font-medium shrink-0">Work Location</span>
+                <span className="w-4 text-slate-400 shrink-0 text-center">:</span>
+                <span className="text-slate-800 pl-1">{workLocation}</span>
               </div>
             </div>
 
             {/* Right Column */}
             <div className="space-y-2">
-              <div className="grid grid-cols-12 items-baseline">
-                <span className="col-span-5 text-slate-700 font-medium">Bank Name</span>
-                <span className="col-span-1 text-slate-400">:</span>
-                <span className="col-span-6 text-slate-800">
-                  {bankName}
-                </span>
+              <div className="flex items-center text-xs">
+                <span className="w-36 text-slate-700 font-medium shrink-0">Bank Name</span>
+                <span className="w-4 text-slate-400 shrink-0 text-center">:</span>
+                <span className="text-slate-800 pl-1 truncate">{bankName}</span>
               </div>
-              <div className="grid grid-cols-12 items-baseline">
-                <span className="col-span-5 text-slate-700 font-medium">Bank A/C No.</span>
-                <span className="col-span-1 text-slate-400">:</span>
-                <span className="col-span-6 text-slate-800 font-mono text-[11px]">
-                  {bankAccount}
-                </span>
+              <div className="flex items-center text-xs">
+                <span className="w-36 text-slate-700 font-medium shrink-0">Bank A/C No.</span>
+                <span className="w-4 text-slate-400 shrink-0 text-center">:</span>
+                <span className="text-slate-800 font-mono text-[11px] pl-1">{bankAccount}</span>
               </div>
-              <div className="grid grid-cols-12 items-baseline">
-                <span className="col-span-5 text-slate-700 font-medium">IFSC Code</span>
-                <span className="col-span-1 text-slate-400">:</span>
-                <span className="col-span-6 text-slate-800 font-mono text-[11px]">
-                  {ifscCode}
-                </span>
+              <div className="flex items-center text-xs">
+                <span className="w-36 text-slate-700 font-medium shrink-0">IFSC Code</span>
+                <span className="w-4 text-slate-400 shrink-0 text-center">:</span>
+                <span className="text-slate-800 font-mono text-[11px] pl-1">{ifscCode}</span>
               </div>
-              <div className="grid grid-cols-12 items-baseline">
-                <span className="col-span-5 text-slate-700 font-medium">Branch Name</span>
-                <span className="col-span-1 text-slate-400">:</span>
-                <span className="col-span-6 text-slate-800">
-                  {branchName}
-                </span>
+              <div className="flex items-center text-xs">
+                <span className="w-36 text-slate-700 font-medium shrink-0">Branch Name</span>
+                <span className="w-4 text-slate-400 shrink-0 text-center">:</span>
+                <span className="text-slate-800 pl-1 truncate">{branchName}</span>
               </div>
-              <div className="grid grid-cols-12 items-baseline">
-                <span className="col-span-5 text-slate-700 font-medium">PF Number</span>
-                <span className="col-span-1 text-slate-400">:</span>
-                <span className="col-span-6 text-slate-800 font-mono text-[11px]">
-                  {pfNumber}
-                </span>
+              <div className="flex items-center text-xs">
+                <span className="w-36 text-slate-700 font-medium shrink-0">PF Number</span>
+                <span className="w-4 text-slate-400 shrink-0 text-center">:</span>
+                <span className="text-slate-800 font-mono text-[11px] pl-1">{pfNumber}</span>
               </div>
-              <div className="grid grid-cols-12 items-baseline">
-                <span className="col-span-5 text-slate-700 font-medium">ESIC Number</span>
-                <span className="col-span-1 text-slate-400">:</span>
-                <span className="col-span-6 text-slate-800 font-mono text-[11px]">
-                  {esicNumber}
-                </span>
+              <div className="flex items-center text-xs">
+                <span className="w-36 text-slate-700 font-medium shrink-0">ESIC Number</span>
+                <span className="w-4 text-slate-400 shrink-0 text-center">:</span>
+                <span className="text-slate-800 font-mono text-[11px] pl-1">{esicNumber}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* 3. Earnings & Deductions Tables (Exact layout matching screenshot) */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
-          {/* Earnings Side (7 cols) */}
-          <div className="md:col-span-7 border border-slate-200/90 rounded-xl overflow-hidden bg-white shadow-2xs">
-            {/* Header */}
-            <div className="bg-slate-50/90 px-4 py-2.5 border-b border-slate-200/90 grid grid-cols-12 text-xs font-bold text-slate-800">
-              <span className="col-span-5">Earnings</span>
-              <span className="col-span-4 text-right">Monthly Value (Rs.)</span>
-              <span className="col-span-3 text-right">Amount (Rs.)</span>
-            </div>
-
-            {/* List */}
-            <div className="divide-y divide-slate-100 min-h-[90px]">
-              {earningsList.length > 0 ? (
-                earningsList.map((item, idx) => (
-                  <div key={idx} className="px-4 py-2 grid grid-cols-12 text-xs text-slate-700 hover:bg-slate-50/40">
-                    <span className="col-span-5 font-medium text-slate-800">{item.name}</span>
-                    <span className="col-span-4 text-right font-mono text-slate-600">
-                      {formatMoney(item.monthlyVal)}
-                    </span>
-                    <span className="col-span-3 text-right font-mono text-slate-900 font-semibold">
-                      {formatMoney(item.amount)}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <div className="px-4 py-3 grid grid-cols-12 text-xs text-slate-500">
-                  <span className="col-span-5">Standard Pay</span>
-                  <span className="col-span-4 text-right font-mono">0.00</span>
-                  <span className="col-span-3 text-right font-mono">0.00</span>
-                </div>
-              )}
-            </div>
-
-            {/* Total Row */}
-            <div className="bg-slate-50/90 border-t border-slate-200/90 px-4 py-2.5 grid grid-cols-12 text-xs font-bold text-slate-900">
-              <span className="col-span-5">Total Gross Earnings</span>
-              <span className="col-span-4 text-right font-mono">
-                {formatMoney(grossMonthly)}
-              </span>
-              <span className="col-span-3 text-right font-mono">
-                {formatMoney(grossEarnings)}
-              </span>
-            </div>
+        {/* 3. Earnings & Deductions Tables (Spacious, No Overlap, Fixed Columns) */}
+        <div className="grid grid-cols-12 gap-5 items-start">
+          {/* Earnings Side (7 cols out of 12) */}
+          <div className="col-span-7 border border-slate-200/90 rounded-xl overflow-hidden bg-white shadow-2xs">
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50/90 border-b border-slate-200/90 text-slate-800 font-bold">
+                  <th className="py-2.5 px-4 text-left w-[46%]">Earnings</th>
+                  <th className="py-2.5 px-3 text-right w-[27%] whitespace-nowrap">Monthly Value (Rs.)</th>
+                  <th className="py-2.5 px-4 text-right w-[27%] whitespace-nowrap">Amount (Rs.)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {earningsList.length > 0 ? (
+                  earningsList.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50/40">
+                      <td className="py-2 px-4 text-slate-800 font-medium truncate">{item.name}</td>
+                      <td className="py-2 px-3 text-right font-mono text-slate-600 whitespace-nowrap pr-2">
+                        {formatMoney(item.monthlyVal)}
+                      </td>
+                      <td className="py-2 px-4 text-right font-mono font-bold text-slate-900 whitespace-nowrap">
+                        {formatMoney(item.amount)}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td className="py-3 px-4 text-slate-500">Standard Pay</td>
+                    <td className="py-3 px-3 text-right font-mono text-slate-500">0.00</td>
+                    <td className="py-3 px-4 text-right font-mono text-slate-500">0.00</td>
+                  </tr>
+                )}
+              </tbody>
+              <tfoot>
+                <tr className="bg-slate-50/90 border-t border-slate-200/90 font-bold text-slate-900">
+                  <td className="py-2.5 px-4 text-left">Total Gross Earnings</td>
+                  <td className="py-2.5 px-3 text-right font-mono whitespace-nowrap pr-2">
+                    {formatMoney(grossMonthly)}
+                  </td>
+                  <td className="py-2.5 px-4 text-right font-mono whitespace-nowrap">
+                    {formatMoney(grossEarnings)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
 
-          {/* Deductions Side (5 cols) */}
-          <div className="md:col-span-5 border border-slate-200/90 rounded-xl overflow-hidden bg-white shadow-2xs">
-            {/* Header */}
-            <div className="bg-slate-50/90 px-4 py-2.5 border-b border-slate-200/90 grid grid-cols-12 text-xs font-bold text-slate-800">
-              <span className="col-span-7">Deductions</span>
-              <span className="col-span-5 text-right">Amount (Rs.)</span>
-            </div>
-
-            {/* List */}
-            <div className="divide-y divide-slate-100 min-h-[90px]">
-              {deductionsList.length > 0 ? (
-                deductionsList.map((item, idx) => (
-                  <div key={idx} className="px-4 py-2 grid grid-cols-12 text-xs text-slate-700 hover:bg-slate-50/40">
-                    <span className="col-span-7 font-medium text-slate-800">{item.name}</span>
-                    <span className="col-span-5 text-right font-mono text-slate-900 font-semibold">
-                      {formatMoney(item.amount)}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <div className="px-4 py-3 grid grid-cols-12 text-xs text-slate-500">
-                  <span className="col-span-7">Statutory Deductions</span>
-                  <span className="col-span-5 text-right font-mono">0.00</span>
-                </div>
-              )}
-            </div>
-
-            {/* Total Row */}
-            <div className="bg-slate-50/90 border-t border-slate-200/90 px-4 py-2.5 grid grid-cols-12 text-xs font-bold text-slate-900">
-              <span className="col-span-7">Total Deductions</span>
-              <span className="col-span-5 text-right font-mono">
-                {formatMoney(totalDeductions)}
-              </span>
-            </div>
+          {/* Deductions Side (5 cols out of 12) */}
+          <div className="col-span-5 border border-slate-200/90 rounded-xl overflow-hidden bg-white shadow-2xs">
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50/90 border-b border-slate-200/90 text-slate-800 font-bold">
+                  <th className="py-2.5 px-4 text-left w-[58%]">Deductions</th>
+                  <th className="py-2.5 px-4 text-right w-[42%] whitespace-nowrap">Amount (Rs.)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {deductionsList.length > 0 ? (
+                  deductionsList.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50/40">
+                      <td className="py-2 px-4 text-slate-800 font-medium truncate">{item.name}</td>
+                      <td className="py-2 px-4 text-right font-mono font-bold text-slate-900 whitespace-nowrap">
+                        {formatMoney(item.amount)}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td className="py-3 px-4 text-slate-500">Statutory Deductions</td>
+                    <td className="py-3 px-4 text-right font-mono text-slate-500">0.00</td>
+                  </tr>
+                )}
+              </tbody>
+              <tfoot>
+                <tr className="bg-slate-50/90 border-t border-slate-200/90 font-bold text-slate-900">
+                  <td className="py-2.5 px-4 text-left">Total Deductions</td>
+                  <td className="py-2.5 px-4 text-right font-mono whitespace-nowrap">
+                    {formatMoney(totalDeductions)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
         </div>
 
         {/* 4. Attendance Summary Box (Exact match to bottom container in screenshot) */}
         {customConfig?.showAttendanceSummary !== false && (
           <div className="border border-slate-200/90 rounded-xl p-5 bg-white shadow-2xs">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center text-xs">
+            <div className="grid grid-cols-12 gap-6 items-center text-xs">
               {/* Total Payable Days Column */}
-              <div className="md:col-span-4 flex items-center justify-start border-b md:border-b-0 md:border-r border-slate-200 pb-3 md:pb-0 md:pr-6">
+              <div className="col-span-4 flex items-center justify-start border-r border-slate-200 pr-6">
                 <div>
-                  <span className="text-xs font-bold text-slate-800 block mb-0.5">
+                  <span className="text-xs font-bold text-slate-700 block mb-0.5">
                     Total Payable Days
                   </span>
                   <span className="text-base font-extrabold text-slate-900 font-mono">
@@ -492,7 +470,7 @@ export const PayslipSheet: React.FC<PayslipSheetProps> = ({
               </div>
 
               {/* Middle Breakdown Column */}
-              <div className="md:col-span-4 space-y-1.5 text-slate-700 font-medium border-b md:border-b-0 md:border-r border-slate-200 pb-3 md:pb-0 md:pr-6">
+              <div className="col-span-4 space-y-1.5 text-slate-700 font-medium border-r border-slate-200 pr-6">
                 <div className="flex items-center justify-between">
                   <span>Worked Day</span>
                   <span className="font-mono text-slate-900 font-semibold">: {workedDays}</span>
@@ -508,7 +486,7 @@ export const PayslipSheet: React.FC<PayslipSheetProps> = ({
               </div>
 
               {/* Right Breakdown Column */}
-              <div className="md:col-span-4 space-y-1.5 text-slate-700 font-medium">
+              <div className="col-span-4 space-y-1.5 text-slate-700 font-medium">
                 <div className="flex items-center justify-between">
                   <span>Weekly Off</span>
                   <span className="font-mono text-slate-900 font-semibold">: {weeklyOffDays}</span>
@@ -522,18 +500,18 @@ export const PayslipSheet: React.FC<PayslipSheetProps> = ({
           </div>
         )}
 
-        {/* 5. Total Net Payable Banner (Exact match to green banner in screenshot) */}
-        <div className="bg-emerald-50 border border-emerald-200/80 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
-          <div className="flex items-center gap-2">
-            <span className="text-sm sm:text-base font-extrabold text-slate-900">
+        {/* 5. Total Net Payable Banner (Never breaks, single clean line, mint green) */}
+        <div className="bg-[#ecfdf5] border border-emerald-200/90 rounded-xl px-5 py-4 flex items-center justify-between gap-4 shadow-2xs">
+          <div className="flex items-center gap-3 whitespace-nowrap shrink-0">
+            <span className="text-sm sm:text-base font-extrabold text-slate-900 whitespace-nowrap">
               Total Net Payable :
             </span>
-            <span className="text-base sm:text-lg font-black text-emerald-800 font-mono">
+            <span className="text-base sm:text-lg font-black text-emerald-800 font-mono whitespace-nowrap">
               ₹ {formatMoney(netSalary)}
             </span>
           </div>
 
-          <div className="text-[11px] font-semibold text-emerald-900/80 sm:text-right italic">
+          <div className="text-xs font-semibold text-emerald-900/80 italic text-right whitespace-nowrap truncate pl-2">
             ({numberToWordsINR(netSalary)})
           </div>
         </div>
