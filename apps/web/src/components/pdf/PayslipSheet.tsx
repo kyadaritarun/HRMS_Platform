@@ -368,46 +368,46 @@ export const PayslipSheet: React.FC<PayslipSheetProps> = ({
           </div>
         </div>
 
-        {/* 3. Earnings & Deductions Tables (Spacious, No Overlap, Fixed Columns) */}
-        <div className="grid grid-cols-12 gap-5 items-start">
+        {/* 3. Earnings & Deductions Tables (Square / Flat headers matching screenshot) */}
+        <div className="grid grid-cols-12 gap-6 items-start">
           {/* Earnings Side (7 cols out of 12) */}
-          <div className="col-span-7 border border-slate-200/90 rounded-xl overflow-hidden bg-white shadow-2xs">
+          <div className="col-span-7 overflow-hidden">
             <table className="w-full text-xs border-collapse">
               <thead>
-                <tr className="bg-slate-50/90 border-b border-slate-200/90 text-slate-800 font-bold">
-                  <th className="py-2.5 px-4 text-left w-[46%]">Earnings</th>
-                  <th className="py-2.5 px-3 text-right w-[27%] whitespace-nowrap">Monthly Value (Rs.)</th>
-                  <th className="py-2.5 px-4 text-right w-[27%] whitespace-nowrap">Amount (Rs.)</th>
+                <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-800 font-bold">
+                  <th className="py-2.5 px-3 text-left w-[46%] font-bold">Earnings</th>
+                  <th className="py-2.5 px-3 text-right w-[27%] font-bold whitespace-nowrap">Monthly Value (Rs.)</th>
+                  <th className="py-2.5 px-3 text-right w-[27%] font-bold whitespace-nowrap">Amount (Rs.)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {earningsList.length > 0 ? (
                   earningsList.map((item, idx) => (
                     <tr key={idx} className="hover:bg-slate-50/40">
-                      <td className="py-2 px-4 text-slate-800 font-medium truncate">{item.name}</td>
+                      <td className="py-2 px-3 text-slate-800 font-medium truncate">{item.name}</td>
                       <td className="py-2 px-3 text-right font-mono text-slate-600 whitespace-nowrap pr-2">
                         {formatMoney(item.monthlyVal)}
                       </td>
-                      <td className="py-2 px-4 text-right font-mono font-bold text-slate-900 whitespace-nowrap">
+                      <td className="py-2 px-3 text-right font-mono font-bold text-slate-900 whitespace-nowrap">
                         {formatMoney(item.amount)}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td className="py-3 px-4 text-slate-500">Standard Pay</td>
+                    <td className="py-3 px-3 text-slate-500">Standard Pay</td>
                     <td className="py-3 px-3 text-right font-mono text-slate-500">0.00</td>
-                    <td className="py-3 px-4 text-right font-mono text-slate-500">0.00</td>
+                    <td className="py-3 px-3 text-right font-mono text-slate-500">0.00</td>
                   </tr>
                 )}
               </tbody>
               <tfoot>
-                <tr className="bg-slate-50/90 border-t border-slate-200/90 font-bold text-slate-900">
-                  <td className="py-2.5 px-4 text-left">Total Gross Earnings</td>
+                <tr className="border-t border-slate-200/90 font-bold text-slate-900 bg-slate-50/40">
+                  <td className="py-2.5 px-3 text-left">Total Gross Earnings</td>
                   <td className="py-2.5 px-3 text-right font-mono whitespace-nowrap pr-2">
                     {formatMoney(grossMonthly)}
                   </td>
-                  <td className="py-2.5 px-4 text-right font-mono whitespace-nowrap">
+                  <td className="py-2.5 px-3 text-right font-mono whitespace-nowrap">
                     {formatMoney(grossEarnings)}
                   </td>
                 </tr>
@@ -416,35 +416,35 @@ export const PayslipSheet: React.FC<PayslipSheetProps> = ({
           </div>
 
           {/* Deductions Side (5 cols out of 12) */}
-          <div className="col-span-5 border border-slate-200/90 rounded-xl overflow-hidden bg-white shadow-2xs">
+          <div className="col-span-5 overflow-hidden">
             <table className="w-full text-xs border-collapse">
               <thead>
-                <tr className="bg-slate-50/90 border-b border-slate-200/90 text-slate-800 font-bold">
-                  <th className="py-2.5 px-4 text-left w-[58%]">Deductions</th>
-                  <th className="py-2.5 px-4 text-right w-[42%] whitespace-nowrap">Amount (Rs.)</th>
+                <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-800 font-bold">
+                  <th className="py-2.5 px-3 text-left w-[58%] font-bold">Deductions</th>
+                  <th className="py-2.5 px-3 text-right w-[42%] font-bold whitespace-nowrap">Amount (Rs.)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {deductionsList.length > 0 ? (
                   deductionsList.map((item, idx) => (
                     <tr key={idx} className="hover:bg-slate-50/40">
-                      <td className="py-2 px-4 text-slate-800 font-medium truncate">{item.name}</td>
-                      <td className="py-2 px-4 text-right font-mono font-bold text-slate-900 whitespace-nowrap">
+                      <td className="py-2 px-3 text-slate-800 font-medium truncate">{item.name}</td>
+                      <td className="py-2 px-3 text-right font-mono font-bold text-slate-900 whitespace-nowrap">
                         {formatMoney(item.amount)}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td className="py-3 px-4 text-slate-500">Statutory Deductions</td>
-                    <td className="py-3 px-4 text-right font-mono text-slate-500">0.00</td>
+                    <td className="py-3 px-3 text-slate-500">Statutory Deductions</td>
+                    <td className="py-3 px-3 text-right font-mono text-slate-500">0.00</td>
                   </tr>
                 )}
               </tbody>
               <tfoot>
-                <tr className="bg-slate-50/90 border-t border-slate-200/90 font-bold text-slate-900">
-                  <td className="py-2.5 px-4 text-left">Total Deductions</td>
-                  <td className="py-2.5 px-4 text-right font-mono whitespace-nowrap">
+                <tr className="border-t border-slate-200/90 font-bold text-slate-900 bg-slate-50/40">
+                  <td className="py-2.5 px-3 text-left">Total Deductions</td>
+                  <td className="py-2.5 px-3 text-right font-mono whitespace-nowrap">
                     {formatMoney(totalDeductions)}
                   </td>
                 </tr>
