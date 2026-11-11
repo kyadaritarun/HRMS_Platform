@@ -5,6 +5,7 @@ import { authMiddleware } from '../middlewares/auth.js';
 import { tenantMatchMiddleware } from '../middlewares/tenantMatch.js';
 import { policyComplianceMiddleware } from '../middlewares/policyCompliance.js';
 import { roleGuard } from '../middlewares/roleGuard.js';
+import { AppError } from '../middlewares/errorHandler.js';
 import { toDateKey, isWorkableDay } from '../lib/dates.js';
 
 const router = Router();
@@ -12,6 +13,35 @@ const router = Router();
 // Only Company Admin and HR can access Reports
 router.use(authMiddleware, tenantMatchMiddleware, policyComplianceMiddleware);
 router.use(roleGuard('COMPANY_ADMIN', 'HR'));
+
+// Enforce organization subscription package feature check for Reports
+router.use(async (req, res, next) => {
+  try {
+    if (req.user?.role === 'PRODUCT_SUPER_ADMIN') return next();
+    if (!req.user?.companyId) return next();
+
+    const company = await prisma.company.findUnique({
+      where: { id: req.user.companyId },
+      select: { package: { select: { enabledFeatures: true } } },
+    });
+    const enabled = (company?.package?.enabledFeatures as string[]) || [];
+    if (
+      enabled.length > 0 &&
+      !enabled.some((f) => ['reports', 'reports_analytics', 'daily_punch_report', 'leave_taken_report'].includes(f))
+    ) {
+      return next(
+        new AppError(
+          403,
+          'FEATURE_LOCKED',
+          "The 'Reports & Analytics' module is not included in your organization's subscription package."
+        )
+      );
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 /**
  * Helper to format 12-hour time string

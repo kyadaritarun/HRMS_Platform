@@ -247,8 +247,33 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
     ],
   },
   {
+    id: 'reports_suite',
+    title: '6. Reports & Audit Analytics Suite',
+    badge: '3 Modules',
+    badgeColor: 'bg-teal-100 text-teal-700 border-teal-200',
+    description: 'Workforce reporting, daily biometric attendance matrices, and leave utilization analytics for company admins and HR.',
+    features: [
+      {
+        key: 'reports',
+        name: 'Reports & Analytics Master',
+        description: 'Grants access to the company Reports workspace, daily punch logs, and leave taken reports.',
+        tag: 'Module: Reports',
+      },
+      {
+        key: 'daily_punch_report',
+        name: 'Daily Punch Matrix Report',
+        description: 'Biometric & web clock-in/out timestamps, overtime, late arrival warnings, and shift duration reports.',
+      },
+      {
+        key: 'leave_taken_report',
+        name: 'Leave Taken Audit Report',
+        description: 'Employee leave audit report with department filters, date ranges, and leave category breakdown.',
+      },
+    ],
+  },
+  {
     id: 'governance',
-    title: '6. Company Governance & Administration',
+    title: '7. Company Governance & Administration',
     badge: '4 Modules',
     badgeColor: 'bg-slate-100 text-slate-700 border-slate-200',
     description: 'High-level business settings and security audit controls.',
@@ -344,6 +369,9 @@ export const PackagesPage: React.FC = () => {
         'claims',
         'support_ticket_management',
         'appreciations',
+        'reports',
+        'daily_punch_report',
+        'leave_taken_report',
       ];
     } else if (preselectedTier === 'CUSTOM') {
       defaultPriceMonthly = '4999.00';

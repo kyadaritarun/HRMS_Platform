@@ -443,11 +443,11 @@ export const App: React.FC = () => {
               }
             />
 
-            {/* Reports (Admin & HR Only) */}
+            {/* Reports (Admin & HR Only, requires 'reports' feature package) */}
             <Route
               path="/reports/daily-punch"
               element={
-                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']} feature="daily_punch_report">
                   <DailyPunchReportPage />
                 </ProtectedRoute>
               }
@@ -455,7 +455,7 @@ export const App: React.FC = () => {
             <Route
               path="/reports/leave-taken"
               element={
-                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']} feature="leave_taken_report">
                   <LeaveTakenReportPage />
                 </ProtectedRoute>
               }
@@ -463,7 +463,7 @@ export const App: React.FC = () => {
             <Route
               path="/reports"
               element={
-                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']} feature="reports">
                   <Navigate to="/reports/daily-punch" replace />
                 </ProtectedRoute>
               }
@@ -471,7 +471,7 @@ export const App: React.FC = () => {
             <Route
               path="/company/reports/daily-punch"
               element={
-                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']} feature="daily_punch_report">
                   <DailyPunchReportPage />
                 </ProtectedRoute>
               }
@@ -479,7 +479,7 @@ export const App: React.FC = () => {
             <Route
               path="/company/reports/leave-taken"
               element={
-                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']} feature="leave_taken_report">
                   <LeaveTakenReportPage />
                 </ProtectedRoute>
               }
@@ -487,7 +487,7 @@ export const App: React.FC = () => {
             <Route
               path="/company/reports"
               element={
-                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']} feature="reports">
                   <Navigate to="/reports/daily-punch" replace />
                 </ProtectedRoute>
               }

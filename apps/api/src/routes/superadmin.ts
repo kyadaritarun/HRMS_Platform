@@ -1057,6 +1057,9 @@ const DEFAULT_3_PLANS = [
       'support_ticket_management',
       'appreciations',
       'shift_roster',
+      'reports',
+      'daily_punch_report',
+      'leave_taken_report',
     ],
   },
   {
@@ -1079,6 +1082,9 @@ const DEFAULT_3_PLANS = [
       'ai_assistant',
       'shift_roster',
       'comp_off',
+      'reports',
+      'daily_punch_report',
+      'leave_taken_report',
     ],
   },
 ];

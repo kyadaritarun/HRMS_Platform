@@ -52,6 +52,7 @@ export interface NavCategory {
   icon: React.ComponentType<{ className?: string }>;
   roles: UserRole[];
   path?: string;
+  feature?: string;
   subItems?: SubMenuItem[];
 }
 
@@ -211,9 +212,10 @@ export function getSidebarCategories(user: any): NavCategory[] {
         label: 'Reports',
         icon: IconFileAnalytics,
         roles: ['COMPANY_ADMIN', 'HR'],
+        feature: 'reports',
         subItems: [
-          { label: 'Daily Punch Report', path: '/reports/daily-punch', icon: IconClock, roles: ['COMPANY_ADMIN', 'HR'] },
-          { label: 'Leave Taken Report', path: '/reports/leave-taken', icon: IconCalendarEvent, roles: ['COMPANY_ADMIN', 'HR'] },
+          { label: 'Daily Punch Report', path: '/reports/daily-punch', icon: IconClock, roles: ['COMPANY_ADMIN', 'HR'], feature: 'daily_punch_report' },
+          { label: 'Leave Taken Report', path: '/reports/leave-taken', icon: IconCalendarEvent, roles: ['COMPANY_ADMIN', 'HR'], feature: 'leave_taken_report' },
         ],
       },
       {
@@ -309,9 +311,22 @@ export function getFilteredCategories(
   return categories
     .filter((cat) => cat.roles.includes(user.role))
     .filter((cat) => {
-      if (user.role === 'COMPANY_ADMIN') {
-        const pkgFeatures = (company?.package?.enabledFeatures as string[]) || [];
+      const pkgFeatures = (company?.package?.enabledFeatures as string[]) || [];
 
+      // Check module visibility based on subscription package
+      if (cat.id === 'reports') {
+        if (
+          pkgFeatures.length > 0 &&
+          user.role !== 'PRODUCT_SUPER_ADMIN' &&
+          !pkgFeatures.some((f) =>
+            ['reports', 'reports_analytics', 'daily_punch_report', 'leave_taken_report'].includes(f)
+          )
+        ) {
+          return false;
+        }
+      }
+
+      if (user.role === 'COMPANY_ADMIN') {
         if (cat.id === 'hr_operations') {
           if (!sidebarOpsPrefs.hr_operations) return false;
           if (pkgFeatures.length > 0 && !pkgFeatures.some((f) => ['hr_operations', 'leave_management', 'time_attendance_management'].includes(f))) {
@@ -347,6 +362,19 @@ export function getFilteredCategories(
 
         if (sub.permission && user.role === 'HR') {
           if (!hasHrPermission(sub.permission)) return false;
+        }
+
+        // Granular feature check for package enabledFeatures
+        if (sub.feature) {
+          const pkgFeatures = (company?.package?.enabledFeatures as string[]) || [];
+          if (pkgFeatures.length > 0 && user.role !== 'PRODUCT_SUPER_ADMIN') {
+            const hasAccess = pkgFeatures.some((f) =>
+              f === sub.feature ||
+              (f === 'reports' && (sub.feature === 'daily_punch_report' || sub.feature === 'leave_taken_report')) ||
+              (f === 'reports_analytics' && (sub.feature === 'daily_punch_report' || sub.feature === 'leave_taken_report'))
+            );
+            if (!hasAccess) return false;
+          }
         }
 
         return true;
