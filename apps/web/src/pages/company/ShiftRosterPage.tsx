@@ -36,6 +36,8 @@ export interface ShiftTiming {
   gracePeriodMinutes: number;
   color?: string;
   isNightShift?: boolean;
+  isWeeklyOff?: boolean;
+  workingDays?: string;
 }
 
 const STORAGE_KEY = 'uptrix_shift_roster_data';
@@ -63,7 +65,12 @@ export const ShiftRosterPage: React.FC = () => {
   const [employees, setEmployees] = useState<any[]>([]);
   const [shifts, setShifts] = useState<ShiftTiming[]>([]);
   const [loadingShifts, setLoadingShifts] = useState(true);
-  const [activeTab, setActiveTab] = useState<'ROSTER' | 'SHIFTS_MASTER'>('ROSTER');
+  const [activeTab, setActiveTab] = useState<'ROSTER' | 'SHIFTS_MASTER' | 'WORK_SCHEDULE'>('ROSTER');
+
+  // Company Work Schedule state
+  const [companyWorkingDays, setCompanyWorkingDays] = useState<string>('mon,tue,wed,thu,fri');
+  const [isSavingSchedule, setIsSavingSchedule] = useState(false);
+  const [scheduleSuccessMessage, setScheduleSuccessMessage] = useState<string | null>(null);
 
   // Week navigation
   const [weekOffset, setWeekOffset] = useState(0);
@@ -77,6 +84,17 @@ export const ShiftRosterPage: React.FC = () => {
       setRosterMap(res.data?.rosterMap || {});
     } catch (err) {
       console.error('Failed to load roster:', err);
+    }
+  };
+
+  const fetchCompanySchedule = async () => {
+    try {
+      const res = await api.get('/company/settings');
+      if (res.data?.company?.workingDays) {
+        setCompanyWorkingDays(res.data.company.workingDays);
+      }
+    } catch (err) {
+      console.error('Failed to load company working days:', err);
     }
   };
 
@@ -96,12 +114,22 @@ export const ShiftRosterPage: React.FC = () => {
     color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
     isNightShift: false,
     isWeeklyOff: false,
+    workingDays: 'COMPANY_DEFAULT',
   });
 
   // Modal: Bulk Assign
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [bulkShiftCode, setBulkShiftCode] = useState('');
   const [bulkDepartment, setBulkDepartment] = useState('ALL');
+
+  // Working Days & Weekly Off Visualizer & Modal State
+  const [visualizerDate, setVisualizerDate] = useState<Date>(new Date());
+  const [showWeeklyOffModal, setShowWeeklyOffModal] = useState(false);
+  const [tempSchedule, setTempSchedule] = useState<string>(companyWorkingDays);
+
+  useEffect(() => {
+    setTempSchedule(companyWorkingDays);
+  }, [companyWorkingDays, showWeeklyOffModal]);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -213,6 +241,7 @@ export const ShiftRosterPage: React.FC = () => {
     };
     fetchShifts();
     fetchRoster();
+    fetchCompanySchedule();
   }, []);
 
   // Compute current week's 7 dates (Mon to Sun)
@@ -265,8 +294,8 @@ export const ShiftRosterPage: React.FC = () => {
       if (bulkDepartment !== 'ALL' && emp.department?.name !== bulkDepartment) return;
       currentWeekDates.forEach((d) => {
         const dateStr = toLocalDateKey(d);
-        const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-        const assignedCode = isWeekend && offCode ? offCode : bulkShiftCode;
+        const isOff = !isDateWorkableInSchedule(d, companyWorkingDays);
+        const assignedCode = isOff && offCode ? offCode : bulkShiftCode;
         updated[`${emp.id}_${dateStr}`] = assignedCode;
         const matched = shifts.find((s) => s.code === assignedCode);
         assignmentPayload.push({
@@ -302,6 +331,7 @@ export const ShiftRosterPage: React.FC = () => {
       color: 'bg-emerald-100 text-emerald-800 border-emerald-200',
       isNightShift: false,
       isWeeklyOff: false,
+      workingDays: 'COMPANY_DEFAULT',
     });
     setShowShiftDrawer(true);
   };
@@ -319,6 +349,7 @@ export const ShiftRosterPage: React.FC = () => {
       color: shift.color || 'bg-indigo-100 text-indigo-800 border-indigo-200',
       isNightShift: Boolean(shift.isNightShift),
       isWeeklyOff: isOff,
+      workingDays: shift.workingDays || 'COMPANY_DEFAULT',
     });
     setShowShiftDrawer(true);
   };
@@ -346,6 +377,7 @@ export const ShiftRosterPage: React.FC = () => {
               gracePeriodMinutes: isOff ? 0 : Number(shiftFormData.gracePeriodMinutes),
               color: isOff ? 'bg-slate-100 text-slate-500 border-slate-200' : shiftFormData.color,
               isNightShift: isOff ? false : Boolean(shiftFormData.isNightShift),
+              workingDays: shiftFormData.workingDays === 'COMPANY_DEFAULT' ? undefined : shiftFormData.workingDays,
             };
           }
           return s;
@@ -373,6 +405,7 @@ export const ShiftRosterPage: React.FC = () => {
           gracePeriodMinutes: isOff ? 0 : Number(shiftFormData.gracePeriodMinutes),
           color: isOff ? 'bg-slate-100 text-slate-500 border-slate-200' : shiftFormData.color,
           isNightShift: isOff ? false : Boolean(shiftFormData.isNightShift),
+          workingDays: shiftFormData.workingDays === 'COMPANY_DEFAULT' ? undefined : shiftFormData.workingDays,
         };
         updatedShifts = [...shifts, created];
       }
@@ -408,6 +441,89 @@ export const ShiftRosterPage: React.FC = () => {
       alert(err.response?.data?.message || 'Failed to delete shift.');
     }
   };
+
+  const handleSaveCompanySchedule = async (newSchedule?: string) => {
+    const toSave = newSchedule || companyWorkingDays;
+    try {
+      setIsSavingSchedule(true);
+      await api.put('/company/settings', { workingDays: toSave });
+      setCompanyWorkingDays(toSave);
+      setShowWeeklyOffModal(false);
+      setScheduleSuccessMessage('Company Weekly Off schedule updated and saved successfully!');
+      setTimeout(() => setScheduleSuccessMessage(null), 4000);
+    } catch (err: any) {
+      console.error('Failed to save company schedule:', err);
+      alert(err.response?.data?.message || 'Failed to update schedule.');
+    } finally {
+      setIsSavingSchedule(false);
+    }
+  };
+
+  const isDateWorkableInSchedule = (d: Date, scheduleStr: string) => {
+    const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    const dayName = dayNames[d.getDay()];
+    const allowed = (scheduleStr || 'mon,tue,wed,thu,fri').toLowerCase().split(',').map((s) => s.trim());
+    if (dayName === 'sat' && allowed.includes('alt_sat')) {
+      const nthSat = Math.ceil(d.getDate() / 7);
+      return !(nthSat === 2 || nthSat === 4);
+    }
+    return allowed.includes(dayName);
+  };
+
+  const getWeeklyOffSummary = (scheduleStr: string) => {
+    const s = (scheduleStr || 'mon,tue,wed,thu,fri').toLowerCase();
+    if (s === 'mon,tue,wed,thu,fri,sat') return 'Sunday';
+    if (s === 'mon,tue,wed,thu,fri') return 'Saturday & Sunday';
+    if (s.includes('alt_sat')) return 'Alternate Saturdays (2nd & 4th) & Sunday';
+    const all = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+    const names: Record<string, string> = {
+      mon: 'Monday',
+      tue: 'Tuesday',
+      wed: 'Wednesday',
+      thu: 'Thursday',
+      fri: 'Friday',
+      sat: 'Saturday',
+      sun: 'Sunday',
+    };
+    const offs = all.filter((d) => !s.includes(d)).map((d) => names[d]);
+    return offs.join(', ') || 'No Weekly Offs';
+  };
+
+  const toggleTempWorkingDay = (dayKey: string) => {
+    const currentList = tempSchedule.toLowerCase().split(',').map((s) => s.trim()).filter(Boolean);
+    let nextList: string[];
+    if (dayKey === 'alt_sat') {
+      if (currentList.includes('alt_sat')) {
+        nextList = currentList.filter((d) => d !== 'alt_sat');
+      } else {
+        nextList = [...currentList.filter((d) => d !== 'sat'), 'alt_sat'];
+      }
+    } else {
+      if (currentList.includes(dayKey)) {
+        nextList = currentList.filter((d) => d !== dayKey && (dayKey !== 'sat' || d !== 'alt_sat'));
+      } else {
+        nextList = [...currentList.filter((d) => dayKey !== 'sat' || d !== 'alt_sat'), dayKey];
+      }
+    }
+    setTempSchedule(nextList.join(','));
+  };
+
+  const monthPreviewDays = useMemo(() => {
+    const year = visualizerDate.getFullYear();
+    const month = visualizerDate.getMonth();
+    const daysCount = new Date(year, month + 1, 0).getDate();
+    const list: Array<{ date: Date; dayNum: number; dayName: string; isWorkDay: boolean }> = [];
+    for (let day = 1; day <= daysCount; day++) {
+      const d = new Date(year, month, day);
+      list.push({
+        date: d,
+        dayNum: day,
+        dayName: d.toLocaleDateString('en-US', { weekday: 'short' }),
+        isWorkDay: isDateWorkableInSchedule(d, companyWorkingDays),
+      });
+    }
+    return list;
+  }, [companyWorkingDays, visualizerDate]);
 
   // Distinct departments
   const departments = useMemo(() => {
@@ -468,71 +584,81 @@ export const ShiftRosterPage: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        {activeTab === 'ROSTER' ? (
-          <>
-            <div>
-              <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
-                <IconClock className="w-5 h-5 text-indigo-600 shrink-0" />
-                <span>Shift Management</span>
-              </h1>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Configure rotational shifts, morning/night hours, grace periods, and weekly employee roster planning.
-              </p>
-            </div>
+        <div>
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <IconClock className="w-5 h-5 text-indigo-600 shrink-0" />
+            <span>Shift &amp; Schedule Management</span>
+          </h1>
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
+            Configure company working days, weekly employee roster planning, and standardized shifts.
+          </p>
+        </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setActiveTab('SHIFTS_MASTER')}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs transition-all cursor-pointer"
-              >
-                <IconSettings className="w-4 h-4 text-indigo-600" />
-                <span>Shift Configuration</span>
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setActiveTab('ROSTER')}
-                className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition-all cursor-pointer shadow-2xs shrink-0"
-                title="Back to Weekly Roster View"
-              >
-                <IconArrowLeft className="w-4 h-4" />
-              </button>
-              <div>
-                <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <IconSettings className="w-5 h-5 text-indigo-600 shrink-0" />
-                  <span>Shift Configuration</span>
-                </h1>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">
-                  Configure standardized work timings, automated grace periods for check-in delays, and overtime multipliers.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleOpenCreateShift}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
-              >
-                <IconPlus className="w-4 h-4" />
-                <span>Create Shift</span>
-              </button>
-            </div>
-          </>
+        {activeTab === 'SHIFTS_MASTER' && (
+          <button
+            onClick={handleOpenCreateShift}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer self-start sm:self-auto"
+          >
+            <IconPlus className="w-4 h-4" />
+            <span>Create Shift</span>
+          </button>
         )}
       </div>
 
-      {saveSuccessMessage && (
+      {/* Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => setActiveTab('ROSTER')}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+            activeTab === 'ROSTER'
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+          }`}
+        >
+          <IconClock className="w-4 h-4" />
+          <span>Weekly Roster</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('SHIFTS_MASTER')}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+            activeTab === 'SHIFTS_MASTER'
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+          }`}
+        >
+          <IconSettings className="w-4 h-4" />
+          <span>Shifts Master</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('WORK_SCHEDULE')}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+            activeTab === 'WORK_SCHEDULE'
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+          }`}
+        >
+          <IconCalendar className="w-4 h-4" />
+          <span>Working Days &amp; Weekly Offs</span>
+        </button>
+      </div>
+
+      {(saveSuccessMessage || scheduleSuccessMessage) && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-semibold flex items-center justify-between animate-in fade-in">
           <div className="flex items-center gap-2">
             <IconCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>{saveSuccessMessage}</span>
+            <span>{saveSuccessMessage || scheduleSuccessMessage}</span>
           </div>
           <button
             type="button"
-            onClick={() => setSaveSuccessMessage(null)}
+            onClick={() => {
+              setSaveSuccessMessage(null);
+              setScheduleSuccessMessage(null);
+            }}
             className="text-emerald-600 hover:text-emerald-900 cursor-pointer"
           >
             <IconX className="w-3.5 h-3.5" />
@@ -540,7 +666,7 @@ export const ShiftRosterPage: React.FC = () => {
         </div>
       )}
 
-      {activeTab === 'ROSTER' ? (
+      {activeTab === 'ROSTER' && (
         /* Weekly Interactive Roster View - Matching AssetsOnboardingPage & DepartmentsPage */
         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
           {/* Controls Bar: Week Navigator on left, Search & Actions on right */}
@@ -781,17 +907,24 @@ export const ShiftRosterPage: React.FC = () => {
                   <th className="px-5 py-3.5 min-w-[220px]">Employee</th>
                   {currentWeekDates.map((d) => {
                     const isToday = d.toDateString() === new Date().toDateString();
-                    const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                    const isWeeklyOff = !isDateWorkableInSchedule(d, companyWorkingDays);
                     return (
                       <th
                         key={d.toISOString()}
-                        className={`px-3 py-3.5 text-center min-w-[110px] ${
-                          isToday ? 'bg-indigo-100/60 text-indigo-950 font-black' : isWeekend ? 'bg-slate-200/60' : ''
+                        className={`px-3 py-3 text-center min-w-[110px] ${
+                          isToday ? 'bg-indigo-100/60 text-indigo-950 font-black' : isWeeklyOff ? 'bg-slate-200/50' : ''
                         }`}
                       >
-                        <span className="block text-[10px] uppercase font-bold text-slate-500">
-                          {d.toLocaleDateString('en-US', { weekday: 'short' })}
-                        </span>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <span className="block text-[10px] uppercase font-bold text-slate-500">
+                            {d.toLocaleDateString('en-US', { weekday: 'short' })}
+                          </span>
+                          {isWeeklyOff && (
+                            <span className="px-1 py-0.2 rounded text-[8px] font-bold bg-slate-300 text-slate-700">
+                              Off
+                            </span>
+                          )}
+                        </div>
                         <span className="text-sm font-bold text-slate-900">{d.getDate()}</span>
                       </th>
                     );
@@ -875,17 +1008,31 @@ export const ShiftRosterPage: React.FC = () => {
                             }
                           };
 
+                          const isDayWeeklyOff = !isDateWorkableInSchedule(d, companyWorkingDays);
+                          const displayCode = currentCode || (isDayWeeklyOff ? 'WO' : '-');
+
                           return (
                             <td key={dateStr} className="px-2 py-2.5 text-center">
                               <button
                                 type="button"
                                 onClick={openMenuForCell}
-                                title={activeShift ? `${activeShift.code}: ${activeShift.name} (${activeShift.startTime} - ${activeShift.endTime})` : 'Select shift'}
+                                title={
+                                  activeShift
+                                    ? `${activeShift.code}: ${activeShift.name} (${activeShift.startTime} - ${activeShift.endTime})`
+                                    : isDayWeeklyOff
+                                    ? 'Scheduled Weekly Off (WO)'
+                                    : 'Select shift'
+                                }
                                 className={`w-full py-1.5 px-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-between gap-1 shadow-2xs cursor-pointer ${
-                                  activeShift?.color || (currentCode ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-slate-50 text-slate-600 border-slate-200/80 hover:bg-slate-100')
+                                  activeShift?.color ||
+                                  (currentCode
+                                    ? 'bg-slate-100 text-slate-700 border-slate-200'
+                                    : isDayWeeklyOff
+                                    ? 'bg-slate-100/90 text-slate-500 border-slate-200/90'
+                                    : 'bg-slate-50 text-slate-600 border-slate-200/80 hover:bg-slate-100')
                                 } ${isOpen ? 'ring-2 ring-indigo-500/40' : ''}`}
                               >
-                                <span className="truncate">{currentCode || '-'}</span>
+                                <span className="truncate">{displayCode}</span>
                                 <IconChevronDown className={`w-3.5 h-3.5 shrink-0 opacity-60 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                               </button>
                             </td>
@@ -912,8 +1059,10 @@ export const ShiftRosterPage: React.FC = () => {
             />
           )}
         </div>
-      ) : (
-        /* Shifts Master View */
+      )}
+
+      {/* Shifts Master View */}
+      {activeTab === 'SHIFTS_MASTER' && (
         <div className="space-y-4">
           {loadingShifts ? (
             <div className="p-16 text-center text-slate-500 font-medium flex flex-col items-center justify-center gap-2 bg-white rounded-3xl border border-slate-200">
@@ -951,30 +1100,37 @@ export const ShiftRosterPage: React.FC = () => {
                         <span className={`px-2 py-0.5 rounded-lg border text-xs font-black ${s.color || 'bg-slate-100 text-slate-700 border-slate-200'}`}>
                           {s.code}
                         </span>
-                        <h3 className="font-bold text-slate-900 text-sm">{s.name}</h3>
+                        <h4 className="text-sm font-bold text-slate-900">{s.name}</h4>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        {s.isNightShift && (
-                          <span className="p-1.5 bg-purple-50 text-purple-600 rounded-lg" title="Night Shift">
-                            <IconMoon className="w-4 h-4" />
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEditShift(s)}
-                          className="p-1.5 text-slate-500 font-medium hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
-                          title={`Edit ${s.name}`}
-                        >
-                          <IconPencil className="w-4 h-4" />
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditShift(s)}
+                        className="p-1 rounded-lg text-slate-500 font-medium hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
+                        title="Edit Shift"
+                      >
+                        <IconPencil className="w-4 h-4" />
+                      </button>
                     </div>
 
                     <div className="pt-3 space-y-2 text-xs">
                       <div className="flex justify-between">
-                        <span className="text-slate-500 font-medium">Working Hours:</span>
-                        <span className="font-bold text-slate-900">
-                          {s.startTime === '-' && s.endTime === '-' ? '---' : `${s.startTime} - ${s.endTime}`}
+                        <span className="text-slate-500 font-medium">Timing Window:</span>
+                        <span className="font-bold text-slate-900 font-mono">
+                          {s.startTime === '-' && s.endTime === '-' ? 'Weekly Off (No punch required)' : `${s.startTime} – ${s.endTime}`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500 font-medium">Work Schedule:</span>
+                        <span className="font-semibold text-slate-800">
+                          {!s.workingDays || s.workingDays === 'COMPANY_DEFAULT'
+                            ? 'Company Default'
+                            : s.workingDays === 'mon,tue,wed,thu,fri'
+                            ? '5 Days (Mon–Fri)'
+                            : s.workingDays === 'mon,tue,wed,thu,fri,sat'
+                            ? '6 Days (Mon–Sat)'
+                            : s.workingDays === 'mon,tue,wed,thu,fri,alt_sat'
+                            ? 'Alt Saturdays'
+                            : s.workingDays}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -989,7 +1145,7 @@ export const ShiftRosterPage: React.FC = () => {
                   </div>
 
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-slate-500 font-medium text-[11px]">
-                    <span>Applied automatically to geo-fenced attendance checks</span>
+                    <span>Applied automatically to attendance checks</span>
                     <button
                       type="button"
                       onClick={() => handleDeleteShift(s.id, s.name)}
@@ -1003,6 +1159,116 @@ export const ShiftRosterPage: React.FC = () => {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Company Work Schedule View */}
+      {activeTab === 'WORK_SCHEDULE' && (
+        <div className="space-y-6">
+          {/* Monthly Live Calendar Preview */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <IconCalendar className="w-5 h-5 text-indigo-600" />
+                  <span>Current Month Schedule Visualizer</span>
+                </h3>
+                <p className="text-xs text-slate-500 font-medium mt-1">
+                  Active policy: <span className="font-bold text-slate-700">{getWeeklyOffSummary(companyWorkingDays)} Weekly Off</span>. All dates marked as "Weekly Off" will not count as absences or deduct loss of pay.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {/* Month Navigator */}
+                <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const prev = new Date(visualizerDate);
+                      prev.setMonth(prev.getMonth() - 1);
+                      setVisualizerDate(prev);
+                    }}
+                    className="p-1.5 hover:bg-white rounded-lg text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+                    title="Previous Month"
+                  >
+                    <IconChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVisualizerDate(new Date())}
+                    className="px-2.5 py-1 text-xs font-bold text-slate-700 hover:bg-white rounded-lg transition-colors cursor-pointer"
+                  >
+                    {visualizerDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = new Date(visualizerDate);
+                      next.setMonth(next.getMonth() + 1);
+                      setVisualizerDate(next);
+                    }}
+                    className="p-1.5 hover:bg-white rounded-lg text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+                    title="Next Month"
+                  >
+                    <IconChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Configure Weekly Offs Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowWeeklyOffModal(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer active:scale-98"
+                >
+                  <IconSettings className="w-4 h-4" />
+                  <span>Configure Weekly Offs</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Legend & Stats */}
+            <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1.5 font-semibold">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  <span className="text-slate-700">Working Day ({monthPreviewDays.filter((d) => d.isWorkDay).length} days)</span>
+                </div>
+                <div className="flex items-center gap-1.5 font-semibold">
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
+                  <span className="text-slate-700">Weekly Off ({monthPreviewDays.filter((d) => !d.isWorkDay).length} days)</span>
+                </div>
+              </div>
+              <div className="text-[11px] text-slate-500 font-medium">
+                Showing full month schedule for {visualizerDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </div>
+            </div>
+
+            {/* Calendar Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
+              {monthPreviewDays.map((d) => (
+                <div
+                  key={d.dayNum}
+                  className={`p-3 rounded-2xl border text-center transition-all ${
+                    d.isWorkDay
+                      ? 'border-emerald-200 bg-emerald-50/50 text-emerald-950 shadow-2xs'
+                      : 'border-slate-200 bg-slate-100/70 text-slate-600'
+                  }`}
+                >
+                  <div className="text-xs font-black">{d.dayNum}</div>
+                  <div className="text-[10px] font-semibold text-slate-500">{d.dayName}</div>
+                  <div className="mt-1.5">
+                    <span
+                      className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                        d.isWorkDay ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'
+                      }`}
+                    >
+                      {d.isWorkDay ? 'Work' : 'Weekly Off'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -1161,7 +1427,7 @@ export const ShiftRosterPage: React.FC = () => {
                   </div>
 
                   <div className="p-3 bg-amber-50 border border-amber-200/60 rounded-xl text-[11px] text-amber-800 font-medium">
-                    Note: Weekends (Saturday &amp; Sunday) will automatically remain Weekly Off (WO).
+                    Note: Scheduled Weekly Offs ({getWeeklyOffSummary(companyWorkingDays)}) will automatically remain Weekly Off (WO).
                   </div>
                 </div>
 
@@ -1189,7 +1455,206 @@ export const ShiftRosterPage: React.FC = () => {
         document.body
       )}
 
-      {/* ===================== SHIFT EDIT & CREATE RIGHT-SIDE DRAWER ===================== */}
+      {/* ===================== CONFIGURE WEEKLY OFFS MODAL ===================== */}
+      {showWeeklyOffModal && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] overflow-y-auto bg-slate-900/50 backdrop-blur-xs transition-opacity animate-in fade-in flex items-center justify-center p-4"
+          onClick={() => !isSavingSchedule && setShowWeeklyOffModal(false)}
+        >
+          <div
+            className="relative bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-200 space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                  <IconCalendar className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Set Company Weekly Offs</h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    Select your weekly off schedule to apply across rosters, attendance, and payroll.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowWeeklyOffModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <IconX className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Presets List */}
+            <div className="space-y-2.5">
+              <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
+                Standard Schedules
+              </span>
+
+              {/* Preset 1: Sunday Only (6-Day Work Week) */}
+              <div
+                onClick={() => setTempSchedule('mon,tue,wed,thu,fri,sat')}
+                className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                  tempSchedule === 'mon,tue,wed,thu,fri,sat'
+                    ? 'border-indigo-500 bg-indigo-50/60 ring-2 ring-indigo-500/20 shadow-xs'
+                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-900">Sunday Only (6-Day Work Week)</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                      6 Days Working
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                    Monday to Saturday are working days. Only Sunday is a Weekly Off.
+                  </p>
+                </div>
+                <div
+                  className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                    tempSchedule === 'mon,tue,wed,thu,fri,sat' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
+                  }`}
+                >
+                  {tempSchedule === 'mon,tue,wed,thu,fri,sat' && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                </div>
+              </div>
+
+              {/* Preset 2: Saturday & Sunday (5-Day Work Week) */}
+              <div
+                onClick={() => setTempSchedule('mon,tue,wed,thu,fri')}
+                className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                  tempSchedule === 'mon,tue,wed,thu,fri'
+                    ? 'border-indigo-500 bg-indigo-50/60 ring-2 ring-indigo-500/20 shadow-xs'
+                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-900">Saturday &amp; Sunday (5-Day Work Week)</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800">
+                      5 Days Working
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                    Monday to Friday are working days. Both Saturday and Sunday are Weekly Offs.
+                  </p>
+                </div>
+                <div
+                  className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                    tempSchedule === 'mon,tue,wed,thu,fri' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
+                  }`}
+                >
+                  {tempSchedule === 'mon,tue,wed,thu,fri' && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                </div>
+              </div>
+
+              {/* Preset 3: Alternate Saturdays + Sunday */}
+              <div
+                onClick={() => setTempSchedule('mon,tue,wed,thu,fri,alt_sat')}
+                className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                  tempSchedule === 'mon,tue,wed,thu,fri,alt_sat'
+                    ? 'border-indigo-500 bg-indigo-50/60 ring-2 ring-indigo-500/20 shadow-xs'
+                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-900">Alternate Saturdays + Sunday</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                      Alt Saturday
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                    Mon–Fri working. 1st, 3rd, 5th Saturday working. 2nd &amp; 4th Saturday and Sunday Off.
+                  </p>
+                </div>
+                <div
+                  className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                    tempSchedule === 'mon,tue,wed,thu,fri,alt_sat' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
+                  }`}
+                >
+                  {tempSchedule === 'mon,tue,wed,thu,fri,alt_sat' && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                </div>
+              </div>
+            </div>
+
+            {/* Custom Working Days Selector */}
+            <div className="pt-3 border-t border-slate-100 space-y-2">
+              <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
+                Or Customize Working Days Directly
+              </span>
+              <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
+                {[
+                  { key: 'mon', label: 'Mon' },
+                  { key: 'tue', label: 'Tue' },
+                  { key: 'wed', label: 'Wed' },
+                  { key: 'thu', label: 'Thu' },
+                  { key: 'fri', label: 'Fri' },
+                  { key: 'sat', label: 'Sat' },
+                  { key: 'sun', label: 'Sun' },
+                ].map((d) => {
+                  const isChecked = tempSchedule.includes(d.key) || (d.key === 'sat' && tempSchedule.includes('alt_sat'));
+                  return (
+                    <button
+                      key={d.key}
+                      type="button"
+                      onClick={() => toggleTempWorkingDay(d.key)}
+                      className={`py-2 px-1 rounded-xl text-center border font-bold text-xs transition-all cursor-pointer ${
+                        isChecked
+                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                          : 'border-slate-200 bg-slate-100/70 text-slate-400 hover:text-slate-600'
+                      }`}
+                    >
+                      <div>{d.label}</div>
+                      <div className="text-[9px] font-semibold mt-0.5">
+                        {isChecked ? 'Work' : 'Off'}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+              <div className="text-xs text-slate-500 font-medium">
+                Active Weekly Offs: <span className="font-bold text-slate-800">{getWeeklyOffSummary(tempSchedule)}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowWeeklyOffModal(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingSchedule}
+                  onClick={() => handleSaveCompanySchedule(tempSchedule)}
+                  className="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
+                >
+                  {isSavingSchedule ? (
+                    <>
+                      <IconLoader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <IconCheck className="w-3.5 h-3.5" />
+                      <span>Save Weekly Offs</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
       {showShiftDrawer && typeof document !== 'undefined' && createPortal(
         <div
           className="fixed inset-0 z-[9999] overflow-hidden bg-slate-900/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
@@ -1338,6 +1803,25 @@ export const ShiftRosterPage: React.FC = () => {
                         <label htmlFor="isNightShift" className="text-xs font-semibold text-slate-700 cursor-pointer">
                           Night Shift (crosses midnight)
                         </label>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-100">
+                        <label className="text-xs font-semibold text-slate-700 block mb-1">
+                          Working Days Schedule for this Shift
+                        </label>
+                        <select
+                          value={shiftFormData.workingDays}
+                          onChange={(e) => setShiftFormData({ ...shiftFormData, workingDays: e.target.value })}
+                          className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium text-slate-900"
+                        >
+                          <option value="COMPANY_DEFAULT">Follow Company Default Schedule</option>
+                          <option value="mon,tue,wed,thu,fri">5-Day Work Week (Monday – Friday)</option>
+                          <option value="mon,tue,wed,thu,fri,sat">6-Day Work Week (Monday – Saturday)</option>
+                          <option value="mon,tue,wed,thu,fri,alt_sat">Alternate Saturdays (1st/3rd/5th Working)</option>
+                        </select>
+                        <p className="text-[11px] text-slate-500 font-medium mt-1">
+                          Employees assigned to this shift will follow this specific schedule for attendance, off-days, and leave deductions.
+                        </p>
                       </div>
                     </>
                   )}

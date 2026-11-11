@@ -5,7 +5,7 @@ import { authMiddleware } from '../middlewares/auth.js';
 import { tenantMatchMiddleware } from '../middlewares/tenantMatch.js';
 import { policyComplianceMiddleware } from '../middlewares/policyCompliance.js';
 import { roleGuard } from '../middlewares/roleGuard.js';
-import { toDateKey } from '../lib/dates.js';
+import { toDateKey, isWorkableDay } from '../lib/dates.js';
 
 const router = Router();
 
@@ -117,6 +117,22 @@ router.get('/daily-punch', async (req, res, next) => {
       startDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() - 30, 0, 0, 0, 0);
     }
 
+    // Query Company settings, shifts and holidays
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { shifts: true, workingDays: true, timezone: true },
+    });
+
+    const timezone = company?.timezone || 'Asia/Kolkata';
+    const companyWorkingDays = company?.workingDays || 'mon,tue,wed,thu,fri';
+    const companyShifts = Array.isArray(company?.shifts) ? (company.shifts as any[]) : [];
+    const defaultShift = companyShifts.find((s: any) => s.isDefault) || companyShifts[0] || {
+      startTime: '09:00',
+      endTime: '18:00',
+      gracePeriodMinutes: 15,
+      workingDays: companyWorkingDays,
+    };
+
     // Generate date columns array
     const dateColumns: Array<{
       dateKey: string;
@@ -131,7 +147,7 @@ router.get('/daily-punch', async (req, res, next) => {
     while (cur <= endDate) {
       const dateKey = toDateKey(cur);
       const dayOfWeek = cur.getDay(); // 0 is Sun, 6 is Sat
-      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      const isWeekend = !isWorkableDay(cur, companyWorkingDays);
       const dayName = cur.toLocaleDateString('en-US', { weekday: 'long' });
       const formattedDate = formatDateDDMMYYYY(cur);
 
@@ -146,20 +162,6 @@ router.get('/daily-punch', async (req, res, next) => {
 
       cur.setDate(cur.getDate() + 1);
     }
-
-    // Query Company settings, shifts and holidays
-    const company = await prisma.company.findUnique({
-      where: { id: companyId },
-      select: { shifts: true, workingDays: true, timezone: true },
-    });
-
-    const timezone = company?.timezone || 'Asia/Kolkata';
-    const companyShifts = Array.isArray(company?.shifts) ? (company.shifts as any[]) : [];
-    const defaultShift = companyShifts.find((s: any) => s.isDefault) || companyShifts[0] || {
-      startTime: '09:00',
-      endTime: '18:00',
-      gracePeriodMinutes: 15,
-    };
 
     // Query active employees
     const userWhere: any = {
@@ -299,6 +301,7 @@ router.get('/daily-punch', async (req, res, next) => {
 
     const employeePunches = filteredEmployees.map((emp) => {
       const shift = resolveEmployeeShift(emp);
+      const empWorkingDays = shift?.workingDays || companyWorkingDays;
       const shiftStart = shift?.startTime || '09:00';
       const graceMin = Number(shift?.gracePeriodMinutes) || 15;
       const [shH, shM] = shiftStart.split(':').map(Number);
@@ -309,6 +312,8 @@ router.get('/daily-punch', async (req, res, next) => {
       dateColumns.forEach((col) => {
         const key = `${emp.id}_${col.dateKey}`;
         const att = attendanceMap.get(key);
+        const isEmpWorkDay = isWorkableDay(col.rawDate, empWorkingDays);
+        const isEmployeeWeekend = !isEmpWorkDay;
 
         // Check if employee has approved leave on this date
         const onLeave = leaveRequests.find((req) => {
@@ -357,7 +362,7 @@ router.get('/daily-punch', async (req, res, next) => {
             isMissingPunch,
             isOngoing,
             isOnLeave: false,
-            isWeekend: col.isWeekend,
+            isWeekend: isEmployeeWeekend,
           };
         } else if (onLeave) {
           punchesByDate[col.dateKey] = {
@@ -370,13 +375,13 @@ router.get('/daily-punch', async (req, res, next) => {
               color: onLeave.leaveType?.color || 'purple',
               days: Number(onLeave.days) || 1,
             },
-            isWeekend: col.isWeekend,
+            isWeekend: isEmployeeWeekend,
           };
         } else {
           punchesByDate[col.dateKey] = {
             hasPunch: false,
             isOnLeave: false,
-            isWeekend: col.isWeekend,
+            isWeekend: isEmployeeWeekend,
           };
         }
       });
@@ -447,10 +452,11 @@ router.get('/daily-punch/export', async (req, res, next) => {
 
     const company = await prisma.company.findUnique({
       where: { id: companyId },
-      select: { name: true, timezone: true, shifts: true },
+      select: { name: true, timezone: true, shifts: true, workingDays: true },
     });
 
     const timezone = company?.timezone || 'Asia/Kolkata';
+    const companyWorkingDays = company?.workingDays || 'mon,tue,wed,thu,fri';
 
     // Generate date columns
     const dateColumns: Array<{
@@ -664,7 +670,10 @@ router.get('/daily-punch/export', async (req, res, next) => {
         } else if (onLeave) {
           rowData.push(`Leave (${onLeave.leaveType?.code || 'LV'})`);
         } else {
-          rowData.push('-');
+          const shift = resolveEmployeeShift(emp);
+          const empWorkingDays = shift?.workingDays || companyWorkingDays;
+          const isEmpWorkDay = isWorkableDay(col.rawDate, empWorkingDays);
+          rowData.push(isEmpWorkDay ? '-' : 'Weekend');
         }
       });
 

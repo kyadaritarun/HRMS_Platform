@@ -182,6 +182,17 @@ const toLocalDateKey = (d: Date) => {
   return `${y}-${m}-${day}`;
 };
 
+const isDayWorkable = (d: Date, schedule: string): boolean => {
+  const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const dayName = dayNames[d.getDay()];
+  const allowed = (schedule || 'mon,tue,wed,thu,fri').toLowerCase().split(',').map((s) => s.trim());
+  if (dayName === 'sat' && allowed.includes('alt_sat')) {
+    const nthSat = Math.ceil(d.getDate() / 7);
+    return !(nthSat === 2 || nthSat === 4);
+  }
+  return allowed.includes(dayName);
+};
+
 const getCalendarDays = (
   viewDate: Date,
   sessions: any[],
@@ -192,7 +203,8 @@ const getCalendarDays = (
   rosterMap: Record<string, string> = {},
   shiftsList: any[] = [],
   userShift?: any,
-  regularizationsList: any[] = []
+  regularizationsList: any[] = [],
+  companySchedule: string = 'mon,tue,wed,thu,fri'
 ): {
   days: CalendarDayInfo[];
   counts: {
@@ -345,7 +357,13 @@ const getCalendarDays = (
       : userShift?.gracePeriodMinutes ?? 15;
     const targetHours = userShift?.targetHours || 9.0;
 
-    const isStandardWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    const effectiveSchedule =
+      userShift?.workingDays && userShift.workingDays !== 'COMPANY_DEFAULT'
+        ? userShift.workingDays
+        : companySchedule;
+    const isPolicyWorkday = isDayWorkable(dObj, effectiveSchedule);
+    const isPolicyOffDay = !isPolicyWorkday;
+    const isStandardWeekend = isPolicyOffDay;
 
     // ---------------------------------------------------------
     // B. Holiday Check
@@ -648,7 +666,7 @@ const getCalendarDays = (
       continue;
     }
 
-    if (isStandardWeekend && !isRosteredWorkday) {
+    if (isPolicyOffDay && !isRosteredWorkday) {
       counts.weekOffs++;
       days.push({
         date: dObj,
@@ -657,11 +675,11 @@ const getCalendarDays = (
         isCurrentMonth: true,
         isToday,
         status: 'WEEKEND',
-        label: 'Weekend',
-        details: `${dayOfWeek === 0 ? 'Sunday' : 'Saturday'} Off • Scheduled Rest Day`,
+        label: 'Weekly Off',
+        details: `${dObj.toLocaleDateString('en-US', { weekday: 'long' })} Off • Scheduled Rest Day`,
         badgeText: 'WO',
         shiftName: scheduledShiftName,
-        shiftTiming: 'Weekend Off',
+        shiftTiming: 'Weekly Off',
       });
       continue;
     }
@@ -777,6 +795,7 @@ export const EmployeeDashboard: React.FC = () => {
   const [rosterMap, setRosterMap] = useState<Record<string, string>>({});
   const [companyShifts, setCompanyShifts] = useState<any[]>([]);
   const [myRegularizations, setMyRegularizations] = useState<any[]>([]);
+  const [companySchedule, setCompanySchedule] = useState<string>('mon,tue,wed,thu,fri');
 
   // Fetch current attendance punch status & sessions history
   const fetchActiveSession = async () => {
@@ -816,6 +835,7 @@ export const EmployeeDashboard: React.FC = () => {
         rosterRes,
         shiftsRes,
         myRegsRes,
+        settingsRes,
       ] = await Promise.all([
         user?.id ? api.get(`/employees/${user.id}`).catch(() => ({ data: {} })) : Promise.resolve({ data: {} }),
         api.get('/company/leave-types').catch(() => ({ data: { leaveTypes: [] } })),
@@ -826,6 +846,7 @@ export const EmployeeDashboard: React.FC = () => {
         api.get('/company/roster').catch(() => ({ data: { rosterMap: {} } })),
         api.get('/company/shifts').catch(() => ({ data: { shifts: [] } })),
         api.get('/requests?type=REGULARIZATION&scope=mine').catch(() => ({ data: { items: [] } })),
+        api.get('/company/settings').catch(() => ({ data: { company: {} } })),
       ]);
 
       // Raw holidays & leaves for calendar
@@ -835,6 +856,11 @@ export const EmployeeDashboard: React.FC = () => {
       setRosterMap(rosterRes.data?.rosterMap || {});
       setCompanyShifts(shiftsRes.data?.shifts || []);
       setMyRegularizations(myRegsRes.data?.items || []);
+      if (settingsRes.data?.company?.workingDays) {
+        setCompanySchedule(settingsRes.data.company.workingDays);
+      } else if ((user as any)?.company?.workingDays) {
+        setCompanySchedule((user as any).company.workingDays);
+      }
 
       // 1. Leave Balances
       const userBalances = empRes.data?.employee?.leaveBalances;
@@ -980,7 +1006,8 @@ export const EmployeeDashboard: React.FC = () => {
       rosterMap,
       companyShifts,
       userShift,
-      myRegularizations
+      myRegularizations,
+      companySchedule
     );
   }, [
     calMonth,
@@ -993,6 +1020,7 @@ export const EmployeeDashboard: React.FC = () => {
     companyShifts,
     userShift,
     myRegularizations,
+    companySchedule,
   ]);
 
   const selectedDayInfo = useMemo(() => {

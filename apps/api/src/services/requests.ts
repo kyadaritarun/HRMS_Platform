@@ -191,7 +191,18 @@ export async function createRequest(opts: {
         select: { date: true },
       });
       const holidayKeys = new Set(holidays.map((h) => toDateKey(h.date)));
-      const workingDaysStr = user.company?.workingDays || 'mon,tue,wed,thu,fri';
+
+      const companyShifts = Array.isArray(user.company?.shifts) ? (user.company.shifts as any[]) : [];
+      let userShift = companyShifts.find((s: any) => String(s.id) === String(user.shiftId));
+      if (!userShift && user.shiftTiming) {
+        const cleanTiming = user.shiftTiming.split('(')[0].trim().toLowerCase();
+        userShift = companyShifts.find(
+          (s: any) =>
+            (s.name && s.name.trim().toLowerCase() === cleanTiming) ||
+            user.shiftTiming?.toLowerCase().includes((s.name || '').trim().toLowerCase())
+        );
+      }
+      const workingDaysStr = userShift?.workingDays || user.company?.workingDays || 'mon,tue,wed,thu,fri';
 
       let count = 0;
       const current = new Date(parsedStartDate);

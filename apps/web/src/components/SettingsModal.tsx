@@ -29,8 +29,11 @@ interface SettingsModalProps {
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const { user, company } = useAuth();
   const navigate = useNavigate();
+  const isCompanyAdmin = user?.role === 'COMPANY_ADMIN';
 
-  const [activeTab, setActiveTab] = useState<'sidebar' | 'notifications' | 'security'>('sidebar');
+  const [activeTab, setActiveTab] = useState<'sidebar' | 'notifications' | 'security'>(
+    user?.role === 'COMPANY_ADMIN' ? 'sidebar' : 'notifications'
+  );
 
   // Notifications State
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -48,6 +51,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   // Sync state whenever modal opens or user/company changes, and fetch latest from DB
   useEffect(() => {
     if (isOpen) {
+      if (user?.role !== 'COMPANY_ADMIN') {
+        setActiveTab('notifications');
+      }
+
       try {
         const savedNotif = localStorage.getItem('user_notification_settings');
         if (savedNotif) {
@@ -67,7 +74,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         });
       }
     }
-  }, [isOpen, user?.id, company?.settings]);
+  }, [isOpen, user?.id, user?.role, company?.settings]);
 
   if (!isOpen || typeof document === 'undefined') return null;
 
@@ -116,7 +123,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               <div>
                 <h3 className="text-base font-bold text-slate-900 leading-tight">Application Settings</h3>
                 <p className="text-xs text-slate-500 font-medium mt-0.5">
-                  Sidebar operations, notification alerts, and security options
+                  {isCompanyAdmin
+                    ? 'Module visibility, notification alerts, and security options'
+                    : 'Notification alerts and security options'}
                 </p>
               </div>
             </div>
@@ -132,18 +141,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
           {/* Tab Switcher */}
           <div className="flex items-center border-b border-slate-100 px-6 pt-2.5 gap-2 bg-slate-50/50 shrink-0">
-            <button
-              type="button"
-              onClick={() => setActiveTab('sidebar')}
-              className={`pb-2.5 px-2 text-xs font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
-                activeTab === 'sidebar'
-                  ? 'border-[#5E4BE2] text-[#5E4BE2]'
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <IconLayoutSidebar className="w-4 h-4" />
-              <span>Sidebar Operations</span>
-            </button>
+            {isCompanyAdmin && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('sidebar')}
+                className={`pb-2.5 px-2 text-xs font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  activeTab === 'sidebar'
+                    ? 'border-[#5E4BE2] text-[#5E4BE2]'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <IconLayoutSidebar className="w-4 h-4" />
+                <span>Module Visibility</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setActiveTab('notifications')}
@@ -173,14 +184,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           {/* Form Body - scrollable */}
           <form onSubmit={handleSave} className="flex flex-col flex-1 min-h-0">
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {/* Sidebar Operations Tab */}
-              {activeTab === 'sidebar' && (
+              {/* Module Visibility Tab (Company Admin Only) */}
+              {activeTab === 'sidebar' && isCompanyAdmin && (
                 <div className="space-y-4 animate-in fade-in">
                   <div className="flex items-center justify-between pb-1">
                     <div>
                       <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                         <IconLayoutSidebar className="w-4 h-4 text-[#5E4BE2]" />
-                        <span>Sidebar Operations Visibility</span>
+                        <span>Module Visibility</span>
                       </h4>
                       <p className="text-[11px] text-slate-500 font-medium mt-0.5">
                         {user?.role === 'COMPANY_ADMIN'

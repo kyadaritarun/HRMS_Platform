@@ -614,8 +614,11 @@ export const AttendanceSalaryPage: React.FC = () => {
                       </td>
 
                       {/* Workable Days */}
-                      <td className="px-4 py-3.5 text-center font-bold text-slate-700">
-                        {workable} d
+                      <td className="px-4 py-3.5 text-center">
+                        <div className="font-bold text-slate-800 text-xs">{workable} d</div>
+                        <div className="text-[10px] font-semibold text-slate-500">
+                          {workable >= 25 ? '6-Day Wk' : workable >= 23 ? 'Alt-Sat' : '5-Day Wk'}
+                        </div>
                       </td>
 
                       {/* Present Days */}
@@ -827,6 +830,13 @@ export const AttendanceSalaryPage: React.FC = () => {
                     <span className="text-[10px] font-bold text-slate-500 uppercase block">Workable Days</span>
                     <span className="text-base sm:text-lg font-black text-slate-900">
                       {selectedEmp.calculation.workingDaysCount || 22} d
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-500 block mt-0.5">
+                      {(selectedEmp.calculation.workingDaysCount || 22) >= 25
+                        ? '6-Day Schedule'
+                        : (selectedEmp.calculation.workingDaysCount || 22) >= 23
+                        ? 'Alt-Sat Schedule'
+                        : '5-Day Schedule'}
                     </span>
                   </div>
                   <div className="p-2.5 sm:p-3 bg-emerald-50/70 rounded-xl border border-emerald-200">

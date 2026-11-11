@@ -129,6 +129,18 @@ router.get(
 
         const empAtt = userAttMap.get(emp.id) || [];
 
+        const companyShifts = Array.isArray(company.shifts) ? (company.shifts as any[]) : [];
+        let empShift = companyShifts.find((s: any) => String(s.id) === String(emp.shiftId));
+        if (!empShift && emp.shiftTiming) {
+          const cleanTiming = emp.shiftTiming.split('(')[0].trim().toLowerCase();
+          empShift = companyShifts.find(
+            (s: any) =>
+              (s.name && s.name.trim().toLowerCase() === cleanTiming) ||
+              emp.shiftTiming?.toLowerCase().includes((s.name || '').trim().toLowerCase())
+          );
+        }
+        const empWorkingDays = empShift?.workingDays || company.workingDays || 'mon,tue,wed,thu,fri';
+
         const calculated = calculateEmployeePayroll(year, month, {
           monthlySalary: Number(emp.monthlySalary),
           basicSalary,
@@ -146,7 +158,7 @@ router.get(
           accountNumber: bank.accountNumber,
           remarks,
           joiningDate: emp.joiningDate,
-          workingDaysStr: company.workingDays,
+          workingDaysStr: empWorkingDays,
           holidays: company.holidays,
           leaves: empLeaves,
           attendances: empAtt,
@@ -365,6 +377,18 @@ router.post(
         const customComponents = snap.customComponents || struct.customComponents || [];
         const remarks = existing ? existing.remarks : (snap.remarks || '');
 
+        const companyShifts = Array.isArray(company.shifts) ? (company.shifts as any[]) : [];
+        let empShift = companyShifts.find((s: any) => String(s.id) === String(emp.shiftId));
+        if (!empShift && emp.shiftTiming) {
+          const cleanTiming = emp.shiftTiming.split('(')[0].trim().toLowerCase();
+          empShift = companyShifts.find(
+            (s: any) =>
+              (s.name && s.name.trim().toLowerCase() === cleanTiming) ||
+              emp.shiftTiming?.toLowerCase().includes((s.name || '').trim().toLowerCase())
+          );
+        }
+        const empWorkingDays = empShift?.workingDays || company.workingDays || 'mon,tue,wed,thu,fri';
+
         const calculated = calculateEmployeePayroll(year, month, {
           monthlySalary: Number(emp.monthlySalary),
           basicSalary,
@@ -382,7 +406,7 @@ router.post(
           accountNumber: bank.accountNumber,
           remarks,
           joiningDate: emp.joiningDate,
-          workingDaysStr: company.workingDays,
+          workingDaysStr: empWorkingDays,
           holidays: company.holidays,
           leaves: empLeaves.map((l) => ({
             startDate: l.startDate,

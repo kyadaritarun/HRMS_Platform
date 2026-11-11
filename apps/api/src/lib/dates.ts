@@ -19,23 +19,38 @@ export function parseDateKey(key: string): Date {
 }
 
 /**
- * Checks if a given date is a workable day according to workingDays (e.g., 'mon,tue,wed,thu,fri')
+ * Checks if a given date is a workable day according to workingDays (e.g., 'mon,tue,wed,thu,fri', 'mon,tue,wed,thu,fri,sat', 'mon,tue,wed,thu,fri,alt_sat')
  * and a list of holiday date keys (YYYY-MM-DD).
+ *
+ * Supports:
+ * - 5-day week: 'mon,tue,wed,thu,fri' (Sat & Sun off)
+ * - 6-day week: 'mon,tue,wed,thu,fri,sat' (Sun off, all Sats work)
+ * - Alternate Saturdays: 'mon,tue,wed,thu,fri,alt_sat' (1st, 3rd, 5th Sat work; 2nd & 4th Sat off)
+ * - Custom shifts: Any combination of 'mon','tue','wed','thu','fri','sat','sun'
  */
 export function isWorkableDay(
-  date: Date,
+  date: Date | string,
   workingDaysStr: string = 'mon,tue,wed,thu,fri',
   holidayDateKeys: Set<string> = new Set()
 ): boolean {
+  const d = typeof date === 'string' ? new Date(date) : date;
   const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-  const dayName = dayNames[date.getUTCDay()];
+  const dayOfWeek = d.getUTCDay();
+  const dayName = dayNames[dayOfWeek];
   const allowedDays = workingDaysStr.toLowerCase().split(',').map((s) => s.trim());
 
-  if (!allowedDays.includes(dayName)) {
+  // Check Alternate Saturday policy (2nd and 4th Saturday of the month are OFF, 1st, 3rd, 5th are WORKING)
+  if (dayName === 'sat' && allowedDays.includes('alt_sat')) {
+    const dayOfMonth = d.getUTCDate();
+    const nthSat = Math.ceil(dayOfMonth / 7);
+    const isAltSatOff = nthSat === 2 || nthSat === 4;
+    if (isAltSatOff) return false;
+    // Otherwise 1st, 3rd, 5th Saturday is a working day
+  } else if (!allowedDays.includes(dayName)) {
     return false;
   }
 
-  const key = toDateKey(date);
+  const key = toDateKey(d);
   if (holidayDateKeys.has(key)) {
     return false;
   }

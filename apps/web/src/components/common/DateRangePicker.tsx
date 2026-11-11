@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { IconCalendar, IconX } from '@tabler/icons-react';
+import { IconCalendar, IconCalendarEvent, IconX } from '@tabler/icons-react';
 
 export interface DateRangePickerProps {
   startDate: string; // YYYY-MM-DD
@@ -12,16 +12,7 @@ export const formatDateDisplay = (dateStr: string): string => {
   if (!dateStr) return '';
   const parts = dateStr.split('-');
   if (parts.length !== 3) return dateStr;
-  const year = Number(parts[0]);
-  const month = Number(parts[1]) - 1;
-  const day = Number(parts[2]);
-  const d = new Date(year, month, day);
-  if (isNaN(d.getTime())) return dateStr;
-  return d.toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+  return `${parts[2].padStart(2, '0')}-${parts[1].padStart(2, '0')}-${parts[0]}`;
 };
 
 export const DateRangePicker: React.FC<DateRangePickerProps> = ({
@@ -74,17 +65,20 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="h-10 px-3.5 py-2 bg-white hover:bg-slate-50/80 border border-slate-200/90 hover:border-slate-300 rounded-xl shadow-2xs transition-all flex items-center gap-3 cursor-pointer text-xs font-semibold text-slate-700 select-none group"
+        className="h-10 px-4 py-2 bg-white hover:bg-slate-50/90 border border-slate-200/90 hover:border-slate-300 rounded-2xl shadow-2xs transition-all flex items-center gap-2.5 cursor-pointer text-xs font-semibold select-none group"
         title="Click to select date range"
       >
-        <span className="font-bold text-slate-800 tracking-tight">
+        <IconCalendarEvent className="w-4 h-4 text-indigo-600 shrink-0 group-hover:scale-105 transition-transform" />
+        <span className="font-bold text-indigo-700 tracking-wider text-[11px]">RANGE:</span>
+        <span className="font-bold text-slate-900 tracking-tight font-mono">
           {displayStart}
         </span>
+        <IconCalendar className="w-3.5 h-3.5 text-slate-700 shrink-0" />
         <span className="text-slate-400 font-bold">→</span>
-        <span className="font-bold text-slate-800 tracking-tight">
+        <span className="font-bold text-slate-900 tracking-tight font-mono">
           {displayEnd}
         </span>
-        <IconCalendar className="w-4 h-4 text-indigo-600 shrink-0 ml-1 group-hover:scale-105 transition-transform" />
+        <IconCalendar className="w-3.5 h-3.5 text-slate-700 shrink-0" />
       </button>
 
       {/* Floating Date Range Selector Popover */}
