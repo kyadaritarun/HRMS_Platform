@@ -33,6 +33,7 @@ import {
   IconChartPie,
   IconPigMoney,
   IconHeadset,
+  IconFileAnalytics,
 } from '@tabler/icons-react';
 
 export interface SubMenuItem {
@@ -203,6 +204,16 @@ export function getSidebarCategories(user: any): NavCategory[] {
           { label: 'Manage Cycles', path: '/company/cycles', icon: IconCalendarEvent, feature: 'performance_management' },
           { label: 'Claim Categories', path: '/company/claims/categories', icon: IconReceipt2, feature: 'claim_process_management' },
           { label: 'Activity Logs', path: '/company/activity-logs', icon: IconHistory, roles: ['HR'], feature: 'activity_logs' },
+        ],
+      },
+      {
+        id: 'reports',
+        label: 'Reports',
+        icon: IconFileAnalytics,
+        roles: ['COMPANY_ADMIN', 'HR'],
+        subItems: [
+          { label: 'Daily Punch Report', path: '/reports/daily-punch', icon: IconClock, roles: ['COMPANY_ADMIN', 'HR'] },
+          { label: 'Leave Taken Report', path: '/reports/leave-taken', icon: IconCalendarEvent, roles: ['COMPANY_ADMIN', 'HR'] },
         ],
       },
       {

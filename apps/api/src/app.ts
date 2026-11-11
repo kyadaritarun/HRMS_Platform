@@ -24,6 +24,7 @@ import orgStructureRoutes from './routes/orgStructure.js';
 import assistantRoutes from './routes/assistant.js';
 import subscriptionRoutes from './routes/subscription.js';
 import referralsRoutes from './routes/referrals.js';
+import reportsRoutes from './routes/reports.js';
 import { businessCompanyRouter, businessPayrollRouter } from './routes/businessRecords.js';
 import { getHelplineConfig } from './services/helplineService.js';
 
@@ -160,6 +161,7 @@ app.use('/api/v1/org-structure', orgStructureRoutes);
 app.use('/api/v1/assistant', assistantRoutes);
 app.use('/api/v1/subscription', subscriptionRoutes);
 app.use('/api/v1/referrals', referralsRoutes);
+app.use(['/api/v1/reports', '/api/v1/company/reports'], reportsRoutes);
 
 // Global Helpline endpoint accessible across all companies
 app.get('/api/v1/helpline', async (_req, res) => {

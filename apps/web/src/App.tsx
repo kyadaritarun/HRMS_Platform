@@ -72,6 +72,8 @@ import { TaxDeclarationsPage } from './pages/payroll/TaxDeclarationsPage';
 import { FinanceAnalyticsPage } from './pages/payroll/FinanceAnalyticsPage';
 import { ShiftRosterPage } from './pages/company/ShiftRosterPage';
 import { AssetsOnboardingPage } from './pages/company/AssetsOnboardingPage';
+import { DailyPunchReportPage } from './pages/reports/DailyPunchReportPage';
+import { LeaveTakenReportPage } from './pages/reports/LeaveTakenReportPage';
 
 // Helper placeholder for minor system logs
 const SystemNoticePage: React.FC<{ title: string; subtitle?: string }> = ({ title, subtitle }) => (
@@ -437,6 +439,56 @@ export const App: React.FC = () => {
               element={
                 <ProtectedRoute allowedRoles={['COMPANY_ADMIN']}>
                   <CompanyGoalsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Reports (Admin & HR Only) */}
+            <Route
+              path="/reports/daily-punch"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                  <DailyPunchReportPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/leave-taken"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                  <LeaveTakenReportPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                  <Navigate to="/reports/daily-punch" replace />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/company/reports/daily-punch"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                  <DailyPunchReportPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/company/reports/leave-taken"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                  <LeaveTakenReportPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/company/reports"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                  <Navigate to="/reports/daily-punch" replace />
                 </ProtectedRoute>
               }
             />
