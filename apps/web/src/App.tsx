@@ -30,6 +30,7 @@ import { DepartmentsPage } from './pages/company/DepartmentsPage';
 import { HolidaysPage } from './pages/company/HolidaysPage';
 import { LeaveTypesPage } from './pages/company/LeaveTypesPage';
 import { CompanyAttendancePage } from './pages/attendance/CompanyAttendancePage';
+import { SalarySlipConfigPage } from './pages/company/SalarySlipConfigPage';
 import { TeamAttendancePage } from './pages/attendance/TeamAttendancePage';
 import { CompanyBillingPage } from './pages/company/CompanyBillingPage';
 import { ActivityLogsPage } from './pages/company/ActivityLogsPage';
@@ -335,6 +336,14 @@ export const App: React.FC = () => {
               element={
                 <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
                   <CompanyAttendancePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/company/salary-slip"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                  <SalarySlipConfigPage />
                 </ProtectedRoute>
               }
             />

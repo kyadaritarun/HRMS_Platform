@@ -638,9 +638,13 @@ router.get('/payslips/:id/pdf', async (req, res, next) => {
       return next(new AppError(400, 'NO_SNAPSHOT', 'Payslip snapshot data is missing'));
     }
 
+    const payslipConfig = (payslip.company.settings as any)?.payslipConfig || {};
+    const companyName = payslipConfig.companyName || payslip.company.name;
+    const companyAddress = payslipConfig.companyAddress || payslip.company.address;
+
     const pdfBuffer = await generatePayslipPdf({
-      companyName: payslip.company.name,
-      companyAddress: payslip.company.address,
+      companyName,
+      companyAddress,
       companyStatutory: (payslip.company.settings as any)?.statutory,
       employeeName: `${payslip.employee.firstName} ${payslip.employee.lastName}`,
       employeeNumber: payslip.employee.employeeNumber,

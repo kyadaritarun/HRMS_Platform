@@ -202,6 +202,7 @@ export function getSidebarCategories(user: any): NavCategory[] {
           { label: 'Create Employee', path: '/company/employees/new', icon: IconUserPlus, permission: 'employees', roles: ['HR'], feature: 'employees_directory' },
           { label: 'Employees', path: '/company/employees', icon: IconUsers, permission: 'employees', feature: 'employees_directory' },
           { label: 'Employee Attendance', path: '/company/attendance', icon: IconClock, permission: 'attendance', feature: 'time_attendance_management' },
+          { label: 'Salary Slip', path: '/company/salary-slip', icon: IconReceipt2, roles: ['COMPANY_ADMIN', 'HR'] },
           { label: 'Manage Cycles', path: '/company/cycles', icon: IconCalendarEvent, feature: 'performance_management' },
           { label: 'Claim Categories', path: '/company/claims/categories', icon: IconReceipt2, feature: 'claim_process_management' },
           { label: 'Activity Logs', path: '/company/activity-logs', icon: IconHistory, roles: ['HR'], feature: 'activity_logs' },

@@ -17,6 +17,7 @@ import {
 } from '../schemas/company.js';
 import { logActivity } from '../services/activityLog.js';
 import { generateAttendanceExcel } from '../services/attendance.js';
+import { upload } from '../lib/storage.js';
 import {
   sendBirthdayWish,
   sendHolidayAnnouncement,
@@ -655,6 +656,167 @@ router.put('/sidebar-operations', roleGuard('COMPANY_ADMIN'), async (req, res, n
     });
   } catch (error) {
     next(error);
+  }
+});
+
+// GET /company/payslip-settings
+router.get('/payslip-settings', roleGuard('COMPANY_ADMIN', 'HR'), async (req, res, next) => {
+  try {
+    const companyId = req.user!.companyId!;
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: {
+        id: true,
+        name: true,
+        logo: true,
+        website: true,
+        address: true,
+        settings: true,
+      },
+    });
+
+    if (!company) {
+      return next(new AppError(404, 'NOT_FOUND', 'Company not found'));
+    }
+
+    const settings = (company.settings as any) || {};
+    const existingConfig = settings.payslipConfig || {};
+
+    let formattedAddress = '';
+    if (company.address) {
+      if (typeof company.address === 'string') {
+        formattedAddress = company.address;
+      } else if (typeof company.address === 'object') {
+        const addr: any = company.address;
+        const parts = [addr.street, addr.addressLine2, addr.city, addr.state, addr.pinCode].filter(Boolean);
+        formattedAddress = parts.join(', ');
+      }
+    }
+
+    const payslipConfig = {
+      companyName: existingConfig.companyName || company.name || '',
+      companyAddress: existingConfig.companyAddress !== undefined ? existingConfig.companyAddress : formattedAddress,
+      contact: existingConfig.contact || '',
+      websiteOrEmail: existingConfig.websiteOrEmail || company.website || '',
+      logoUrl: existingConfig.logoUrl !== undefined ? existingConfig.logoUrl : (company.logo || ''),
+      autoReleasePayslip: existingConfig.autoReleasePayslip !== false,
+      branchWisePayslip: Boolean(existingConfig.branchWisePayslip),
+      showLoanDetails: Boolean(existingConfig.showLoanDetails),
+      showAttendanceSummary: existingConfig.showAttendanceSummary !== false,
+      customNote: existingConfig.customNote || 'This is a computer generated document and does not require an authorized signature.',
+    };
+
+    // Also fetch sample real employees so HR can test live preview with actual staff
+    const employees = await prisma.user.findMany({
+      where: { companyId, isActive: true },
+      select: {
+        id: true,
+        employeeNumber: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        jobTitle: true,
+        joiningDate: true,
+        monthlySalary: true,
+        currency: true,
+        bankDetails: true,
+        department: { select: { id: true, name: true } },
+      },
+      take: 20,
+      orderBy: { id: 'asc' },
+    });
+
+    return res.json({
+      success: true,
+      payslipConfig,
+      employees,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PUT /company/payslip-settings
+router.put('/payslip-settings', roleGuard('COMPANY_ADMIN', 'HR'), async (req, res, next) => {
+  try {
+    const companyId = req.user!.companyId!;
+    const body = req.body || {};
+
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { settings: true, logo: true, name: true },
+    });
+
+    if (!company) {
+      return next(new AppError(404, 'NOT_FOUND', 'Company not found'));
+    }
+
+    const currentSettings = (company.settings as any) || {};
+    const existingPayslipConfig = currentSettings.payslipConfig || {};
+
+    const updatedPayslipConfig = {
+      ...existingPayslipConfig,
+      companyName: body.companyName !== undefined ? String(body.companyName).trim() : (existingPayslipConfig.companyName || company.name),
+      companyAddress: body.companyAddress !== undefined ? String(body.companyAddress).trim() : existingPayslipConfig.companyAddress,
+      contact: body.contact !== undefined ? String(body.contact).trim() : existingPayslipConfig.contact,
+      websiteOrEmail: body.websiteOrEmail !== undefined ? String(body.websiteOrEmail).trim() : existingPayslipConfig.websiteOrEmail,
+      logoUrl: body.logoUrl !== undefined ? String(body.logoUrl).trim() : existingPayslipConfig.logoUrl,
+      autoReleasePayslip: body.autoReleasePayslip !== false,
+      branchWisePayslip: Boolean(body.branchWisePayslip),
+      showLoanDetails: Boolean(body.showLoanDetails),
+      showAttendanceSummary: body.showAttendanceSummary !== false,
+      customNote: body.customNote !== undefined ? String(body.customNote).trim() : existingPayslipConfig.customNote,
+      updatedAt: new Date().toISOString(),
+      updatedBy: req.user!.id,
+    };
+
+    const newSettings = {
+      ...currentSettings,
+      payslipConfig: updatedPayslipConfig,
+    };
+
+    const updateData: any = {
+      settings: newSettings,
+    };
+
+    if (body.logoUrl !== undefined && body.logoUrl) {
+      updateData.logo = body.logoUrl;
+    }
+
+    await prisma.company.update({
+      where: { id: companyId },
+      data: updateData,
+    });
+
+    await logActivity({
+      companyId,
+      actorId: req.user!.id,
+      action: 'UPDATE_PAYSLIP_CONFIG',
+      objectType: 'CompanySettings',
+      objectId: String(companyId),
+      message: `${req.user!.firstName} updated salary slip configuration & template settings`,
+    });
+
+    return res.json({
+      success: true,
+      message: 'Salary slip configuration saved successfully',
+      payslipConfig: updatedPayslipConfig,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /company/payslip-logo
+router.post('/payslip-logo', roleGuard('COMPANY_ADMIN', 'HR'), upload.single('logo'), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return next(new AppError(400, 'NO_FILE', 'No logo file was provided'));
+    }
+    const fileUrl = `/uploads/${req.file.filename}`;
+    return res.json({ success: true, url: fileUrl });
+  } catch (err) {
+    next(err);
   }
 });
 
