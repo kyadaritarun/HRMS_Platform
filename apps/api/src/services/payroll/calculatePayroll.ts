@@ -41,16 +41,24 @@ export interface PayrollInput {
     checkIn: Date;
     durationHours?: number | any;
   }[];
+  cutoffDate?: Date;
 }
 
 export interface PayrollResult {
   baseSalary: number;
+  proratedBaseSalary: number;
   basicSalary: number;
   hra: number;
   specialAllowance: number;
   currency: string;
   totalCalendarDays: number;
   workingDaysCount: number;
+  eligibleWorkableDays: number;
+  preJoiningDays: number;
+  isMidMonthJoiner: boolean;
+  elapsedWorkableDays: number;
+  upcomingWorkableDays: number;
+  isOngoingMonth: boolean;
   presentDays: number;
   paidLeaveDays: number;
   unpaidLeaveDays: number;
@@ -110,10 +118,50 @@ export function calculateEmployeePayroll(
 
   // 2. Joining date proration: workable dates on or after joiningDate
   const joiningDateKey = input.joiningDate ? toDateKey(input.joiningDate) : null;
-  const expectedWorkableDates = allWorkableDates.filter((d) => {
+  const eligibleWorkableDates = allWorkableDates.filter((d) => {
     if (!joiningDateKey) return true;
     return toDateKey(d) >= joiningDateKey;
   });
+  const eligibleWorkableDays = eligibleWorkableDates.length;
+
+  const preJoiningDates = allWorkableDates.filter((d) => {
+    if (!joiningDateKey) return false;
+    return toDateKey(d) < joiningDateKey;
+  });
+  const preJoiningDays = preJoiningDates.length;
+  const isMidMonthJoiner = preJoiningDays > 0;
+  const expectedWorkableDates = eligibleWorkableDates;
+
+  // Resolve Cutoff Date for Ongoing / Current Month vs Past Month
+  const now = new Date();
+  const currentYear = now.getUTCFullYear();
+  const currentMonth = now.getUTCMonth() + 1;
+  const isCurrentMonth = year === currentYear && month === currentMonth;
+  const isPastMonth = year < currentYear || (year === currentYear && month < currentMonth);
+
+  let cutoffDateKey: string;
+  if (input.cutoffDate) {
+    cutoffDateKey = toDateKey(input.cutoffDate);
+  } else if (isPastMonth) {
+    cutoffDateKey = '9999-99-99';
+  } else if (isCurrentMonth) {
+    cutoffDateKey = toDateKey(now);
+  } else {
+    cutoffDateKey = '0000-00-00';
+  }
+
+  // Workable dates during tenure that have already concluded (past days)
+  const elapsedWorkableDates = eligibleWorkableDates.filter((d) => {
+    if (isPastMonth) return true;
+    return toDateKey(d) < cutoffDateKey;
+  });
+
+  // Upcoming workable dates in remainder of current month (future days - NEVER counted as absences)
+  const upcomingWorkableDates = eligibleWorkableDates.filter((d) => {
+    if (isPastMonth) return false;
+    return toDateKey(d) > cutoffDateKey;
+  });
+  const upcomingWorkableDays = upcomingWorkableDates.length;
 
   // 3. Attendance distinct dates in month
   const presentDateKeys = new Set<string>();
@@ -160,9 +208,10 @@ export function calculateEmployeePayroll(
     }
   }
 
-  // 5. Absent Days: expected workable dates NOT in presentDates AND NOT in leaveDates
+  // 5. Absent Days: ONLY evaluated on completed/elapsed expected workable dates!
+  // Future dates in an ongoing month have not occurred yet and are NEVER marked absent.
   let absentDays = 0;
-  for (const wd of expectedWorkableDates) {
+  for (const wd of elapsedWorkableDates) {
     const key = toDateKey(wd);
     if (!presentDateKeys.has(key) && !leaveDateKeys.has(key)) {
       absentDays++;
@@ -226,14 +275,25 @@ export function calculateEmployeePayroll(
   const grossEarnings = round2(basicSalary + hra + specialAllowance + bonus + overtimePay + customEarningsTotal);
   const netSalary = Math.max(0, round2(grossEarnings - totalDeductions));
 
+  const proratedBaseSalary = isMidMonthJoiner
+    ? round2(perDayRate * eligibleWorkableDays)
+    : monthlySalary;
+
   return {
     baseSalary: monthlySalary,
+    proratedBaseSalary,
     basicSalary,
     hra,
     specialAllowance,
     currency,
     totalCalendarDays,
     workingDaysCount,
+    eligibleWorkableDays,
+    preJoiningDays,
+    isMidMonthJoiner,
+    elapsedWorkableDays: elapsedWorkableDates.length,
+    upcomingWorkableDays,
+    isOngoingMonth: isCurrentMonth,
     presentDays,
     paidLeaveDays,
     unpaidLeaveDays,

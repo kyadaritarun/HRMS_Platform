@@ -172,6 +172,7 @@ router.get(
             email: emp.email,
             jobTitle: emp.jobTitle,
             department: emp.department?.name || 'N/A',
+            joiningDate: emp.joiningDate,
           },
           payslipId: payslip ? payslip.id : null,
           status: payslip ? payslip.status : 'DRAFT',

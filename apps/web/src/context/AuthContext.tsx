@@ -17,6 +17,7 @@ export interface User {
   canManagePerformance?: boolean;
   isManager?: boolean;
   profilePhoto?: string | null;
+  joiningDate?: string | Date | null;
 }
 
 export interface Company {

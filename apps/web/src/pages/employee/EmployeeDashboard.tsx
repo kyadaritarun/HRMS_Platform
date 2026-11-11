@@ -204,7 +204,8 @@ const getCalendarDays = (
   shiftsList: any[] = [],
   userShift?: any,
   regularizationsList: any[] = [],
-  companySchedule: string = 'mon,tue,wed,thu,fri'
+  companySchedule: string = 'mon,tue,wed,thu,fri',
+  joiningDate?: string | Date | null
 ): {
   days: CalendarDayInfo[];
   counts: {
@@ -685,7 +686,28 @@ const getCalendarDays = (
     }
 
     // ---------------------------------------------------------
-    // G. Absent Check (Past working day with no attendance)
+    // G. Pre-Joining Check (Employee was not employed prior to joining date)
+    // ---------------------------------------------------------
+    const joiningDateStr = joiningDate ? toLocalDateKey(new Date(joiningDate)) : null;
+    if (joiningDateStr && dStr < joiningDateStr) {
+      days.push({
+        date: dObj,
+        dateStr: dStr,
+        dayNum: d,
+        isCurrentMonth: true,
+        isToday,
+        status: 'FUTURE',
+        label: 'Pre-Joining',
+        details: `Not yet joined (Joined on ${new Date(joiningDate!).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})`,
+        badgeText: '—',
+        shiftName: scheduledShiftName,
+        shiftTiming: 'Pre-Tenure',
+      });
+      continue;
+    }
+
+    // ---------------------------------------------------------
+    // H. Absent Check (Past working day with no attendance)
     // ---------------------------------------------------------
     if (isPast) {
       counts.absent++;
@@ -1007,7 +1029,8 @@ export const EmployeeDashboard: React.FC = () => {
       companyShifts,
       userShift,
       myRegularizations,
-      companySchedule
+      companySchedule,
+      user?.joiningDate
     );
   }, [
     calMonth,
@@ -1016,6 +1039,7 @@ export const EmployeeDashboard: React.FC = () => {
     allHolidays,
     myLeaveRequests,
     user?.id,
+    user?.joiningDate,
     rosterMap,
     companyShifts,
     userShift,

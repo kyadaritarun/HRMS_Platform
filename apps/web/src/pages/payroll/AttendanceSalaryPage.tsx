@@ -44,6 +44,12 @@ interface CalculationDetails {
   pt?: number;
   tds?: number;
   workingDaysCount?: number;
+  eligibleWorkableDays?: number;
+  preJoiningDays?: number;
+  isMidMonthJoiner?: boolean;
+  upcomingWorkableDays?: number;
+  proratedBaseSalary?: number;
+  isOngoingMonth?: boolean;
   totalCalendarDays?: number;
   presentDays?: number;
   paidLeaveDays?: number;
@@ -589,6 +595,8 @@ export const AttendanceSalaryPage: React.FC = () => {
                 paginatedEmployees.map((item) => {
                   const c = item.calculation || {};
                   const workable = c.workingDaysCount || 22;
+                  const eligibleWorkable = c.eligibleWorkableDays !== undefined ? c.eligibleWorkableDays : workable;
+                  const isJoiner = Boolean(c.isMidMonthJoiner);
                   const present = c.presentDays || 0;
                   const paid = c.paidLeaveDays || 0;
                   const lop = c.totalLopDays || 0;
@@ -615,9 +623,17 @@ export const AttendanceSalaryPage: React.FC = () => {
 
                       {/* Workable Days */}
                       <td className="px-4 py-3.5 text-center">
-                        <div className="font-bold text-slate-800 text-xs">{workable} d</div>
+                        <div className="font-bold text-slate-800 text-xs">
+                          {isJoiner ? `${eligibleWorkable} d` : `${workable} d`}
+                        </div>
                         <div className="text-[10px] font-semibold text-slate-500">
-                          {workable >= 25 ? '6-Day Wk' : workable >= 23 ? 'Alt-Sat' : '5-Day Wk'}
+                          {isJoiner ? (
+                            <span className="text-indigo-600 font-bold" title={`Employee joined mid-month. Active workable days: ${eligibleWorkable} of ${workable} company days`}>
+                              {eligibleWorkable}/{workable} d (Joined)
+                            </span>
+                          ) : (
+                            workable >= 25 ? '6-Day Wk' : workable >= 23 ? 'Alt-Sat' : '5-Day Wk'
+                          )}
                         </div>
                       </td>
 
@@ -639,11 +655,25 @@ export const AttendanceSalaryPage: React.FC = () => {
                       {/* Unpaid LOP */}
                       <td className="px-4 py-3.5 text-center">
                         {lop > 0 ? (
-                          <span className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 font-bold text-xs border border-rose-200">
-                            {lop} d
-                          </span>
+                          <div className="inline-flex flex-col items-center">
+                            <span className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 font-bold text-xs border border-rose-200">
+                              {lop} d
+                            </span>
+                            {Boolean((c.upcomingWorkableDays || 0) > 0) && (
+                              <span className="text-[9px] text-slate-400 font-medium mt-0.5" title={`${c.upcomingWorkableDays} future shifts remaining this month`}>
+                                {c.upcomingWorkableDays} upcoming
+                              </span>
+                            )}
+                          </div>
                         ) : (
-                          <span className="text-slate-500 font-medium">0 d</span>
+                          <div className="inline-flex flex-col items-center">
+                            <span className="text-slate-500 font-medium">0 d</span>
+                            {Boolean((c.upcomingWorkableDays || 0) > 0) && (
+                              <span className="text-[9px] text-slate-400 font-medium mt-0.5" title={`${c.upcomingWorkableDays} future shifts remaining this month`}>
+                                {c.upcomingWorkableDays} upcoming
+                              </span>
+                            )}
+                          </div>
                         )}
                       </td>
 
@@ -829,10 +859,14 @@ export const AttendanceSalaryPage: React.FC = () => {
                   <div className="p-2.5 sm:p-3 bg-slate-50 rounded-xl border border-slate-200">
                     <span className="text-[10px] font-bold text-slate-500 uppercase block">Workable Days</span>
                     <span className="text-base sm:text-lg font-black text-slate-900">
-                      {selectedEmp.calculation.workingDaysCount || 22} d
+                      {selectedEmp.calculation.eligibleWorkableDays !== undefined
+                        ? selectedEmp.calculation.eligibleWorkableDays
+                        : (selectedEmp.calculation.workingDaysCount || 22)} d
                     </span>
                     <span className="text-[10px] font-semibold text-slate-500 block mt-0.5">
-                      {(selectedEmp.calculation.workingDaysCount || 22) >= 25
+                      {selectedEmp.calculation.isMidMonthJoiner
+                        ? `Joined Mid-Month (${selectedEmp.calculation.eligibleWorkableDays}/${selectedEmp.calculation.workingDaysCount || 22} d)`
+                        : (selectedEmp.calculation.workingDaysCount || 22) >= 25
                         ? '6-Day Schedule'
                         : (selectedEmp.calculation.workingDaysCount || 22) >= 23
                         ? 'Alt-Sat Schedule'
@@ -844,11 +878,19 @@ export const AttendanceSalaryPage: React.FC = () => {
                     <span className="text-base sm:text-lg font-black text-emerald-800">
                       {selectedEmp.calculation.presentDays || 0} d
                     </span>
+                    <span className="text-[10px] font-semibold text-emerald-600 block mt-0.5">
+                      Attended Shifts
+                    </span>
                   </div>
                   <div className="p-2.5 sm:p-3 bg-rose-50/70 rounded-xl border border-rose-200">
                     <span className="text-[10px] font-bold text-rose-700 uppercase block">Unpaid LOP</span>
                     <span className="text-base sm:text-lg font-black text-rose-800">
                       {selectedEmp.calculation.totalLopDays || 0} d
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-500 block mt-0.5">
+                      {Boolean((selectedEmp.calculation.upcomingWorkableDays || 0) > 0)
+                        ? `${selectedEmp.calculation.upcomingWorkableDays} upcoming shifts`
+                        : 'Completed Month'}
                     </span>
                   </div>
                 </div>
