@@ -283,6 +283,7 @@ router.get('/daily-punch', async (req, res, next) => {
         profilePhoto: true,
         shiftId: true,
         shiftTiming: true,
+        joiningDate: true,
         department: { select: { id: true, name: true } },
       },
       orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
@@ -329,6 +330,19 @@ router.get('/daily-punch', async (req, res, next) => {
       include: {
         leaveType: { select: { id: true, name: true, code: true, color: true } },
       },
+    });
+
+    // Query Roster Assignments for these employees in date range
+    const rosterAssignments = await prisma.rosterAssignment.findMany({
+      where: {
+        companyId,
+        employeeId: { in: employeeIds },
+        date: { gte: toDateKey(startDate), lte: toDateKey(endDate) },
+      },
+    });
+    const rosterMap = new Map<string, string>();
+    rosterAssignments.forEach((r) => {
+      rosterMap.set(`${r.employeeId}_${r.date}`, r.shiftTiming || '');
     });
 
     // Map Attendance by userId + dateKey (using company timezone)
@@ -411,8 +425,19 @@ router.get('/daily-punch', async (req, res, next) => {
       dateColumns.forEach((col) => {
         const key = `${emp.id}_${col.dateKey}`;
         const att = attendanceMap.get(key);
-        const isEmpWorkDay = isWorkableDay(col.rawDate, empWorkingDays);
-        const isEmployeeWeekend = !isEmpWorkDay;
+        const rosterTiming = rosterMap.get(key) || '';
+        const cleanRoster = rosterTiming.trim().toLowerCase();
+        const isRosterOff = cleanRoster === 'off' || cleanRoster === 'wo' || cleanRoster.includes('week off') || cleanRoster.includes('weekly off');
+        const isPolicyWorkDay = isWorkableDay(col.rawDate, empWorkingDays);
+        const isEmployeeWeekend = isRosterOff || !isPolicyWorkDay;
+
+        // Check if employee had not yet joined on this date
+        const empJoiningKey = emp.joiningDate ? toDateKey(emp.joiningDate) : null;
+        const isPreJoining = Boolean(empJoiningKey && col.dateKey < empJoiningKey);
+
+        const isPast = col.rawDate < today;
+        const isToday = col.dateKey === toDateKey(today);
+        const isFuture = col.rawDate > today;
 
         // Check if employee has approved leave on this date
         const onLeave = leaveRequests.find((req) => {
@@ -423,7 +448,15 @@ router.get('/daily-punch', async (req, res, next) => {
           return col.dateKey >= startKey && col.dateKey <= endKey;
         });
 
-        if (att) {
+        if (isPreJoining) {
+          punchesByDate[col.dateKey] = {
+            hasPunch: false,
+            isOnLeave: false,
+            isPreJoining: true,
+            joiningDate: emp.joiningDate,
+            isWeekend: false,
+          };
+        } else if (att) {
           totalPunchesCount++;
           const checkInTime = formatTime12(att.checkIn, timezone);
           const checkOutTime = att.checkOut ? formatTime12(att.checkOut, timezone) : null;
@@ -436,8 +469,6 @@ router.get('/daily-punch', async (req, res, next) => {
           if (isLate) totalLatePunches++;
 
           // Check if checkout is missing on past days or overdue today
-          const isPast = col.rawDate < today;
-          const isToday = col.dateKey === toDateKey(today);
           const shiftEnd = shift?.endTime || '18:00';
           const [endH, endM] = shiftEnd.split(':').map(Number);
           const shiftEndMinutes = (isNaN(endH) ? 18 : endH) * 60 + (isNaN(endM) ? 0 : endM);
@@ -476,11 +507,35 @@ router.get('/daily-punch', async (req, res, next) => {
             },
             isWeekend: isEmployeeWeekend,
           };
-        } else {
+        } else if (isEmployeeWeekend) {
           punchesByDate[col.dateKey] = {
             hasPunch: false,
             isOnLeave: false,
-            isWeekend: isEmployeeWeekend,
+            isWeekend: true,
+            isRosterOff,
+          };
+        } else if (isPast) {
+          punchesByDate[col.dateKey] = {
+            hasPunch: false,
+            isOnLeave: false,
+            isWeekend: false,
+            isAbsent: true,
+          };
+        } else if (isFuture) {
+          punchesByDate[col.dateKey] = {
+            hasPunch: false,
+            isOnLeave: false,
+            isWeekend: false,
+            isFuture: true,
+          };
+        } else {
+          // Today not checked in yet
+          punchesByDate[col.dateKey] = {
+            hasPunch: false,
+            isOnLeave: false,
+            isWeekend: false,
+            isToday: true,
+            isPending: true,
           };
         }
       });
@@ -489,6 +544,7 @@ router.get('/daily-punch', async (req, res, next) => {
         id: emp.id,
         firstName: emp.firstName,
         lastName: emp.lastName,
+        joiningDate: emp.joiningDate,
         fullName: `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || emp.email,
         email: emp.email,
         employeeNumber: emp.employeeNumber?.trim() || '',
@@ -600,6 +656,7 @@ router.get('/daily-punch/export', async (req, res, next) => {
         jobTitle: true,
         shiftId: true,
         shiftTiming: true,
+        joiningDate: true,
         department: { select: { name: true } },
       },
       orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
@@ -667,7 +724,7 @@ router.get('/daily-punch/export', async (req, res, next) => {
     const queryEnd = new Date(`${toDateKey(endDate)}T23:59:59.999Z`);
     queryEnd.setUTCDate(queryEnd.getUTCDate() + 1);
 
-    const [attendanceRecords, leaveRequests] = await Promise.all([
+    const [attendanceRecords, leaveRequests, rosterAssignments] = await Promise.all([
       prisma.attendance.findMany({
         where: {
           companyId,
@@ -686,7 +743,19 @@ router.get('/daily-punch/export', async (req, res, next) => {
         },
         include: { leaveType: true },
       }),
+      prisma.rosterAssignment.findMany({
+        where: {
+          companyId,
+          employeeId: { in: employeeIds },
+          date: { gte: toDateKey(startDate), lte: toDateKey(endDate) },
+        },
+      }),
     ]);
+
+    const rosterMap = new Map<string, string>();
+    rosterAssignments.forEach((r) => {
+      rosterMap.set(`${r.employeeId}_${r.date}`, r.shiftTiming || '');
+    });
 
     const attMap = new Map<string, any>();
     attendanceRecords.forEach((att) => {
@@ -754,8 +823,23 @@ router.get('/daily-punch/export', async (req, res, next) => {
           return col.dateKey >= s && col.dateKey <= e;
         });
 
-        if (att) {
-          const shift = resolveEmployeeShift(emp);
+        const empJoiningKey = emp.joiningDate ? toDateKey(emp.joiningDate) : null;
+        const isPreJoining = Boolean(empJoiningKey && col.dateKey < empJoiningKey);
+        const rosterTiming = rosterMap.get(k) || '';
+        const cleanRoster = rosterTiming.trim().toLowerCase();
+        const isRosterOff = cleanRoster === 'off' || cleanRoster === 'wo' || cleanRoster.includes('week off') || cleanRoster.includes('weekly off');
+        const shift = resolveEmployeeShift(emp);
+        const empWorkingDays = shift?.workingDays || companyWorkingDays;
+        const isEmpWorkDay = isWorkableDay(col.rawDate, empWorkingDays);
+        const isWeeklyOff = isRosterOff || !isEmpWorkDay;
+
+        const isPast = col.rawDate < today;
+        const isToday = col.dateKey === toDateKey(today);
+        const isFuture = col.rawDate > today;
+
+        if (isPreJoining) {
+          rowData.push('Not Joined');
+        } else if (att) {
           const shiftStart = shift?.startTime || '09:00';
           const graceMin = Number(shift?.gracePeriodMinutes) || 15;
           const [shH, shM] = shiftStart.split(':').map(Number);
@@ -766,8 +850,6 @@ router.get('/daily-punch/export', async (req, res, next) => {
           const isLate = checkInMinutes > shiftThresholdMinutes;
           const lateFlag = isLate ? ' ⚠️' : '';
 
-          const isPast = col.rawDate < today;
-          const isToday = col.dateKey === toDateKey(today);
           const shiftEnd = shift?.endTime || '18:00';
           const [endH, endM] = shiftEnd.split(':').map(Number);
           const shiftEndMinutes = (isNaN(endH) ? 18 : endH) * 60 + (isNaN(endM) ? 0 : endM);
@@ -778,14 +860,17 @@ router.get('/daily-punch/export', async (req, res, next) => {
           if (!att.checkOut) {
             outT = (isPast || isTodayShiftEnded) ? 'No Out ⚠️' : 'In Progress';
           }
-          rowData.push(`${inT}${lateFlag}\n${outT}`);
+          rowData.push(`In: ${inT}${lateFlag}\nOut: ${outT}`);
         } else if (onLeave) {
           rowData.push(`Leave (${onLeave.leaveType?.code || 'LV'})`);
+        } else if (isWeeklyOff) {
+          rowData.push('Weekly Off');
+        } else if (isPast) {
+          rowData.push('Absent');
+        } else if (isFuture) {
+          rowData.push('-');
         } else {
-          const shift = resolveEmployeeShift(emp);
-          const empWorkingDays = shift?.workingDays || companyWorkingDays;
-          const isEmpWorkDay = isWorkableDay(col.rawDate, empWorkingDays);
-          rowData.push(isEmpWorkDay ? '-' : 'Weekly Off');
+          rowData.push('Pending');
         }
       });
 

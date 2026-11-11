@@ -43,6 +43,12 @@ interface PunchDetail {
   isOngoing?: boolean;
   isOnLeave?: boolean;
   isWeekend?: boolean;
+  isRosterOff?: boolean;
+  isPreJoining?: boolean;
+  isAbsent?: boolean;
+  isFuture?: boolean;
+  isPending?: boolean;
+  joiningDate?: string | Date | null;
   leave?: {
     id: number;
     name: string;
@@ -64,6 +70,7 @@ interface EmployeePunchRow {
   departmentId: number | null;
   profilePhoto?: string | null;
   shiftName: string;
+  joiningDate?: string | Date | null;
   punchesByDate: Record<string, PunchDetail>;
 }
 
@@ -475,8 +482,9 @@ export const DailyPunchReportPage: React.FC = () => {
                           >
                             <div className="space-y-0.5">
                               {/* Check In */}
-                              <div className="inline-flex items-center gap-1 font-mono font-bold text-slate-900 text-xs">
-                                <span>{punch.checkIn}</span>
+                              <div className="inline-flex items-center gap-1 font-mono text-xs">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">In:</span>
+                                <span className="font-bold text-slate-900">{punch.checkIn}</span>
                                 {punch.isLate && (
                                   <span title="Late Check-in (after shift grace period)">
                                     <IconAlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
@@ -485,9 +493,10 @@ export const DailyPunchReportPage: React.FC = () => {
                               </div>
 
                               {/* Check Out */}
-                              <div className="font-mono text-[11px]">
+                              <div className="inline-flex items-center gap-1 font-mono text-[11px]">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Out:</span>
                                 {punch.checkOut ? (
-                                  <span className="text-slate-600 font-medium">{punch.checkOut}</span>
+                                  <span className="text-slate-700 font-semibold">{punch.checkOut}</span>
                                 ) : punch.isMissingPunch ? (
                                   <span className="text-rose-600 font-bold inline-flex items-center gap-0.5" title="Missing Checkout (Shift ended without punch-out)">
                                     <span>No Out</span>
@@ -504,11 +513,29 @@ export const DailyPunchReportPage: React.FC = () => {
 
                               {/* Duration Pill */}
                               {punch.durationHours && punch.durationHours > 0 ? (
-                                <span className="inline-block px-1.5 py-0.2 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
-                                  {punch.durationHours}h
-                                </span>
+                                <div>
+                                  <span className="inline-block px-1.5 py-0.2 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
+                                    {punch.durationHours}h
+                                  </span>
+                                </div>
                               ) : null}
                             </div>
+                          </td>
+                        );
+                      }
+
+                      if (punch.isPreJoining) {
+                        return (
+                          <td
+                            key={col.dateKey}
+                            className="py-2.5 px-2 text-center border-r border-slate-100 bg-slate-50/50"
+                          >
+                            <span
+                              className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-400 border border-slate-200/60"
+                              title={`Employee joined on ${emp.joiningDate ? new Date(emp.joiningDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'mid-month'}`}
+                            >
+                              Not Joined
+                            </span>
                           </td>
                         );
                       }
@@ -531,20 +558,43 @@ export const DailyPunchReportPage: React.FC = () => {
 
                       const isWeeklyOff = Boolean(punch?.isWeekend ?? col.isWeekend);
 
-                      return (
-                        <td
-                          key={col.dateKey}
-                          className={`py-2.5 px-3 text-center border-r border-slate-100 font-mono text-slate-400 ${
-                            isWeeklyOff ? 'bg-slate-50/70' : ''
-                          }`}
-                        >
-                          {isWeeklyOff ? (
+                      if (isWeeklyOff) {
+                        return (
+                          <td
+                            key={col.dateKey}
+                            className="py-2.5 px-3 text-center border-r border-slate-100 font-mono bg-slate-50/70"
+                          >
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200/80">
                               Weekly Off
                             </span>
-                          ) : (
-                            <span className="text-xs font-bold text-slate-300">-</span>
-                          )}
+                          </td>
+                        );
+                      }
+
+                      if (punch.isAbsent) {
+                        return (
+                          <td
+                            key={col.dateKey}
+                            className="py-2.5 px-3 text-center border-r border-slate-100"
+                          >
+                            <span
+                              className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200/70"
+                              title="Absent (No attendance recorded on past scheduled workday)"
+                            >
+                              Absent
+                            </span>
+                          </td>
+                        );
+                      }
+
+                      return (
+                        <td
+                          key={col.dateKey}
+                          className="py-2.5 px-3 text-center border-r border-slate-100 font-mono text-slate-400"
+                        >
+                          <span className="text-xs font-bold text-slate-300" title={punch.isFuture ? 'Upcoming Scheduled Shift' : 'Shift pending punch'}>
+                            —
+                          </span>
                         </td>
                       );
                     })}
