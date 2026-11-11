@@ -686,12 +686,14 @@ export const SalarySlipConfigPage: React.FC = () => {
           </div>
 
           {/* Official Project Payslip Document Sheet */}
-          <div className="flex justify-center bg-slate-200/60 p-4 sm:p-6 rounded-2xl border border-slate-300/80 overflow-x-auto shadow-inner">
-            <PayslipSheet
-              payslip={previewPayslipData}
-              company={company}
-              customConfig={config}
-            />
+          <div className="w-full bg-slate-200/60 p-4 sm:p-6 rounded-2xl border border-slate-300/80 overflow-x-auto shadow-inner">
+            <div className="min-w-[760px] flex justify-center">
+              <PayslipSheet
+                payslip={previewPayslipData}
+                company={company}
+                customConfig={config}
+              />
+            </div>
           </div>
         </div>
       </div>

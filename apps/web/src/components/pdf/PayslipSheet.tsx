@@ -368,23 +368,23 @@ export const PayslipSheet: React.FC<PayslipSheetProps> = ({
           </div>
         </div>
 
-        {/* 3. Earnings & Deductions Tables (Square / Flat headers matching screenshot) */}
+        {/* 3. Earnings & Deductions Tables (Clean table-auto, No overflow clipping) */}
         <div className="grid grid-cols-12 gap-6 items-start">
           {/* Earnings Side (7 cols out of 12) */}
-          <div className="col-span-7 overflow-hidden">
-            <table className="w-full text-xs border-collapse">
+          <div className="col-span-7">
+            <table className="w-full text-xs border-collapse table-auto">
               <thead>
                 <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-800 font-bold">
-                  <th className="py-2.5 px-3 text-left w-[46%] font-bold">Earnings</th>
-                  <th className="py-2.5 px-3 text-right w-[27%] font-bold whitespace-nowrap">Monthly Value (Rs.)</th>
-                  <th className="py-2.5 px-3 text-right w-[27%] font-bold whitespace-nowrap">Amount (Rs.)</th>
+                  <th className="py-2.5 px-3 text-left font-bold">Earnings</th>
+                  <th className="py-2.5 px-3 text-right font-bold whitespace-nowrap">Monthly Value (Rs.)</th>
+                  <th className="py-2.5 px-3 text-right font-bold whitespace-nowrap">Amount (Rs.)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {earningsList.length > 0 ? (
                   earningsList.map((item, idx) => (
                     <tr key={idx} className="hover:bg-slate-50/40">
-                      <td className="py-2 px-3 text-slate-800 font-medium truncate">{item.name}</td>
+                      <td className="py-2 px-3 text-slate-800 font-medium">{item.name}</td>
                       <td className="py-2 px-3 text-right font-mono text-slate-600 whitespace-nowrap pr-2">
                         {formatMoney(item.monthlyVal)}
                       </td>
@@ -416,19 +416,19 @@ export const PayslipSheet: React.FC<PayslipSheetProps> = ({
           </div>
 
           {/* Deductions Side (5 cols out of 12) */}
-          <div className="col-span-5 overflow-hidden">
-            <table className="w-full text-xs border-collapse">
+          <div className="col-span-5">
+            <table className="w-full text-xs border-collapse table-auto">
               <thead>
                 <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-800 font-bold">
-                  <th className="py-2.5 px-3 text-left w-[58%] font-bold">Deductions</th>
-                  <th className="py-2.5 px-3 text-right w-[42%] font-bold whitespace-nowrap">Amount (Rs.)</th>
+                  <th className="py-2.5 px-3 text-left font-bold">Deductions</th>
+                  <th className="py-2.5 px-3 text-right font-bold whitespace-nowrap">Amount (Rs.)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {deductionsList.length > 0 ? (
                   deductionsList.map((item, idx) => (
                     <tr key={idx} className="hover:bg-slate-50/40">
-                      <td className="py-2 px-3 text-slate-800 font-medium truncate">{item.name}</td>
+                      <td className="py-2 px-3 text-slate-800 font-medium">{item.name}</td>
                       <td className="py-2 px-3 text-right font-mono font-bold text-slate-900 whitespace-nowrap">
                         {formatMoney(item.amount)}
                       </td>
