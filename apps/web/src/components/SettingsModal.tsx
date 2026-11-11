@@ -14,6 +14,7 @@ import {
   IconCash,
 } from '@tabler/icons-react';
 import { useAuth } from '../context/AuthContext';
+import api from '../api/client';
 import {
   SidebarOpsVisibility,
   getSidebarOpsVisibility,
@@ -55,18 +56,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         setActiveTab('notifications');
       }
 
-      try {
-        const savedNotif = localStorage.getItem('user_notification_settings');
-        if (savedNotif) {
-          const parsed = JSON.parse(savedNotif);
-          if (parsed.emailNotifications !== undefined) setEmailNotifications(parsed.emailNotifications);
-          if (parsed.browserAlerts !== undefined) setBrowserAlerts(parsed.browserAlerts);
-          if (parsed.weeklyDigest !== undefined) setWeeklyDigest(parsed.weeklyDigest);
-        }
-      } catch {
-        // ignore parse errors
-      }
+      // 1. Fetch user-level notification preferences from database
+      api.get('/notifications/settings')
+        .then((res: any) => {
+          if (res.data?.settings) {
+            const s = res.data.settings;
+            setEmailNotifications(s.emailNotifications !== false);
+            setBrowserAlerts(s.browserAlerts !== false);
+            setWeeklyDigest(Boolean(s.weeklyDigest));
+            localStorage.setItem('user_notification_settings', JSON.stringify(s));
+          }
+        })
+        .catch(() => {
+          try {
+            const savedNotif = localStorage.getItem('user_notification_settings');
+            if (savedNotif) {
+              const parsed = JSON.parse(savedNotif);
+              if (parsed.emailNotifications !== undefined) setEmailNotifications(parsed.emailNotifications);
+              if (parsed.browserAlerts !== undefined) setBrowserAlerts(parsed.browserAlerts);
+              if (parsed.weeklyDigest !== undefined) setWeeklyDigest(parsed.weeklyDigest);
+            }
+          } catch {
+            // ignore parse errors
+          }
+        });
 
+      // 2. Fetch company module visibility
       setSidebarOps(getSidebarOpsVisibility(user?.id, company?.settings));
       if (user?.role === 'COMPANY_ADMIN') {
         fetchSidebarOpsFromDb(user?.id).then((ops) => {
@@ -78,20 +93,41 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
   if (!isOpen || typeof document === 'undefined') return null;
 
+  const handleToggleBrowserAlerts = (checked: boolean) => {
+    setBrowserAlerts(checked);
+    if (checked && typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
+
     if (user?.role === 'COMPANY_ADMIN') {
       await saveSidebarOpsToDb(sidebarOps, user?.id);
     }
+
     try {
-      localStorage.setItem(
-        'user_notification_settings',
-        JSON.stringify({ emailNotifications, browserAlerts, weeklyDigest })
+      await api.put('/notifications/settings', {
+        emailNotifications,
+        browserAlerts,
+        weeklyDigest,
+      });
+
+      const serialized = JSON.stringify({ emailNotifications, browserAlerts, weeklyDigest });
+      localStorage.setItem('user_notification_settings', serialized);
+      window.dispatchEvent(
+        new CustomEvent('notification-settings-updated', {
+          detail: { emailNotifications, browserAlerts, weeklyDigest },
+        })
       );
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error('Failed to save notification settings:', err);
     }
+
     setIsSaving(false);
     setSavedToast(true);
     setTimeout(() => {
@@ -340,6 +376,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               {/* Notifications Tab */}
               {activeTab === 'notifications' && (
                 <div className="space-y-3.5 animate-in fade-in">
+                  {/* 1. Email Notifications */}
                   <label className="flex items-start gap-3 p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/60 hover:bg-slate-50 cursor-pointer transition-colors">
                     <input
                       type="checkbox"
@@ -347,43 +384,72 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                       onChange={(e) => setEmailNotifications(e.target.checked)}
                       className="mt-0.5 rounded text-[#5E4BE2] focus:ring-[#5E4BE2] w-4 h-4 cursor-pointer accent-[#5E4BE2]"
                     />
-                    <div>
-                      <p className="text-xs font-bold text-slate-800">Email Notifications</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-bold text-slate-800">Email Notifications</p>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                            emailNotifications
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
+                              : 'bg-slate-100 text-slate-500 border border-slate-200/60'
+                          }`}
+                        >
+                          {emailNotifications ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </div>
                       <p className="text-[11px] text-slate-500 font-medium mt-0.5 leading-relaxed">
-                        Receive email alerts for leave approvals, payroll generation, and security alerts.
+                        Receive automated email alerts for holiday announcements, birthday greetings, and system credentials. Disabling this silences automated email delivery to your account.
                       </p>
                     </div>
                   </label>
 
+                  {/* 2. In-App & Desktop Push Alerts */}
                   <label className="flex items-start gap-3 p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/60 hover:bg-slate-50 cursor-pointer transition-colors">
                     <input
                       type="checkbox"
                       checked={browserAlerts}
-                      onChange={(e) => setBrowserAlerts(e.target.checked)}
+                      onChange={(e) => handleToggleBrowserAlerts(e.target.checked)}
                       className="mt-0.5 rounded text-[#5E4BE2] focus:ring-[#5E4BE2] w-4 h-4 cursor-pointer accent-[#5E4BE2]"
                     />
-                    <div>
-                      <p className="text-xs font-bold text-slate-800">In-App &amp; Push Alerts</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-bold text-slate-800">In-App &amp; Push Alerts</p>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                            browserAlerts
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
+                              : 'bg-slate-100 text-slate-500 border border-slate-200/60'
+                          }`}
+                        >
+                          {browserAlerts ? 'Active' : 'Muted'}
+                        </span>
+                      </div>
                       <p className="text-[11px] text-slate-500 font-medium mt-0.5 leading-relaxed">
-                        Receive instant push alerts for shift reminders and support ticket updates.
+                        Receive live in-app bell updates and native desktop push popups for leave requests, support tickets, and shift alerts.
                       </p>
                     </div>
                   </label>
 
-                  <label className="flex items-start gap-3 p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/60 hover:bg-slate-50 cursor-pointer transition-colors">
+                  {/* 3. Weekly Executive Digest (Coming Soon) */}
+                  <div className="flex items-start gap-3 p-3.5 rounded-xl border border-slate-200/70 bg-slate-50/40 opacity-80 select-none">
                     <input
                       type="checkbox"
-                      checked={weeklyDigest}
-                      onChange={(e) => setWeeklyDigest(e.target.checked)}
-                      className="mt-0.5 rounded text-[#5E4BE2] focus:ring-[#5E4BE2] w-4 h-4 cursor-pointer accent-[#5E4BE2]"
+                      checked={false}
+                      disabled
+                      className="mt-0.5 rounded text-slate-400 focus:ring-slate-400 w-4 h-4 cursor-not-allowed opacity-60"
                     />
-                    <div>
-                      <p className="text-xs font-bold text-slate-800">Weekly Executive Digest</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-bold text-slate-700">Weekly Executive Digest</p>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80 shrink-0">
+                          Coming Soon
+                        </span>
+                      </div>
                       <p className="text-[11px] text-slate-500 font-medium mt-0.5 leading-relaxed">
-                        Receive a consolidated summary email of organizational attendance and holidays every Monday.
+                        Automated weekly executive email summaries dispatched every Monday with attendance statistics and upcoming holidays. (Currently under active development).
                       </p>
                     </div>
-                  </label>
+                  </div>
                 </div>
               )}
 

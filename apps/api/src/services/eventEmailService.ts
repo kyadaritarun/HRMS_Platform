@@ -231,6 +231,14 @@ export async function sendBirthdayWish(params: {
   }
 
   const companySettings = (user.company.settings as any) || {};
+  const userNotifs = companySettings.userNotificationSettings?.[String(user.id)] || {};
+  if (userNotifs.emailNotifications === false) {
+    return {
+      success: true,
+      message: `Birthday email skipped: ${user.firstName} opted out of email notifications in settings.`,
+    };
+  }
+
   const eventSettings: EventEmailSettings = {
     ...DEFAULT_EVENT_EMAIL_SETTINGS,
     ...(companySettings.eventEmails || {}),
@@ -348,9 +356,14 @@ export async function sendHolidayAnnouncement(params: {
 
   const subject = `🎉 Upcoming Holiday: ${holiday.name} — ${holiday.company.name}`;
 
+  const userNotifMap = (companySettings.userNotificationSettings as Record<string, any>) || {};
   let successCount = 0;
   // Send email to each active employee
   for (const emp of employees) {
+    const empNotifs = userNotifMap[String(emp.id)] || {};
+    if (empNotifs.emailNotifications === false) {
+      continue; // Skip email if employee disabled email notifications
+    }
     try {
       const res = await sendEmail({
         companyId,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { useAuth } from '../../context/AuthContext';
@@ -60,12 +60,52 @@ export const AppLayout: React.FC = () => {
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  const knownNotificationIds = useRef<Set<number>>(new Set());
+  const initialNotificationsLoaded = useRef(false);
 
   const fetchNotifications = async () => {
     if (!user) return;
     try {
       const res = await api.get('/notifications');
-      setNotifications(res.data?.notifications || []);
+      const items: NotificationItem[] = res.data?.notifications || [];
+
+      // Check if desktop push alerts are enabled by the user in settings
+      let browserAlertsEnabled = true;
+      try {
+        const raw = localStorage.getItem('user_notification_settings');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed.browserAlerts === false) browserAlertsEnabled = false;
+        }
+      } catch {
+        // ignore
+      }
+
+      // If user enabled browser alerts and notification permission is granted, dispatch desktop alert
+      if (
+        initialNotificationsLoaded.current &&
+        browserAlertsEnabled &&
+        typeof window !== 'undefined' &&
+        'Notification' in window &&
+        Notification.permission === 'granted'
+      ) {
+        items.forEach((n) => {
+          if (!n.isRead && !knownNotificationIds.current.has(n.id)) {
+            try {
+              new window.Notification(n.title, {
+                body: n.message,
+                icon: '/favicon.ico',
+              });
+            } catch {
+              // Ignore push errors
+            }
+          }
+        });
+      }
+
+      items.forEach((n) => knownNotificationIds.current.add(n.id));
+      initialNotificationsLoaded.current = true;
+      setNotifications(items);
     } catch (err) {
       console.error('Failed to load notifications:', err);
     }

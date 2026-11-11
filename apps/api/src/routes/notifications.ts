@@ -91,6 +91,94 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+// GET /notifications/settings
+router.get('/settings', async (req, res, next) => {
+  try {
+    const userId = req.user!.id;
+    const companyId = req.user!.companyId;
+
+    if (!companyId) {
+      return res.json({
+        success: true,
+        settings: { emailNotifications: true, browserAlerts: true, weeklyDigest: false },
+      });
+    }
+
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { settings: true },
+    });
+
+    const companySettings = (company?.settings as any) || {};
+    const userNotifs = companySettings.userNotificationSettings?.[String(userId)] || {};
+
+    const settings = {
+      emailNotifications: userNotifs.emailNotifications !== false,
+      browserAlerts: userNotifs.browserAlerts !== false,
+      weeklyDigest: Boolean(userNotifs.weeklyDigest),
+    };
+
+    return res.json({ success: true, settings });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PUT /notifications/settings
+router.put('/settings', async (req, res, next) => {
+  try {
+    const userId = req.user!.id;
+    const companyId = req.user!.companyId;
+    const { emailNotifications, browserAlerts, weeklyDigest } = req.body;
+
+    if (!companyId) {
+      return res.json({
+        success: true,
+        settings: {
+          emailNotifications: emailNotifications !== false,
+          browserAlerts: browserAlerts !== false,
+          weeklyDigest: Boolean(weeklyDigest),
+        },
+      });
+    }
+
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { settings: true },
+    });
+
+    const currentSettings = (company?.settings as any) || {};
+    const existingUserMap = currentSettings.userNotificationSettings || {};
+
+    const updatedUserPrefs = {
+      emailNotifications: emailNotifications !== false,
+      browserAlerts: browserAlerts !== false,
+      weeklyDigest: Boolean(weeklyDigest),
+    };
+
+    const newSettings = {
+      ...currentSettings,
+      userNotificationSettings: {
+        ...existingUserMap,
+        [String(userId)]: updatedUserPrefs,
+      },
+    };
+
+    await prisma.company.update({
+      where: { id: companyId },
+      data: { settings: newSettings },
+    });
+
+    return res.json({
+      success: true,
+      message: 'Notification preferences saved to database successfully.',
+      settings: updatedUserPrefs,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // PATCH /notifications/:id/read
 router.patch('/:id/read', async (req, res, next) => {
   try {

@@ -164,15 +164,27 @@ router.put(
       const companyId = req.user!.companyId!;
       const data = req.body;
 
+      const existingCompany = await prisma.company.findUnique({
+        where: { id: companyId },
+        select: { settings: true },
+      });
+      const currentSettings = (existingCompany?.settings as any) || {};
+      const newSettings = data.settings !== undefined ? { ...currentSettings, ...data.settings } : { ...currentSettings };
+      if (data.workingDays !== undefined) {
+        newSettings.workingDays = data.workingDays;
+      }
+
+      const updateData: any = {
+        settings: newSettings,
+      };
+      if (data.workingDays !== undefined) updateData.workingDays = data.workingDays;
+      if (data.timezone !== undefined) updateData.timezone = data.timezone;
+      if (data.allowedEmailDomains !== undefined) updateData.allowedEmailDomains = data.allowedEmailDomains;
+      if (data.shifts !== undefined) updateData.shifts = data.shifts as any;
+
       const updated = await prisma.company.update({
         where: { id: companyId },
-        data: {
-          workingDays: data.workingDays,
-          timezone: data.timezone,
-          allowedEmailDomains: data.allowedEmailDomains,
-          shifts: data.shifts as any,
-          settings: data.settings as any,
-        },
+        data: updateData,
       });
 
       await logActivity({

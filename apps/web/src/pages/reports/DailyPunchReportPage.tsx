@@ -102,6 +102,7 @@ export const DailyPunchReportPage: React.FC = () => {
   const [dates, setDates] = useState<DateColumn[]>([]);
   const [employees, setEmployees] = useState<EmployeePunchRow[]>([]);
   const [summary, setSummary] = useState<ReportSummary | null>(null);
+  const [companyWorkingDays, setCompanyWorkingDays] = useState<string>('mon,tue,wed,thu,fri');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isExporting, setIsExporting] = useState<boolean>(false);
 
@@ -122,6 +123,15 @@ export const DailyPunchReportPage: React.FC = () => {
       .catch(() => {});
   }, []);
 
+  // Helper: Format policy summary for header
+  const getWeeklyOffBadgeLabel = (scheduleStr: string) => {
+    const norm = (scheduleStr || 'mon,tue,wed,thu,fri').toLowerCase();
+    if (norm === 'mon,tue,wed,thu,fri,sat') return '6-Day Work Week (Sunday Off)';
+    if (norm === 'mon,tue,wed,thu,fri,alt_sat') return 'Alternate Saturdays (Sun + 2nd/4th Sat Off)';
+    if (norm === 'mon,tue,wed,thu,fri') return '5-Day Work Week (Sat & Sun Off)';
+    return 'Custom Working Days Policy';
+  };
+
   // Fetch Daily Punch report
   const fetchReport = async () => {
     setIsLoading(true);
@@ -137,6 +147,9 @@ export const DailyPunchReportPage: React.FC = () => {
       setDates(res.data?.dates || []);
       setEmployees(res.data?.employees || []);
       setSummary(res.data?.summary || null);
+      if (res.data?.companyWorkingDays) {
+        setCompanyWorkingDays(res.data.companyWorkingDays);
+      }
     } catch (err) {
       console.error('Failed to fetch daily punch report:', err);
     } finally {
@@ -147,6 +160,19 @@ export const DailyPunchReportPage: React.FC = () => {
   useEffect(() => {
     fetchReport();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate, endDate, selectedDept]);
+
+  // Listen for real-time updates when Working Days / Roster changes
+  useEffect(() => {
+    const handleUpdate = () => {
+      fetchReport();
+    };
+    window.addEventListener('company-settings-updated', handleUpdate);
+    window.addEventListener('attendance-updated', handleUpdate);
+    return () => {
+      window.removeEventListener('company-settings-updated', handleUpdate);
+      window.removeEventListener('attendance-updated', handleUpdate);
+    };
   }, [startDate, endDate, selectedDept]);
 
   // Export to Excel
@@ -310,8 +336,15 @@ export const DailyPunchReportPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Color & Status Legend */}
-        <div className="pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-end gap-3 text-[11px] text-slate-500 font-medium">
+        {/* Color & Status Legend & Active Policy */}
+        <div className="pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-500 font-medium">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200/80 text-indigo-700 text-[10px] font-bold">
+              Active Policy
+            </span>
+            <span className="text-slate-700 font-bold">{getWeeklyOffBadgeLabel(companyWorkingDays)}</span>
+          </div>
+
           <div className="flex items-center gap-3 flex-wrap text-[11px]">
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
@@ -325,9 +358,13 @@ export const DailyPunchReportPage: React.FC = () => {
               <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
               <span>Approved Leave</span>
             </div>
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200">WO</span>
+              <span>Weekly Off</span>
+            </div>
             <div className="flex items-center gap-1.5 text-slate-400">
               <span className="font-mono font-bold">-</span>
-              <span>Absent / Weekend</span>
+              <span>Absent / Unrecorded</span>
             </div>
           </div>
         </div>
@@ -357,13 +394,18 @@ export const DailyPunchReportPage: React.FC = () => {
                 {dates.map((col) => (
                   <th
                     key={col.dateKey}
-                    className={`py-3 px-3 text-center min-w-[130px] border-r border-slate-300/80 ${
-                      col.isWeekend ? 'bg-[#dadde2] text-slate-700' : 'bg-[#e5e7eb] text-slate-900'
+                    className={`py-3 px-3 text-center min-w-[130px] border-r border-slate-300/80 transition-colors ${
+                      col.isWeekend ? 'bg-[#d8dbe0] text-slate-800' : 'bg-[#e5e7eb] text-slate-900'
                     }`}
                   >
                     <div className="font-black text-xs text-slate-900">{col.formattedDate}</div>
-                    <div className={`text-[10px] font-semibold ${col.isWeekend ? 'text-slate-600' : 'text-slate-600'}`}>
-                      {col.dayName}
+                    <div className="text-[10px] font-semibold text-slate-600 flex items-center justify-center gap-1 mt-0.5">
+                      <span>{col.dayName}</span>
+                      {col.isWeekend && (
+                        <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-slate-300 text-slate-700 uppercase tracking-tight">
+                          Off
+                        </span>
+                      )}
                     </div>
                   </th>
                 ))}
@@ -487,15 +529,19 @@ export const DailyPunchReportPage: React.FC = () => {
                         );
                       }
 
+                      const isWeeklyOff = Boolean(punch?.isWeekend ?? col.isWeekend);
+
                       return (
                         <td
                           key={col.dateKey}
                           className={`py-2.5 px-3 text-center border-r border-slate-100 font-mono text-slate-400 ${
-                            col.isWeekend ? 'bg-slate-50/60' : ''
+                            isWeeklyOff ? 'bg-slate-50/70' : ''
                           }`}
                         >
-                          {col.isWeekend ? (
-                            <span className="text-[10px] font-semibold text-slate-400">Weekend</span>
+                          {isWeeklyOff ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200/80">
+                              Weekly Off
+                            </span>
                           ) : (
                             <span className="text-xs font-bold text-slate-300">-</span>
                           )}
@@ -521,9 +567,14 @@ export const DailyPunchReportPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">Punch Session Details</h3>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    {inspectedPunch.employee.fullName} • {inspectedPunch.date.formattedDate}
-                  </p>
+                  <div className="text-[11px] text-slate-500 font-medium flex items-center gap-1.5 flex-wrap">
+                    <span>{inspectedPunch.employee.fullName} • {inspectedPunch.date.formattedDate} ({inspectedPunch.date.dayName})</span>
+                    {(inspectedPunch.punch.isWeekend || inspectedPunch.date.isWeekend) && (
+                      <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-slate-200 text-slate-700">
+                        Weekly Off Day
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               <button

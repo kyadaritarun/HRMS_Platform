@@ -449,6 +449,8 @@ export const ShiftRosterPage: React.FC = () => {
       await api.put('/company/settings', { workingDays: toSave });
       setCompanyWorkingDays(toSave);
       setShowWeeklyOffModal(false);
+      window.dispatchEvent(new Event('company-settings-updated'));
+      window.dispatchEvent(new Event('attendance-updated'));
       setScheduleSuccessMessage('Company Weekly Off schedule updated and saved successfully!');
       setTimeout(() => setScheduleSuccessMessage(null), 4000);
     } catch (err: any) {

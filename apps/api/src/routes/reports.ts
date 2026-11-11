@@ -65,7 +65,17 @@ function getMinutesInTimezone(dateVal: Date | string | null | undefined, timezon
 }
 
 /**
- * Format DD-MM-YYYY
+ * Format DD-MM-YYYY using UTC
+ */
+function formatDateDDMMYYYYUTC(date: Date): string {
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const year = date.getUTCFullYear();
+  return `${day}-${month}-${year}`;
+}
+
+/**
+ * Format DD-MM-YYYY (local)
  */
 function formatDateDDMMYYYY(date: Date): string {
   const day = String(date.getDate()).padStart(2, '0');
@@ -75,11 +85,62 @@ function formatDateDDMMYYYY(date: Date): string {
 }
 
 /**
+ * Parse date string YYYY-MM-DD to UTC midnight Date object
+ */
+function parseDateKeyToUTC(str: string): Date {
+  const [y, m, d] = str.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0));
+}
+
+/**
  * Parse date string YYYY-MM-DD to local start of day
  */
 function parseLocalDate(str: string): Date {
   const [y, m, d] = str.split('-').map(Number);
   return new Date(y, m - 1, d, 0, 0, 0, 0);
+}
+
+/**
+ * Get current date as UTC midnight Date in company's timezone
+ */
+function getTodayUTC(timeZone: string = 'Asia/Kolkata'): Date {
+  try {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date());
+    const y = Number(parts.find((p) => p.type === 'year')?.value);
+    const m = Number(parts.find((p) => p.type === 'month')?.value);
+    const d = Number(parts.find((p) => p.type === 'day')?.value);
+    return new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0));
+  } catch {
+    const now = new Date();
+    return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0));
+  }
+}
+
+/**
+ * Convert timestamp to YYYY-MM-DD date key in company timezone
+ */
+function toTimezoneDateKey(date: Date | string, timeZone: string = 'Asia/Kolkata'): string {
+  try {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(d);
+    const y = parts.find((p) => p.type === 'year')?.value;
+    const m = parts.find((p) => p.type === 'month')?.value;
+    const day = parts.find((p) => p.type === 'day')?.value;
+    if (y && m && day) return `${y}-${m}-${day}`;
+    return toDateKey(d);
+  } catch {
+    return toDateKey(date);
+  }
 }
 
 /**
@@ -92,17 +153,30 @@ router.get('/daily-punch', async (req, res, next) => {
     const departmentId = req.query.departmentId ? Number(req.query.departmentId) : undefined;
     const search = req.query.search ? String(req.query.search).trim().toLowerCase() : '';
 
+    // Query Company settings, shifts and holidays first to know timezone & workingDays
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { shifts: true, workingDays: true, timezone: true, settings: true },
+    });
+
+    const timezone = company?.timezone || 'Asia/Kolkata';
+    const companyWorkingDays =
+      company?.workingDays ||
+      (company?.settings as any)?.workingDays ||
+      'mon,tue,wed,thu,fri';
+
     // Date range (defaults to last 10 days up to today)
-    const today = new Date();
+    const today = getTodayUTC(timezone);
     let startDate: Date;
     let endDate: Date;
 
     if (req.query.startDate && req.query.endDate) {
-      startDate = parseLocalDate(String(req.query.startDate));
-      endDate = parseLocalDate(String(req.query.endDate));
+      startDate = parseDateKeyToUTC(String(req.query.startDate));
+      endDate = parseDateKeyToUTC(String(req.query.endDate));
     } else {
-      endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
-      startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 10, 0, 0, 0, 0);
+      endDate = new Date(today);
+      startDate = new Date(today);
+      startDate.setUTCDate(startDate.getUTCDate() - 10);
     }
 
     if (startDate > endDate) {
@@ -114,17 +188,10 @@ router.get('/daily-punch', async (req, res, next) => {
     // Limit maximum range to 31 days for performance and UI clarity
     const diffDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     if (diffDays > 31) {
-      startDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() - 30, 0, 0, 0, 0);
+      startDate = new Date(endDate);
+      startDate.setUTCDate(startDate.getUTCDate() - 30);
     }
 
-    // Query Company settings, shifts and holidays
-    const company = await prisma.company.findUnique({
-      where: { id: companyId },
-      select: { shifts: true, workingDays: true, timezone: true },
-    });
-
-    const timezone = company?.timezone || 'Asia/Kolkata';
-    const companyWorkingDays = company?.workingDays || 'mon,tue,wed,thu,fri';
     const companyShifts = Array.isArray(company?.shifts) ? (company.shifts as any[]) : [];
     const defaultShift = companyShifts.find((s: any) => s.isDefault) || companyShifts[0] || {
       startTime: '09:00',
@@ -146,10 +213,10 @@ router.get('/daily-punch', async (req, res, next) => {
     const cur = new Date(startDate);
     while (cur <= endDate) {
       const dateKey = toDateKey(cur);
-      const dayOfWeek = cur.getDay(); // 0 is Sun, 6 is Sat
+      const dayOfWeek = cur.getUTCDay(); // 0 is Sun, 6 is Sat
       const isWeekend = !isWorkableDay(cur, companyWorkingDays);
-      const dayName = cur.toLocaleDateString('en-US', { weekday: 'long' });
-      const formattedDate = formatDateDDMMYYYY(cur);
+      const dayName = cur.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
+      const formattedDate = formatDateDDMMYYYYUTC(cur);
 
       dateColumns.push({
         dateKey,
@@ -160,7 +227,7 @@ router.get('/daily-punch', async (req, res, next) => {
         rawDate: new Date(cur),
       });
 
-      cur.setDate(cur.getDate() + 1);
+      cur.setUTCDate(cur.getUTCDate() + 1);
     }
 
     // Query active employees
@@ -204,15 +271,17 @@ router.get('/daily-punch', async (req, res, next) => {
 
     const employeeIds = filteredEmployees.map((e) => e.id);
 
-    // Query Attendance in the range for these employees
-    const rangeStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0, 0);
-    const rangeEnd = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
+    // Query Attendance in the range for these employees (with 1-day buffer for timezone boundaries)
+    const queryStart = new Date(`${toDateKey(startDate)}T00:00:00.000Z`);
+    queryStart.setUTCDate(queryStart.getUTCDate() - 1);
+    const queryEnd = new Date(`${toDateKey(endDate)}T23:59:59.999Z`);
+    queryEnd.setUTCDate(queryEnd.getUTCDate() + 1);
 
     const attendanceRecords = await prisma.attendance.findMany({
       where: {
         companyId,
         userId: { in: employeeIds },
-        checkIn: { gte: rangeStart, lte: rangeEnd },
+        checkIn: { gte: queryStart, lte: queryEnd },
       },
       orderBy: { checkIn: 'asc' },
     });
@@ -224,18 +293,18 @@ router.get('/daily-punch', async (req, res, next) => {
         userId: { in: employeeIds },
         type: 'LEAVE',
         status: 'APPROVED',
-        startDate: { lte: rangeEnd },
-        endDate: { gte: rangeStart },
+        startDate: { lte: queryEnd },
+        endDate: { gte: queryStart },
       },
       include: {
         leaveType: { select: { id: true, name: true, code: true, color: true } },
       },
     });
 
-    // Map Attendance by userId + dateKey
+    // Map Attendance by userId + dateKey (using company timezone)
     const attendanceMap = new Map<string, any>();
     attendanceRecords.forEach((att) => {
-      const dKey = toDateKey(att.checkIn);
+      const dKey = toTimezoneDateKey(att.checkIn, timezone);
       const key = `${att.userId}_${dKey}`;
       // In case of multiple, keep earliest checkIn and latest checkOut
       if (!attendanceMap.has(key)) {
@@ -319,8 +388,8 @@ router.get('/daily-punch', async (req, res, next) => {
         const onLeave = leaveRequests.find((req) => {
           if (req.userId !== emp.id) return false;
           if (!req.startDate || !req.endDate) return false;
-          const startKey = toDateKey(req.startDate);
-          const endKey = toDateKey(req.endDate);
+          const startKey = toTimezoneDateKey(req.startDate, timezone);
+          const endKey = toTimezoneDateKey(req.endDate, timezone);
           return col.dateKey >= startKey && col.dateKey <= endKey;
         });
 
@@ -337,7 +406,7 @@ router.get('/daily-punch', async (req, res, next) => {
           if (isLate) totalLatePunches++;
 
           // Check if checkout is missing on past days or overdue today
-          const isPast = col.rawDate < new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
+          const isPast = col.rawDate < today;
           const isToday = col.dateKey === toDateKey(today);
           const shiftEnd = shift?.endTime || '18:00';
           const [endH, endM] = shiftEnd.split(':').map(Number);
@@ -405,6 +474,7 @@ router.get('/daily-punch', async (req, res, next) => {
     return res.json({
       startDate: toDateKey(startDate),
       endDate: toDateKey(endDate),
+      companyWorkingDays,
       dates: dateColumns,
       employees: employeePunches,
       summary: {
@@ -432,16 +502,28 @@ router.get('/daily-punch/export', async (req, res, next) => {
     const departmentId = req.query.departmentId ? Number(req.query.departmentId) : undefined;
     const search = req.query.search ? String(req.query.search).trim().toLowerCase() : '';
 
-    const today = new Date();
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { name: true, timezone: true, shifts: true, workingDays: true, settings: true },
+    });
+
+    const timezone = company?.timezone || 'Asia/Kolkata';
+    const companyWorkingDays =
+      company?.workingDays ||
+      (company?.settings as any)?.workingDays ||
+      'mon,tue,wed,thu,fri';
+
+    const today = getTodayUTC(timezone);
     let startDate: Date;
     let endDate: Date;
 
     if (req.query.startDate && req.query.endDate) {
-      startDate = parseLocalDate(String(req.query.startDate));
-      endDate = parseLocalDate(String(req.query.endDate));
+      startDate = parseDateKeyToUTC(String(req.query.startDate));
+      endDate = parseDateKeyToUTC(String(req.query.endDate));
     } else {
-      endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
-      startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 10, 0, 0, 0, 0);
+      endDate = new Date(today);
+      startDate = new Date(today);
+      startDate.setUTCDate(startDate.getUTCDate() - 10);
     }
 
     if (startDate > endDate) {
@@ -450,13 +532,11 @@ router.get('/daily-punch/export', async (req, res, next) => {
       endDate = temp;
     }
 
-    const company = await prisma.company.findUnique({
-      where: { id: companyId },
-      select: { name: true, timezone: true, shifts: true, workingDays: true },
-    });
-
-    const timezone = company?.timezone || 'Asia/Kolkata';
-    const companyWorkingDays = company?.workingDays || 'mon,tue,wed,thu,fri';
+    const diffDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    if (diffDays > 31) {
+      startDate = new Date(endDate);
+      startDate.setUTCDate(startDate.getUTCDate() - 30);
+    }
 
     // Generate date columns
     const dateColumns: Array<{
@@ -470,11 +550,11 @@ router.get('/daily-punch/export', async (req, res, next) => {
     while (cur <= endDate) {
       dateColumns.push({
         dateKey: toDateKey(cur),
-        formattedDate: formatDateDDMMYYYY(cur),
-        dayName: cur.toLocaleDateString('en-US', { weekday: 'short' }),
+        formattedDate: formatDateDDMMYYYYUTC(cur),
+        dayName: cur.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }),
         rawDate: new Date(cur),
       });
-      cur.setDate(cur.getDate() + 1);
+      cur.setUTCDate(cur.getUTCDate() + 1);
     }
 
     const userWhere: any = { companyId, isActive: true, role: { not: 'PRODUCT_SUPER_ADMIN' } };
@@ -552,15 +632,17 @@ router.get('/daily-punch/export', async (req, res, next) => {
     }
 
     const employeeIds = employees.map((e) => e.id);
-    const rangeStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0, 0);
-    const rangeEnd = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
+    const queryStart = new Date(`${toDateKey(startDate)}T00:00:00.000Z`);
+    queryStart.setUTCDate(queryStart.getUTCDate() - 1);
+    const queryEnd = new Date(`${toDateKey(endDate)}T23:59:59.999Z`);
+    queryEnd.setUTCDate(queryEnd.getUTCDate() + 1);
 
     const [attendanceRecords, leaveRequests] = await Promise.all([
       prisma.attendance.findMany({
         where: {
           companyId,
           userId: { in: employeeIds },
-          checkIn: { gte: rangeStart, lte: rangeEnd },
+          checkIn: { gte: queryStart, lte: queryEnd },
         },
       }),
       prisma.request.findMany({
@@ -569,8 +651,8 @@ router.get('/daily-punch/export', async (req, res, next) => {
           userId: { in: employeeIds },
           type: 'LEAVE',
           status: 'APPROVED',
-          startDate: { lte: rangeEnd },
-          endDate: { gte: rangeStart },
+          startDate: { lte: queryEnd },
+          endDate: { gte: queryStart },
         },
         include: { leaveType: true },
       }),
@@ -578,7 +660,7 @@ router.get('/daily-punch/export', async (req, res, next) => {
 
     const attMap = new Map<string, any>();
     attendanceRecords.forEach((att) => {
-      const k = `${att.userId}_${toDateKey(att.checkIn)}`;
+      const k = `${att.userId}_${toTimezoneDateKey(att.checkIn, timezone)}`;
       attMap.set(k, att);
     });
 
@@ -637,8 +719,8 @@ router.get('/daily-punch/export', async (req, res, next) => {
         const onLeave = leaveRequests.find((req) => {
           if (req.userId !== emp.id) return false;
           if (!req.startDate || !req.endDate) return false;
-          const s = toDateKey(req.startDate);
-          const e = toDateKey(req.endDate);
+          const s = toTimezoneDateKey(req.startDate, timezone);
+          const e = toTimezoneDateKey(req.endDate, timezone);
           return col.dateKey >= s && col.dateKey <= e;
         });
 
@@ -654,7 +736,7 @@ router.get('/daily-punch/export', async (req, res, next) => {
           const isLate = checkInMinutes > shiftThresholdMinutes;
           const lateFlag = isLate ? ' ⚠️' : '';
 
-          const isPast = col.rawDate < new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
+          const isPast = col.rawDate < today;
           const isToday = col.dateKey === toDateKey(today);
           const shiftEnd = shift?.endTime || '18:00';
           const [endH, endM] = shiftEnd.split(':').map(Number);
@@ -673,7 +755,7 @@ router.get('/daily-punch/export', async (req, res, next) => {
           const shift = resolveEmployeeShift(emp);
           const empWorkingDays = shift?.workingDays || companyWorkingDays;
           const isEmpWorkDay = isWorkableDay(col.rawDate, empWorkingDays);
-          rowData.push(isEmpWorkDay ? '-' : 'Weekend');
+          rowData.push(isEmpWorkDay ? '-' : 'Weekly Off');
         }
       });
 
