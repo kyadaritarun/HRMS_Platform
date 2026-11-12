@@ -1695,7 +1695,7 @@ export const EmployeeDashboard: React.FC = () => {
                 </div>
                 <button
                   type="button"
-                  onClick={() => navigate('/requests')}
+                  onClick={() => navigate('/attendance?action=regularize')}
                   className="text-[11px] font-bold text-emerald-800 bg-white hover:bg-emerald-100/60 border border-emerald-300/80 px-2.5 py-1 rounded-lg transition-all shadow-2xs flex items-center gap-1 cursor-pointer shrink-0"
                 >
                   <span>Regularize</span>
@@ -2074,7 +2074,7 @@ export const EmployeeDashboard: React.FC = () => {
                 selectedDayInfo?.status !== 'FUTURE' && (
                   <button
                     type="button"
-                    onClick={() => navigate('/attendance')}
+                    onClick={() => navigate(`/attendance?action=regularize&date=${selectedDayInfo?.date || ''}`)}
                     className="text-[10px] font-bold text-amber-800 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-lg shadow-2xs transition-all cursor-pointer shrink-0"
                   >
                     Regularize

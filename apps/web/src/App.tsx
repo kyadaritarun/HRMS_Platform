@@ -585,6 +585,7 @@ export const App: React.FC = () => {
             <Route path="/dashboard" element={<Navigate to="/employee/dashboard" replace />} />
             <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
             <Route path="/attendance" element={<MyAttendancePage />} />
+            <Route path="/requests" element={<Navigate to="/attendance?action=regularize" replace />} />
             <Route path="/leaves" element={<MyLeavesPage />} />
             <Route path="/comp-off" element={<MyCompOffPage />} />
             <Route path="/claims" element={<ClaimsPage />} />

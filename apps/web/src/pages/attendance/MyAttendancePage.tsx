@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../api/client';
 import TablePagination from '../../components/common/TablePagination';
 import {
@@ -54,6 +55,7 @@ export const MyAttendancePage: React.FC = () => {
   }, [filterPeriod]);
 
   // Regularization modal state
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isRegModalOpen, setIsRegModalOpen] = useState(false);
   const [userShift, setUserShift] = useState<any>(null);
   const [regularizations, setRegularizations] = useState<any[]>([]);
@@ -72,6 +74,35 @@ export const MyAttendancePage: React.FC = () => {
     reason: '',
     isSessionActive: false,
   });
+
+  // Handle URL deep-linking to open regularization drawer
+  useEffect(() => {
+    if (searchParams.get('action') === 'regularize') {
+      const targetDate = searchParams.get('date') || new Date().toISOString().split('T')[0];
+      const targetScope = (searchParams.get('scope') as any) || 'BOTH';
+      setRegForm((prev) => ({
+        ...prev,
+        date: targetDate,
+        scope: targetScope,
+        checkInTime: searchParams.get('checkIn') || '09:00',
+        checkOutTime: searchParams.get('checkOut') || '18:00',
+      }));
+      setIsRegModalOpen(true);
+    }
+  }, [searchParams]);
+
+  const handleCloseRegModal = () => {
+    setIsRegModalOpen(false);
+    if (searchParams.get('action') === 'regularize') {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('action');
+      newParams.delete('date');
+      newParams.delete('scope');
+      newParams.delete('checkIn');
+      newParams.delete('checkOut');
+      setSearchParams(newParams, { replace: true });
+    }
+  };
 
   const fetchAttendance = async () => {
     setIsLoading(true);
@@ -239,7 +270,7 @@ export const MyAttendancePage: React.FC = () => {
         meta,
       });
 
-      setIsRegModalOpen(false);
+      handleCloseRegModal();
       setRegForm({
         date: new Date().toISOString().split('T')[0],
         scope: 'CHECK_IN_ONLY',
@@ -752,7 +783,7 @@ export const MyAttendancePage: React.FC = () => {
         <div className="fixed inset-0 z-[9999] overflow-hidden">
           <div
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
-            onClick={() => setIsRegModalOpen(false)}
+            onClick={handleCloseRegModal}
           />
           <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
             <div
@@ -775,7 +806,8 @@ export const MyAttendancePage: React.FC = () => {
                   </div>
                 </div>
                 <button
-                  onClick={() => setIsRegModalOpen(false)}
+                  type="button"
+                  onClick={handleCloseRegModal}
                   className="p-1.5 rounded-xl text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <IconX className="w-5 h-5" />
@@ -943,7 +975,7 @@ export const MyAttendancePage: React.FC = () => {
                 <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
                   <button
                     type="button"
-                    onClick={() => setIsRegModalOpen(false)}
+                    onClick={handleCloseRegModal}
                     className="px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer"
                   >
                     Cancel
