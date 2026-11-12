@@ -7,14 +7,11 @@ import {
   IconCheck,
   IconAlertCircle,
   IconUpload,
-  IconTrash,
-  IconPrinter,
   IconRefresh,
   IconDeviceFloppy,
   IconPhone,
   IconWorld,
   IconFileCertificate,
-  IconEye,
 } from '@tabler/icons-react';
 import { PayslipSheet, PayslipCustomConfig } from '../../components/pdf/PayslipSheet';
 import { PayslipData } from '../../components/pdf/PayslipPdfDrawer';
@@ -322,16 +319,6 @@ export const SalarySlipConfigPage: React.FC = () => {
         <div className="flex items-center gap-2.5 shrink-0">
           <button
             type="button"
-            onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs hover:border-slate-300 transition-colors cursor-pointer"
-            title="Print or export current preview"
-          >
-            <IconPrinter className="w-4 h-4 text-slate-500" />
-            <span>Print Preview</span>
-          </button>
-
-          <button
-            type="button"
             onClick={() => handleSave()}
             disabled={isSaving}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer disabled:opacity-50"
@@ -422,15 +409,14 @@ export const SalarySlipConfigPage: React.FC = () => {
             {/* Contact */}
             <div>
               <label className="text-xs font-semibold text-slate-700 block mb-1">
-                Contact <span className="text-rose-500">*</span>
+                Contact
               </label>
               <input
                 type="text"
                 value={config.contact || ''}
                 onChange={(e) => setConfig((prev) => ({ ...prev, contact: e.target.value }))}
-                placeholder="Contact Number / Desk"
+                placeholder="Contact"
                 className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-800 placeholder-slate-400 font-medium shadow-2xs"
-                required
               />
             </div>
 
@@ -542,31 +528,7 @@ export const SalarySlipConfigPage: React.FC = () => {
         </div>
 
         {/* Right Column: Live Interactive Payslip Preview */}
-        <div className="xl:col-span-8 space-y-3">
-          {/* Header Toolbar */}
-          <div className="flex items-center justify-between px-1 print:hidden flex-wrap gap-2">
-            <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-              <IconEye className="w-4 h-4 text-indigo-600" />
-              <span>Live Payslip Template</span>
-            </span>
-
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-semibold text-slate-500">Preview with:</label>
-              <select
-                value={selectedEmployeeId}
-                onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 focus:outline-hidden focus:border-indigo-500 cursor-pointer shadow-2xs"
-              >
-                <option value="sample">Sample: Rahul Sharma</option>
-                {employees.map((emp) => (
-                  <option key={emp.id} value={String(emp.id)}>
-                    {emp.firstName} {emp.lastName} ({emp.jobTitle || 'Staff'})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
+        <div className="xl:col-span-8">
           {/* Paper Container */}
           <div className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4 sm:p-6 overflow-x-auto shadow-2xs flex justify-center">
             <PayslipSheet
