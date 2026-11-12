@@ -524,61 +524,7 @@ export const SalarySlipConfigPage: React.FC = () => {
 
               <div className="h-px bg-slate-100" />
 
-              {/* Toggle 2: Branch Wise Payslip */}
-              <div className="flex items-center justify-between py-1">
-                <div>
-                  <span className="text-xs font-bold text-slate-800">Branch Wise Payslip</span>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    Print employee branch location and branch office details on the employee grid.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setConfig((prev) => ({ ...prev, branchWisePayslip: !prev.branchWisePayslip }))}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    config.branchWisePayslip ? 'bg-[#5E4BE2]' : 'bg-slate-200'
-                  }`}
-                  role="switch"
-                  aria-checked={config.branchWisePayslip}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                      config.branchWisePayslip ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              <div className="h-px bg-slate-100" />
-
-              {/* Toggle 3: Show Loan Details */}
-              <div className="flex items-center justify-between py-1">
-                <div>
-                  <span className="text-xs font-bold text-slate-800">Show Loan Details</span>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    Display active staff loans, monthly installment recovery, and balance.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setConfig((prev) => ({ ...prev, showLoanDetails: !prev.showLoanDetails }))}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    config.showLoanDetails ? 'bg-[#5E4BE2]' : 'bg-slate-200'
-                  }`}
-                  role="switch"
-                  aria-checked={config.showLoanDetails}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                      config.showLoanDetails ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              <div className="h-px bg-slate-100" />
-
-              {/* Toggle 4: Show Attendance Breakdown */}
+              {/* Toggle 2: Show Attendance Breakdown */}
               <div className="flex items-center justify-between py-1">
                 <div>
                   <span className="text-xs font-bold text-slate-800">Show Attendance Summary</span>

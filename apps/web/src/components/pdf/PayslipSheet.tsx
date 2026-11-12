@@ -162,9 +162,6 @@ export const PayslipSheet: React.FC<PayslipSheetProps> = ({
   }
 
   const uanNumber = getSafeString(emp.uanNumber, '-');
-  const workLocation = customConfig?.branchWisePayslip
-    ? getSafeString((emp as any)?.branchName || (emp as any)?.location, 'Corporate HQ')
-    : getSafeString((emp as any)?.location, '-');
 
   const bankName = getSafeString(c.bankName || emp.bankName, '-');
   const bankAccount = getSafeString(c.accountNumberMasked || emp.bankAccountMasked, '-');
@@ -490,21 +487,6 @@ export const PayslipSheet: React.FC<PayslipSheetProps> = ({
             ({numberToWordsINR(netSalary)})
           </div>
         </div>
-
-        {/* 6. Active Loan Details (Optional toggle) */}
-        {customConfig?.showLoanDetails && (
-          <div className="border border-indigo-100 rounded-xl p-3.5 bg-indigo-50/30 text-xs">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="font-bold text-slate-800">Company Loan &amp; Advance Details</span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">Active</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-slate-600">
-              <div>Total Loan: <span className="font-mono font-bold text-slate-800">₹25,000.00</span></div>
-              <div>Monthly EMI: <span className="font-mono font-bold text-slate-800">₹2,500.00</span></div>
-              <div>Remaining: <span className="font-mono font-bold text-indigo-700">₹15,000.00</span></div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* 7. Footer Disclaimer Note */}
