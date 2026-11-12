@@ -264,7 +264,7 @@ export const SalarySlipConfigPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/60 p-4 sm:p-6 lg:p-8 space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Scoped Print Styles */}
       <style>{`
         @media print {
