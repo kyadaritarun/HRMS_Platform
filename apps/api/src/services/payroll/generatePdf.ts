@@ -175,11 +175,8 @@ export function generatePayslipPdf(data: {
       const empLeft = [
         { label: 'Employee Name', val: data.employeeName || '-' },
         { label: 'Code', val: data.employeeNumber || '-' },
-        { label: 'Designation', val: data.jobTitle || '-' },
-        { label: 'Department', val: data.departmentName || '-' },
-        { label: 'Date of Joining', val: snap.dateOfJoining ? new Date(snap.dateOfJoining).toLocaleDateString('en-GB') : '-' },
         { label: 'UAN Number', val: snap.uanNumber || '-' },
-        { label: 'Work Location', val: snap.workLocation || snap.branchName || '-' },
+        { label: 'PF Number', val: snap.pfNumber || '-' },
       ];
 
       const empRight = [
@@ -187,8 +184,6 @@ export function generatePayslipPdf(data: {
         { label: 'Bank A/C No.', val: snap.accountNumberMasked || '-' },
         { label: 'IFSC Code', val: snap.ifscCode || '-' },
         { label: 'Branch Name', val: snap.branchName || '-' },
-        { label: 'PF Number', val: snap.pfNumber || '-' },
-        { label: 'ESIC Number', val: snap.esicNumber || '-' },
       ];
 
       const rowH = 15;

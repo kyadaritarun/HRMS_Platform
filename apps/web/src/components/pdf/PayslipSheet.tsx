@@ -306,29 +306,14 @@ export const PayslipSheet: React.FC<PayslipSheetProps> = ({
                 <span className="text-slate-800 pl-1">{empCode}</span>
               </div>
               <div className="flex items-center text-xs">
-                <span className="w-36 text-slate-700 font-medium shrink-0">Designation</span>
-                <span className="w-4 text-slate-400 shrink-0 text-center">:</span>
-                <span className="text-slate-800 pl-1 truncate">{empDesignation}</span>
-              </div>
-              <div className="flex items-center text-xs">
-                <span className="w-36 text-slate-700 font-medium shrink-0">Department</span>
-                <span className="w-4 text-slate-400 shrink-0 text-center">:</span>
-                <span className="text-slate-800 pl-1">{empDept}</span>
-              </div>
-              <div className="flex items-center text-xs">
-                <span className="w-36 text-slate-700 font-medium shrink-0">Date of Joining</span>
-                <span className="w-4 text-slate-400 shrink-0 text-center">:</span>
-                <span className="text-slate-800 pl-1">{dojFormatted}</span>
-              </div>
-              <div className="flex items-center text-xs">
                 <span className="w-36 text-slate-700 font-medium shrink-0">UAN Number</span>
                 <span className="w-4 text-slate-400 shrink-0 text-center">:</span>
                 <span className="text-slate-800 font-mono text-[11px] pl-1">{uanNumber}</span>
               </div>
               <div className="flex items-center text-xs">
-                <span className="w-36 text-slate-700 font-medium shrink-0">Work Location</span>
+                <span className="w-36 text-slate-700 font-medium shrink-0">PF Number</span>
                 <span className="w-4 text-slate-400 shrink-0 text-center">:</span>
-                <span className="text-slate-800 pl-1">{workLocation}</span>
+                <span className="text-slate-800 font-mono text-[11px] pl-1">{pfNumber}</span>
               </div>
             </div>
 
@@ -353,16 +338,6 @@ export const PayslipSheet: React.FC<PayslipSheetProps> = ({
                 <span className="w-36 text-slate-700 font-medium shrink-0">Branch Name</span>
                 <span className="w-4 text-slate-400 shrink-0 text-center">:</span>
                 <span className="text-slate-800 pl-1 truncate">{branchName}</span>
-              </div>
-              <div className="flex items-center text-xs">
-                <span className="w-36 text-slate-700 font-medium shrink-0">PF Number</span>
-                <span className="w-4 text-slate-400 shrink-0 text-center">:</span>
-                <span className="text-slate-800 font-mono text-[11px] pl-1">{pfNumber}</span>
-              </div>
-              <div className="flex items-center text-xs">
-                <span className="w-36 text-slate-700 font-medium shrink-0">ESIC Number</span>
-                <span className="w-4 text-slate-400 shrink-0 text-center">:</span>
-                <span className="text-slate-800 font-mono text-[11px] pl-1">{esicNumber}</span>
               </div>
             </div>
           </div>
