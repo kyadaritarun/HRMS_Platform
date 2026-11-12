@@ -178,6 +178,12 @@ router.get(
           status: payslip ? payslip.status : 'DRAFT',
           calculation: {
             ...calculated,
+            uanNumber: bank.uanNumber || (emp as any).uanNumber || '-',
+            pfNumber: bank.pfNumber || (emp as any).pfNumber || '-',
+            bankName: bank.bankName || calculated.bankName || '—',
+            accountNumber: bank.accountNumber || (calculated as any).accountNumber || calculated.accountNumberMasked || '—',
+            ifscCode: bank.ifscCode || '-',
+            branchName: bank.branchName || (emp as any).branchName || '-',
             grossSalary: calculated.grossEarnings,
             grossEarnings: calculated.grossEarnings,
             lopDays: calculated.totalLopDays,
@@ -421,6 +427,12 @@ router.post(
 
         const snapData = {
           ...calculated,
+          uanNumber: bank.uanNumber || (emp as any).uanNumber || '-',
+          pfNumber: bank.pfNumber || (emp as any).pfNumber || '-',
+          bankName: bank.bankName || calculated.bankName || '—',
+          accountNumber: bank.accountNumber || (calculated as any).accountNumber || calculated.accountNumberMasked || '—',
+          ifscCode: bank.ifscCode || '-',
+          branchName: bank.branchName || (emp as any).branchName || '-',
           grossSalary: calculated.grossEarnings,
           grossEarnings: calculated.grossEarnings,
           lopDays: calculated.totalLopDays,
@@ -638,6 +650,17 @@ router.get('/payslips/:id/pdf', async (req, res, next) => {
       return next(new AppError(400, 'NO_SNAPSHOT', 'Payslip snapshot data is missing'));
     }
 
+    const bank = (payslip.employee?.bankDetails as any) || {};
+    const enrichedSnapshot = {
+      ...snapshot,
+      uanNumber: snapshot.uanNumber || bank.uanNumber || '-',
+      pfNumber: snapshot.pfNumber || bank.pfNumber || '-',
+      bankName: snapshot.bankName || bank.bankName || '—',
+      accountNumber: snapshot.accountNumber || bank.accountNumber || '—',
+      ifscCode: snapshot.ifscCode || bank.ifscCode || '—',
+      branchName: snapshot.branchName || bank.branchName || '—',
+    };
+
     const payslipConfig = (payslip.company.settings as any)?.payslipConfig || {};
     const companyName = payslipConfig.companyName || payslip.company.name;
     const companyAddress = payslipConfig.companyAddress || payslip.company.address;
@@ -652,7 +675,7 @@ router.get('/payslips/:id/pdf', async (req, res, next) => {
       departmentName: payslip.employee.department?.name,
       month: payslip.month,
       year: payslip.year,
-      snapshot,
+      snapshot: enrichedSnapshot,
       customNote: payslipConfig.customNote,
     });
 

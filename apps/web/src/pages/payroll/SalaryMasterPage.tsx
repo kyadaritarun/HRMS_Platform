@@ -58,6 +58,9 @@ export const SalaryMasterPage: React.FC = () => {
     bankName: string;
     accountNumber: string;
     ifscCode: string;
+    branchName: string;
+    uanNumber: string;
+    pfNumber: string;
     panNumber: string;
     paymentMode: string;
     payeeName: string;
@@ -76,6 +79,9 @@ export const SalaryMasterPage: React.FC = () => {
     bankName: '',
     accountNumber: '',
     ifscCode: '',
+    branchName: '',
+    uanNumber: '',
+    pfNumber: '',
     panNumber: '',
     paymentMode: 'BANK_TRANSFER',
     payeeName: '',
@@ -141,6 +147,9 @@ export const SalaryMasterPage: React.FC = () => {
       bankName: bank.bankName || '',
       accountNumber: bank.accountNumber || '',
       ifscCode: bank.ifscCode || '',
+      branchName: bank.branchName || '',
+      uanNumber: bank.uanNumber || '',
+      pfNumber: bank.pfNumber || '',
       panNumber: bank.panNumber || '',
       paymentMode: bank.paymentMode || 'BANK_TRANSFER',
       payeeName: bank.payeeName || `${emp.firstName} ${emp.lastName}`.trim(),
@@ -227,6 +236,9 @@ export const SalaryMasterPage: React.FC = () => {
           bankName: editForm.bankName,
           accountNumber: editForm.accountNumber,
           ifscCode: editForm.ifscCode,
+          branchName: editForm.branchName,
+          uanNumber: editForm.uanNumber,
+          pfNumber: editForm.pfNumber,
           panNumber: editForm.panNumber,
           paymentMode: editForm.paymentMode,
           payeeName: editForm.payeeName,
@@ -969,15 +981,27 @@ export const SalaryMasterPage: React.FC = () => {
                         />
                       </div>
                     </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">PAN Number</label>
-                      <input
-                        type="text"
-                        placeholder="ABCDE1234F"
-                        value={editForm.panNumber}
-                        onChange={(e) => setEditForm({ ...editForm, panNumber: e.target.value.toUpperCase() })}
-                        className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 font-mono text-slate-800 font-medium uppercase"
-                      />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">Branch Name</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Indiranagar Branch"
+                          value={editForm.branchName}
+                          onChange={(e) => setEditForm({ ...editForm, branchName: e.target.value })}
+                          className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-800 font-medium"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">PAN Number</label>
+                        <input
+                          type="text"
+                          placeholder="ABCDE1234F"
+                          value={editForm.panNumber}
+                          onChange={(e) => setEditForm({ ...editForm, panNumber: e.target.value.toUpperCase() })}
+                          className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 font-mono text-slate-800 font-medium uppercase"
+                        />
+                      </div>
                     </div>
                   </>
                 )}
@@ -1039,6 +1063,36 @@ export const SalaryMasterPage: React.FC = () => {
                     </div>
                   </>
                 )}
+
+                {/* Statutory & EPFO Identifiers */}
+                <div className="pt-2 border-t border-slate-200/80">
+                  <div className="text-[11px] font-bold text-slate-700 mb-2 flex items-center gap-1.5">
+                    <IconReceipt2 className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Statutory &amp; EPFO Identifiers</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">UAN Number (EPFO)</label>
+                      <input
+                        type="text"
+                        placeholder="12-digit UAN (e.g. 101234567890)"
+                        value={editForm.uanNumber}
+                        onChange={(e) => setEditForm({ ...editForm, uanNumber: e.target.value })}
+                        className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 font-mono text-slate-800 font-medium"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">PF Number / Member ID</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. MH/BAN/0012345/000/0001234"
+                        value={editForm.pfNumber}
+                        onChange={(e) => setEditForm({ ...editForm, pfNumber: e.target.value })}
+                        className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 font-mono text-slate-800 font-medium"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">

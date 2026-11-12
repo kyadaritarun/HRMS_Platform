@@ -161,13 +161,31 @@ export const PayslipSheet: React.FC<PayslipSheetProps> = ({
     }
   }
 
-  const uanNumber = getSafeString(emp.uanNumber, '-');
+  const uanNumber = getSafeString(
+    (c as any)?.uanNumber || emp.uanNumber || (emp as any)?.bankDetails?.uanNumber,
+    '-'
+  );
 
-  const bankName = getSafeString(c.bankName || emp.bankName, '-');
-  const bankAccount = getSafeString(c.accountNumberMasked || emp.bankAccountMasked, '-');
-  const ifscCode = getSafeString((emp as any)?.ifscCode || (c as any)?.ifscCode, '-');
-  const branchName = getSafeString((emp as any)?.branchName, '-');
-  const pfNumber = getSafeString(emp.pfNumber, '-');
+  const bankName = getSafeString(
+    c.bankName || emp.bankName || (emp as any)?.bankDetails?.bankName,
+    '-'
+  );
+  const bankAccount = getSafeString(
+    c.accountNumberMasked || emp.bankAccountMasked || (emp as any)?.bankDetails?.accountNumber,
+    '-'
+  );
+  const ifscCode = getSafeString(
+    (c as any)?.ifscCode || (emp as any)?.ifscCode || (emp as any)?.bankDetails?.ifscCode,
+    '-'
+  );
+  const branchName = getSafeString(
+    (c as any)?.branchName || (emp as any)?.branchName || (emp as any)?.bankDetails?.branchName,
+    '-'
+  );
+  const pfNumber = getSafeString(
+    (c as any)?.pfNumber || emp.pfNumber || (emp as any)?.bankDetails?.pfNumber,
+    '-'
+  );
   const esicNumber = getSafeString((emp as any)?.esicNumber, '-');
 
   // Days Breakdown matching bottom box
