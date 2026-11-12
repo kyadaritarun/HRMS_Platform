@@ -174,7 +174,7 @@ export function generatePayslipPdf(data: {
       const snap = data.snapshot || {};
       const empLeft = [
         { label: 'Employee Name', val: data.employeeName || '-' },
-        { label: 'Code', val: data.employeeNumber || '-' },
+        { label: 'Employee ID', val: data.employeeNumber || '-' },
         { label: 'UAN Number', val: snap.uanNumber || '-' },
         { label: 'PF Number', val: snap.pfNumber || '-' },
       ];

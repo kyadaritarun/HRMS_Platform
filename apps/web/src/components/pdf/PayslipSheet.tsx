@@ -298,7 +298,7 @@ export const PayslipSheet: React.FC<PayslipSheetProps> = ({
                 </span>
               </div>
               <div className="flex items-center text-xs">
-                <span className="w-36 text-slate-700 font-medium shrink-0">Code</span>
+                <span className="w-36 text-slate-700 font-medium shrink-0">Employee ID</span>
                 <span className="w-4 text-slate-400 shrink-0 text-center">:</span>
                 <span className="text-slate-800 pl-1">{empCode}</span>
               </div>
