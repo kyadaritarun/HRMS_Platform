@@ -20,6 +20,7 @@ import {
   IconAlertTriangle,
   IconSettings,
   IconFileText,
+  IconX,
 } from '@tabler/icons-react';
 import { SettingsModal } from '../SettingsModal';
 import { TermsAndConditionsModal, PrivacyPolicyModal } from '../LegalModals';
@@ -191,7 +192,29 @@ export const AppLayout: React.FC = () => {
     }
   };
 
+  const handleClearAllNotifications = async () => {
+    try {
+      await api.delete('/notifications/clear-all');
+      setNotifications([]);
+    } catch (err) {
+      console.error('Failed to clear notifications:', err);
+    }
+  };
+
+  const handleClearSingleNotification = async (id: number, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    try {
+      await api.delete(`/notifications/${id}`);
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+    } catch (err) {
+      console.error('Failed to delete notification:', err);
+    }
+  };
+
   const handleNotificationClick = async (n: NotificationItem) => {
+    // Immediately close notifications drawer when any notification is clicked
+    setNotificationsOpen(false);
+
     try {
       if (!n.isRead) {
         await api.patch(`/notifications/${n.id}/read`);
@@ -200,7 +223,6 @@ export const AppLayout: React.FC = () => {
         );
       }
       if (n.url) {
-        setNotificationsOpen(false);
         navigate(n.url);
       }
     } catch (err) {
@@ -451,54 +473,90 @@ export const AppLayout: React.FC = () => {
 
               {/* Notifications Drawer */}
               {notificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 sm:w-88 bg-white rounded-2xl shadow-xl border border-slate-100 py-3 z-50 animate-in fade-in">
-                  <div className="px-4 pb-2 border-b border-slate-100 flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800">
-                      Notifications {unreadCount > 0 && `(${unreadCount} unread)`}
-                    </span>
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={handleMarkAllRead}
-                        className="text-[11px] font-semibold text-indigo-600 hover:underline cursor-pointer"
-                      >
-                        Mark all read
-                      </button>
-                    )}
-                  </div>
-                  <div className="divide-y divide-slate-50 max-h-72 overflow-y-auto">
-                    {notifications.length === 0 ? (
-                      <div className="py-8 text-center text-slate-500 font-medium text-xs">
-                        No notifications yet
+                <>
+                  {/* Invisible backdrop to close on click outside */}
+                  <div
+                    className="fixed inset-0 z-40 bg-transparent"
+                    onClick={() => setNotificationsOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-80 sm:w-92 bg-white rounded-2xl shadow-xl border border-slate-100 py-3 z-50 animate-in fade-in">
+                    <div className="px-4 pb-2.5 border-b border-slate-100 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-xs font-bold text-slate-800">
+                          Notifications
+                        </span>
+                        {unreadCount > 0 && (
+                          <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 shrink-0">
+                            {unreadCount} unread
+                          </span>
+                        )}
                       </div>
-                    ) : (
-                      notifications.map((n) => (
-                        <div
-                          key={n.id}
-                          onClick={() => handleNotificationClick(n)}
-                          className={`p-3 hover:bg-slate-50/80 transition-colors flex items-start gap-3 cursor-pointer ${
-                            !n.isRead ? 'bg-indigo-50/20' : ''
-                          }`}
-                        >
-                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                            !n.isRead ? 'bg-indigo-50 border border-indigo-100' : 'bg-slate-100'
-                          }`}>
-                            {renderNotificationIcon(n.kind)}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="text-xs font-semibold text-slate-800 flex items-center justify-between">
-                              <span className="truncate">{n.title}</span>
-                              {!n.isRead && (
-                                <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 shrink-0 ml-1.5"></span>
-                              )}
-                            </div>
-                            <div className="text-[11px] text-slate-500 font-medium line-clamp-2 mt-0.5">{n.message}</div>
-                            <div className="text-[10px] text-slate-500 font-medium mt-1">{formatNotificationTime(n.createdAt)}</div>
-                          </div>
+                      <div className="flex items-center gap-2.5 shrink-0">
+                        {unreadCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={handleMarkAllRead}
+                            className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
+                          >
+                            Mark all read
+                          </button>
+                        )}
+                        {notifications.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={handleClearAllNotifications}
+                            className="text-[11px] font-semibold text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
+                          >
+                            Clear all
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="divide-y divide-slate-50 max-h-72 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="py-8 text-center text-slate-400 font-medium text-xs">
+                          No notifications
                         </div>
-                      ))
-                    )}
+                      ) : (
+                        notifications.map((n) => (
+                          <div
+                            key={n.id}
+                            onClick={() => handleNotificationClick(n)}
+                            className={`p-3 hover:bg-slate-50/80 transition-colors flex items-start gap-3 cursor-pointer group ${
+                              !n.isRead ? 'bg-indigo-50/20' : ''
+                            }`}
+                          >
+                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                              !n.isRead ? 'bg-indigo-50 border border-indigo-100' : 'bg-slate-100'
+                            }`}>
+                              {renderNotificationIcon(n.kind)}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-xs font-semibold text-slate-800 flex items-center justify-between gap-1.5">
+                                <span className="truncate">{n.title}</span>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  {!n.isRead && (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleClearSingleNotification(n.id, e)}
+                                    className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-400 hover:text-rose-600 rounded transition-opacity"
+                                    title="Dismiss notification"
+                                  >
+                                    <IconX className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="text-[11px] text-slate-500 font-medium line-clamp-2 mt-0.5">{n.message}</div>
+                              <div className="text-[10px] text-slate-400 font-medium mt-1">{formatNotificationTime(n.createdAt)}</div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
-                </div>
+                </>
               )}
             </div>
 

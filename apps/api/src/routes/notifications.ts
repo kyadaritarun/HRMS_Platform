@@ -214,4 +214,37 @@ router.post('/read-all', async (req, res, next) => {
   }
 });
 
+// DELETE /notifications/clear-all
+router.delete('/clear-all', async (req, res, next) => {
+  try {
+    const userId = req.user!.id;
+
+    await prisma.notification.deleteMany({
+      where: { userId },
+    });
+
+    return res.json({ success: true, message: 'All notifications cleared' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// DELETE /notifications/:id
+router.delete('/:id', async (req, res, next) => {
+  try {
+    const userId = req.user!.id;
+    const id = Number(req.params.id);
+
+    if (id < 1000000) {
+      await prisma.notification.deleteMany({
+        where: { id, userId },
+      });
+    }
+
+    return res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

@@ -264,7 +264,7 @@ describe('Performance Goals - Cycles Dropdown UI Tests', () => {
     expect(screen.getByRole('columnheader', { name: 'Action' })).toBeInTheDocument();
 
     // Check Approval column content
-    expect(screen.getByText('Pending Manager Approval')).toBeInTheDocument();
+    expect(screen.getByText('Pending')).toBeInTheDocument();
     expect(screen.getByText('Jane Manager')).toBeInTheDocument();
 
     // Check Action button: View details

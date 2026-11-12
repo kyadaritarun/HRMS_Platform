@@ -616,7 +616,7 @@ export const PerformanceGoalsPage: React.FC = () => {
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                              <IconClock className="w-3.5 h-3.5" /> Pending Manager Approval
+                              <IconClock className="w-3.5 h-3.5" /> Pending
                             </span>
                           )}
                           <div className="text-[11px] text-slate-500 font-medium mt-1">
@@ -1169,7 +1169,7 @@ export const PerformanceGoalsPage: React.FC = () => {
                     <div>
                       <div className="text-xs font-bold capitalize">
                         {selectedGoalForView.status === 'PENDING'
-                          ? 'Pending Manager Approval'
+                          ? 'Pending'
                           : selectedGoalForView.status.toLowerCase()}
                       </div>
                       <div className="text-[11px] opacity-90 mt-0.5">
