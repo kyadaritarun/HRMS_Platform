@@ -653,6 +653,7 @@ router.get('/payslips/:id/pdf', async (req, res, next) => {
       month: payslip.month,
       year: payslip.year,
       snapshot,
+      customNote: payslipConfig.customNote,
     });
 
     res.setHeader('Content-Type', 'application/pdf');

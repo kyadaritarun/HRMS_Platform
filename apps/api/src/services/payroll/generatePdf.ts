@@ -103,6 +103,7 @@ export function generatePayslipPdf(data: {
   month: number;
   year: number;
   snapshot: PayslipSnapshotJson;
+  customNote?: string;
 }): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     try {
@@ -327,7 +328,7 @@ export function generatePayslipPdf(data: {
       // 6. Footer Disclaimer
       const footerY = netY + 38;
       doc.font('Helvetica-Oblique').fontSize(6.5).fillColor('#94A3B8').text(
-        'This is a computer generated payslip and does not require an authorized signature.',
+        data.customNote || 'This is a computer generated document and does not require an authorized signature.',
         leftX,
         footerY,
         { width: contentW, align: 'center' }
