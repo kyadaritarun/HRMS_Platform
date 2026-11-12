@@ -12,6 +12,7 @@ import {
   IconPhone,
   IconWorld,
   IconFileCertificate,
+  IconPrinter,
 } from '@tabler/icons-react';
 import { PayslipSheet, PayslipCustomConfig } from '../../components/pdf/PayslipSheet';
 import { PayslipData } from '../../components/pdf/PayslipPdfDrawer';
@@ -317,6 +318,16 @@ export const SalarySlipConfigPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={handlePrint}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs hover:border-slate-300 transition-colors cursor-pointer"
+            title="Print or export current preview"
+          >
+            <IconPrinter className="w-4 h-4 text-slate-500" />
+            <span>Print Preview</span>
+          </button>
+
           <button
             type="button"
             onClick={() => handleSave()}
