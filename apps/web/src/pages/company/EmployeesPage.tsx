@@ -863,7 +863,7 @@ export const EmployeesPage: React.FC = () => {
 
                       {/* Manager */}
                       <td className="px-5 py-3.5 whitespace-nowrap text-xs font-semibold text-slate-600">
-                        {emp.manager ? `${emp.manager.firstName} ${emp.manager.lastName}` : '—'}
+                        {emp.manager ? `${emp.manager.firstName || ''} ${emp.manager.lastName || ''}`.trim() || '—' : '—'}
                       </td>
 
                       {/* Actions */}
@@ -1072,7 +1072,7 @@ export const EmployeesPage: React.FC = () => {
                   <div>
                     <label className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Reports To</label>
                     <div className="font-bold text-slate-800 mt-1">
-                      {selectedEmp.manager ? `${selectedEmp.manager.firstName} ${selectedEmp.manager.lastName}` : 'Direct Report to CEO'}
+                      {selectedEmp.manager ? `${selectedEmp.manager.firstName || ''} ${selectedEmp.manager.lastName || ''}`.trim() || 'Direct Report to CEO' : 'Direct Report to CEO'}
                     </div>
                   </div>
                   <div className="col-span-2">

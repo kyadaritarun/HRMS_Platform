@@ -543,7 +543,7 @@ export const AppLayout: React.FC = () => {
                 onClick={() => setProfileOpen(!profileOpen)}
                 className="flex items-center gap-2.5 p-1 pl-1.5 rounded-xl hover:bg-slate-100/80 transition-colors cursor-pointer"
               >
-                <div className={`w-9 h-9 rounded-full ${getAvatarColor(user?.firstName ? `${user.firstName} ${user.lastName || ''}` : user?.email || 'User')} font-bold text-sm flex items-center justify-center shadow-xs shrink-0 overflow-hidden`}>
+                <div className={`w-9 h-9 rounded-full ${getAvatarColor(user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user?.email || 'User')} font-bold text-sm flex items-center justify-center shadow-xs shrink-0 overflow-hidden`}>
                   {user?.profilePhoto ? (
                     <img
                       src={
@@ -561,13 +561,17 @@ export const AppLayout: React.FC = () => {
                     />
                   ) : user?.firstName ? (
                     user.firstName[0].toUpperCase()
+                  ) : user?.email ? (
+                    user.email[0].toUpperCase()
                   ) : (
-                    'A'
+                    'U'
                   )}
                 </div>
                 <div className="hidden sm:block text-left">
                   <div className="text-xs font-bold text-slate-900 leading-tight">
-                    {user?.firstName || 'Apex'} {user?.lastName || 'Superadmin'}
+                    {user?.firstName
+                      ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}`
+                      : user?.lastName || user?.email || 'User'}
                   </div>
                   <div className="text-[11px] text-slate-500 font-medium leading-tight">
                     {user?.role === 'PRODUCT_SUPER_ADMIN'
