@@ -12,6 +12,7 @@ import { CreateEmployeeSchema, UpdateEmployeeSchema } from '../schemas/employee.
 import { logActivity } from '../services/activityLog.js';
 import { sendEmail } from '../lib/mailer.js';
 import { uploadProfileImage } from '../lib/storage.js';
+import { resolveLoginUrl, generateWelcomeCredentialsEmailHtml } from '../services/emailTemplates.js';
 import ExcelJS from 'exceljs';
 
 const router = Router();
@@ -308,68 +309,30 @@ router.post(
         message: `Created employee: ${user.firstName} ${user.lastName} (${user.email})`,
       });
 
-      // 8. Welcome Email
       // 8. Welcome Email with credentials & temp password
       try {
+        const loginUrl = resolveLoginUrl(req, company, user.email);
+        const recipientName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Employee';
+        const { subject, html } = generateWelcomeCredentialsEmailHtml({
+          recipientName,
+          email: user.email,
+          temporaryPassword: initialPassword,
+          companyName: company.name,
+          companyLogo: company.logo,
+          loginUrl,
+          roleTitle: 'Employee',
+          isResent: false,
+          mustChangePassword: !!mustChangePassword,
+        });
+
         await sendEmail({
           companyId,
           to: user.email,
           cc: user.personalEmail || undefined,
-          subject: `Welcome to ${company.name} — Your Workspace Login Credentials`,
-          html: `
-            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
-              <div style="text-align: center; margin-bottom: 24px;">
-                <h2 style="color: #5E4BE2; margin: 0; font-size: 22px;">Welcome to ${company.name}!</h2>
-                <p style="color: #64748b; font-size: 14px; margin-top: 6px;">Your employee workspace account has been created.</p>
-              </div>
-
-              <p style="color: #334155; font-size: 14px; line-height: 1.6;">
-                Hello <strong>${user.firstName} ${user.lastName}</strong>,
-              </p>
-              <p style="color: #334155; font-size: 14px; line-height: 1.6;">
-                An account has been provisioned for you on the <strong>${company.name}</strong> HRMS portal. You can sign in using your credentials below:
-              </p>
-
-              <div style="background-color: #f8fafc; padding: 18px; border-radius: 10px; border: 1px solid #cbd5e1; margin: 20px 0;">
-                <p style="margin: 6px 0; font-size: 14px; color: #475569;">
-                  <strong>Portal Login Link:</strong><br/>
-                  <a href="${process.env.APP_URL || 'http://localhost:5173'}/login" style="color: #5E4BE2; font-weight: bold; text-decoration: none;">${process.env.APP_URL || 'http://localhost:5173'}/login</a>
-                </p>
-                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #cbd5e1;">
-                  <p style="margin: 4px 0; font-size: 14px; color: #475569;">
-                    <strong>Work Email / User ID:</strong><br/>
-                    <span style="font-family: monospace; font-size: 15px; font-weight: bold; color: #0f172a;">${user.email}</span>
-                  </p>
-                  <p style="margin: 10px 0 4px 0; font-size: 14px; color: #475569;">
-                    <strong>Temporary Password:</strong><br/>
-                    <code style="display: inline-block; font-size: 16px; font-weight: bold; font-family: monospace; background-color: #ede9fe; color: #5b21b6; padding: 4px 10px; border-radius: 6px; margin-top: 4px; border: 1px solid #ddd6fe;">${initialPassword}</code>
-                  </p>
-                </div>
-              </div>
-
-              ${
-                mustChangePassword
-                  ? `
-                <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; margin-bottom: 20px; border-radius: 4px;">
-                  <p style="color: #b45309; font-size: 13px; margin: 0; line-height: 1.5;">
-                    <strong>Security Notice:</strong> Upon your first sign-in, you will be prompted to choose a new secure password before accessing your workspace.
-                  </p>
-                </div>
-              `
-                  : ''
-              }
-
-              <p style="color: #64748b; font-size: 13px; line-height: 1.5;">
-                If you have any questions or require assistance, please contact your HR or IT department.
-              </p>
-
-              <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0 16px 0;" />
-              <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">
-                This is an automated notification from ${company.name} • Uptrix HRMS Platform.
-              </p>
-            </div>
-          `,
+          subject,
+          html,
           category: 'ONBOARDING',
+          templateKey: 'EMPLOYEE_WELCOME',
         });
       } catch (mailErr) {
         console.error('Failed to send employee onboarding email:', mailErr);
@@ -751,42 +714,27 @@ router.post(
 
         // Dispatch welcome emails with login credentials & temp password
         for (const u of createdUsers) {
+          const loginUrl = resolveLoginUrl(req, company, u.email);
+          const recipientName = `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Employee';
+          const { subject, html } = generateWelcomeCredentialsEmailHtml({
+            recipientName,
+            email: u.email,
+            temporaryPassword: u.tempPassword,
+            companyName: company.name,
+            companyLogo: company.logo,
+            loginUrl,
+            roleTitle: 'Employee',
+            isResent: false,
+            mustChangePassword: true,
+          });
+
           sendEmail({
             companyId,
             to: u.email,
-            subject: `Welcome to ${company.name} — Your Workspace Login Credentials`,
-            html: `
-              <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
-                <div style="text-align: center; margin-bottom: 24px;">
-                  <h2 style="color: #5E4BE2; margin: 0; font-size: 22px;">Welcome to ${company.name}!</h2>
-                  <p style="color: #64748b; font-size: 14px; margin-top: 6px;">Your workspace account has been created.</p>
-                </div>
-                <p style="color: #334155; font-size: 14px;">Hello <strong>${u.firstName}</strong>,</p>
-                <p style="color: #334155; font-size: 14px;">Your account has been onboarded to <strong>${company.name}</strong> HRMS portal. Here are your initial login credentials:</p>
-                <div style="background-color: #f8fafc; padding: 18px; border-radius: 10px; border: 1px solid #cbd5e1; margin: 20px 0;">
-                  <p style="margin: 6px 0; font-size: 14px; color: #475569;">
-                    <strong>Portal Login URL:</strong><br/>
-                    <a href="${process.env.APP_URL || 'http://localhost:5173'}/login" style="color: #5E4BE2; font-weight: bold;">${process.env.APP_URL || 'http://localhost:5173'}/login</a>
-                  </p>
-                  <p style="margin: 10px 0 4px 0; font-size: 14px; color: #475569;">
-                    <strong>Work Email:</strong><br/>
-                    <span style="font-family: monospace; font-size: 15px; font-weight: bold; color: #0f172a;">${u.email}</span>
-                  </p>
-                  <p style="margin: 10px 0 4px 0; font-size: 14px; color: #475569;">
-                    <strong>Temporary Password:</strong><br/>
-                    <code style="display: inline-block; font-size: 16px; font-weight: bold; font-family: monospace; background-color: #ede9fe; color: #5b21b6; padding: 4px 10px; border-radius: 6px; margin-top: 4px;">${u.tempPassword}</code>
-                  </p>
-                </div>
-                <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; margin-bottom: 20px; border-radius: 4px;">
-                  <p style="color: #b45309; font-size: 13px; margin: 0;">
-                    <strong>Security Notice:</strong> You will be prompted to choose a new password upon your first sign-in.
-                  </p>
-                </div>
-                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0 16px 0;" />
-                <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">This is an automated notification from ${company.name} • Uptrix HRMS Platform.</p>
-              </div>
-            `,
+            subject,
+            html,
             category: 'ONBOARDING',
+            templateKey: 'EMPLOYEE_WELCOME_BULK',
           }).catch((err) => console.error(`Failed to send bulk onboarding email to ${u.email}:`, err));
         }
       }

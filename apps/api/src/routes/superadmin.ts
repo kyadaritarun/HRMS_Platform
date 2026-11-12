@@ -14,6 +14,11 @@ import {
 import { getRenewalsAndExpiring, getLicenseOveruseList, generateInvoiceNumber } from '../services/billing.js';
 import { upload } from '../lib/storage.js';
 import { sendEmail } from '../lib/mailer.js';
+import {
+  resolveLoginUrl,
+  generateWelcomeCredentialsEmailHtml,
+  generatePasswordResetNoticeEmailHtml,
+} from '../services/emailTemplates.js';
 import { sendPlanProposal, checkAndSendExpiryAlerts } from '../services/subscriptionBilling.js';
 import { createRazorpayPaymentLink } from '../lib/razorpay.js';
 import { getHelplineConfig, updateHelplineConfig } from '../services/helplineService.js';
@@ -732,35 +737,27 @@ router.post('/companies/:id/admin', async (req, res, next) => {
 
     // Send welcome email with login credentials to Company Admin
     try {
-      const portalUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`;
+      const loginUrl = resolveLoginUrl(req, company, user.email);
+      const recipientName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Administrator';
+      const { subject, html } = generateWelcomeCredentialsEmailHtml({
+        recipientName,
+        email: user.email,
+        temporaryPassword: tempPassword,
+        companyName: company.name,
+        companyLogo: company.logo,
+        loginUrl,
+        roleTitle: 'Company Administrator',
+        isResent: false,
+        mustChangePassword: true,
+      });
+
       await sendEmail({
         companyId,
         to: user.email,
-        subject: `Welcome to ${company.name} — Your Company Administrator Credentials`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
-            <div style="text-align: center; margin-bottom: 20px;">
-              <h2 style="color: #5E4BE2; margin: 0;">Welcome to ${company.name}</h2>
-              <p style="color: #64748b; font-size: 14px; margin-top: 4px;">Uptrix HRMS Workspace Administration</p>
-            </div>
-            <p style="color: #334155; font-size: 14px;">Hello <strong>${user.firstName || 'Administrator'}</strong>,</p>
-            <p style="color: #334155; font-size: 14px;">Your Company Administrator account for <strong>${company.name}</strong> has been created. Below are your initial login credentials:</p>
-            <div style="background-color: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #cbd5e1; margin: 20px 0; font-size: 14px;">
-              <p style="margin: 6px 0;"><strong>Workspace Login URL:</strong> <a href="${portalUrl}" style="color: #5E4BE2; font-weight: bold;">${portalUrl}</a></p>
-              <p style="margin: 6px 0;"><strong>Username / Email:</strong> <span style="font-family: monospace; font-weight: bold; color: #1e293b;">${user.email}</span></p>
-              <p style="margin: 6px 0;"><strong>Temporary Password:</strong> <code style="font-size: 15px; font-weight: bold; background: #ede9fe; color: #5b21b6; padding: 3px 8px; border-radius: 4px; font-family: monospace;">${tempPassword}</code></p>
-            </div>
-            <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px; margin-bottom: 20px; border-radius: 4px;">
-              <p style="color: #b45309; font-size: 13px; margin: 0;">
-                <strong>Security Notice:</strong> You will be required to change this temporary password upon your first login before accessing administrative modules.
-              </p>
-            </div>
-            <p style="color: #64748b; font-size: 13px;">If you have any questions, please reach out to your system administrator or support team.</p>
-            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-            <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">This is an automated notification from Uptrix Platform.</p>
-          </div>
-        `,
+        subject,
+        html,
         category: 'ONBOARDING',
+        templateKey: 'ADMIN_WELCOME',
       });
     } catch (mailErr) {
       console.error('Failed to send company admin welcome email:', mailErr);
@@ -966,30 +963,25 @@ router.post('/companies/:id/admins/:userId/reset-password', async (req, res, nex
 
     // Send reset email with new temporary password
     try {
+      const loginUrl = resolveLoginUrl(req, company, user.email);
+      const recipientName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Administrator';
+      const { subject, html } = generatePasswordResetNoticeEmailHtml({
+        recipientName,
+        email: user.email,
+        temporaryPassword: tempPassword,
+        companyName: company?.name || 'Uptrix HRMS',
+        companyLogo: company?.logo,
+        loginUrl,
+        roleTitle: 'Administrator',
+      });
+
       await sendEmail({
         companyId,
         to: user.email,
-        subject: `Password Reset — ${company?.name || 'Uptrix'} Administrator Account`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
-            <h2 style="color: #5E4BE2; margin: 0 0 12px 0;">Administrator Password Reset</h2>
-            <p style="color: #334155; font-size: 14px;">Hello <strong>${user.firstName || 'Administrator'}</strong>,</p>
-            <p style="color: #334155; font-size: 14px;">Your administrator account password for <strong>${company?.name || 'your company'}</strong> has been reset. Below are your temporary login details:</p>
-            <div style="background-color: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #cbd5e1; margin: 16px 0; font-size: 14px;">
-              <p style="margin: 6px 0;"><strong>Portal Login:</strong> <a href="${process.env.APP_URL || 'http://localhost:5173'}/login" style="color: #5E4BE2; font-weight: bold;">${process.env.APP_URL || 'http://localhost:5173'}/login</a></p>
-              <p style="margin: 6px 0;"><strong>Username / Email:</strong> <span style="font-family: monospace; font-weight: bold;">${user.email}</span></p>
-              <p style="margin: 6px 0;"><strong>New Temporary Password:</strong> <code style="font-size: 15px; font-weight: bold; background: #ede9fe; color: #5b21b6; padding: 3px 8px; border-radius: 4px; font-family: monospace;">${tempPassword}</code></p>
-            </div>
-            <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px; margin-bottom: 20px; border-radius: 4px;">
-              <p style="color: #b45309; font-size: 13px; margin: 0;">
-                <strong>Security Notice:</strong> You will be prompted to choose a new password on your next login.
-              </p>
-            </div>
-            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-            <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">This is an automated security notification from Uptrix Platform.</p>
-          </div>
-        `,
+        subject,
+        html,
         category: 'SECURITY',
+        templateKey: 'ADMIN_PASSWORD_RESET',
       });
     } catch (mailErr) {
       console.error('Failed to send admin reset email:', mailErr);

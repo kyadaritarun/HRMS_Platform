@@ -2,6 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import prisma from '../lib/prisma.js';
 import { sendEmail } from '../lib/mailer.js';
+import { resolveLoginUrl, generateWelcomeCredentialsEmailHtml } from '../services/emailTemplates.js';
 import { authMiddleware } from '../middlewares/auth.js';
 import { tenantMatchMiddleware } from '../middlewares/tenantMatch.js';
 import { policyComplianceMiddleware } from '../middlewares/policyCompliance.js';
@@ -1967,7 +1968,7 @@ router.post('/resend-credentials', roleGuard('COMPANY_ADMIN', 'HR'), async (req,
       }),
       prisma.company.findUnique({
         where: { id: companyId },
-        select: { id: true, name: true, subdomain: true },
+        select: { id: true, name: true, subdomain: true, logo: true, customDomain: true },
       }),
     ]);
 
@@ -1992,62 +1993,30 @@ router.post('/resend-credentials', roleGuard('COMPANY_ADMIN', 'HR'), async (req,
       },
     });
 
-    const appLoginUrl = process.env.APP_URL || 'http://localhost:5173/login';
+    const loginUrl = resolveLoginUrl(req, company, user.email);
+    const recipientName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Employee';
+    const { subject, html } = generateWelcomeCredentialsEmailHtml({
+      recipientName,
+      email: user.email,
+      temporaryPassword: tempPassword,
+      companyName: company.name,
+      companyLogo: company.logo,
+      loginUrl,
+      roleTitle: 'Employee',
+      isResent: true,
+      mustChangePassword: true,
+      expiresInHours: 72,
+    });
 
     // Dispatch welcome email with credentials
     await sendEmail({
       companyId,
       to: user.email,
       cc: user.personalEmail || undefined,
-      subject: `Welcome to ${company.name} — Your Workspace Login Credentials (Resent)`,
-      html: `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
-          <div style="text-align: center; margin-bottom: 24px;">
-            <h2 style="color: #5E4BE2; margin: 0; font-size: 22px;">Welcome to ${company.name}!</h2>
-            <p style="color: #64748b; font-size: 14px; margin-top: 6px;">Your workspace login credentials have been resent by administrator.</p>
-          </div>
-
-          <p style="color: #334155; font-size: 14px; line-height: 1.6;">
-            Hello <strong>${user.firstName} ${user.lastName}</strong>,
-          </p>
-          <p style="color: #334155; font-size: 14px; line-height: 1.6;">
-            Your login credentials for the <strong>${company.name}</strong> HRMS portal are provided below:
-          </p>
-
-          <div style="background-color: #f8fafc; padding: 18px; border-radius: 10px; border: 1px solid #cbd5e1; margin: 20px 0;">
-            <p style="margin: 6px 0; font-size: 14px; color: #475569;">
-              <strong>Portal Sign-in URL:</strong><br/>
-              <a href="${appLoginUrl}" style="color: #5E4BE2; font-weight: bold; text-decoration: none;">${appLoginUrl}</a>
-            </p>
-            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #cbd5e1;">
-              <p style="margin: 4px 0; font-size: 14px; color: #475569;">
-                <strong>Work Email / User ID:</strong><br/>
-                <span style="font-family: monospace; font-size: 15px; font-weight: bold; color: #0f172a;">${user.email}</span>
-              </p>
-              <p style="margin: 10px 0 4px 0; font-size: 14px; color: #475569;">
-                <strong>New Temporary Password:</strong><br/>
-                <code style="display: inline-block; font-size: 16px; font-weight: bold; font-family: monospace; background-color: #ede9fe; color: #5b21b6; padding: 4px 10px; border-radius: 6px; margin-top: 4px; border: 1px solid #ddd6fe;">${tempPassword}</code>
-              </p>
-            </div>
-          </div>
-
-          <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; margin-bottom: 20px; border-radius: 4px;">
-            <p style="color: #b45309; font-size: 13px; margin: 0; line-height: 1.5;">
-              <strong>Security Reminder:</strong> For your security, this temporary password will expire in 72 hours. You will be prompted to choose a new permanent password on your first sign-in.
-            </p>
-          </div>
-
-          <p style="color: #64748b; font-size: 13px; line-height: 1.5;">
-            If you did not request this email or need help logging in, please contact your company HR department.
-          </p>
-
-          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0 16px 0;" />
-          <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">
-            This is an automated notification from ${company.name} • Uptrix HRMS Platform.
-          </p>
-        </div>
-      `,
+      subject,
+      html,
       category: 'ONBOARDING',
+      templateKey: 'EMPLOYEE_CREDENTIALS_RESEND',
     });
 
     await logActivity({

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/client';
 import {
@@ -22,8 +22,17 @@ import {
 export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const [form, setForm] = useState({ login: '', password: '' });
+  const emailFromUrl = searchParams.get('email') || '';
+  const [form, setForm] = useState({ login: emailFromUrl, password: '' });
+
+  useEffect(() => {
+    const urlEmail = searchParams.get('email');
+    if (urlEmail && !form.login) {
+      setForm((prev) => ({ ...prev, login: urlEmail }));
+    }
+  }, [searchParams]);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
