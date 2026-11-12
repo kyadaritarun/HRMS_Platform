@@ -6,6 +6,14 @@ export const API_BASE_URL = normalizedApiUrl ? `${normalizedApiUrl}/api/v1` : '/
 
 export const getFileUrl = (path?: string | null): string => {
   if (!path) return '';
+  if (path.includes('.amazonaws.com/uploads/')) {
+    const filename = path.split('.amazonaws.com/uploads/')[1];
+    return normalizedApiUrl ? `${normalizedApiUrl}/uploads/${filename}` : `/uploads/${filename}`;
+  }
+  if (path.includes('.amazonaws.com/image/')) {
+    const filename = path.split('.amazonaws.com/image/')[1];
+    return normalizedApiUrl ? `${normalizedApiUrl}/image/${filename}` : `/image/${filename}`;
+  }
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
   return normalizedApiUrl ? `${normalizedApiUrl}${path.startsWith('/') ? '' : '/'}${path}` : path;
 };

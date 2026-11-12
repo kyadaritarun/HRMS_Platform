@@ -6,6 +6,7 @@ import { tenantMatchMiddleware } from '../middlewares/tenantMatch.js';
 import { policyComplianceMiddleware } from '../middlewares/policyCompliance.js';
 import { roleGuard } from '../middlewares/roleGuard.js';
 import { AppError } from '../middlewares/errorHandler.js';
+import { upload, uploadBufferToS3, isS3Configured } from '../lib/storage.js';
 
 export const referralsRouter = Router();
 
@@ -283,7 +284,7 @@ referralsRouter.get('/my', async (req, res, next) => {
 // Submit a new candidate referral
 // Accessible by: EMPLOYEE, MANAGER, HR, COMPANY_ADMIN
 // ----------------------------------------------------------------------------
-referralsRouter.post('/', async (req, res, next) => {
+referralsRouter.post('/', upload.single('resume'), async (req, res, next) => {
   try {
     await ensureTables();
     const companyId = req.user!.companyId!;
@@ -328,9 +329,35 @@ referralsRouter.post('/', async (req, res, next) => {
     const cleanEmail = email.trim().toLowerCase();
     const effectiveCity = city?.trim() || 'Pan-India';
 
+    // Handle AWS S3 upload for resume
+    let finalResumeUrl = effResumeUrl;
+    if (req.file) {
+      // Uploaded via multipart FormData directly to AWS S3
+      finalResumeUrl = `/uploads/${req.file.filename}`;
+    } else if (effResumeUrl.startsWith('data:') && isS3Configured()) {
+      // Sent as Base64 Data URI in JSON body: decode and upload to AWS S3
+      try {
+        const commaIndex = effResumeUrl.indexOf(',');
+        const header = effResumeUrl.substring(0, commaIndex);
+        const base64Data = effResumeUrl.substring(commaIndex + 1);
+        const mimeMatch = header.match(/:(.*?);/);
+        const mimeType = mimeMatch ? mimeMatch[1] : 'application/pdf';
+        const ext = mimeType.includes('word') ? '.docx' : mimeType.startsWith('image/') ? '.png' : '.pdf';
+        const candidateSlug = (effCandidateName || 'candidate').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+        const s3Key = `uploads/resumes/${candidateSlug}-${Date.now()}${ext}`;
+        const buffer = Buffer.from(base64Data, 'base64');
+        await uploadBufferToS3(buffer, s3Key, mimeType);
+        finalResumeUrl = `/${s3Key}`;
+      } catch (err) {
+        console.error('Failed to upload base64 resume to AWS S3:', err);
+      }
+    } else if (effResumeUrl.includes('.amazonaws.com/uploads/')) {
+      finalResumeUrl = `/uploads/${effResumeUrl.split('.amazonaws.com/uploads/')[1]}`;
+    }
+
     const notesParts: string[] = [];
     if (effJobId && effJobId !== 'JOB-REF') notesParts.push(`Job ID: ${effJobId}`);
-    if (effResumeUrl && !effResumeUrl.startsWith('data:')) notesParts.push(`Resume: ${effResumeUrl}`);
+    if (finalResumeUrl && !finalResumeUrl.startsWith('data:')) notesParts.push(`Resume: ${finalResumeUrl}`);
     if (companySize?.trim()) notesParts.push(`Team Size: ${companySize.trim()}`);
     if (notes?.trim()) notesParts.push(notes.trim());
     const combinedNotes = notesParts.length > 0 ? notesParts.join(' • ') : null;
@@ -349,7 +376,7 @@ referralsRouter.post('/', async (req, res, next) => {
           effCandidateName,
           effJobRole,
           effJobId,
-          effResumeUrl || null,
+          finalResumeUrl || null,
           effJobRole,
           effCandidateName,
           cleanMobile,

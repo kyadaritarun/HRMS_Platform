@@ -18,6 +18,7 @@ import api from '../../api/client';
 import TablePagination from '../../components/common/TablePagination';
 import { useAuth } from '../../context/AuthContext';
 import { ReferLeadModal } from '../../components/referrals/ReferLeadModal';
+import { ResumeViewerModal } from '../../components/referrals/ResumeViewerModal';
 
 // ----------------------------------------------------------------------------
 // HR Feedback Modal Dialog
@@ -27,6 +28,7 @@ interface HRFeedbackModalProps {
   onClose: () => void;
   referral: any | null;
   onSuccess: () => void;
+  onViewResume?: (url: string, name?: string, role?: string) => void;
 }
 
 const HRFeedbackModal: React.FC<HRFeedbackModalProps> = ({
@@ -34,6 +36,7 @@ const HRFeedbackModal: React.FC<HRFeedbackModalProps> = ({
   onClose,
   referral,
   onSuccess,
+  onViewResume,
 }) => {
   const [status, setStatus] = useState('SCREENING');
   const [feedback, setFeedback] = useState('');
@@ -134,15 +137,14 @@ const HRFeedbackModal: React.FC<HRFeedbackModalProps> = ({
                 {referral.resumeUrl && (
                   <div className="flex justify-between items-center pt-2 border-t border-slate-200/60">
                     <span className="text-slate-500 font-medium">Resume:</span>
-                    <a
-                      href={referral.resumeUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 font-bold text-indigo-600 hover:underline"
+                    <button
+                      type="button"
+                      onClick={() => onViewResume?.(referral.resumeUrl, employeeName, jobRole)}
+                      className="inline-flex items-center gap-1 font-bold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
                     >
                       <IconFileText className="w-3.5 h-3.5" />
                       <span>View Resume</span>
-                    </a>
+                    </button>
                   </div>
                 )}
               </div>
@@ -222,6 +224,20 @@ export const ReferEarnPage: React.FC = () => {
 
   const [isReferModalOpen, setIsReferModalOpen] = useState(false);
   const [selectedForFeedback, setSelectedForFeedback] = useState<any | null>(null);
+  const [viewingResume, setViewingResume] = useState<{
+    url: string;
+    name: string;
+    role?: string;
+  } | null>(null);
+
+  const handleOpenResume = (url: string, name?: string, role?: string) => {
+    if (!url) return;
+    setViewingResume({
+      url,
+      name: name || 'Candidate',
+      role,
+    });
+  };
 
   const [loading, setLoading] = useState(true);
   const [referrals, setReferrals] = useState<any[]>([]);
@@ -577,15 +593,20 @@ export const ReferEarnPage: React.FC = () => {
                           </td>
                           <td className="px-4 py-3.5">
                             {lead.resumeUrl ? (
-                              <a
-                                href={lead.resumeUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs border border-indigo-200 transition-colors"
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleOpenResume(
+                                    lead.resumeUrl,
+                                    lead.candidateName || lead.ownerName,
+                                    lead.jobRole || lead.businessName
+                                  )
+                                }
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs border border-indigo-200 transition-colors cursor-pointer"
                               >
                                 <IconFileText className="w-3.5 h-3.5" />
                                 <span>View Resume</span>
-                              </a>
+                              </button>
                             ) : (
                               <span className="text-slate-400 text-xs italic">No resume</span>
                             )}
@@ -657,15 +678,14 @@ export const ReferEarnPage: React.FC = () => {
                           </td>
                           <td className="px-4 py-3.5">
                             {r.resumeUrl ? (
-                              <a
-                                href={r.resumeUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs border border-indigo-200 transition-colors"
+                              <button
+                                type="button"
+                                onClick={() => handleOpenResume(r.resumeUrl, cName, jRole)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs border border-indigo-200 transition-colors cursor-pointer"
                               >
                                 <IconFileText className="w-3.5 h-3.5" />
                                 <span>View Resume</span>
-                              </a>
+                              </button>
                             ) : (
                               <span className="text-slate-400 text-xs italic">No resume</span>
                             )}
@@ -732,6 +752,16 @@ export const ReferEarnPage: React.FC = () => {
         referral={selectedForFeedback}
         onClose={() => setSelectedForFeedback(null)}
         onSuccess={fetchData}
+        onViewResume={handleOpenResume}
+      />
+
+      {/* Resume Viewer Modal */}
+      <ResumeViewerModal
+        isOpen={Boolean(viewingResume)}
+        onClose={() => setViewingResume(null)}
+        resumeUrl={viewingResume?.url || null}
+        candidateName={viewingResume?.name}
+        jobRole={viewingResume?.role}
       />
     </div>
   );
