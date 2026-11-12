@@ -143,7 +143,7 @@ export const SalarySlipConfigPage: React.FC = () => {
       const res = await api.put('/company/payslip-settings', config);
       if (res.data?.success) {
         setInitialConfig(config);
-        showToast('Salary slip configuration saved successfully!');
+        showToast('Payslip configuration saved successfully!');
       }
     } catch (err: any) {
       console.error('Failed to save settings:', err);
@@ -264,7 +264,7 @@ export const SalarySlipConfigPage: React.FC = () => {
   };
 
   return (
-    <div className="-mt-1.5 sm:-mt-2.5 space-y-5 pb-12">
+    <div className="-mt-1 sm:-mt-2 space-y-5 pb-12">
       {/* Scoped Print Styles */}
       <style>{`
         @media print {
@@ -310,7 +310,7 @@ export const SalarySlipConfigPage: React.FC = () => {
         <div>
           <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
             <IconReceipt2 className="w-5 h-5 text-indigo-600 shrink-0" />
-            <span>Salary Slip</span>
+            <span>Payslip Configuration</span>
           </h1>
           <p className="text-xs text-slate-500 font-medium mt-0.5">
             Configure company branding, automated releases, and live payslip template preview.
