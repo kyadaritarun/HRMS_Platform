@@ -38,10 +38,12 @@ interface RequestItem {
 }
 
 interface LeaveQuota {
+  id?: number;
   code: string;
   name: string;
   allowed: number;
   used: number;
+  remaining: number;
   badgeBg: string;
   badgeText: string;
   iconBg: string;
@@ -272,69 +274,70 @@ export const MyLeavesPage: React.FC = () => {
     }
   };
 
-  // Base 5 leave quota categories matching the design
-  const quotaCategories: LeaveQuota[] = [
-    {
-      code: 'CL',
-      name: 'Casual Leave',
-      allowed: 15,
-      used: 0,
-      badgeBg: 'bg-blue-100/80',
-      badgeText: 'text-blue-700',
-      iconBg: 'bg-blue-50',
-      iconColor: 'text-blue-500',
-      barColor: 'bg-blue-500',
-      type: 'calendar',
-    },
-    {
-      code: 'SL',
-      name: 'Sick Leave',
-      allowed: 15,
-      used: 0,
-      badgeBg: 'bg-emerald-100/80',
-      badgeText: 'text-emerald-700',
-      iconBg: 'bg-emerald-50',
-      iconColor: 'text-emerald-500',
-      barColor: 'bg-emerald-500',
-      type: 'medical',
-    },
-    {
-      code: 'EL',
-      name: 'Earned Leave',
-      allowed: 20,
-      used: 0,
-      badgeBg: 'bg-purple-100/80',
-      badgeText: 'text-purple-700',
-      iconBg: 'bg-purple-50',
-      iconColor: 'text-purple-500',
-      barColor: 'bg-[#8b5cf6]',
-      type: 'plane',
-    },
-    {
-      code: 'FH',
-      name: 'Floater Holiday',
-      allowed: 5,
-      used: 0,
-      badgeBg: 'bg-amber-100/80',
-      badgeText: 'text-amber-700',
-      iconBg: 'bg-amber-50',
-      iconColor: 'text-amber-500',
-      barColor: 'bg-amber-500',
-      type: 'sun',
-    },
-    {
-      code: 'CO',
-      name: 'Comp Off',
-      allowed: 5,
-      used: 0,
-      badgeBg: 'bg-rose-100/80',
-      badgeText: 'text-rose-700',
-      iconBg: 'bg-rose-50',
-      iconColor: 'text-rose-500',
-      barColor: 'bg-rose-400',
-      type: 'briefcase',
-    },
-  ];
+  // Dynamic leave quota styler based on code or name
+  const getLeaveQuotaStyle = (code: string, name: string, index: number) => {
+    const c = code?.toUpperCase() || '';
+    const n = name?.toLowerCase() || '';
+
+    if (c === 'CL' || n.includes('casual')) {
+      return {
+        badgeBg: 'bg-blue-100/80',
+        badgeText: 'text-blue-700',
+        iconBg: 'bg-blue-50',
+        iconColor: 'text-blue-500',
+        barColor: 'bg-blue-500',
+        type: 'calendar' as const,
+      };
+    }
+    if (c === 'SL' || n.includes('sick') || n.includes('medical')) {
+      return {
+        badgeBg: 'bg-emerald-100/80',
+        badgeText: 'text-emerald-700',
+        iconBg: 'bg-emerald-50',
+        iconColor: 'text-emerald-500',
+        barColor: 'bg-emerald-500',
+        type: 'medical' as const,
+      };
+    }
+    if (c === 'EL' || c === 'PL' || n.includes('earned') || n.includes('privilege') || n.includes('annual')) {
+      return {
+        badgeBg: 'bg-purple-100/80',
+        badgeText: 'text-purple-700',
+        iconBg: 'bg-purple-50',
+        iconColor: 'text-purple-500',
+        barColor: 'bg-[#8b5cf6]',
+        type: 'plane' as const,
+      };
+    }
+    if (c === 'FH' || n.includes('float') || n.includes('holiday')) {
+      return {
+        badgeBg: 'bg-amber-100/80',
+        badgeText: 'text-amber-700',
+        iconBg: 'bg-amber-50',
+        iconColor: 'text-amber-500',
+        barColor: 'bg-amber-500',
+        type: 'sun' as const,
+      };
+    }
+    if (c === 'CO' || n.includes('comp')) {
+      return {
+        badgeBg: 'bg-rose-100/80',
+        badgeText: 'text-rose-700',
+        iconBg: 'bg-rose-50',
+        iconColor: 'text-rose-500',
+        barColor: 'bg-rose-400',
+        type: 'briefcase' as const,
+      };
+    }
+
+    const palettes = [
+      { badgeBg: 'bg-indigo-100/80', badgeText: 'text-indigo-700', iconBg: 'bg-indigo-50', iconColor: 'text-indigo-500', barColor: 'bg-indigo-500', type: 'calendar' as const },
+      { badgeBg: 'bg-teal-100/80', badgeText: 'text-teal-700', iconBg: 'bg-teal-50', iconColor: 'text-teal-500', barColor: 'bg-teal-500', type: 'sun' as const },
+      { badgeBg: 'bg-cyan-100/80', badgeText: 'text-cyan-700', iconBg: 'bg-cyan-50', iconColor: 'text-cyan-500', barColor: 'bg-cyan-500', type: 'plane' as const },
+      { badgeBg: 'bg-pink-100/80', badgeText: 'text-pink-700', iconBg: 'bg-pink-50', iconColor: 'text-pink-500', barColor: 'bg-pink-500', type: 'briefcase' as const },
+    ];
+    return palettes[index % palettes.length];
+  };
 
   // Calculate live approved usage from requests
   const { approvedUsageByTypeId, approvedUsageByCode } = useMemo(() => {
@@ -358,44 +361,38 @@ export const MyLeavesPage: React.FC = () => {
     return { approvedUsageByTypeId: byId, approvedUsageByCode: byCode };
   }, [requests]);
 
-  // Dynamically map API types and real approved usage
-  const mappedQuotas = useMemo(() => {
-    return quotaCategories.map((base) => {
-      const apiType = leaveTypes.find(
-        (lt) =>
-          lt.code?.toUpperCase() === base.code ||
-          (base.code === 'EL' && lt.code?.toUpperCase() === 'PL') ||
-          (base.code === 'CO' && (lt.code?.toUpperCase() === 'CO' || lt.isCompOff)) ||
-          lt.name?.toLowerCase().includes(base.name.toLowerCase().split(' ')[0])
-      );
-
-      const allowed = apiType
-        ? Number(apiType.defaultAllocation ?? apiType.daysAllowed ?? base.allowed)
-        : base.allowed;
+  // Dynamically map from real company leave types configured by HR
+  const mappedQuotas = useMemo<LeaveQuota[]>(() => {
+    return leaveTypes.map((lt: any, index: number) => {
+      const code = (lt.code || `L${index + 1}`).toUpperCase();
+      const name = lt.name || 'Leave';
+      const allowed = Number(lt.defaultAllocation ?? lt.daysAllowed ?? 0);
 
       // Calculate approved used days
       let used = 0;
-      if (apiType?.id && approvedUsageByTypeId[apiType.id] !== undefined) {
-        used = approvedUsageByTypeId[apiType.id];
-      } else if (approvedUsageByCode[base.code] !== undefined) {
-        used = approvedUsageByCode[base.code];
-      } else if (base.code === 'EL' && approvedUsageByCode['PL'] !== undefined) {
-        used = approvedUsageByCode['PL'];
-      } else if (apiType?.used !== undefined) {
-        used = Number(apiType.used);
+      if (lt.id && approvedUsageByTypeId[lt.id] !== undefined) {
+        used = approvedUsageByTypeId[lt.id];
+      } else if (approvedUsageByCode[code] !== undefined) {
+        used = approvedUsageByCode[code];
+      } else if (lt.used !== undefined) {
+        used = Number(lt.used);
       }
 
       // Remaining balance: directly reflects allowed minus approved used
       const remaining = Math.max(0, allowed - used);
+      const style = getLeaveQuotaStyle(code, name, index);
 
       return {
-        ...base,
+        id: lt.id,
+        code,
+        name,
         allowed,
         used,
         remaining,
+        ...style,
       };
     });
-  }, [leaveTypes, requests, approvedUsageByTypeId, approvedUsageByCode]);
+  }, [leaveTypes, approvedUsageByTypeId, approvedUsageByCode]);
 
   // Filter requests
   const filteredRequests = requests.filter((req) => {
@@ -474,22 +471,39 @@ export const MyLeavesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Leave Quota Cards (5 Columns) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
-        {mappedQuotas.map((quota) => {
-          const percentage = quota.allowed > 0 ? (quota.used / quota.allowed) * 100 : 0;
-          const isCompOff = quota.code === 'CO';
-          return (
-            <div
-              key={quota.code}
-              onClick={() => {
-                if (isCompOff) {
-                  navigate('/comp-off');
-                }
-              }}
-              className={`bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col justify-between transition-all hover:border-slate-300 ${isCompOff ? 'cursor-pointer hover:border-indigo-300' : ''
-                }`}
-            >
+      {/* Leave Quota Cards */}
+      {mappedQuotas.length === 0 ? (
+        <div className="bg-white rounded-2xl p-6 border border-slate-200/80 text-center text-slate-500 text-xs shadow-2xs">
+          No leave categories have been configured by HR yet.
+        </div>
+      ) : (
+        <div
+          className={`grid grid-cols-1 sm:grid-cols-2 ${
+            mappedQuotas.length === 1
+              ? 'lg:grid-cols-1 max-w-sm'
+              : mappedQuotas.length === 2
+              ? 'lg:grid-cols-2 max-w-2xl'
+              : mappedQuotas.length === 3
+              ? 'lg:grid-cols-3'
+              : mappedQuotas.length === 4
+              ? 'lg:grid-cols-4'
+              : 'lg:grid-cols-5'
+          } gap-3.5`}
+        >
+          {mappedQuotas.map((quota) => {
+            const percentage = quota.allowed > 0 ? (quota.used / quota.allowed) * 100 : 0;
+            const isCompOff = quota.code === 'CO';
+            return (
+              <div
+                key={quota.code || quota.id}
+                onClick={() => {
+                  if (isCompOff) {
+                    navigate('/comp-off');
+                  }
+                }}
+                className={`bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col justify-between transition-all hover:border-slate-300 ${isCompOff ? 'cursor-pointer hover:border-indigo-300' : ''
+                  }`}
+              >
               <div>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -532,6 +546,7 @@ export const MyLeavesPage: React.FC = () => {
           );
         })}
       </div>
+      )}
 
       {/* Leave Applications History Card */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -786,45 +801,42 @@ export const MyLeavesPage: React.FC = () => {
                   )}
 
                   {/* Live Balance Summary Chips */}
-                  <div className="space-y-1.5">
-                    <span className="text-[11px] font-bold text-slate-500 block uppercase tracking-wider">
-                      Available Leave Balances
-                    </span>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {mappedQuotas.map((q) => {
-                        const matchedLt = leaveTypes.find(
-                          (lt) =>
-                            lt.code?.toUpperCase() === q.code ||
-                            lt.name?.toLowerCase().includes(q.name.toLowerCase().split(' ')[0])
-                        );
-                        const isSelected = String(matchedLt?.id) === form.leaveTypeId;
-                        return (
-                          <div
-                            key={q.code}
-                            onClick={() => {
-                              if (matchedLt) setForm((prev) => ({ ...prev, leaveTypeId: String(matchedLt.id) }));
-                            }}
-                            className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
-                              isSelected
-                                ? 'bg-indigo-50/70 border-[#5E4BE2] ring-1 ring-[#5E4BE2]/30 shadow-2xs'
-                                : 'bg-slate-50 border-slate-200/80 hover:bg-white hover:border-slate-300'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold text-slate-800">{q.name}</span>
-                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white border border-slate-200 text-slate-600">
-                                {q.code}
-                              </span>
+                  {mappedQuotas.length > 0 && (
+                    <div className="space-y-1.5">
+                      <span className="text-[11px] font-bold text-slate-500 block uppercase tracking-wider">
+                        Available Leave Balances
+                      </span>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {mappedQuotas.map((q) => {
+                          const isSelected = String(q.id) === form.leaveTypeId;
+                          return (
+                            <div
+                              key={q.code || q.id}
+                              onClick={() => {
+                                if (q.id) setForm((prev) => ({ ...prev, leaveTypeId: String(q.id) }));
+                              }}
+                              className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                                isSelected
+                                  ? 'bg-indigo-50/70 border-[#5E4BE2] ring-1 ring-[#5E4BE2]/30 shadow-2xs'
+                                  : 'bg-slate-50 border-slate-200/80 hover:bg-white hover:border-slate-300'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-slate-800">{q.name}</span>
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white border border-slate-200 text-slate-600">
+                                  {q.code}
+                                </span>
+                              </div>
+                              <div className="text-sm font-black text-[#5E4BE2] mt-1">
+                                {q.remaining}{' '}
+                                <span className="text-[11px] font-semibold text-slate-500 font-sans">left</span>
+                              </div>
                             </div>
-                            <div className="text-sm font-black text-[#5E4BE2] mt-1">
-                              {q.remaining}{' '}
-                              <span className="text-[11px] font-semibold text-slate-500 font-sans">left</span>
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1.5">
@@ -837,27 +849,13 @@ export const MyLeavesPage: React.FC = () => {
                       className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800 cursor-pointer"
                     >
                       <option value="">Select leave category</option>
-                      {leaveTypes.map((lt) => {
-                        const q = mappedQuotas.find(
-                          (mq) =>
-                            mq.code === lt.code?.toUpperCase() ||
-                            lt.name?.toLowerCase().includes(mq.name.toLowerCase().split(' ')[0])
-                        );
-                        return (
-                          <option key={lt.id} value={lt.id}>
-                            {lt.name} {q ? `(${q.remaining} remaining)` : ''}
-                          </option>
-                        );
-                      })}
-                      {/* Fallbacks if leaveTypes empty */}
-                      {leaveTypes.length === 0 && (
-                        <>
-                          <option value="1">Casual Leave (15 remaining)</option>
-                          <option value="2">Sick Leave (15 remaining)</option>
-                          <option value="3">Earned Leave (20 remaining)</option>
-                          <option value="4">Floater Holiday (5 remaining)</option>
-                          <option value="5">Comp Off (5 remaining)</option>
-                        </>
+                      {mappedQuotas.map((q) => (
+                        <option key={q.id || q.code} value={q.id}>
+                          {q.name} ({q.remaining} remaining)
+                        </option>
+                      ))}
+                      {mappedQuotas.length === 0 && (
+                        <option value="" disabled>No leave categories configured by HR</option>
                       )}
                     </select>
                   </div>

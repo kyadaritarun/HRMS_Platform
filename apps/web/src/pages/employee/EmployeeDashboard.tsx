@@ -886,14 +886,16 @@ export const EmployeeDashboard: React.FC = () => {
 
       // 1. Leave Balances
       const userBalances = empRes.data?.employee?.leaveBalances;
-      const companyTypes = typesRes.data?.leaveTypes || [];
+      const companyTypes: any[] = typesRes.data?.leaveTypes || [];
 
-      if (Array.isArray(userBalances) && userBalances.length > 0) {
-        const mapped = userBalances.map((b: any) => {
-          const lt = b.leaveType || {};
+      if (companyTypes.length > 0) {
+        const mapped = companyTypes.map((lt: any) => {
           const style = getLeaveStyle(lt.code || '', lt.name || '');
           const maxVal = Number(lt.defaultAllocation || 20) || 1;
-          const bal = Math.min(Number(b.balance ?? 0), maxVal);
+          const ub = Array.isArray(userBalances)
+            ? userBalances.find((b: any) => b.leaveTypeId === lt.id || b.leaveType?.id === lt.id)
+            : null;
+          const bal = ub ? Math.min(Number(ub.balance ?? 0), maxVal) : (lt.balance !== undefined ? Number(lt.balance) : maxVal);
           return {
             code: lt.code || 'LV',
             name: lt.name || 'Leave',
@@ -903,25 +905,8 @@ export const EmployeeDashboard: React.FC = () => {
           };
         });
         setLeaveBalances(mapped);
-      } else if (companyTypes.length > 0) {
-        const mapped = companyTypes.map((lt: any) => {
-          const style = getLeaveStyle(lt.code || '', lt.name || '');
-          const alloc = Number(lt.defaultAllocation || 20);
-          return {
-            code: lt.code || 'LV',
-            name: lt.name || 'Leave',
-            balance: alloc,
-            max: alloc,
-            ...style,
-          };
-        });
-        setLeaveBalances(mapped);
       } else {
-        setLeaveBalances([
-          { code: 'CL', name: 'Casual Leave', balance: 12, max: 20, ...getLeaveStyle('CL', 'Casual Leave') },
-          { code: 'SL', name: 'Sick Leave', balance: 10, max: 20, ...getLeaveStyle('SL', 'Sick Leave') },
-          { code: 'PL', name: 'Privilege Leave', balance: 18, max: 18, ...getLeaveStyle('PL', 'Privilege Leave') },
-        ]);
+        setLeaveBalances([]);
       }
 
       // 2. Real Upcoming Holidays
