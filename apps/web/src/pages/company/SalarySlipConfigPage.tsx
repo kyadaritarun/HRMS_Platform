@@ -14,6 +14,7 @@ import {
   IconPhone,
   IconWorld,
   IconFileCertificate,
+  IconEye,
 } from '@tabler/icons-react';
 import { PayslipSheet, PayslipCustomConfig } from '../../components/pdf/PayslipSheet';
 import { PayslipData } from '../../components/pdf/PayslipPdfDrawer';
@@ -306,30 +307,23 @@ export const SalarySlipConfigPage: React.FC = () => {
         </div>
       )}
 
-      {/* Header Bar */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+      {/* Top Banner (Hero Banner matching other company pages) */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
-            <span>HR Operations</span>
-            <span>/</span>
-            <span className="text-[#5E4BE2]">Salary Slip</span>
-          </div>
-          <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-indigo-50 text-[#5E4BE2] border border-indigo-100">
-              <IconReceipt2 className="w-5 h-5" />
-            </div>
-            Salary Slip Configuration &amp; Template
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <IconReceipt2 className="w-5 h-5 text-indigo-600 shrink-0" />
+            <span>Salary Slip</span>
           </h1>
-          <p className="text-xs text-slate-500 font-medium mt-1">
-            Customize company header details, branding, automated releases, and review real-time employee payslips in the project's official format.
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
+            Configure company branding, automated releases, and live payslip template preview.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 shrink-0">
           <button
             type="button"
             onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-xs hover:border-slate-300 transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs hover:border-slate-300 transition-colors cursor-pointer"
             title="Print or export current preview"
           >
             <IconPrinter className="w-4 h-4 text-slate-500" />
@@ -340,7 +334,7 @@ export const SalarySlipConfigPage: React.FC = () => {
             type="button"
             onClick={() => handleSave()}
             disabled={isSaving}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white text-xs font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer disabled:opacity-50"
           >
             <IconDeviceFloppy className="w-4 h-4" />
             <span>{isSaving ? 'Saving...' : 'Save Settings'}</span>
@@ -350,276 +344,218 @@ export const SalarySlipConfigPage: React.FC = () => {
 
       {/* Main Two-Column Layout */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Settings & Customization Form (4 Cols on xl) */}
-        <div className="xl:col-span-4 space-y-5">
-          <form onSubmit={handleSave} className="space-y-5">
-            {/* 1. Company Branding Card */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <IconBuildingSkyscraper className="w-4 h-4 text-[#5E4BE2]" />
-                  <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                    Company Header &amp; Branding
-                  </h3>
-                </div>
-                <span className="text-[10px] font-bold text-slate-400">Step 1</span>
+        {/* Left Column: Settings Form */}
+        <div className="xl:col-span-4 space-y-4">
+          <form onSubmit={handleSave} className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+              <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                <IconBuildingSkyscraper className="w-5 h-5" />
               </div>
-
-              {/* Logo Upload Field */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Company Logo
-                </label>
-                <div className="flex items-center gap-3">
-                  <div className="w-16 h-16 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
-                    {config.logoUrl ? (
-                      <img
-                        src={config.logoUrl}
-                        alt="Company Logo"
-                        className="w-full h-full object-contain p-1"
-                      />
-                    ) : (
-                      <IconBuildingSkyscraper className="w-6 h-6 text-slate-400" />
-                    )}
-                  </div>
-                  <div className="flex-1 space-y-1.5">
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleLogoUpload}
-                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                      className="hidden"
-                      id="payslip-logo-input"
-                    />
-                    <div className="flex items-center gap-2">
-                      <label
-                        htmlFor="payslip-logo-input"
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold cursor-pointer transition-colors ${
-                          isUploadingLogo ? 'opacity-50 pointer-events-none' : ''
-                        }`}
-                      >
-                        <IconUpload className="w-3.5 h-3.5 text-slate-500" />
-                        <span>{isUploadingLogo ? 'Uploading...' : 'Choose File'}</span>
-                      </label>
-                      {config.logoUrl && (
-                        <button
-                          type="button"
-                          onClick={() => setConfig((prev) => ({ ...prev, logoUrl: '' }))}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold cursor-pointer transition-colors"
-                        >
-                          <IconTrash className="w-3.5 h-3.5" />
-                          <span>Remove</span>
-                        </button>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-slate-400">
-                      PNG, JPG, or SVG up to 5MB. Rendered directly on the company header.
-                    </p>
-                  </div>
-                </div>
+                <h2 className="text-sm font-bold text-slate-900">Payslip Settings</h2>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  Company branding &amp; release configuration
+                </p>
               </div>
+            </div>
 
-              {/* Company Name */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Name <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={config.companyName || ''}
-                  onChange={(e) => setConfig((prev) => ({ ...prev, companyName: e.target.value }))}
-                  placeholder="e.g. WhiteScholars EduFutures Academy Private Limited"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all"
-                  required
-                />
-              </div>
-
-              {/* Company Address */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Address <span className="text-rose-500">*</span>
-                </label>
-                <textarea
-                  value={config.companyAddress || ''}
-                  onChange={(e) => setConfig((prev) => ({ ...prev, companyAddress: e.target.value }))}
-                  placeholder="e.g. 5th Floor, Aero Hamd Building, Above HDFC Bank, Kukatpally, Hyderabad 500 072"
-                  rows={2}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all resize-none"
-                  required
-                />
-              </div>
-
-              {/* Contact */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Contact <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <IconPhone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            {/* Logo */}
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Logo</label>
+              <div className="flex items-center gap-2">
+                <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium cursor-pointer shadow-2xs transition-colors">
+                  <IconUpload className="w-3.5 h-3.5 text-slate-500" />
+                  <span>{isUploadingLogo ? 'Uploading...' : 'Choose File'}</span>
                   <input
-                    type="text"
-                    value={config.contact || ''}
-                    onChange={(e) => setConfig((prev) => ({ ...prev, contact: e.target.value }))}
-                    placeholder="e.g. +91 98765 43210 / 040-2345678"
-                    className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all"
-                    required
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleLogoUpload}
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    className="hidden"
                   />
-                </div>
-              </div>
-
-              {/* Website / Email */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Website / Email
                 </label>
-                <div className="relative">
-                  <IconWorld className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                  <input
-                    type="text"
-                    value={config.websiteOrEmail || ''}
-                    onChange={(e) => setConfig((prev) => ({ ...prev, websiteOrEmail: e.target.value }))}
-                    placeholder="e.g. info@whitescholars.com / www.whitescholars.com"
-                    className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all"
-                  />
-                </div>
+                <span className="text-xs text-slate-500 truncate max-w-[150px]">
+                  {config.logoUrl ? 'Logo uploaded' : 'No file chosen'}
+                </span>
+                {config.logoUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setConfig((prev) => ({ ...prev, logoUrl: '' }))}
+                    className="text-xs text-rose-600 hover:text-rose-700 font-semibold cursor-pointer ml-auto"
+                  >
+                    Remove
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* 2. Display Toggles Card */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <IconReceipt2 className="w-4 h-4 text-[#5E4BE2]" />
-                  <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                    Payslip Toggles &amp; Rules
-                  </h3>
-                </div>
-                <span className="text-[10px] font-bold text-slate-400">Step 2</span>
-              </div>
-
-              {/* Toggle 1: Auto Release Payslip */}
-              <div className="flex items-center justify-between py-1">
-                <div>
-                  <span className="text-xs font-bold text-slate-800">Auto Release Payslip</span>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    Automatically publish and make slips visible to employees once finalized.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setConfig((prev) => ({ ...prev, autoReleasePayslip: !prev.autoReleasePayslip }))}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    config.autoReleasePayslip ? 'bg-[#5E4BE2]' : 'bg-slate-200'
-                  }`}
-                  role="switch"
-                  aria-checked={config.autoReleasePayslip}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                      config.autoReleasePayslip ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              <div className="h-px bg-slate-100" />
-
-              {/* Toggle 2: Show Attendance Breakdown */}
-              <div className="flex items-center justify-between py-1">
-                <div>
-                  <span className="text-xs font-bold text-slate-800">Show Attendance Summary</span>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    Display worked days, weekly offs, holidays, paid leaves, and unpaid LOP days.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setConfig((prev) => ({ ...prev, showAttendanceSummary: !prev.showAttendanceSummary }))}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    config.showAttendanceSummary ? 'bg-[#5E4BE2]' : 'bg-slate-200'
-                  }`}
-                  role="switch"
-                  aria-checked={config.showAttendanceSummary}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                      config.showAttendanceSummary ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </div>
+            {/* Name */}
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">
+                Name <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={config.companyName || ''}
+                onChange={(e) => setConfig((prev) => ({ ...prev, companyName: e.target.value }))}
+                placeholder="Company Name"
+                className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-800 placeholder-slate-400 font-medium shadow-2xs"
+                required
+              />
             </div>
 
-            {/* 3. Custom Disclaimer Note Card */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <IconFileCertificate className="w-4 h-4 text-[#5E4BE2]" />
-                  <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                    Footer Note / Disclaimer
-                  </h3>
-                </div>
-                <span className="text-[10px] font-bold text-slate-400">Step 3</span>
-              </div>
+            {/* Address */}
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">
+                Address <span className="text-rose-500">*</span>
+              </label>
+              <textarea
+                value={config.companyAddress || ''}
+                onChange={(e) => setConfig((prev) => ({ ...prev, companyAddress: e.target.value }))}
+                placeholder="Company Address"
+                rows={3}
+                className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-800 placeholder-slate-400 font-medium shadow-2xs resize-none"
+                required
+              />
+            </div>
 
+            {/* Contact */}
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">
+                Contact <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={config.contact || ''}
+                onChange={(e) => setConfig((prev) => ({ ...prev, contact: e.target.value }))}
+                placeholder="Contact Number / Desk"
+                className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-800 placeholder-slate-400 font-medium shadow-2xs"
+                required
+              />
+            </div>
+
+            {/* Website / Email */}
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">
+                Website / Email
+              </label>
+              <input
+                type="text"
+                value={config.websiteOrEmail || ''}
+                onChange={(e) => setConfig((prev) => ({ ...prev, websiteOrEmail: e.target.value }))}
+                placeholder="e.g. info@company.com / www.company.com"
+                className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-800 placeholder-slate-400 font-medium shadow-2xs"
+              />
+            </div>
+
+            <div className="h-px bg-slate-100" />
+
+            {/* Auto Release Payslip */}
+            <div className="flex items-center justify-between py-1">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Custom Legal Disclaimer / Note
-                </label>
-                <textarea
-                  value={config.customNote || ''}
-                  onChange={(e) => setConfig((prev) => ({ ...prev, customNote: e.target.value }))}
-                  placeholder="e.g. This is a computer generated payslip and does not require an authorized signature."
-                  rows={2}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all resize-none"
+                <span className="text-xs font-semibold text-slate-800 block">Auto Release Payslip</span>
+                <p className="text-[11px] text-slate-500 font-normal">
+                  Automatically publish slips to staff once finalized.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConfig((prev) => ({ ...prev, autoReleasePayslip: !prev.autoReleasePayslip }))}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  config.autoReleasePayslip ? 'bg-[#5E4BE2]' : 'bg-slate-200'
+                }`}
+                role="switch"
+                aria-checked={config.autoReleasePayslip}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                    config.autoReleasePayslip ? 'translate-x-5' : 'translate-x-0'
+                  }`}
                 />
-              </div>
+              </button>
             </div>
 
-            {/* Bottom Actions */}
-            <div className="flex items-center justify-between gap-3 pt-2">
+            <div className="h-px bg-slate-100" />
+
+            {/* Show Attendance Summary */}
+            <div className="flex items-center justify-between py-1">
+              <div>
+                <span className="text-xs font-semibold text-slate-800 block">Show Attendance Summary</span>
+                <p className="text-[11px] text-slate-500 font-normal">
+                  Display worked days, weekly offs, and leave breakdown.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConfig((prev) => ({ ...prev, showAttendanceSummary: !prev.showAttendanceSummary }))}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  config.showAttendanceSummary ? 'bg-[#5E4BE2]' : 'bg-slate-200'
+                }`}
+                role="switch"
+                aria-checked={config.showAttendanceSummary}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                    config.showAttendanceSummary ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+
+            <div className="h-px bg-slate-100" />
+
+            {/* Custom Disclaimer Note */}
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">
+                Footer Disclaimer Note
+              </label>
+              <textarea
+                value={config.customNote || ''}
+                onChange={(e) => setConfig((prev) => ({ ...prev, customNote: e.target.value }))}
+                placeholder="e.g. This is a computer generated document and does not require an authorized signature."
+                rows={2}
+                className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-800 placeholder-slate-400 font-medium shadow-2xs resize-none"
+              />
+            </div>
+
+            {/* Form Footer Action Buttons */}
+            <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-100">
               <button
                 type="button"
                 onClick={handleReset}
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-semibold transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
               >
-                <IconRefresh className="w-4 h-4 text-slate-400" />
-                <span>Reset Changes</span>
+                <IconRefresh className="w-3.5 h-3.5 text-slate-400" />
+                <span>Reset</span>
               </button>
 
               <button
                 type="submit"
                 disabled={isSaving}
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white text-xs font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer disabled:opacity-50"
               >
                 <IconDeviceFloppy className="w-4 h-4" />
-                <span>{isSaving ? 'Saving Changes...' : 'Save Configuration'}</span>
+                <span>{isSaving ? 'Saving...' : 'Save Configuration'}</span>
               </button>
             </div>
           </form>
         </div>
 
-        {/* Right Column: Live Interactive Payslip Preview (8 Cols on xl) */}
-        <div className="xl:col-span-8 space-y-4">
-          {/* Preview Controls Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-            <div className="flex items-center gap-2">
-              <span className="flex h-2.5 w-2.5 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-              </span>
-              <span className="text-xs font-bold text-slate-800">Official Project Payslip Preview</span>
-              <span className="text-[10px] font-semibold text-slate-400 hidden sm:inline">
-                (100% matched with in-app view &amp; PDF)
-              </span>
-            </div>
+        {/* Right Column: Live Interactive Payslip Preview */}
+        <div className="xl:col-span-8 space-y-3">
+          {/* Header Toolbar */}
+          <div className="flex items-center justify-between px-1 print:hidden flex-wrap gap-2">
+            <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <IconEye className="w-4 h-4 text-indigo-600" />
+              <span>Live Payslip Template</span>
+            </span>
 
             <div className="flex items-center gap-2">
-              <label className="text-[11px] font-bold text-slate-500">Preview Staff:</label>
+              <label className="text-xs font-semibold text-slate-500">Preview with:</label>
               <select
                 value={selectedEmployeeId}
                 onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#5E4BE2]/20 cursor-pointer"
+                className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 focus:outline-hidden focus:border-indigo-500 cursor-pointer shadow-2xs"
               >
                 <option value="sample">Sample: Rahul Sharma</option>
                 {employees.map((emp) => (
@@ -631,15 +567,13 @@ export const SalarySlipConfigPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Official Project Payslip Document Sheet */}
-          <div className="w-full bg-slate-200/60 p-4 sm:p-6 rounded-2xl border border-slate-300/80 overflow-x-auto shadow-inner">
-            <div className="min-w-[760px] flex justify-center">
-              <PayslipSheet
-                payslip={previewPayslipData}
-                company={company}
-                customConfig={config}
-              />
-            </div>
+          {/* Paper Container */}
+          <div className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4 sm:p-6 overflow-x-auto shadow-2xs flex justify-center">
+            <PayslipSheet
+              payslip={previewPayslipData}
+              company={company}
+              customConfig={config}
+            />
           </div>
         </div>
       </div>

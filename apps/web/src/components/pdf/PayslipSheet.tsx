@@ -238,7 +238,7 @@ export const PayslipSheet: React.FC<PayslipSheetProps> = ({
   return (
     <div
       id="printable-payslip-sheet"
-      className={`bg-white rounded-2xl shadow-xl border border-slate-200/90 p-6 sm:p-10 w-full min-w-[700px] max-w-[860px] text-slate-900 font-sans text-xs flex flex-col justify-between space-y-6 ${className}`}
+      className={`bg-white rounded-2xl shadow-sm border border-slate-200/90 p-6 sm:p-10 w-full min-w-[700px] max-w-[860px] text-slate-900 font-sans text-xs flex flex-col justify-between space-y-6 ${className}`}
       style={{ minHeight: '850px' }}
     >
       <div className="space-y-6">
