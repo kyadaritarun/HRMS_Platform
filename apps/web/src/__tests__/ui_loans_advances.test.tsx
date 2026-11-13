@@ -181,4 +181,50 @@ describe('Loans & Salary Advances Page UI Tests', () => {
       expect(screen.queryByText('Reject Advance Request')).not.toBeInTheDocument();
     });
   });
+
+  it('5. Renders rejection feedback in the table row and opens details drawer on click', async () => {
+    const rejectedLoans = [
+      {
+        id: 'LN-2026-103',
+        employeeId: 10,
+        employeeName: 'Raju Kali',
+        employeeEmail: 'raju@uptrix.test',
+        department: 'IT Tickets',
+        type: 'EMERGENCY_ADVANCE',
+        principalAmount: 30000,
+        tenureMonths: 3,
+        monthlyEmi: 10000,
+        totalRepaid: 0,
+        balanceRemaining: 30000,
+        reason: 'Hospital emergency',
+        status: 'REJECTED',
+        appliedDate: '2026-10-01',
+        rejectionReason: 'Exceeds permissible advance limit of 50% net salary',
+      },
+    ];
+
+    (api.get as any).mockImplementation((url: string) => {
+      if (url === '/payroll/loans') {
+        return Promise.resolve({ data: { loans: rejectedLoans } });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    render(<LoansAdvancesPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('LN-2026-103')).toBeInTheDocument();
+    });
+
+    // Feedback should be visible in the table row
+    const feedbackBadge = screen.getByText(/Exceeds permissible advance limit of 50% net salary/);
+    expect(feedbackBadge).toBeInTheDocument();
+
+    // Clicking feedback badge opens the details drawer
+    fireEvent.click(feedbackBadge);
+
+    expect(screen.getByText('Loan & Advance Details')).toBeInTheDocument();
+    expect(screen.getByText('Rejection Feedback from Finance Team')).toBeInTheDocument();
+    expect(screen.getByText('Reference: LN-2026-103')).toBeInTheDocument();
+  });
 });

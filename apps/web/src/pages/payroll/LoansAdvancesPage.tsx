@@ -19,6 +19,7 @@ import {
   IconUser,
   IconCalendar,
   IconChevronDown,
+  IconMessageDots,
 } from '@tabler/icons-react';
 
 export interface LoanRecord {
@@ -73,6 +74,9 @@ export const LoansAdvancesPage: React.FC = () => {
   const [rejectModalLoan, setRejectModalLoan] = useState<LoanRecord | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isSubmittingReject, setIsSubmittingReject] = useState(false);
+
+  // Detail & Feedback Drawer State
+  const [selectedDetailLoan, setSelectedDetailLoan] = useState<LoanRecord | null>(null);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -347,7 +351,9 @@ export const LoansAdvancesPage: React.FC = () => {
                 <th className="px-5 py-3.5 text-right">Monthly EMI</th>
                 <th className="px-5 py-3.5 text-right">Balance</th>
                 <th className="px-5 py-3.5">Status</th>
-                <th className="px-5 py-3.5 text-right">Actions</th>
+                <th className="px-5 py-3.5 text-right">
+                  {isFinanceOrAdmin ? 'Actions / Feedback' : 'Finance Feedback'}
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
@@ -390,27 +396,64 @@ export const LoansAdvancesPage: React.FC = () => {
                     </td>
                     <td className="px-5 py-3.5">{getStatusBadge(loan.status, loan.rejectionReason)}</td>
                     <td className="px-5 py-3.5 text-right">
-                      {isFinanceOrAdmin && (
-                        <div className="flex items-center justify-end gap-1.5">
-                          {loan.status === 'PENDING' && (
-                            <>
-                              <button
-                                onClick={() => handleApprove(loan.id)}
-                                title="Approve"
-                                className="p-1.5 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 shadow-2xs transition-colors cursor-pointer"
-                              >
-                                <IconCheck className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleOpenRejectModal(loan)}
-                                title="Reject"
-                                className="p-1.5 rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200/80 shadow-2xs transition-colors cursor-pointer"
-                              >
-                                <IconX className="w-4 h-4" />
-                              </button>
-                            </>
-                          )}
-                          {loan.status === 'APPROVED' && (
+                      {/* 1. REJECTED: Show Finance Feedback like a real message note */}
+                      {loan.status === 'REJECTED' && (
+                        <div className="flex items-center justify-end">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedDetailLoan(loan)}
+                            className="group flex flex-col text-left p-2.5 max-w-[280px] w-full bg-rose-50/70 hover:bg-rose-100/70 border border-rose-200 rounded-xl shadow-2xs transition-all cursor-pointer"
+                            title="Click to view full feedback note"
+                          >
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-rose-700 uppercase tracking-wider mb-1">
+                              <IconMessageDots className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                              <span>Finance Feedback</span>
+                            </div>
+                            <p className="text-xs text-slate-800 font-medium leading-snug line-clamp-2 italic">
+                              "{loan.rejectionReason || 'Policy eligibility criteria not met'}"
+                            </p>
+                          </button>
+                        </div>
+                      )}
+
+                      {/* 2. PENDING */}
+                      {loan.status === 'PENDING' && (
+                        isFinanceOrAdmin ? (
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleApprove(loan.id)}
+                              title="Approve"
+                              className="p-1.5 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 shadow-2xs transition-colors cursor-pointer"
+                            >
+                              <IconCheck className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleOpenRejectModal(loan)}
+                              title="Reject"
+                              className="p-1.5 rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200/80 shadow-2xs transition-colors cursor-pointer"
+                            >
+                              <IconX className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end">
+                            <div className="flex flex-col text-left p-2.5 max-w-[280px] w-full bg-slate-50 border border-slate-200 rounded-xl shadow-2xs">
+                              <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-0.5">
+                                <IconClock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                <span>Status Note</span>
+                              </div>
+                              <p className="text-xs text-slate-600 font-medium leading-snug">
+                                Pending review by Finance
+                              </p>
+                            </div>
+                          </div>
+                        )
+                      )}
+
+                      {/* 3. APPROVED */}
+                      {loan.status === 'APPROVED' && (
+                        isFinanceOrAdmin ? (
+                          <div className="flex items-center justify-end">
                             <button
                               onClick={() => handleOpenDisburseModal(loan)}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-2xs transition-colors cursor-pointer"
@@ -418,15 +461,48 @@ export const LoansAdvancesPage: React.FC = () => {
                               <IconCash className="w-3.5 h-3.5" />
                               <span>Disburse</span>
                             </button>
-                          )}
-                          {loan.status === 'DISBURSED' && loan.utrNumber && (
-                            <span
-                              className="text-[10px] font-mono text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md"
-                              title={`UTR: ${loan.utrNumber}`}
-                            >
-                              UTR: {loan.utrNumber.slice(-6)}
-                            </span>
-                          )}
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end">
+                            <div className="flex flex-col text-left p-2.5 max-w-[280px] w-full bg-indigo-50/60 border border-indigo-200/80 rounded-xl shadow-2xs">
+                              <div className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-700 uppercase tracking-wider mb-0.5">
+                                <IconCheck className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                                <span>Finance Update</span>
+                              </div>
+                              <p className="text-xs text-slate-700 font-medium leading-snug">
+                                Approved • Ready for payout
+                              </p>
+                            </div>
+                          </div>
+                        )
+                      )}
+
+                      {/* 4. DISBURSED */}
+                      {loan.status === 'DISBURSED' && (
+                        <div className="flex items-center justify-end">
+                          <div className="flex flex-col text-left p-2.5 max-w-[280px] w-full bg-emerald-50/60 border border-emerald-200 rounded-xl shadow-2xs">
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-0.5">
+                              <IconReceipt2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              <span>Disbursement Payout</span>
+                            </div>
+                            <p className="text-xs font-mono font-bold text-emerald-900 leading-snug">
+                              UTR: {loan.utrNumber ? loan.utrNumber : 'Completed'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 5. CLOSED */}
+                      {loan.status === 'CLOSED' && (
+                        <div className="flex items-center justify-end">
+                          <div className="flex flex-col text-left p-2.5 max-w-[280px] w-full bg-slate-100 border border-slate-200 rounded-xl shadow-2xs">
+                            <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-0.5">
+                              Settlement
+                            </div>
+                            <p className="text-xs text-slate-600 font-medium">
+                              Advance settled in full
+                            </p>
+                          </div>
                         </div>
                       )}
                     </td>
@@ -668,6 +744,131 @@ export const LoansAdvancesPage: React.FC = () => {
                 >
                   <IconX className="w-4 h-4" />
                   <span>{isSubmittingReject ? 'Rejecting...' : 'Reject Request'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ===================== VIEW LOAN DETAILS & FEEDBACK DRAWER ===================== */}
+      {selectedDetailLoan && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] overflow-hidden bg-slate-900/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+          onClick={() => setSelectedDetailLoan(null)}
+        >
+          <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
+            <div
+              className="w-screen max-w-md bg-white shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-300 border-l border-slate-100"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="p-5 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                    selectedDetailLoan.status === 'REJECTED'
+                      ? 'bg-rose-50 border border-rose-100 text-rose-600'
+                      : selectedDetailLoan.status === 'DISBURSED'
+                      ? 'bg-emerald-50 border border-emerald-100 text-emerald-600'
+                      : 'bg-indigo-50 border border-indigo-100 text-[#5E4BE2]'
+                  }`}>
+                    {selectedDetailLoan.status === 'REJECTED' ? (
+                      <IconAlertCircle className="w-5 h-5" />
+                    ) : selectedDetailLoan.status === 'DISBURSED' ? (
+                      <IconCash className="w-5 h-5" />
+                    ) : (
+                      <IconPigMoney className="w-5 h-5" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Loan & Advance Details</h3>
+                    <p className="text-xs text-slate-500 font-medium">Reference: {selectedDetailLoan.id}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDetailLoan(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  title="Close Drawer"
+                >
+                  <IconX className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
+                {/* Status & Feedback Banner if Rejected */}
+                {selectedDetailLoan.status === 'REJECTED' && (
+                  <div className="p-4 rounded-xl bg-rose-50/80 border border-rose-200/90 text-rose-900 space-y-2">
+                    <div className="font-bold flex items-center gap-1.5 text-rose-700 text-xs">
+                      <IconAlertCircle className="w-4 h-4 text-rose-600" />
+                      <span>Rejection Feedback from Finance Team</span>
+                    </div>
+                    <p className="text-xs font-semibold leading-relaxed bg-white p-3 rounded-lg border border-rose-200/70 text-slate-800">
+                      {selectedDetailLoan.rejectionReason || 'Policy eligibility criteria not met'}
+                    </p>
+                  </div>
+                )}
+
+                {/* Disbursement Details if Disbursed */}
+                {selectedDetailLoan.status === 'DISBURSED' && selectedDetailLoan.utrNumber && (
+                  <div className="p-4 rounded-xl bg-emerald-50/80 border border-emerald-200/90 text-emerald-950 space-y-1">
+                    <div className="font-bold flex items-center gap-1.5 text-emerald-700">
+                      <IconCheck className="w-4 h-4 text-emerald-600" />
+                      <span>Disbursement Payout Confirmed</span>
+                    </div>
+                    <div className="text-xs font-mono font-bold text-emerald-900">
+                      UTR Reference: {selectedDetailLoan.utrNumber}
+                    </div>
+                  </div>
+                )}
+
+                {/* Key Overview Card */}
+                <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
+                    <span className="text-slate-500 font-medium">Beneficiary</span>
+                    <span className="font-bold text-slate-900">{selectedDetailLoan.employeeName} ({selectedDetailLoan.department})</span>
+                  </div>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
+                    <span className="text-slate-500 font-medium">Advance Type</span>
+                    <span className="font-bold text-slate-800">{selectedDetailLoan.type.replace(/_/g, ' ')}</span>
+                  </div>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
+                    <span className="text-slate-500 font-medium">Principal Amount</span>
+                    <span className="font-black text-slate-900 text-sm">₹{selectedDetailLoan.principalAmount.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
+                    <span className="text-slate-500 font-medium">Tenure</span>
+                    <span className="font-bold text-slate-800">{selectedDetailLoan.tenureMonths} Months</span>
+                  </div>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
+                    <span className="text-slate-500 font-medium">Monthly EMI Recovery</span>
+                    <span className="font-black text-[#5E4BE2]">₹{selectedDetailLoan.monthlyEmi.toLocaleString('en-IN')} / mo</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500 font-medium">Outstanding Balance</span>
+                    <span className="font-black text-rose-600">₹{selectedDetailLoan.balanceRemaining.toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+
+                {/* Employee's Application Reason */}
+                <div>
+                  <label className="block text-slate-600 font-bold mb-1">Employee Application Purpose</label>
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 italic">
+                    "{selectedDetailLoan.reason || 'General emergency advance'}"
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setSelectedDetailLoan(null)}
+                  className="px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200/60 rounded-xl cursor-pointer transition-colors"
+                >
+                  Close
                 </button>
               </div>
             </div>
