@@ -74,6 +74,7 @@ export async function runDailyAlerts() {
           message: `Your verified document '${doc.title}' expires in less than 30 days. Please arrange renewal.`,
           sourceType: 'DOC_EXPIRY',
           sourceId: String(doc.id),
+          url: '/my-documents',
           eventDate: new Date(todayKey),
         },
       });

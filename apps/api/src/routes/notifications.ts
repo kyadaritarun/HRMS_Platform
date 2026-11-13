@@ -8,6 +8,46 @@ const router = Router();
 
 router.use(authMiddleware, tenantMatchMiddleware, policyComplianceMiddleware);
 
+function enrichNotificationUrl(n: any): string {
+  if (n.url && typeof n.url === 'string' && n.url.trim() !== '') {
+    return n.url.trim();
+  }
+  const kind = (n.kind || '').toUpperCase();
+  const title = (n.title || '').toLowerCase();
+
+  if (kind === 'LEAVE') {
+    return title.includes('new') ? '/company/leaves/manage' : '/leaves';
+  }
+  if (kind === 'GOAL') {
+    return title.includes('new') ? '/performance/goals/manage' : '/performance/goals';
+  }
+  if (kind === 'CLAIM' || kind === 'EXPENSE') {
+    return title.includes('new') ? '/company/claims/manage' : '/claims';
+  }
+  if (kind === 'COMP_OFF') {
+    return title.includes('new') ? '/company/comp-off/manage' : '/comp-off';
+  }
+  if (kind === 'REGULARIZATION' || kind === 'ATTENDANCE_REGULARIZATION') {
+    return title.includes('new') ? '/attendance/regularizations/manage' : '/attendance';
+  }
+  if (kind === 'PAYSLIP' || kind === 'PAYROLL') {
+    return '/payroll/my-payslips';
+  }
+  if (kind === 'HOLIDAY') {
+    return '/company/holidays';
+  }
+  if (kind === 'KUDOS' || kind === 'APPRECIATION') {
+    return '/appreciations';
+  }
+  if (kind === 'TICKET') {
+    return title.includes('assigned') ? '/tickets/assigned' : '/tickets';
+  }
+  if (kind === 'DOC_EXPIRY' || kind === 'DOCUMENT') {
+    return '/my-documents';
+  }
+  return '';
+}
+
 // GET /notifications
 router.get('/', async (req, res, next) => {
   try {
@@ -20,6 +60,11 @@ router.get('/', async (req, res, next) => {
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
+
+    const mappedPersonalNotifs = personalNotifs.map((n) => ({
+      ...n,
+      url: enrichNotificationUrl(n),
+    }));
 
     // 2. If user is PRODUCT_SUPER_ADMIN, combine or supplement with live platform alerts
     if (user.role === 'PRODUCT_SUPER_ADMIN') {
@@ -80,12 +125,12 @@ router.get('/', async (req, res, next) => {
         });
       }
 
-      const combined = [...personalNotifs, ...platformNotifs];
+      const combined = [...mappedPersonalNotifs, ...platformNotifs];
       combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       return res.json({ notifications: combined.slice(0, 30) });
     }
 
-    return res.json({ notifications: personalNotifs });
+    return res.json({ notifications: mappedPersonalNotifs });
   } catch (error) {
     next(error);
   }

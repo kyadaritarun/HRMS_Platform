@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import api from '../../api/client';
 import TablePagination from '../../components/common/TablePagination';
@@ -88,6 +89,11 @@ export const ClaimsPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Rejection Modal State
+  const [rejectClaimTarget, setRejectClaimTarget] = useState<ClaimItem | null>(null);
+  const [rejectClaimNote, setRejectClaimNote] = useState('');
+  const [isSubmittingClaimReject, setIsSubmittingClaimReject] = useState(false);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -836,10 +842,8 @@ export const ClaimsPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => {
-                        const note = prompt('Optional rejection note:');
-                        if (note !== null) {
-                          handleDecideClaim(selectedClaim.id, 'REJECTED', note);
-                        }
+                        setRejectClaimTarget(selectedClaim);
+                        setRejectClaimNote('Documentation or invoice insufficient');
                       }}
                       className="px-3.5 py-2 text-xs font-bold text-rose-600 border border-rose-200/80 rounded-xl hover:bg-rose-50 shadow-2xs transition-colors cursor-pointer"
                     >
@@ -870,6 +874,133 @@ export const ClaimsPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ===================== REJECT CLAIM MODAL ===================== */}
+      {rejectClaimTarget && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={() => {
+            if (!isSubmittingClaimReject) {
+              setRejectClaimTarget(null);
+            }
+          }}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                  <IconAlertCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Reject Expense Claim</h3>
+                  <p className="text-xs text-slate-500 font-medium">Provide a note explaining the rejection</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRejectClaimTarget(null)}
+                disabled={isSubmittingClaimReject}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <IconX className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-5 space-y-4">
+              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-900">{rejectClaimTarget.title}</span>
+                  <span className="text-xs font-black text-slate-900">
+                    ₹{rejectClaimTarget.amount.toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-500 font-medium">
+                  Submitted by {rejectClaimTarget.user.firstName} {rejectClaimTarget.user.lastName} • {rejectClaimTarget.meta?.category || 'Expense'}
+                </div>
+              </div>
+
+              {/* Quick Reason Chips */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                  Quick Reason Templates
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    'Documentation or invoice insufficient',
+                    'Expense not covered by policy',
+                    'Amount exceeds permissible limit',
+                    'Duplicate claim submitted',
+                  ].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setRejectClaimNote(preset)}
+                      className={`text-[11px] px-2.5 py-1 rounded-lg border font-medium transition-colors cursor-pointer text-left ${
+                        rejectClaimNote === preset
+                          ? 'bg-rose-50 border-rose-300 text-rose-700 font-bold'
+                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Rejection Note <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={rejectClaimNote}
+                  onChange={(e) => setRejectClaimNote(e.target.value)}
+                  placeholder="Explain why this expense claim is being rejected..."
+                  className="w-full px-3 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-800 resize-none transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setRejectClaimTarget(null)}
+                disabled={isSubmittingClaimReject}
+                className="px-3.5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200/60 rounded-xl cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!rejectClaimTarget || !rejectClaimNote.trim()) return;
+                  setIsSubmittingClaimReject(true);
+                  try {
+                    const id = rejectClaimTarget.id;
+                    const note = rejectClaimNote.trim();
+                    setRejectClaimTarget(null);
+                    await handleDecideClaim(id, 'REJECTED', note);
+                  } finally {
+                    setIsSubmittingClaimReject(false);
+                  }
+                }}
+                disabled={!rejectClaimNote.trim() || isSubmittingClaimReject}
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl shadow-xs cursor-pointer transition-colors"
+              >
+                <IconX className="w-4 h-4" />
+                <span>{isSubmittingClaimReject ? 'Rejecting...' : 'Reject Claim'}</span>
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* ===================== RIGHT SIDEBAR DRAWER: FILE EXPENSE CLAIM ===================== */}

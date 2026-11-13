@@ -482,6 +482,7 @@ router.post(
             message: `Your payslip for ${month}/${year} has been published. Take home salary: ${calculated.currency} ${calculated.netSalary.toFixed(2)}.`,
             sourceType: 'Payslip',
             sourceId: String(published.id),
+            url: '/payroll/my-payslips',
           },
         });
 

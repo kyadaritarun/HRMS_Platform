@@ -69,6 +69,11 @@ export const LoansAdvancesPage: React.FC = () => {
   const [selectedLoan, setSelectedLoan] = useState<LoanRecord | null>(null);
   const [disburseUtr, setDisburseUtr] = useState('');
 
+  // Rejection Modal State
+  const [rejectModalLoan, setRejectModalLoan] = useState<LoanRecord | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [isSubmittingReject, setIsSubmittingReject] = useState(false);
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
@@ -167,16 +172,31 @@ export const LoansAdvancesPage: React.FC = () => {
     }
   };
 
-  const handleReject = async (loanId: string) => {
-    const reason = window.prompt('Enter rejection reason:') || 'Policy eligibility not met';
+  const handleOpenRejectModal = (loan: LoanRecord) => {
+    setRejectModalLoan(loan);
+    setRejectionReason('Policy eligibility criteria not met');
+  };
+
+  const handleCloseRejectModal = () => {
+    setRejectModalLoan(null);
+    setRejectionReason('');
+    setIsSubmittingReject(false);
+  };
+
+  const handleConfirmReject = async () => {
+    if (!rejectModalLoan || !rejectionReason.trim()) return;
+    setIsSubmittingReject(true);
     try {
-      await api.patch(`/payroll/loans/${loanId}`, {
+      await api.patch(`/payroll/loans/${rejectModalLoan.id}`, {
         status: 'REJECTED',
-        rejectionReason: reason,
+        rejectionReason: rejectionReason.trim(),
       });
       await fetchLoans();
+      handleCloseRejectModal();
     } catch (err) {
       console.error('Failed to reject loan:', err);
+    } finally {
+      setIsSubmittingReject(false);
     }
   };
 
@@ -214,7 +234,7 @@ export const LoansAdvancesPage: React.FC = () => {
     }
   };
 
-  const getStatusBadge = (status: LoanRecord['status']) => {
+  const getStatusBadge = (status: LoanRecord['status'], rejectionReason?: string) => {
     switch (status) {
       case 'DISBURSED':
         return (
@@ -242,7 +262,10 @@ export const LoansAdvancesPage: React.FC = () => {
         );
       case 'REJECTED':
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+          <span
+            className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200"
+            title={rejectionReason ? `Reason: ${rejectionReason}` : undefined}
+          >
             Rejected
           </span>
         );
@@ -365,7 +388,7 @@ export const LoansAdvancesPage: React.FC = () => {
                     <td className="px-5 py-3.5 text-right font-black text-rose-600">
                       ₹{loan.balanceRemaining.toLocaleString('en-IN')}
                     </td>
-                    <td className="px-5 py-3.5">{getStatusBadge(loan.status)}</td>
+                    <td className="px-5 py-3.5">{getStatusBadge(loan.status, loan.rejectionReason)}</td>
                     <td className="px-5 py-3.5 text-right">
                       {isFinanceOrAdmin && (
                         <div className="flex items-center justify-end gap-1.5">
@@ -379,7 +402,7 @@ export const LoansAdvancesPage: React.FC = () => {
                                 <IconCheck className="w-4 h-4" />
                               </button>
                               <button
-                                onClick={() => handleReject(loan.id)}
+                                onClick={() => handleOpenRejectModal(loan)}
                                 title="Reject"
                                 className="p-1.5 rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200/80 shadow-2xs transition-colors cursor-pointer"
                               >
@@ -427,51 +450,230 @@ export const LoansAdvancesPage: React.FC = () => {
         )}
       </div>
 
-      {/* Disburse Modal */}
-      {isDisburseModalOpen && selectedLoan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-slate-900 text-sm">Record Bank Disbursement</h3>
-              <button onClick={() => setIsDisburseModalOpen(false)} className="text-slate-500 font-medium hover:text-slate-600 cursor-pointer">
-                <IconX className="w-4 h-4" />
-              </button>
-            </div>
-            <p className="text-xs text-slate-500 font-medium mb-3">
-              Disbursing <strong>₹{selectedLoan.principalAmount.toLocaleString('en-IN')}</strong> to{' '}
-              <strong>{selectedLoan.employeeName}</strong>.
-            </p>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Bank UTR / Transaction Reference <span className="text-rose-500">*</span></label>
-                <input
-                  type="text"
-                  required
-                  value={disburseUtr}
-                  onChange={(e) => setDisburseUtr(e.target.value)}
-                  placeholder="e.g. HDFCN2610269412"
-                  className="w-full px-3 py-2 text-xs font-mono font-bold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 text-slate-800"
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
+      {/* ===================== DISBURSE MODAL (RIGHT-SIDE DRAWER) ===================== */}
+      {isDisburseModalOpen && selectedLoan && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] overflow-hidden bg-slate-900/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+          onClick={() => setIsDisburseModalOpen(false)}
+        >
+          <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
+            <div
+              className="w-screen max-w-md bg-white shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-300 border-l border-slate-100"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-5 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                    <IconCash className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Record Bank Disbursement</h3>
+                    <p className="text-xs text-slate-500 font-medium">Record banking payout reference & disburse loan</p>
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={() => setIsDisburseModalOpen(false)}
-                  className="px-3.5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  title="Close Drawer"
+                >
+                  <IconX className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                <div className="bg-emerald-50/60 border border-emerald-100 rounded-xl p-3.5 space-y-1.5 text-emerald-950">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[11px] font-bold text-emerald-800 bg-white border border-emerald-200 px-2 py-0.5 rounded-md">
+                      {selectedLoan.id}
+                    </span>
+                    <span className="text-sm font-black text-emerald-700">
+                      ₹{selectedLoan.principalAmount.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-700 font-medium">
+                    Beneficiary: <strong>{selectedLoan.employeeName}</strong> ({selectedLoan.department})
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Bank UTR / Transaction Reference <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={disburseUtr}
+                    onChange={(e) => setDisburseUtr(e.target.value)}
+                    placeholder="e.g. HDFCN2610269412"
+                    className="w-full px-3 py-2 text-xs font-mono font-bold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 text-slate-800 transition-all"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Enter the bank settlement or IMPS / NEFT reference number.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsDisburseModalOpen(false)}
+                  className="px-3.5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200/60 rounded-xl cursor-pointer transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleConfirmDisburse}
-                  className="px-3.5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition-colors cursor-pointer"
+                  disabled={!disburseUtr.trim()}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl shadow-xs cursor-pointer transition-colors"
                 >
-                  Confirm Payout
+                  <IconCash className="w-4 h-4" />
+                  <span>Confirm Payout</span>
                 </button>
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ===================== REJECT LOAN / ADVANCE (RIGHT-SIDE DRAWER) ===================== */}
+      {rejectModalLoan && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] overflow-hidden bg-slate-900/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+          onClick={handleCloseRejectModal}
+        >
+          <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
+            <div
+              className="w-screen max-w-md bg-white shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-300 border-l border-slate-100"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="p-5 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                    <IconAlertCircle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Reject Advance Request</h3>
+                    <p className="text-xs text-slate-500 font-medium">Provide a reason for turning down this request</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCloseRejectModal}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  title="Close Drawer"
+                >
+                  <IconX className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Drawer Body (Scrollable) */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                {/* Summary Card */}
+                <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[11px] font-bold text-slate-700 bg-white border border-slate-200 px-2 py-0.5 rounded-md">
+                        {rejectModalLoan.id}
+                      </span>
+                      <span className="text-xs font-bold text-slate-900">
+                        {rejectModalLoan.employeeName}
+                      </span>
+                    </div>
+                    <span className="text-xs font-black text-slate-900">
+                      ₹{rejectModalLoan.principalAmount.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
+                    <span>{rejectModalLoan.department}</span>
+                    <span>•</span>
+                    <span>{rejectModalLoan.type.replace(/_/g, ' ')}</span>
+                    <span>•</span>
+                    <span>{rejectModalLoan.tenureMonths} mos tenure</span>
+                  </div>
+                  {rejectModalLoan.reason && (
+                    <div className="text-[11px] text-slate-600 bg-white p-2.5 rounded-lg border border-slate-200/60 mt-1">
+                      <span className="font-semibold text-slate-700">Applied reason: </span>
+                      <span className="italic">"{rejectModalLoan.reason}"</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Quick Reason Chips */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2">
+                    Quick Reason Templates
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      'Policy eligibility criteria not met',
+                      'Exceeds permissible advance limit',
+                      'Active outstanding advance pending',
+                      'Probation tenure requirements not met',
+                      'Documentation or purpose unclear',
+                    ].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setRejectionReason(preset)}
+                        className={`text-[11px] px-2.5 py-1.5 rounded-lg border font-medium transition-colors cursor-pointer text-left ${
+                          rejectionReason === preset
+                            ? 'bg-rose-50 border-rose-300 text-rose-700 font-bold'
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                        }`}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Textarea */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Rejection Reason <span className="text-rose-500">*</span>
+                  </label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    placeholder="Explain why this request is being rejected..."
+                    className="w-full px-3 py-2.5 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-800 resize-none transition-all"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    This reason will be visible to the employee on their advances dashboard.
+                  </p>
+                </div>
+              </div>
+
+              {/* Drawer Footer */}
+              <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleCloseRejectModal}
+                  disabled={isSubmittingReject}
+                  className="px-3.5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200/60 rounded-xl cursor-pointer transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmReject}
+                  disabled={!rejectionReason.trim() || isSubmittingReject}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl shadow-xs cursor-pointer transition-colors"
+                >
+                  <IconX className="w-4 h-4" />
+                  <span>{isSubmittingReject ? 'Rejecting...' : 'Reject Request'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* ===================== REQUEST SALARY ADVANCE RIGHT-SIDE DRAWER ===================== */}

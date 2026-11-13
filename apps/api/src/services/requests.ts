@@ -322,6 +322,13 @@ export async function createRequest(opts: {
 
   // 4. Create notification for approver
   if (approverId) {
+    let targetUrl = '/company/approvals';
+    if (opts.type === 'LEAVE') targetUrl = '/company/leaves/manage';
+    else if (opts.type === 'GOAL') targetUrl = '/performance/goals/manage';
+    else if (opts.type === 'CLAIM') targetUrl = '/company/claims/manage';
+    else if (opts.type === 'COMP_OFF') targetUrl = '/company/comp-off/manage';
+    else if ((opts.type as string) === 'REGULARIZATION' || (opts.type as string) === 'ATTENDANCE_REGULARIZATION') targetUrl = '/attendance/regularizations/manage';
+
     await prisma.notification.create({
       data: {
         companyId: opts.companyId,
@@ -329,6 +336,7 @@ export async function createRequest(opts: {
         kind: opts.type,
         title: `New ${opts.type} Request`,
         message: `${user.firstName} ${user.lastName} submitted a ${opts.type} request for approval.`,
+        url: targetUrl,
         sourceType: 'Request',
         sourceId: String(request.id),
       },
@@ -567,6 +575,13 @@ export async function decideRequest(opts: {
   });
 
   // Notify requester
+  let requesterUrl = '/employee/dashboard';
+  if (request.type === 'LEAVE') requesterUrl = '/leaves';
+  else if (request.type === 'GOAL') requesterUrl = '/performance/goals';
+  else if (request.type === 'CLAIM') requesterUrl = '/claims';
+  else if (request.type === 'COMP_OFF') requesterUrl = '/comp-off';
+  else if ((request.type as string) === 'REGULARIZATION' || (request.type as string) === 'ATTENDANCE_REGULARIZATION') requesterUrl = '/attendance';
+
   await prisma.notification.create({
     data: {
       companyId: opts.companyId,
@@ -574,6 +589,7 @@ export async function decideRequest(opts: {
       kind: request.type,
       title: `${request.type} Request ${opts.status}`,
       message: `Your ${request.type} request has been ${opts.status.toLowerCase()}.${opts.note ? ` Note: ${opts.note}` : ''}`,
+      url: requesterUrl,
       sourceType: 'Request',
       sourceId: String(request.id),
     },

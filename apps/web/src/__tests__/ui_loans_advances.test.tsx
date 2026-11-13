@@ -138,4 +138,47 @@ describe('Loans & Salary Advances Page UI Tests', () => {
     expect(screen.getByText('LN-2026-101')).toBeInTheDocument();
     expect(screen.queryByText('LN-2026-102')).not.toBeInTheDocument();
   });
+
+  it('4. Clicking Reject opens the custom Rejection Modal with presets and submits reason properly', async () => {
+    (api.patch as any).mockResolvedValueOnce({ data: { success: true } });
+
+    render(<LoansAdvancesPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('LN-2026-101')).toBeInTheDocument();
+    });
+
+    const rejectBtn = screen.getByTitle('Reject');
+    fireEvent.click(rejectBtn);
+
+    // Modal should be opened
+    expect(screen.getByText('Reject Advance Request')).toBeInTheDocument();
+    expect(screen.getByText('Provide a reason for turning down this request')).toBeInTheDocument();
+    expect(screen.getByText('Quick Reason Templates')).toBeInTheDocument();
+
+    // Reason textarea should exist
+    const textarea = screen.getByPlaceholderText(/Explain why this request is being rejected/);
+    expect(textarea).toBeInTheDocument();
+
+    // Click a template chip
+    const templateChip = screen.getByText('Exceeds permissible advance limit');
+    fireEvent.click(templateChip);
+    expect((textarea as HTMLTextAreaElement).value).toBe('Exceeds permissible advance limit');
+
+    // Submit rejection
+    const submitRejectBtn = screen.getByRole('button', { name: /Reject Request/i });
+    fireEvent.click(submitRejectBtn);
+
+    await waitFor(() => {
+      expect(api.patch).toHaveBeenCalledWith('/payroll/loans/LN-2026-101', {
+        status: 'REJECTED',
+        rejectionReason: 'Exceeds permissible advance limit',
+      });
+    });
+
+    // Modal should be closed
+    await waitFor(() => {
+      expect(screen.queryByText('Reject Advance Request')).not.toBeInTheDocument();
+    });
+  });
 });

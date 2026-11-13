@@ -211,9 +211,94 @@ export const AppLayout: React.FC = () => {
     }
   };
 
+  const resolveNotificationDestination = (n: NotificationItem): string | null => {
+    if (n.url && typeof n.url === 'string' && n.url.trim() !== '') {
+      return n.url.trim();
+    }
+    const kind = (n.kind || '').toUpperCase();
+    const title = (n.title || '').toLowerCase();
+    const message = (n.message || '').toLowerCase();
+
+    // 1. Leave Requests
+    if (kind === 'LEAVE' || title.includes('leave') || message.includes('leave request')) {
+      return title.includes('new') || message.includes('submitted')
+        ? '/company/leaves/manage'
+        : '/leaves';
+    }
+
+    // 2. Goal Requests
+    if (kind === 'GOAL' || title.includes('goal') || message.includes('goal request')) {
+      return title.includes('new') || message.includes('submitted')
+        ? '/performance/goals/manage'
+        : '/performance/goals';
+    }
+
+    // 3. Claim / Expense Requests
+    if (kind === 'CLAIM' || kind === 'EXPENSE' || title.includes('claim') || message.includes('claim request')) {
+      return title.includes('new') || message.includes('submitted')
+        ? '/company/claims/manage'
+        : '/claims';
+    }
+
+    // 4. Comp-off Requests
+    if (kind === 'COMP_OFF' || title.includes('comp-off') || title.includes('comp off')) {
+      return title.includes('new') || message.includes('submitted')
+        ? '/company/comp-off/manage'
+        : '/comp-off';
+    }
+
+    // 5. Regularization Requests
+    if (
+      kind === 'REGULARIZATION' ||
+      kind === 'ATTENDANCE_REGULARIZATION' ||
+      title.includes('regulariz') ||
+      message.includes('regulariz')
+    ) {
+      return title.includes('new') || message.includes('submitted')
+        ? '/attendance/regularizations/manage'
+        : '/attendance';
+    }
+
+    // 6. Payslips
+    if (kind === 'PAYSLIP' || kind === 'PAYROLL' || title.includes('payslip') || title.includes('salary')) {
+      return '/payroll/my-payslips';
+    }
+
+    // 7. Holidays
+    if (kind === 'HOLIDAY' || title.includes('holiday') || message.includes('holiday')) {
+      return '/company/holidays';
+    }
+
+    // 8. Kudos / Appreciations
+    if (kind === 'KUDOS' || kind === 'APPRECIATION' || title.includes('kudos') || message.includes('kudos')) {
+      return '/appreciations';
+    }
+
+    // 9. Tickets
+    if (kind === 'TICKET' || title.includes('ticket')) {
+      return title.includes('assigned') || title.includes('support ticket')
+        ? '/tickets/assigned'
+        : '/tickets';
+    }
+
+    // 10. Documents
+    if (kind === 'DOC_EXPIRY' || kind === 'DOCUMENT' || title.includes('document')) {
+      return '/my-documents';
+    }
+
+    // 11. Payments & Tenants (Super Admin)
+    if (kind === 'PAYMENT' || kind === 'TENANT') {
+      return '/super-admin/companies';
+    }
+
+    return null;
+  };
+
   const handleNotificationClick = async (n: NotificationItem) => {
     // Immediately close notifications drawer when any notification is clicked
     setNotificationsOpen(false);
+
+    const dest = resolveNotificationDestination(n);
 
     try {
       if (!n.isRead) {
@@ -222,11 +307,14 @@ export const AppLayout: React.FC = () => {
           prev.map((item) => (item.id === n.id ? { ...item, isRead: true } : item))
         );
       }
-      if (n.url) {
-        navigate(n.url);
+      if (dest) {
+        navigate(dest);
       }
     } catch (err) {
       console.error('Failed to update notification:', err);
+      if (dest) {
+        navigate(dest);
+      }
     }
   };
 

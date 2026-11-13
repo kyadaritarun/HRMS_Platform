@@ -385,6 +385,7 @@ export async function sendHolidayAnnouncement(params: {
           message: `${holiday.name} is on ${new Date(holiday.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}. Office will remain closed.`,
           sourceType: 'HOLIDAY',
           sourceId: String(holiday.id),
+          url: '/company/holidays',
           eventDate: new Date(holidayDateKey),
         },
       });

@@ -88,6 +88,7 @@ router.post('/', async (req, res, next) => {
         kind: 'KUDOS',
         title: `Kudos from ${senderName}`,
         message: message || `Awarded you the ${badge} badge!`,
+        url: '/appreciations',
         payload: {
           senderId,
           senderName,
