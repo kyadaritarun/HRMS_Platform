@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
 import {
   IconNetwork,
   IconShieldLock,
@@ -18,6 +19,10 @@ import {
   IconPalette,
   IconTrendingUp,
   IconInfoCircle,
+  IconPlus,
+  IconMinus,
+  IconArrowsMaximize,
+  IconArrowsMinimize,
 } from '@tabler/icons-react';
 
 interface HierarchyUser {
@@ -36,6 +41,230 @@ interface HierarchyUser {
   reports?: { id: number }[];
 }
 
+interface OrgTreeNode extends HierarchyUser {
+  reports: OrgTreeNode[];
+  directReportCount: number;
+}
+
+const AVATAR_COLORS = [
+  'bg-[#a855f7]', // purple
+  'bg-[#06b6d4]', // cyan
+  'bg-[#f43f5e]', // rose
+  'bg-[#14b8a6]', // teal
+  'bg-[#6366f1]', // indigo
+  'bg-[#ec4899]', // pink
+  'bg-[#3b82f6]', // blue
+  'bg-[#f97316]', // orange
+  'bg-[#8b5cf6]', // violet
+  'bg-[#10b981]', // emerald
+];
+
+const getAvatarBg = (name: string, id: number) => {
+  const charSum = (name || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return AVATAR_COLORS[(charSum + id) % AVATAR_COLORS.length];
+};
+
+const buildHierarchyTree = (usersList: HierarchyUser[]): OrgTreeNode[] => {
+  if (!usersList || usersList.length === 0) return [];
+
+  const map = new Map<number, OrgTreeNode>();
+  usersList.forEach((u) => {
+    map.set(u.id, {
+      ...u,
+      reports: [],
+      directReportCount: 0,
+    });
+  });
+
+  const roots: OrgTreeNode[] = [];
+
+  // Connect direct reports to their respective manager
+  usersList.forEach((u) => {
+    const node = map.get(u.id)!;
+    if (u.managerId && map.has(u.managerId) && u.managerId !== u.id) {
+      const mgr = map.get(u.managerId)!;
+      mgr.reports.push(node);
+      mgr.directReportCount++;
+    } else {
+      roots.push(node);
+    }
+  });
+
+  // If there are multiple unparented roots, unify them under the apex executive (Company Admin / CEO)
+  if (roots.length > 1) {
+    const primaryRoot =
+      roots.find((r) => r.role === 'COMPANY_ADMIN') ||
+      roots.find((r) => r.directReportCount > 0) ||
+      roots[0];
+
+    if (primaryRoot) {
+      const otherRoots = roots.filter((r) => r.id !== primaryRoot.id);
+      otherRoots.forEach((other) => {
+        primaryRoot.reports.push(other);
+        primaryRoot.directReportCount++;
+      });
+      return [primaryRoot];
+    }
+  }
+
+  return roots;
+};
+
+// ----------------------------------------------------------------------------
+// Org Chart Node Component (Matching User's Provided Image)
+// ----------------------------------------------------------------------------
+interface OrgChartNodeProps {
+  node: OrgTreeNode;
+  companyName: string;
+  expandedNodes: Record<number, boolean>;
+  toggleNode: (id: number) => void;
+  searchQuery: string;
+  depth?: number;
+}
+
+const OrgChartNode: React.FC<OrgChartNodeProps> = ({
+  node,
+  companyName,
+  expandedNodes,
+  toggleNode,
+  searchQuery,
+  depth = 0,
+}) => {
+  const hasChildren = node.reports && node.reports.length > 0;
+  // If expandedNodes[node.id] is explicitly boolean, use it. Otherwise, top 3 levels default to expanded.
+  const isExpanded =
+    expandedNodes[node.id] !== undefined
+      ? expandedNodes[node.id]
+      : depth < 3;
+
+  const fullName = `${node.firstName || ''} ${node.lastName || ''}`.trim() || 'Team Member';
+  const initials = `${node.firstName?.[0] || ''}${node.lastName?.[0] || ''}`.toUpperCase() || 'U';
+  const avatarBg = getAvatarBg(fullName, node.id);
+
+  const q = searchQuery.trim().toLowerCase();
+  const isMatch =
+    q.length > 0 &&
+    (fullName.toLowerCase().includes(q) ||
+      (node.jobTitle || '').toLowerCase().includes(q) ||
+      (node.department?.name || '').toLowerCase().includes(q) ||
+      (node.role || '').toLowerCase().includes(q));
+
+  return (
+    <div className="flex flex-col items-center select-none">
+      {/* 1. Node Card */}
+      <div className="relative flex flex-col items-center">
+        <div
+          className={`w-[220px] sm:w-[245px] bg-white rounded-xl border transition-all p-3 text-left relative z-10 ${
+            isMatch
+              ? 'border-indigo-600 ring-4 ring-indigo-500/20 shadow-md scale-105'
+              : 'border-slate-200/90 hover:border-indigo-300 hover:shadow-md shadow-xs'
+          }`}
+        >
+          <div className="flex items-start gap-2.5">
+            {/* Avatar */}
+            <div
+              className={`w-9 h-9 rounded-full ${avatarBg} text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs overflow-hidden`}
+            >
+              {node.profilePhoto ? (
+                <img
+                  src={node.profilePhoto}
+                  alt={fullName}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <span>{initials}</span>
+              )}
+            </div>
+
+            {/* Details */}
+            <div className="min-w-0 flex-1">
+              <h4 className="font-bold text-xs sm:text-[13px] text-slate-900 truncate leading-snug" title={fullName}>
+                {fullName}
+              </h4>
+              <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5" title={node.jobTitle}>
+                {node.jobTitle || 'Team Member'}
+              </p>
+              <p className="text-[10px] text-slate-400 font-medium truncate mt-0.5" title={companyName}>
+                {companyName}
+              </p>
+              <p className="text-[9px] uppercase tracking-wider text-slate-400 font-bold truncate mt-1">
+                {node.department?.name || 'GENERAL'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Expand / Collapse Badge Button */}
+        {hasChildren && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleNode(node.id);
+            }}
+            title={isExpanded ? 'Collapse direct reports' : `Expand ${node.reports.length} direct reports`}
+            className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-20 w-5 h-5 rounded-full bg-[#5E4BE2] hover:bg-[#4D3CD1] text-white flex items-center justify-center font-bold text-[10px] shadow-xs cursor-pointer transition-transform hover:scale-110 active:scale-95 select-none"
+          >
+            {isExpanded ? (
+              <span className="leading-none pb-0.5 text-xs font-black">—</span>
+            ) : (
+              <span className="leading-none text-[10px] font-bold">{node.reports.length}</span>
+            )}
+          </button>
+        )}
+
+        {/* Stem leaving bottom of this card if children are visible */}
+        {hasChildren && isExpanded && <div className="w-px h-7 bg-slate-300" />}
+      </div>
+
+      {/* 2. Children Tier with Orthogonal Connector Lines */}
+      {hasChildren && isExpanded && (
+        <div className="relative flex justify-center pt-0">
+          {node.reports.map((child, idx) => {
+            const count = node.reports.length;
+            const isFirst = idx === 0;
+            const isLast = idx === count - 1;
+            const isOnly = count === 1;
+
+            return (
+              <div key={child.id} className="relative flex flex-col items-center px-3 sm:px-4">
+                {/* Horizontal crossbar segment spanning across siblings */}
+                {!isOnly && (
+                  <div
+                    className={`absolute top-0 h-px bg-slate-300 ${
+                      isFirst
+                        ? 'left-1/2 right-0'
+                        : isLast
+                        ? 'left-0 right-1/2'
+                        : 'left-0 right-0'
+                    }`}
+                  />
+                )}
+
+                {/* Vertical drop line down into child node */}
+                <div className="w-px h-7 bg-slate-300" />
+
+                {/* Recursive Child Node */}
+                <OrgChartNode
+                  node={child}
+                  companyName={companyName}
+                  expandedNodes={expandedNodes}
+                  toggleNode={toggleNode}
+                  searchQuery={searchQuery}
+                  depth={depth + 1}
+                />
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 interface DepartmentItem {
   id: number;
   name: string;
@@ -46,6 +275,9 @@ interface DepartmentItem {
 }
 
 export const RolesHierarchyPage: React.FC = () => {
+  const { company } = useAuth();
+  const companyName = company?.name || 'Docplexus';
+
   const [users, setUsers] = useState<HierarchyUser[]>([]);
   const [departmentsList, setDepartmentsList] = useState<DepartmentItem[]>([]);
   const [rolesSummary, setRolesSummary] = useState<Record<string, HierarchyUser[]>>({});
@@ -56,6 +288,109 @@ export const RolesHierarchyPage: React.FC = () => {
   const [deptFilter, setDeptFilter] = useState('ALL');
   const [expandedManagers, setExpandedManagers] = useState<Record<number, boolean>>({});
   const [expandedDepts, setExpandedDepts] = useState<Record<string, boolean>>({});
+
+  // Org Tree specific state
+  const [treeZoom, setTreeZoom] = useState<number>(1);
+  const [treeSearch, setTreeSearch] = useState<string>('');
+  const [expandedNodes, setExpandedNodes] = useState<Record<number, boolean>>({});
+
+  const treeRoots = useMemo(() => buildHierarchyTree(users), [users]);
+
+  // Set default expansion: expand levels 0, 1, 2 so that level 3 (Level 4 in screenshot) displays report count badges
+  useEffect(() => {
+    if (treeRoots.length === 0) return;
+    const initial: Record<number, boolean> = {};
+
+    const mark = (nodes: OrgTreeNode[], depth: number) => {
+      nodes.forEach((n) => {
+        initial[n.id] = depth < 3;
+        if (n.reports && n.reports.length > 0) {
+          mark(n.reports, depth + 1);
+        }
+      });
+    };
+
+    mark(treeRoots, 0);
+    setExpandedNodes(initial);
+  }, [treeRoots]);
+
+  // If user searches inside the Org Tree, automatically expand ancestor path to any matches
+  useEffect(() => {
+    const q = treeSearch.trim().toLowerCase();
+    if (!q) return;
+
+    const toExpand: Record<number, boolean> = {};
+    const searchAndExpand = (node: OrgTreeNode): boolean => {
+      const fullName = `${node.firstName || ''} ${node.lastName || ''}`.toLowerCase();
+      const title = (node.jobTitle || '').toLowerCase();
+      const dept = (node.department?.name || '').toLowerCase();
+      const role = (node.role || '').toLowerCase();
+      const matchesSelf = fullName.includes(q) || title.includes(q) || dept.includes(q) || role.includes(q);
+
+      let childMatched = false;
+      if (node.reports) {
+        node.reports.forEach((child) => {
+          if (searchAndExpand(child)) {
+            childMatched = true;
+          }
+        });
+      }
+
+      if (matchesSelf || childMatched) {
+        toExpand[node.id] = true;
+        return true;
+      }
+      return false;
+    };
+
+    treeRoots.forEach((root) => searchAndExpand(root));
+    setExpandedNodes((prev) => ({ ...prev, ...toExpand }));
+  }, [treeSearch, treeRoots]);
+
+  const toggleTreeNode = (id: number) => {
+    setExpandedNodes((prev) => ({
+      ...prev,
+      [id]: prev[id] !== undefined ? !prev[id] : false,
+    }));
+  };
+
+  const handleExpandAll = () => {
+    const all: Record<number, boolean> = {};
+    const mark = (nodes: OrgTreeNode[]) => {
+      nodes.forEach((n) => {
+        all[n.id] = true;
+        if (n.reports) mark(n.reports);
+      });
+    };
+    mark(treeRoots);
+    setExpandedNodes(all);
+  };
+
+  const handleCollapseAll = () => {
+    const collapsed: Record<number, boolean> = {};
+    const mark = (nodes: OrgTreeNode[], isRoot = false) => {
+      nodes.forEach((n) => {
+        collapsed[n.id] = isRoot;
+        if (n.reports) mark(n.reports, false);
+      });
+    };
+    mark(treeRoots, true);
+    setExpandedNodes(collapsed);
+  };
+
+  const handleResetView = () => {
+    setTreeZoom(1);
+    setTreeSearch('');
+    const initial: Record<number, boolean> = {};
+    const mark = (nodes: OrgTreeNode[], depth: number) => {
+      nodes.forEach((n) => {
+        initial[n.id] = depth < 3;
+        if (n.reports) mark(n.reports, depth + 1);
+      });
+    };
+    mark(treeRoots, 0);
+    setExpandedNodes(initial);
+  };
 
   const fetchRolesData = async () => {
     setIsLoading(true);
@@ -459,235 +794,139 @@ export const RolesHierarchyPage: React.FC = () => {
 
       
 
-      {/* ===================== TAB 1: ORGANIZATIONAL & TEAM HIERARCHY ===================== */}
+      {/* ===================== TAB 1: ORGANIZATIONAL TREE HIERARCHY ===================== */}
       {activeTab === 'ORG_TREE' && (
-        <div className="space-y-6">
+        <div className="space-y-4">
+          {/* Org Tree Toolbar */}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-md">
+              <IconSearch className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={treeSearch}
+                onChange={(e) => setTreeSearch(e.target.value)}
+                placeholder="Search org chart by name, title, department..."
+                className="w-full pl-9 pr-8 py-2 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] transition-all placeholder:text-slate-400 text-slate-800"
+              />
+              {treeSearch && (
+                <button
+                  type="button"
+                  onClick={() => setTreeSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                >
+                  <IconX className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Tree Action Buttons & Zoom Controls */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Expand / Collapse All */}
+              <button
+                type="button"
+                onClick={handleExpandAll}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200/80 rounded-xl cursor-pointer transition-colors shadow-2xs"
+                title="Expand all nodes"
+              >
+                <IconArrowsMaximize className="w-3.5 h-3.5 text-[#5E4BE2]" />
+                <span>Expand All</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCollapseAll}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200/80 rounded-xl cursor-pointer transition-colors shadow-2xs"
+                title="Collapse all nodes"
+              >
+                <IconArrowsMinimize className="w-3.5 h-3.5 text-slate-500" />
+                <span>Collapse All</span>
+              </button>
+
+              <div className="h-5 w-px bg-slate-200 mx-1 hidden sm:block" />
+
+              {/* Zoom Controls */}
+              <div className="flex items-center bg-slate-50 border border-slate-200/80 rounded-xl p-0.5 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => setTreeZoom((z) => Math.max(0.5, Number((z - 0.1).toFixed(2))))}
+                  disabled={treeZoom <= 0.5}
+                  className="p-1.5 text-slate-600 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white rounded-lg transition-colors cursor-pointer"
+                  title="Zoom Out"
+                >
+                  <IconMinus className="w-3.5 h-3.5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTreeZoom(1)}
+                  className="px-2 py-1 text-[11px] font-bold text-slate-700 hover:text-[#5E4BE2] transition-colors cursor-pointer"
+                  title="Reset Zoom to 100%"
+                >
+                  {Math.round(treeZoom * 100)}%
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTreeZoom((z) => Math.min(1.5, Number((z + 0.1).toFixed(2))))}
+                  disabled={treeZoom >= 1.5}
+                  className="p-1.5 text-slate-600 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white rounded-lg transition-colors cursor-pointer"
+                  title="Zoom In"
+                >
+                  <IconPlus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Reset View Button */}
+              <button
+                type="button"
+                onClick={handleResetView}
+                className="px-2.5 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                title="Reset layout and zoom"
+              >
+                Reset View
+              </button>
+            </div>
+          </div>
+
+          {/* Org Tree Canvas */}
           {isLoading ? (
-            <div className="bg-white p-8 rounded-2xl border border-slate-200/70 shadow-xs space-y-4 animate-pulse">
-              <div className="w-64 h-16 bg-slate-200 rounded-2xl mx-auto" />
-              <div className="grid grid-cols-2 gap-4 mt-8">
-                <div className="h-32 bg-slate-100 rounded-2xl" />
-                <div className="h-32 bg-slate-100 rounded-2xl" />
+            <div className="bg-white p-12 rounded-2xl border border-slate-200/70 shadow-xs flex flex-col items-center justify-center min-h-[450px] animate-pulse">
+              <div className="w-56 h-20 bg-slate-200 rounded-xl mb-8" />
+              <div className="flex gap-8">
+                <div className="w-48 h-20 bg-slate-100 rounded-xl" />
+                <div className="w-48 h-20 bg-slate-100 rounded-xl" />
               </div>
             </div>
-          ) : !orgTree ? (
-            <div className="bg-white p-12 rounded-2xl border border-slate-200/70 text-center text-slate-500 font-medium">
-              No organizational hierarchy data available.
+          ) : treeRoots.length === 0 ? (
+            <div className="bg-white p-16 rounded-2xl border border-slate-200/70 shadow-xs text-center">
+              <IconNetwork className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <h3 className="text-sm font-bold text-slate-800">No organizational data available</h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                No active employee records or manager reporting hierarchies found for this organization.
+              </p>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200/70 p-6 shadow-xs space-y-6">
-              {/* LEVEL 1: EXECUTIVE LEADERSHIP (CEO / COMPANY ADMIN) */}
-              <div className="flex flex-col items-center">
-                <div className="border border-slate-200/80 rounded-2xl bg-slate-50/40 p-4 transition-all shadow-2xs hover:bg-white hover:border-indigo-200 max-w-md w-full">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-2xs overflow-hidden shrink-0 border border-purple-100">
-                        {orgTree.adminUser.profilePhoto ? (
-                          <img
-                            src={orgTree.adminUser.profilePhoto}
-                            alt={`${orgTree.adminUser.firstName} ${orgTree.adminUser.lastName}`}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                        ) : (
-                          <>
-                            {orgTree.adminUser.firstName?.[0]}
-                            {orgTree.adminUser.lastName?.[0]}
-                          </>
-                        )}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="font-bold text-sm text-slate-900">
-                            {orgTree.adminUser.firstName} {orgTree.adminUser.lastName}
-                          </h4>
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200/70 shadow-2xs">
-                            Chief Executive Officer
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-500 font-medium mt-0.5">
-                          {orgTree.adminUser.jobTitle || 'Executive Leadership'}
-                        </p>
-                        <div className="mt-2 flex items-center gap-2 text-[11px] font-semibold text-slate-600">
-                          <span className="inline-flex items-center gap-1 bg-white px-2.5 py-0.5 rounded-full border border-slate-200/80 shadow-2xs text-slate-700">
-                            <IconBuilding className="w-3 h-3 text-slate-500 font-medium" />
-                            {orgTree.adminUser.department?.name || 'Executive'}
-                          </span>
-                          <span className="bg-indigo-50 text-[#5E4BE2] px-2.5 py-0.5 rounded-full border border-indigo-100">
-                            {users.length - 1} Direct & Indirect Reports
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Connector Line downwards */}
-                <div className="w-0.5 h-8 bg-indigo-200 my-1" />
-              </div>
-
-              {/* ALL DEPARTMENT TEAMS (Engineering, Finance, HR, Product, Sales, etc.) */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between px-1">
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900">
-                      Company Departments & Functional Teams ({departmentTeams.length})
-                    </h3>
-                    <p className="text-xs text-slate-500 font-medium mt-0.5">
-                      All functional units reporting to Executive Leadership with appointed team leads and rosters.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
-                  {departmentTeams.map((dept) => {
-                    const isExpanded = expandedDepts[dept.name] !== false;
-                    const meta = getDepartmentMeta(dept.name);
-                    const Icon = meta.icon;
-
-                    return (
-                      <div
-                        key={dept.name}
-                        className={`border rounded-2xl bg-slate-50/40 p-4 transition-all shadow-2xs hover:bg-white hover:border-indigo-200 ${meta.borderHover}`}
-                      >
-                        {/* Department Card Header */}
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-3">
-                            <div
-                              className={`w-10 h-10 rounded-xl ${meta.iconBg} flex items-center justify-center shrink-0 shadow-2xs`}
-                            >
-                              <Icon className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <h4 className="font-bold text-sm text-slate-900">{dept.name}</h4>
-                                <span
-                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${meta.badgeBg}`}
-                                >
-                                  {dept.memberCount} {dept.memberCount === 1 ? 'Member' : 'Members'}
-                                </span>
-                              </div>
-                              <p className="text-[11px] text-slate-500 font-medium mt-0.5 leading-relaxed">
-                                {meta.description}
-                              </p>
-
-                              {dept.lead && (
-                                <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-700 bg-white px-2 py-1 rounded-lg border border-slate-200/80 inline-flex shadow-2xs">
-                                  <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-500">
-                                    Lead:
-                                  </span>
-                                  <span className="font-bold text-slate-900 text-[11px]">
-                                    {dept.lead.firstName} {dept.lead.lastName}
-                                  </span>
-                                  <span className="text-slate-300">•</span>
-                                  <span className="text-slate-500 font-medium text-[11px] truncate max-w-[140px]">
-                                    {dept.lead.jobTitle}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Expand/Collapse Button */}
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setExpandedDepts((prev) => ({
-                                ...prev,
-                                [dept.name]: !isExpanded,
-                              }))
-                            }
-                            className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs shrink-0"
-                          >
-                            <span>{dept.members.length} Members</span>
-                            {isExpanded ? (
-                              <IconChevronDown className="w-3.5 h-3.5 text-slate-500 font-medium" />
-                            ) : (
-                              <IconChevronRight className="w-3.5 h-3.5 text-slate-500 font-medium" />
-                            )}
-                          </button>
-                        </div>
-
-                        {/* Team Members Roster */}
-                        {isExpanded && (
-                          <div className="mt-3 pt-3 border-t border-slate-200/70 space-y-2">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block px-1">
-                              Team Roster ({dept.members.length})
-                            </span>
-                            {dept.members.length === 0 ? (
-                              <div className="p-3 text-center text-xs text-slate-500 font-medium bg-white rounded-xl border border-dashed border-slate-200">
-                                No members currently assigned to this department.
-                              </div>
-                            ) : (
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {dept.members.map((emp) => (
-                                  <div
-                                    key={emp.id}
-                                    className="flex items-center gap-2.5 p-2 rounded-xl bg-white border border-slate-200/60 shadow-2xs hover:border-slate-300 transition-colors"
-                                  >
-                                    <div className="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 font-bold text-[10px] flex items-center justify-center shrink-0 overflow-hidden border border-slate-200/60">
-                                      {emp.profilePhoto ? (
-                                        <img
-                                          src={emp.profilePhoto}
-                                          alt={`${emp.firstName} ${emp.lastName}`}
-                                          className="w-full h-full object-cover"
-                                          onError={(e) => {
-                                            e.currentTarget.style.display = 'none';
-                                          }}
-                                        />
-                                      ) : (
-                                        <>
-                                          {emp.firstName?.[0]}
-                                          {emp.lastName?.[0]}
-                                        </>
-                                      )}
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                      <div className="flex items-center gap-1">
-                                        <span className="font-bold text-xs text-slate-900 truncate">
-                                          {emp.firstName} {emp.lastName}
-                                        </span>
-                                        {emp.isManager && (
-                                          <span className="px-1 py-0.2 rounded text-[9px] font-extrabold bg-indigo-50 text-[#5E4BE2] border border-indigo-100 shrink-0">
-                                            Manager
-                                          </span>
-                                        )}
-                                        {emp.role === 'COMPANY_ADMIN' && (
-                                          <span className="px-1 py-0.2 rounded text-[9px] font-extrabold bg-purple-50 text-purple-700 border border-purple-100 shrink-0">
-                                            CEO
-                                          </span>
-                                        )}
-                                        {emp.role === 'HR' && (
-                                          <span className="px-1 py-0.2 rounded text-[9px] font-extrabold bg-amber-50 text-amber-700 border border-amber-100 shrink-0">
-                                            HR
-                                          </span>
-                                        )}
-                                        {emp.role === 'FINANCE' && (
-                                          <span className="px-1 py-0.2 rounded text-[9px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-100 shrink-0">
-                                            Finance
-                                          </span>
-                                        )}
-                                        {emp.role === 'IT' && (
-                                          <span className="px-1 py-0.2 rounded text-[9px] font-extrabold bg-blue-50 text-blue-700 border border-blue-100 shrink-0">
-                                            IT
-                                          </span>
-                                        )}
-                                      </div>
-                                      <div className="text-[10px] text-slate-500 font-medium truncate">
-                                        {emp.jobTitle || emp.email}
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-auto min-h-[600px] max-h-[calc(100vh-280px)] p-8 sm:p-12 relative">
+              <div
+                className="min-w-max flex justify-center items-start pt-4 pb-20 transition-transform duration-150 ease-out"
+                style={{
+                  transform: `scale(${treeZoom})`,
+                  transformOrigin: 'top center',
+                }}
+              >
+                <div className="flex justify-center gap-12">
+                  {treeRoots.map((rootNode) => (
+                    <OrgChartNode
+                      key={rootNode.id}
+                      node={rootNode}
+                      companyName={companyName}
+                      expandedNodes={expandedNodes}
+                      toggleNode={toggleTreeNode}
+                      searchQuery={treeSearch}
+                      depth={0}
+                    />
+                  ))}
                 </div>
               </div>
             </div>

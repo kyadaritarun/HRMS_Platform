@@ -444,6 +444,18 @@ export const App: React.FC = () => {
               }
             />
             <Route
+              path="/company/referral-requests"
+              element={
+                <ProtectedRoute allowedRoles={['COMPANY_ADMIN', 'HR']}>
+                  <ReferEarnPage selfServiceOnly={false} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/company/referrals"
+              element={<Navigate to="/company/referral-requests" replace />}
+            />
+            <Route
               path="/company/goals"
               element={
                 <ProtectedRoute allowedRoles={['COMPANY_ADMIN']}>
@@ -603,7 +615,7 @@ export const App: React.FC = () => {
             <Route path="/policies" element={<PoliciesPage />} />
             <Route path="/appreciations" element={<AppreciationsPage />} />
             <Route path="/assistant" element={<AssistantPage />} />
-            <Route path="/referrals" element={<ReferEarnPage />} />
+            <Route path="/referrals" element={<ReferEarnPage selfServiceOnly={true} />} />
             <Route path="/refer-earn" element={<Navigate to="/referrals" replace />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/my-documents" element={<MyDocumentsPage />} />

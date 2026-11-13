@@ -135,7 +135,7 @@ export const ReferLeadModal: React.FC<ReferLeadModalProps> = ({
         setResumeFile(null);
         onSuccess?.();
         onClose();
-      }, 1500);
+      }, 400);
     } catch (err: any) {
       let msg = err.response?.data?.error || err.response?.data?.message || 'Failed to submit referral. Please try again.';
       if (err.response?.status === 413 || (typeof msg === 'string' && msg.toLowerCase().includes('entity too large'))) {

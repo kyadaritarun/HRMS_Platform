@@ -329,28 +329,11 @@ referralsRouter.post('/', upload.single('resume'), async (req, res, next) => {
     const cleanEmail = email.trim().toLowerCase();
     const effectiveCity = city?.trim() || 'Pan-India';
 
-    // Handle AWS S3 upload for resume
+    // Handle AWS S3 upload for resume (fast path)
     let finalResumeUrl = effResumeUrl;
     if (req.file) {
       // Uploaded via multipart FormData directly to AWS S3
       finalResumeUrl = `/uploads/${req.file.filename}`;
-    } else if (effResumeUrl.startsWith('data:') && isS3Configured()) {
-      // Sent as Base64 Data URI in JSON body: decode and upload to AWS S3
-      try {
-        const commaIndex = effResumeUrl.indexOf(',');
-        const header = effResumeUrl.substring(0, commaIndex);
-        const base64Data = effResumeUrl.substring(commaIndex + 1);
-        const mimeMatch = header.match(/:(.*?);/);
-        const mimeType = mimeMatch ? mimeMatch[1] : 'application/pdf';
-        const ext = mimeType.includes('word') ? '.docx' : mimeType.startsWith('image/') ? '.png' : '.pdf';
-        const candidateSlug = (effCandidateName || 'candidate').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-        const s3Key = `uploads/resumes/${candidateSlug}-${Date.now()}${ext}`;
-        const buffer = Buffer.from(base64Data, 'base64');
-        await uploadBufferToS3(buffer, s3Key, mimeType);
-        finalResumeUrl = `/${s3Key}`;
-      } catch (err) {
-        console.error('Failed to upload base64 resume to AWS S3:', err);
-      }
     } else if (effResumeUrl.includes('.amazonaws.com/uploads/')) {
       finalResumeUrl = `/uploads/${effResumeUrl.split('.amazonaws.com/uploads/')[1]}`;
     }
@@ -411,78 +394,116 @@ referralsRouter.post('/', upload.single('resume'), async (req, res, next) => {
       newLead = rows[0];
     }
 
-    // Non-blocking Email Notifications
-    try {
-      const referrer = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { firstName: true, lastName: true, email: true },
-      });
-      const referrerName = `${referrer?.firstName || ''} ${referrer?.lastName || ''}`.trim() || 'An Employee';
+    // Non-blocking Background Tasks (S3 upload + Email Notifications)
+    setImmediate(async () => {
+      try {
+        let uploadedS3Url: string | null = null;
+        if (effResumeUrl.startsWith('data:') && isS3Configured()) {
+          try {
+            const commaIndex = effResumeUrl.indexOf(',');
+            const header = effResumeUrl.substring(0, commaIndex);
+            const base64Data = effResumeUrl.substring(commaIndex + 1);
+            const mimeMatch = header.match(/:(.*?);/);
+            const mimeType = mimeMatch ? mimeMatch[1] : 'application/pdf';
+            const ext = mimeType.includes('word') ? '.docx' : mimeType.startsWith('image/') ? '.png' : '.pdf';
+            const candidateSlug = (effCandidateName || 'candidate').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+            const s3Key = `uploads/resumes/${candidateSlug}-${Date.now()}${ext}`;
+            const buffer = Buffer.from(base64Data, 'base64');
+            await uploadBufferToS3(buffer, s3Key, mimeType);
+            uploadedS3Url = `/${s3Key}`;
 
-      const company = await prisma.company.findUnique({
-        where: { id: companyId },
-        select: { name: true },
-      });
-      const companyName = company?.name || 'Company';
+            // Update lead record with permanent S3 URL
+            if (newLead?.id) {
+              await queryWithFallback(
+                'LeadReferral',
+                (tbl) => `UPDATE ${tbl} SET "resumeUrl" = $1 WHERE "id" = $2`,
+                [uploadedS3Url, newLead.id]
+              );
+            }
+          } catch (s3Err) {
+            console.error('Failed to upload base64 resume to AWS S3 in background:', s3Err);
+          }
+        }
 
-      // 1. Email HR / Admins
-      const hrUsers = await prisma.user.findMany({
-        where: {
-          companyId,
-          role: { in: ['HR', 'COMPANY_ADMIN'] },
-          isActive: true,
-        },
-        select: { email: true },
-      });
-      const hrEmails = hrUsers.map((u) => u.email).filter(Boolean);
+        const referrer = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { firstName: true, lastName: true, email: true },
+        });
+        const referrerName = `${referrer?.firstName || ''} ${referrer?.lastName || ''}`.trim() || 'An Employee';
 
-      for (const hrEmail of hrEmails) {
-        await sendEmail({
-          companyId,
-          to: hrEmail,
-          subject: `[New Referral] ${referrerName} referred ${effCandidateName} for ${effJobRole}`,
-          html: `
-            <div style="font-family: Arial, sans-serif; color: #1e293b; max-width: 600px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
-              <h2 style="color: #4338ca; margin-top: 0;">New Employee Candidate Referral</h2>
-              <p><strong>${referrerName}</strong> (${referrer?.email}) has submitted a candidate referral for the <strong>${effJobRole}</strong> role (Job ID: <strong>${effJobId}</strong>).</p>
-              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0;">
-                <p style="margin: 4px 0;"><strong>Candidate Name:</strong> ${effCandidateName}</p>
-                <p style="margin: 4px 0;"><strong>Job Role:</strong> ${effJobRole}</p>
-                <p style="margin: 4px 0;"><strong>Job ID:</strong> ${effJobId}</p>
-                <p style="margin: 4px 0;"><strong>Working Email:</strong> ${cleanEmail}</p>
-                <p style="margin: 4px 0;"><strong>Contact Number:</strong> +91 ${cleanMobile}</p>
-                ${effResumeUrl ? `<p style="margin: 4px 0;"><strong>Resume:</strong> <a href="${effResumeUrl}" target="_blank" style="color: #4338ca; font-weight: bold;">View Resume</a></p>` : ''}
-                ${notes ? `<p style="margin: 4px 0;"><strong>Referral Note:</strong> ${notes}</p>` : ''}
+        const company = await prisma.company.findUnique({
+          where: { id: companyId },
+          select: { name: true },
+        });
+        const companyName = company?.name || 'Company';
+
+        // 1. Email HR / Admins
+        const hrUsers = await prisma.user.findMany({
+          where: {
+            companyId,
+            role: { in: ['HR', 'COMPANY_ADMIN'] },
+            isActive: true,
+          },
+          select: { email: true },
+        });
+        const hrEmails = hrUsers.map((u) => u.email).filter(Boolean);
+
+        const emailPromises: Promise<any>[] = [];
+
+        for (const hrEmail of hrEmails) {
+          emailPromises.push(
+            sendEmail({
+              companyId,
+              to: hrEmail,
+              subject: `[New Referral] ${referrerName} referred ${effCandidateName} for ${effJobRole}`,
+              html: `
+                <div style="font-family: Arial, sans-serif; color: #1e293b; max-width: 600px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+                  <h2 style="color: #4338ca; margin-top: 0;">New Employee Candidate Referral</h2>
+                  <p><strong>${referrerName}</strong> (${referrer?.email}) has submitted a candidate referral for the <strong>${effJobRole}</strong> role (Job ID: <strong>${effJobId}</strong>).</p>
+                  <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                    <p style="margin: 4px 0;"><strong>Candidate Name:</strong> ${effCandidateName}</p>
+                    <p style="margin: 4px 0;"><strong>Job Role:</strong> ${effJobRole}</p>
+                    <p style="margin: 4px 0;"><strong>Job ID:</strong> ${effJobId}</p>
+                    <p style="margin: 4px 0;"><strong>Working Email:</strong> ${cleanEmail}</p>
+                    <p style="margin: 4px 0;"><strong>Contact Number:</strong> +91 ${cleanMobile}</p>
+                    ${uploadedS3Url || effResumeUrl ? `<p style="margin: 4px 0;"><strong>Resume:</strong> Available in Referral Requests dashboard</p>` : ''}
+                    ${notes ? `<p style="margin: 4px 0;"><strong>Referral Note:</strong> ${notes}</p>` : ''}
+                  </div>
+                  <p style="color: #64748b; font-size: 13px;">Review candidate details in your HRMS Referral Requests dashboard.</p>
+                </div>
+              `,
+            }).catch((e) => console.error('Failed to email HR:', e))
+          );
+        }
+
+        // 2. Email the referred candidate
+        emailPromises.push(
+          sendEmail({
+            companyId,
+            to: cleanEmail,
+            subject: `You've been referred for ${effJobRole} at ${companyName}!`,
+            html: `
+              <div style="font-family: Arial, sans-serif; color: #1e293b; max-width: 600px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+                <h2 style="color: #4338ca; margin-top: 0;">You've Been Referred!</h2>
+                <p>Hi <strong>${effCandidateName}</strong>,</p>
+                <p><strong>${referrerName}</strong> has referred you for the <strong>${effJobRole}</strong> position (Job ID: <strong>${effJobId}</strong>) at <strong>${companyName}</strong>.</p>
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                  <p style="margin: 4px 0;"><strong>Position:</strong> ${effJobRole}</p>
+                  <p style="margin: 4px 0;"><strong>Requisition ID:</strong> ${effJobId}</p>
+                  <p style="margin: 4px 0;"><strong>Referred By:</strong> ${referrerName}</p>
+                </div>
+                <p>Our recruitment team has received your profile and will contact you directly if there is a match.</p>
+                <p style="margin-top: 24px; color: #64748b; font-size: 13px;">Best regards,<br/><strong>Talent Acquisition Team</strong><br/>${companyName}</p>
               </div>
-              <p style="color: #64748b; font-size: 13px;">Review candidate details in your HRMS Referrals dashboard.</p>
-            </div>
-          `,
-        }).catch((e) => console.error('Failed to email HR:', e));
-      }
+            `,
+          }).catch((e) => console.error('Failed to email candidate:', e))
+        );
 
-      // 2. Email the referred candidate
-      await sendEmail({
-        companyId,
-        to: cleanEmail,
-        subject: `You've been referred for ${effJobRole} at ${companyName}!`,
-        html: `
-          <div style="font-family: Arial, sans-serif; color: #1e293b; max-width: 600px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
-            <h2 style="color: #4338ca; margin-top: 0;">You've Been Referred!</h2>
-            <p>Hi <strong>${effCandidateName}</strong>,</p>
-            <p><strong>${referrerName}</strong> has referred you for the <strong>${effJobRole}</strong> position (Job ID: <strong>${effJobId}</strong>) at <strong>${companyName}</strong>.</p>
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0;">
-              <p style="margin: 4px 0;"><strong>Position:</strong> ${effJobRole}</p>
-              <p style="margin: 4px 0;"><strong>Requisition ID:</strong> ${effJobId}</p>
-              <p style="margin: 4px 0;"><strong>Referred By:</strong> ${referrerName}</p>
-            </div>
-            <p>Our recruitment team has received your profile and will contact you directly if there is a match.</p>
-            <p style="margin-top: 24px; color: #64748b; font-size: 13px;">Best regards,<br/><strong>Talent Acquisition Team</strong><br/>${companyName}</p>
-          </div>
-        `,
-      }).catch((e) => console.error('Failed to email candidate:', e));
-    } catch (emailErr) {
-      console.error('Email dispatch error (non-blocking):', emailErr);
-    }
+        await Promise.allSettled(emailPromises);
+      } catch (bgErr) {
+        console.error('Background referral tasks error:', bgErr);
+      }
+    });
 
     return res.status(201).json({
       success: true,

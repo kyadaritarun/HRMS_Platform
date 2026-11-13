@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   IconPlus,
   IconRefresh,
@@ -212,15 +213,37 @@ const HRFeedbackModal: React.FC<HRFeedbackModalProps> = ({
 };
 
 // ----------------------------------------------------------------------------
-// Main Page: Employee Referrals (Styled matching Shift Management)
+// Main Page: Employee Referrals & Referral Requests Desk
 // ----------------------------------------------------------------------------
-export const ReferEarnPage: React.FC = () => {
+export interface ReferEarnPageProps {
+  selfServiceOnly?: boolean;
+}
+
+export const ReferEarnPage: React.FC<ReferEarnPageProps> = ({ selfServiceOnly }) => {
   const { user } = useAuth();
-  const isHrOrAdmin = user?.role === 'COMPANY_ADMIN' || user?.role === 'HR';
+  let currentPath = '';
+  try {
+    const loc = useLocation();
+    currentPath = loc?.pathname || '';
+  } catch {
+    currentPath = typeof window !== 'undefined' ? window.location?.pathname || '' : '';
+  }
+
+  // Determine whether this is self-service (My Referrals) vs HR Operations desk (All Employee Referrals)
+  const isSelfService =
+    selfServiceOnly !== undefined
+      ? selfServiceOnly
+      : currentPath === '/referrals' ||
+        currentPath === '/refer-earn' ||
+        !currentPath.startsWith('/company');
 
   const [activeTab, setActiveTab] = useState<'my_referrals' | 'company_leads'>(
-    isHrOrAdmin ? 'company_leads' : 'my_referrals'
+    isSelfService ? 'my_referrals' : 'company_leads'
   );
+
+  useEffect(() => {
+    setActiveTab(isSelfService ? 'my_referrals' : 'company_leads');
+  }, [isSelfService]);
 
   const [isReferModalOpen, setIsReferModalOpen] = useState(false);
   const [selectedForFeedback, setSelectedForFeedback] = useState<any | null>(null);
@@ -251,43 +274,53 @@ export const ReferEarnPage: React.FC = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter, activeTab]);
+  }, [searchQuery, statusFilter, activeTab, isSelfService]);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (showSpinner = true) => {
+    if (showSpinner) {
+      setLoading(true);
+    }
     try {
-      const res = await api.get('/referrals/my');
-      if (res.data?.success) {
-        setReferrals(res.data.referrals || []);
-      }
-
-      if (isHrOrAdmin) {
-        try {
-          const compRes = await api.get('/referrals/company');
-          if (compRes.data?.success) {
-            setCompanyLeads(compRes.data.leads || []);
-          }
-        } catch {
-          // Graceful fallback
+      if (isSelfService) {
+        const res = await api.get('/referrals/my');
+        if (res.data?.success) {
+          setReferrals(res.data.referrals || []);
+        }
+      } else {
+        const compRes = await api.get('/referrals/company');
+        if (compRes.data?.success) {
+          setCompanyLeads(compRes.data.leads || []);
         }
       }
     } catch (err) {
       console.error('Failed to load referral data', err);
     } finally {
-      setLoading(false);
+      if (showSpinner) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    fetchData(true);
+  }, [isSelfService]);
 
   const handleUpdateStatus = async (leadId: number, newStatus: string) => {
+    // 1. Instant optimistic update so the UI reacts on the very first click without lag
+    setCompanyLeads((prev) =>
+      prev.map((lead) => (lead.id === leadId ? { ...lead, status: newStatus } : lead))
+    );
+    setReferrals((prev) =>
+      prev.map((r) => (r.id === leadId ? { ...r, status: newStatus } : r))
+    );
+
     try {
       await api.patch(`/referrals/${leadId}/status`, { status: newStatus });
-      fetchData();
+      // 2. Refresh silently in background without re-rendering loading spinner
+      fetchData(false);
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to update status');
+      fetchData(false);
     }
   };
 
@@ -340,7 +373,7 @@ export const ReferEarnPage: React.FC = () => {
   }, [companyLeads, searchQuery, statusFilter]);
 
   // Active items and pagination
-  const activeItems = activeTab === 'company_leads' ? filteredCompanyLeads : filteredReferrals;
+  const activeItems = isSelfService ? filteredReferrals : filteredCompanyLeads;
   const totalPages = Math.max(1, Math.ceil(activeItems.length / pageSize));
   const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
   const paginatedItems = useMemo(() => {
@@ -406,54 +439,42 @@ export const ReferEarnPage: React.FC = () => {
         <div>
           <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
             <IconBriefcase className="w-5 h-5 text-indigo-600 shrink-0" />
-            <span>Employee Referrals</span>
+            <span>{isSelfService ? 'Employee Referrals' : 'Referral Requests'}</span>
           </h1>
           <p className="text-xs text-slate-500 font-medium mt-0.5">
-            Refer qualified peers for open company positions, review employee referral profiles, and track HR feedback.
+            {isSelfService
+              ? 'Refer qualified peers for open company positions, track hiring status, and view HR review feedback.'
+              : 'Review employee referrals submitted across the organization, update hiring pipeline stages, and provide HR feedback to referrers.'}
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setIsReferModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
-          >
-            <IconPlus className="w-4 h-4" />
-            <span>Refer an Employee</span>
-          </button>
-        </div>
+        {isSelfService && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsReferModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
+            >
+              <IconPlus className="w-4 h-4" />
+              <span>Refer an Employee</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 2. Main Content Card (Matching Shift Management & Departments) */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
         {/* Controls Bar: Tabs on left, Search & Filters on right */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          {/* Left: Tab Switcher */}
+          {/* Left: Tab / Counter */}
           <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
-            {isHrOrAdmin && (
-              <button
-                type="button"
-                onClick={() => setActiveTab('company_leads')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === 'company_leads'
-                    ? 'bg-white text-indigo-600 shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                All Employee Referrals ({companyLeads.length})
-              </button>
-            )}
             <button
               type="button"
-              onClick={() => setActiveTab('my_referrals')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activeTab === 'my_referrals'
-                  ? 'bg-white text-indigo-600 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-indigo-600 shadow-2xs cursor-default"
             >
-              My Referrals ({referrals.length})
+              {isSelfService
+                ? `My Referrals (${referrals.length})`
+                : `All Employee Referrals (${companyLeads.length})`}
             </button>
           </div>
 
@@ -464,7 +485,7 @@ export const ReferEarnPage: React.FC = () => {
               <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Search employees, roles, referrers..."
+                placeholder={isSelfService ? 'Search your referrals, roles, job IDs...' : 'Search employees, roles, referrers...'}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-8 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-800 placeholder-slate-400"
@@ -502,7 +523,7 @@ export const ReferEarnPage: React.FC = () => {
 
             <button
               type="button"
-              onClick={fetchData}
+              onClick={() => fetchData(true)}
               title="Refresh table"
               className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer shrink-0"
             >
@@ -516,7 +537,9 @@ export const ReferEarnPage: React.FC = () => {
           {loading ? (
             <div className="p-16 text-center text-slate-500 font-medium flex flex-col items-center justify-center gap-2 bg-white">
               <IconLoader2 className="w-6 h-6 animate-spin text-indigo-600" />
-              <span className="text-xs font-semibold text-slate-600">Loading employee referrals...</span>
+              <span className="text-xs font-semibold text-slate-600">
+                {isSelfService ? 'Loading your referrals...' : 'Loading employee referrals...'}
+              </span>
             </div>
           ) : activeItems.length === 0 ? (
             <div className="p-16 text-center text-slate-500 font-medium flex flex-col items-center justify-center gap-3 bg-white">
@@ -524,11 +547,15 @@ export const ReferEarnPage: React.FC = () => {
                 <IconBriefcase className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-slate-900">No employee referrals found</h4>
+                <h4 className="text-sm font-bold text-slate-900">
+                  {isSelfService ? 'No employee referrals found' : 'No referral requests found'}
+                </h4>
                 <p className="text-xs text-slate-500 font-medium mt-0.5">
                   {searchQuery || statusFilter !== 'ALL'
                     ? 'Try adjusting your search query or status filter.'
-                    : 'Click "Refer an Employee" to submit your first referral.'}
+                    : isSelfService
+                    ? 'Click "Refer an Employee" to submit your first referral.'
+                    : 'When employees submit candidate referrals, they will appear here for HR review.'}
                 </p>
               </div>
               <button
@@ -543,7 +570,7 @@ export const ReferEarnPage: React.FC = () => {
           ) : (
             <table className="w-full text-left text-xs">
               <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
-                {activeTab === 'company_leads' ? (
+                {!isSelfService ? (
                   <tr>
                     <th className="px-5 py-3.5">Employee &amp; Role</th>
                     <th className="px-4 py-3.5">Referred By</th>
@@ -565,7 +592,7 @@ export const ReferEarnPage: React.FC = () => {
                 )}
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
-                {activeTab === 'company_leads'
+                {!isSelfService
                   ? (paginatedItems.map((lead) => {
                       const cName = lead.candidateName || lead.ownerName || 'Employee';
                       const jRole = lead.jobRole || lead.businessName || 'Position';
@@ -612,18 +639,31 @@ export const ReferEarnPage: React.FC = () => {
                             )}
                           </td>
                           <td className="px-4 py-3.5">
-                            <select
-                              value={lead.status}
-                              onChange={(e) => handleUpdateStatus(lead.id, e.target.value)}
-                              className="px-2.5 py-1.5 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-800 font-semibold focus:outline-hidden focus:border-indigo-500 cursor-pointer"
-                            >
-                              <option value="NEW_LEAD">Referred / Under Review</option>
-                              <option value="SCREENING">Screening</option>
-                              <option value="INTERVIEWING">Interviewing</option>
-                              <option value="OFFERED">Offer Extended</option>
-                              <option value="HIRED">Hired</option>
-                              <option value="REJECTED">Not Selected</option>
-                            </select>
+                            {(() => {
+                              const currentStatus =
+                                lead.status === 'REFERRED'
+                                  ? 'NEW_LEAD'
+                                  : lead.status === 'CONVERTED'
+                                  ? 'HIRED'
+                                  : lead.status || 'NEW_LEAD';
+
+                              return (
+                                <select
+                                  aria-label="Change hiring stage"
+                                  value={currentStatus}
+                                  onChange={(e) => handleUpdateStatus(lead.id, e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="px-2.5 py-1.5 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-800 font-semibold focus:outline-hidden focus:border-indigo-500 cursor-pointer"
+                                >
+                                  <option value="NEW_LEAD">Referred / Under Review</option>
+                                  <option value="SCREENING">Screening</option>
+                                  <option value="INTERVIEWING">Interviewing</option>
+                                  <option value="OFFERED">Offer Extended</option>
+                                  <option value="HIRED">Hired</option>
+                                  <option value="REJECTED">Not Selected</option>
+                                </select>
+                              );
+                            })()}
                           </td>
                           <td className="px-5 py-3.5 max-w-xs">
                             {lead.hrFeedback ? (
@@ -734,7 +774,7 @@ export const ReferEarnPage: React.FC = () => {
             onPageChange={setCurrentPage}
             onPageSizeChange={setPageSize}
             pageSizeOptions={[10, 25, 50, 100]}
-            itemName="referrals"
+            itemName={isSelfService ? 'referrals' : 'referral requests'}
           />
         )}
       </div>
@@ -743,7 +783,7 @@ export const ReferEarnPage: React.FC = () => {
       <ReferLeadModal
         isOpen={isReferModalOpen}
         onClose={() => setIsReferModalOpen(false)}
-        onSuccess={fetchData}
+        onSuccess={() => fetchData(false)}
       />
 
       {/* HR Feedback Modal */}
@@ -751,7 +791,7 @@ export const ReferEarnPage: React.FC = () => {
         isOpen={Boolean(selectedForFeedback)}
         referral={selectedForFeedback}
         onClose={() => setSelectedForFeedback(null)}
-        onSuccess={fetchData}
+        onSuccess={() => fetchData(false)}
         onViewResume={handleOpenResume}
       />
 

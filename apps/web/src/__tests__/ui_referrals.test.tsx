@@ -221,4 +221,177 @@ describe('Refer a Lead & Refer & Earn UI Tests', () => {
       ).toBeInTheDocument();
     });
   });
+
+  it('6. In HR role, Self Service Employee Referrals shows only self referrals (My Referrals) and not All Employee Referrals', async () => {
+    vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
+      user: {
+        id: 99,
+        email: 'alekhya@acme.com',
+        role: 'HR',
+        firstName: 'Alekhya',
+        lastName: 'R',
+      } as any,
+      company: { id: 1, name: 'Acme Corp' } as any,
+      features: [],
+      token: 'mock-token',
+      isLoading: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+      hasFeature: () => true,
+      hasHrPermission: () => true,
+    });
+
+    (api.get as any).mockImplementation((url: string) => {
+      if (url === '/referrals/my') {
+        return Promise.resolve({
+          data: {
+            success: true,
+            referrals: [
+              {
+                id: 10,
+                candidateName: 'Priya Sharma',
+                jobRole: 'Product Designer',
+                jobId: 'JOB-909',
+                mobileNumber: '9888877777',
+                email: 'priya@designer.com',
+                status: 'NEW_LEAD',
+                hrFeedback: null,
+                createdAt: new Date().toISOString(),
+              },
+            ],
+          },
+        });
+      }
+      return Promise.resolve({ data: { success: true } });
+    });
+
+    render(
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <ReferEarnPage selfServiceOnly={true} />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Employee Referrals')).toBeInTheDocument();
+      expect(screen.getByText(/My Referrals/i)).toBeInTheDocument();
+      expect(screen.queryByText(/All Employee Referrals/i)).not.toBeInTheDocument();
+      expect(screen.getByText('Priya Sharma')).toBeInTheDocument();
+      expect(screen.getByText('Product Designer')).toBeInTheDocument();
+    });
+  });
+
+  it('7. In HR role, HR Operations Referral Requests renders All Employee Referrals and review desk', async () => {
+    vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
+      user: {
+        id: 99,
+        email: 'alekhya@acme.com',
+        role: 'HR',
+        firstName: 'Alekhya',
+        lastName: 'R',
+      } as any,
+      company: { id: 1, name: 'Acme Corp' } as any,
+      features: [],
+      token: 'mock-token',
+      isLoading: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+      hasFeature: () => true,
+      hasHrPermission: () => true,
+    });
+
+    (api.get as any).mockImplementation((url: string) => {
+      if (url === '/referrals/company') {
+        return Promise.resolve({
+          data: {
+            success: true,
+            leads: [
+              {
+                id: 25,
+                candidateName: 'Rohan Mehta',
+                jobRole: 'Backend Engineer',
+                jobId: 'JOB-102',
+                referrerName: 'Sarah Connor',
+                referrerEmail: 'sarah@acme.com',
+                mobileNumber: '9777766666',
+                email: 'rohan@backend.com',
+                status: 'SCREENING',
+                hrFeedback: 'Screening passed, scheduling interview',
+                createdAt: new Date().toISOString(),
+              },
+            ],
+          },
+        });
+      }
+      return Promise.resolve({ data: { success: true } });
+    });
+
+    render(
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <ReferEarnPage selfServiceOnly={false} />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Referral Requests')).toBeInTheDocument();
+      expect(screen.getByText(/All Employee Referrals/i)).toBeInTheDocument();
+      expect(screen.getByText('Rohan Mehta')).toBeInTheDocument();
+      expect(screen.getByText('Sarah Connor')).toBeInTheDocument();
+      expect(screen.getByText(/Edit Feedback/i)).toBeInTheDocument();
+      // Ensure "Refer an Employee" button is removed from Referral Requests page
+      expect(screen.queryByText('Refer an Employee')).not.toBeInTheDocument();
+    });
+
+    // Verify single-click Hiring Stage dropdown change
+    const statusSelect = screen.getByRole('combobox', { name: /Change hiring stage/i });
+    expect(statusSelect).toHaveValue('SCREENING');
+
+    fireEvent.change(statusSelect, { target: { value: 'INTERVIEWING' } });
+
+    await waitFor(() => {
+      // Instantly updates value optimistically on single change
+      expect(statusSelect).toHaveValue('INTERVIEWING');
+      expect(api.patch).toHaveBeenCalledWith('/referrals/25/status', { status: 'INTERVIEWING' });
+    });
+  });
+
+  it('8. Sidebar contains Referral Requests under HR Operations for HR / Admin', () => {
+    vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
+      user: {
+        id: 99,
+        email: 'alekhya@acme.com',
+        role: 'HR',
+        firstName: 'Alekhya',
+        lastName: 'R',
+      } as any,
+      company: {
+        id: 1,
+        name: 'Acme Corp',
+        package: { enabledFeatures: ['lead_referrals', 'departments', 'shift_management'] },
+      } as any,
+      features: ['lead_referrals'],
+      token: 'mock-token',
+      isLoading: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+      hasFeature: () => true,
+      hasHrPermission: () => true,
+    });
+
+    render(
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Sidebar />
+      </BrowserRouter>
+    );
+
+    // Expand HR Operations
+    const hrOpsBtn = screen.getByText('HR Operations');
+    fireEvent.click(hrOpsBtn);
+
+    const referralRequestsLink = screen.getByRole('link', { name: /Referral Requests/i });
+    expect(referralRequestsLink).toBeInTheDocument();
+    expect(referralRequestsLink).toHaveAttribute('href', '/company/referral-requests');
+  });
 });

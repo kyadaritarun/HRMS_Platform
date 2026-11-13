@@ -205,6 +205,7 @@ export function getSidebarCategories(user: any): NavCategory[] {
           { label: 'Payslip Configuration', path: '/company/salary-slip', icon: IconReceipt2, roles: ['COMPANY_ADMIN', 'HR'] },
           { label: 'Manage Cycles', path: '/company/cycles', icon: IconCalendarEvent, feature: 'performance_management' },
           { label: 'Claim Categories', path: '/company/claims/categories', icon: IconReceipt2, feature: 'claim_process_management' },
+          { label: 'Referral Requests', path: '/company/referral-requests', icon: IconBriefcase, feature: 'lead_referrals' },
           { label: 'Activity Logs', path: '/company/activity-logs', icon: IconHistory, roles: ['HR'], feature: 'activity_logs' },
         ],
       },
@@ -377,6 +378,8 @@ export function getFilteredCategories(
           if (pkgFeatures.length > 0 && user.role !== 'PRODUCT_SUPER_ADMIN') {
             const hasAccess = pkgFeatures.some((f) =>
               f === sub.feature ||
+              (f === 'referrals' && sub.feature === 'lead_referrals') ||
+              (f === 'lead_referrals' && sub.feature === 'referrals') ||
               (f === 'reports' && (sub.feature === 'daily_punch_report' || sub.feature === 'leave_taken_report')) ||
               (f === 'reports_analytics' && (sub.feature === 'daily_punch_report' || sub.feature === 'leave_taken_report'))
             );
