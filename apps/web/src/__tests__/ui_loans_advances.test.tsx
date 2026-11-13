@@ -227,4 +227,62 @@ describe('Loans & Salary Advances Page UI Tests', () => {
     expect(screen.getByText('Rejection Feedback from Finance Team')).toBeInTheDocument();
     expect(screen.getByText('Reference: LN-2026-103')).toBeInTheDocument();
   });
+
+  it('6. In self service (/loans-advances or selfServiceOnly=true), Finance user only sees their own loans', async () => {
+    const mixedLoans = [
+      {
+        id: 'LN-2026-SELF',
+        employeeId: 1, // Matches logged in user id = 1
+        employeeName: 'Admin Self',
+        employeeEmail: 'admin@uptrix.test',
+        department: 'Finance',
+        type: 'EMERGENCY_ADVANCE',
+        principalAmount: 25000,
+        tenureMonths: 2,
+        monthlyEmi: 12500,
+        totalRepaid: 0,
+        balanceRemaining: 25000,
+        reason: 'Personal expense',
+        status: 'PENDING',
+        appliedDate: '2026-10-10',
+      },
+      {
+        id: 'LN-2026-OTHER',
+        employeeId: 99, // Another employee
+        employeeName: 'Other Person',
+        employeeEmail: 'other@uptrix.test',
+        department: 'Engineering',
+        type: 'FESTIVAL_ADVANCE',
+        principalAmount: 40000,
+        tenureMonths: 6,
+        monthlyEmi: 6667,
+        totalRepaid: 0,
+        balanceRemaining: 40000,
+        reason: 'Festive shopping',
+        status: 'PENDING',
+        appliedDate: '2026-10-11',
+      },
+    ];
+
+    (api.get as any).mockImplementation((url: string) => {
+      if (url === '/payroll/loans') {
+        return Promise.resolve({ data: { loans: mixedLoans } });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    render(<LoansAdvancesPage selfServiceOnly={true} />);
+
+    // Table header should be "Finance Feedback"
+    expect(screen.getByText('Finance Feedback')).toBeInTheDocument();
+    expect(screen.queryByText('Actions / Feedback')).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      // Must see self loan
+      expect(screen.getByText('LN-2026-SELF')).toBeInTheDocument();
+    });
+
+    // Must NOT see other employee's loan
+    expect(screen.queryByText('LN-2026-OTHER')).not.toBeInTheDocument();
+  });
 });

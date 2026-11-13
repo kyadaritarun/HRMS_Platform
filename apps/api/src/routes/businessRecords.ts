@@ -896,7 +896,7 @@ businessPayrollRouter.get('/loans', async (req, res, next) => {
     const isFinanceOrAdmin = ['COMPANY_ADMIN', 'FINANCE', 'PRODUCT_SUPER_ADMIN'].includes(req.user!.role);
 
     const where: any = { companyId };
-    if (!isFinanceOrAdmin) {
+    if (!isFinanceOrAdmin || req.query.scope === 'mine' || req.query.self === 'true') {
       where.employeeId = req.user!.id;
     }
 

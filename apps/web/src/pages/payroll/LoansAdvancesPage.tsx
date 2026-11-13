@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { useLocation } from 'react-router-dom';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import TablePagination from '../../components/common/TablePagination';
@@ -43,9 +44,31 @@ export interface LoanRecord {
   rejectionReason?: string;
 }
 
-export const LoansAdvancesPage: React.FC = () => {
+export interface LoansAdvancesPageProps {
+  selfServiceOnly?: boolean;
+}
+
+export const LoansAdvancesPage: React.FC<LoansAdvancesPageProps> = ({ selfServiceOnly }) => {
   const { user } = useAuth();
+
+  let currentPath = '';
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const location = useLocation();
+    currentPath = location.pathname;
+  } catch {
+    currentPath = typeof window !== 'undefined' ? window.location?.pathname || '' : '';
+  }
+
   const isFinanceOrAdmin = user?.role === 'FINANCE' || user?.role === 'COMPANY_ADMIN' || user?.role === 'PRODUCT_SUPER_ADMIN';
+
+  // Determine if this is the self-service view (e.g. /loans-advances) vs payroll management view (/payroll/loans-advances)
+  const isSelfService =
+    selfServiceOnly !== undefined
+      ? selfServiceOnly
+      : currentPath === '/loans-advances';
+
+  const isFinanceDesk = !isSelfService && isFinanceOrAdmin;
 
   const [loans, setLoans] = useState<LoanRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -53,7 +76,9 @@ export const LoansAdvancesPage: React.FC = () => {
   const fetchLoans = async () => {
     setIsLoading(true);
     try {
-      const res = await api.get('/payroll/loans');
+      const res = await api.get('/payroll/loans', {
+        params: isSelfService ? { scope: 'mine' } : undefined,
+      });
       setLoans(res.data?.loans || []);
     } catch (err) {
       console.error('Failed to load loans:', err);
@@ -93,16 +118,18 @@ export const LoansAdvancesPage: React.FC = () => {
 
   useEffect(() => {
     fetchLoans();
-    api.get('/employees', { params: { pageSize: 100, status: 'ACTIVE' } })
-      .then((res) => setEmployees(res.data?.employees || res.data?.items || []))
-      .catch((e) => console.error('Failed to load employees:', e));
-  }, []);
+    if (isFinanceDesk) {
+      api.get('/employees', { params: { pageSize: 100, status: 'ACTIVE' } })
+        .then((res) => setEmployees(res.data?.employees || res.data?.items || []))
+        .catch((e) => console.error('Failed to load employees:', e));
+    }
+  }, [isSelfService, isFinanceDesk]);
 
   // Filtered Loans
   const filteredLoans = useMemo(() => {
     return loans.filter((ln) => {
-      // If regular employee, only show their own loans
-      if (!isFinanceOrAdmin && ln.employeeId !== user?.id) {
+      // In self-service mode (or for regular employees), ONLY show their own loans
+      if ((isSelfService || !isFinanceOrAdmin) && ln.employeeId !== user?.id) {
         return false;
       }
 
@@ -121,7 +148,7 @@ export const LoansAdvancesPage: React.FC = () => {
 
       return true;
     });
-  }, [loans, activeTab, search, isFinanceOrAdmin, user?.id]);
+  }, [loans, activeTab, search, isFinanceOrAdmin, isSelfService, user?.id]);
 
   const paginatedLoans = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -211,7 +238,7 @@ export const LoansAdvancesPage: React.FC = () => {
 
     try {
       const payload = {
-        employeeId: Number(form.employeeId) || user?.id,
+        employeeId: isFinanceDesk ? (Number(form.employeeId) || user?.id) : user?.id,
         type: form.type,
         amount,
         tenureMonths: tenure,
@@ -353,9 +380,9 @@ export const LoansAdvancesPage: React.FC = () => {
                 <th className="px-5 py-3.5 text-center">Tenure</th>
                 <th className="px-5 py-3.5 text-right">Monthly EMI</th>
                 <th className="px-5 py-3.5 text-right">Balance</th>
-                <th className="px-5 py-3.5">Status</th>
-                <th className="px-5 py-3.5 text-right">
-                  {isFinanceOrAdmin ? 'Actions / Feedback' : 'Finance Feedback'}
+                <th className="px-5 py-3.5 whitespace-nowrap">Status</th>
+                <th className="px-5 py-3.5 text-right whitespace-nowrap">
+                  {isFinanceDesk ? 'Actions / Feedback' : 'Finance Feedback'}
                 </th>
               </tr>
             </thead>
@@ -421,7 +448,7 @@ export const LoansAdvancesPage: React.FC = () => {
 
                       {/* 2. PENDING */}
                       {loan.status === 'PENDING' && (
-                        isFinanceOrAdmin ? (
+                        isFinanceDesk ? (
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => handleApprove(loan.id)}
@@ -455,7 +482,7 @@ export const LoansAdvancesPage: React.FC = () => {
 
                       {/* 3. APPROVED */}
                       {loan.status === 'APPROVED' && (
-                        isFinanceOrAdmin ? (
+                        isFinanceDesk ? (
                           <div className="flex items-center justify-end">
                             <button
                               onClick={() => handleOpenDisburseModal(loan)}
@@ -914,7 +941,7 @@ export const LoansAdvancesPage: React.FC = () => {
               {/* Form Body */}
               <form onSubmit={handleApplySubmit} className="flex-1 flex flex-col justify-between overflow-y-auto">
                 <div className="p-5 space-y-4 text-xs">
-                  {isFinanceOrAdmin && (
+                  {isFinanceDesk && (
                     <div>
                       <label className="block font-bold text-slate-700 mb-1">Employee <span className="text-rose-500">*</span></label>
                       <select
