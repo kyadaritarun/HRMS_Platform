@@ -242,32 +242,35 @@ export const LoansAdvancesPage: React.FC = () => {
     switch (status) {
       case 'DISBURSED':
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
             Active / Disbursed
           </span>
         );
       case 'APPROVED':
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-            Approved (Ready for Payout)
+          <span
+            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 whitespace-nowrap"
+            title="Approved • Ready for bank payout"
+          >
+            Approved
           </span>
         );
       case 'PENDING':
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
             Pending Review
           </span>
         );
       case 'CLOSED':
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">
             Fully Settled
           </span>
         );
       case 'REJECTED':
         return (
           <span
-            className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200"
+            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 whitespace-nowrap"
             title={rejectionReason ? `Reason: ${rejectionReason}` : undefined}
           >
             Rejected
@@ -394,7 +397,7 @@ export const LoansAdvancesPage: React.FC = () => {
                     <td className="px-5 py-3.5 text-right font-black text-rose-600">
                       ₹{loan.balanceRemaining.toLocaleString('en-IN')}
                     </td>
-                    <td className="px-5 py-3.5">{getStatusBadge(loan.status, loan.rejectionReason)}</td>
+                    <td className="px-5 py-3.5 whitespace-nowrap">{getStatusBadge(loan.status, loan.rejectionReason)}</td>
                     <td className="px-5 py-3.5 text-right">
                       {/* 1. REJECTED: Show Finance Feedback like a real message note */}
                       {loan.status === 'REJECTED' && (
