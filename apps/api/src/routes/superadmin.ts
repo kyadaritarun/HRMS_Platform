@@ -1065,21 +1065,135 @@ const DEFAULT_3_PLANS = [
     billingDefault: 'MONTHLY',
     enabledFeatures: [
       'time_attendance_management',
-      'leave_management',
-      'support_ticket_management',
-      'payroll',
-      'performance',
-      'claims',
-      'appreciations',
-      'ai_assistant',
+      'attendance',
       'shift_roster',
+      'shift_management',
+      'leave_management',
+      'leaves',
+      'comp_off_management',
       'comp_off',
+      'compensation_off',
+      'holiday_calendar',
+      'holidays',
+      'payroll',
+      'payroll_management',
+      'loan_advances',
+      'tax_declarations',
+      'compliance_reports',
+      'claim_process_management',
+      'claims',
+      'performance_management',
+      'performance',
+      'employee_appreciation',
+      'appreciations',
+      'policy_documents_management',
+      'policies',
+      'employee_document_management',
+      'documents',
+      'support_ticket_management',
+      'tickets',
+      'ai_assistance',
+      'ai_assistant',
+      'employees_directory',
+      'directory',
+      'org_structure',
+      'asset_management',
+      'assets',
+      'onboarding_management',
+      'onboarding',
+      'employee_training',
+      'background_verification',
+      'activity_logs',
+      'lead_referrals',
+      'referrals',
+      'compliance_management',
+      'compliance',
+      'reports_analytics',
       'reports',
+      'exit_management',
+      'exits',
+      'settlement',
+      'company_goals',
+      'goals',
+      'departments',
+      'department_management',
+      'billing',
+      'billing_management',
+      'hr_operations',
+      'finance_operations',
+      'it_operations',
+      'leave_types',
+      'appraisal_cycles',
+      'salary_master',
+      'form16_tax',
       'daily_punch_report',
       'leave_taken_report',
     ],
   },
 ];
+
+const FEATURE_EXPANSIONS: Record<string, string[]> = {
+  time_attendance_management: ['attendance'],
+  attendance: ['time_attendance_management'],
+  shift_management: ['shift_roster'],
+  shift_roster: ['shift_management'],
+  leave_management: ['leaves'],
+  leaves: ['leave_management'],
+  comp_off: ['comp_off_management', 'compensation_off'],
+  comp_off_management: ['comp_off', 'compensation_off'],
+  holiday_calendar: ['holidays'],
+  holidays: ['holiday_calendar'],
+  payroll: ['payroll_management'],
+  payroll_management: ['payroll'],
+  claims: ['claim_process_management'],
+  claim_process_management: ['claims'],
+  performance: ['performance_management'],
+  performance_management: ['performance'],
+  appreciations: ['employee_appreciation'],
+  employee_appreciation: ['appreciations'],
+  policies: ['policy_documents_management'],
+  policy_documents_management: ['policies'],
+  documents: ['employee_document_management'],
+  employee_document_management: ['documents'],
+  support_ticket_management: ['tickets'],
+  tickets: ['support_ticket_management'],
+  ai_assistant: ['ai_assistance'],
+  ai_assistance: ['ai_assistant'],
+  employees_directory: ['directory', 'org_structure'],
+  directory: ['employees_directory', 'org_structure'],
+  asset_management: ['assets'],
+  assets: ['asset_management'],
+  onboarding_management: ['onboarding'],
+  onboarding: ['onboarding_management'],
+  lead_referrals: ['referrals'],
+  referrals: ['lead_referrals'],
+  compliance_management: ['compliance'],
+  compliance: ['compliance_management'],
+  reports: ['reports_analytics'],
+  reports_analytics: ['reports'],
+  exit_management: ['exits', 'settlement'],
+  exits: ['exit_management', 'settlement'],
+  company_goals: ['goals'],
+  goals: ['company_goals'],
+  departments: ['department_management'],
+  department_management: ['departments'],
+  billing: ['billing_management'],
+  billing_management: ['billing'],
+};
+
+export function expandFeaturesWithAliases(features: string[]): string[] {
+  if (!Array.isArray(features)) return [];
+  const result = new Set<string>(features);
+  for (const f of features) {
+    const aliases = FEATURE_EXPANSIONS[f];
+    if (aliases) {
+      for (const a of aliases) {
+        result.add(a);
+      }
+    }
+  }
+  return Array.from(result);
+}
 
 // Helper to determine package tier and associated company
 function enrichPackageDetails(pkg: any) {
@@ -1212,7 +1326,7 @@ router.post('/packages', validateBody(SuperAdminPackageSchema), async (req, res,
       priceYearly: data.priceYearly,
       employeeLimit: data.employeeLimit || 10,
       billingDefault: data.billingDefault || 'MONTHLY',
-      enabledFeatures: data.enabledFeatures as any,
+      enabledFeatures: expandFeaturesWithAliases(data.enabledFeatures as any),
     });
 
     return res.status(201).json({ package: enrichPackageDetails(pkg) });
@@ -1236,7 +1350,7 @@ router.patch('/packages/:id', validateBody(SuperAdminPackageSchema.partial()), a
     if (data.priceYearly !== undefined) updateData.priceYearly = data.priceYearly;
     if (data.employeeLimit !== undefined) updateData.employeeLimit = data.employeeLimit;
     if (data.billingDefault !== undefined) updateData.billingDefault = data.billingDefault;
-    if (data.enabledFeatures !== undefined) updateData.enabledFeatures = data.enabledFeatures as any;
+    if (data.enabledFeatures !== undefined) updateData.enabledFeatures = expandFeaturesWithAliases(data.enabledFeatures as any);
 
     const updated = await prisma.package.update({
       where: { id },

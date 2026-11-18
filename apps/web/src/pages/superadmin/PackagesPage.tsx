@@ -172,7 +172,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
   {
     id: 'hr_suite',
     title: '3. HR & Workforce Operations',
-    badge: '4 Modules',
+    badge: '6 Modules',
     badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
     description: 'Workforce management tools for HR and administrative managers.',
     features: [
@@ -196,12 +196,22 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
         name: 'Performance Review Cycles',
         description: 'Launch company appraisal cycles, manage review questionnaires, and rating scales.',
       },
+      {
+        key: 'employee_training',
+        name: 'Employee Training & L&D',
+        description: 'Company employee training programs, courses, certifications, and tracking.',
+      },
+      {
+        key: 'background_verification',
+        name: 'Background Verification (BGV)',
+        description: 'Employee identity verification, education and employment background check records.',
+      },
     ],
   },
   {
     id: 'finance_suite',
     title: '4. Finance & Statutory Suite',
-    badge: '4 Modules',
+    badge: '5 Modules',
     badgeColor: 'bg-amber-100 text-amber-700 border-amber-200',
     description: 'Financial payroll processing and compliance governance tools.',
     features: [
@@ -219,6 +229,11 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
         key: 'compliance_management',
         name: 'Statutory Compliance & Payout',
         description: 'PF, ESI, TDS challan summaries, and automated bank payout CSV generation.',
+      },
+      {
+        key: 'compliance_reports',
+        name: 'Compliance Reports & Filings',
+        description: 'Statutory labor compliance summaries, PF, ESI, PT, and tax filing documentation.',
       },
       {
         key: 'exit_management',
@@ -306,6 +321,69 @@ export const AVAILABLE_FEATURES = Array.from(
   new Map(FEATURE_GROUPS.flatMap((g) => g.features).map((f) => [f.key, f])).values()
 );
 
+export const FEATURE_EXPANSIONS: Record<string, string[]> = {
+  time_attendance_management: ['attendance'],
+  attendance: ['time_attendance_management'],
+  shift_management: ['shift_roster'],
+  shift_roster: ['shift_management'],
+  leave_management: ['leaves'],
+  leaves: ['leave_management'],
+  comp_off: ['comp_off_management', 'compensation_off'],
+  comp_off_management: ['comp_off', 'compensation_off'],
+  holiday_calendar: ['holidays'],
+  holidays: ['holiday_calendar'],
+  payroll: ['payroll_management'],
+  payroll_management: ['payroll'],
+  claims: ['claim_process_management'],
+  claim_process_management: ['claims'],
+  performance: ['performance_management'],
+  performance_management: ['performance'],
+  appreciations: ['employee_appreciation'],
+  employee_appreciation: ['appreciations'],
+  policies: ['policy_documents_management'],
+  policy_documents_management: ['policies'],
+  documents: ['employee_document_management'],
+  employee_document_management: ['documents'],
+  support_ticket_management: ['tickets'],
+  tickets: ['support_ticket_management'],
+  ai_assistant: ['ai_assistance'],
+  ai_assistance: ['ai_assistant'],
+  employees_directory: ['directory', 'org_structure'],
+  directory: ['employees_directory', 'org_structure'],
+  asset_management: ['assets'],
+  assets: ['asset_management'],
+  onboarding_management: ['onboarding'],
+  onboarding: ['onboarding_management'],
+  lead_referrals: ['referrals'],
+  referrals: ['lead_referrals'],
+  compliance_management: ['compliance'],
+  compliance: ['compliance_management'],
+  reports: ['reports_analytics'],
+  reports_analytics: ['reports'],
+  exit_management: ['exits', 'settlement'],
+  exits: ['exit_management', 'settlement'],
+  company_goals: ['goals'],
+  goals: ['company_goals'],
+  departments: ['department_management'],
+  department_management: ['departments'],
+  billing: ['billing_management'],
+  billing_management: ['billing'],
+};
+
+export const expandFeaturesWithAliases = (features: string[]): string[] => {
+  if (!Array.isArray(features)) return [];
+  const result = new Set<string>(features);
+  for (const f of features) {
+    const aliases = FEATURE_EXPANSIONS[f];
+    if (aliases) {
+      for (const a of aliases) {
+        result.add(a);
+      }
+    }
+  }
+  return Array.from(result);
+};
+
 const INITIAL_FORM = {
   id: undefined as number | undefined,
   name: '',
@@ -378,7 +456,7 @@ export const PackagesPage: React.FC = () => {
       defaultPriceQuarterly = '13999.00';
       defaultPriceYearly = '49999.00';
       defaultName = 'Custom Plan';
-      defaultFeatures = AVAILABLE_FEATURES.map((f) => f.key);
+      defaultFeatures = expandFeaturesWithAliases(AVAILABLE_FEATURES.map((f) => f.key));
     }
 
     setForm({
@@ -450,12 +528,18 @@ export const PackagesPage: React.FC = () => {
   };
 
   const toggleFeature = (key: string) => {
-    setForm((prev) => ({
-      ...prev,
-      enabledFeatures: prev.enabledFeatures.includes(key)
-        ? prev.enabledFeatures.filter((f) => f !== key)
-        : [...prev.enabledFeatures, key],
-    }));
+    setForm((prev) => {
+      const isCurrentlyChecked = prev.enabledFeatures.includes(key);
+      const relatedAliases = FEATURE_EXPANSIONS[key] || [];
+      const allToToggle = [key, ...relatedAliases];
+
+      return {
+        ...prev,
+        enabledFeatures: isCurrentlyChecked
+          ? prev.enabledFeatures.filter((f) => !allToToggle.includes(f))
+          : Array.from(new Set([...prev.enabledFeatures, ...allToToggle])),
+      };
+    });
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -477,7 +561,7 @@ export const PackagesPage: React.FC = () => {
         employeeLimit: parseInt(form.employeeLimit, 10) || 10,
         billingDefault: form.billingDefault,
         description: form.description.trim(),
-        enabledFeatures: form.enabledFeatures,
+        enabledFeatures: expandFeaturesWithAliases(form.enabledFeatures),
         tier: form.tier,
         companyName: form.companyName.trim() || undefined,
       };
@@ -1086,42 +1170,48 @@ export const PackagesPage: React.FC = () => {
                       Select operations, roles, and employee self-service capabilities for this package:
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (form.enabledFeatures.length === AVAILABLE_FEATURES.length) {
-                        setForm((prev) => ({ ...prev, enabledFeatures: [] }));
-                      } else {
-                        setForm((prev) => ({
-                          ...prev,
-                          enabledFeatures: AVAILABLE_FEATURES.map((f) => f.key),
-                        }));
-                      }
-                    }}
-                    className="text-[11px] font-bold text-[#5E4BE2] hover:text-[#4a3ab8] hover:underline cursor-pointer transition-colors shrink-0 ml-2"
-                  >
-                    {form.enabledFeatures.length === AVAILABLE_FEATURES.length
-                      ? 'Deselect All (Clear All)'
-                      : `Select All (Unlock All ${AVAILABLE_FEATURES.length})`}
-                  </button>
+                  {(() => {
+                    const isAllSelected = AVAILABLE_FEATURES.every((f) => form.enabledFeatures.includes(f.key));
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isAllSelected) {
+                            setForm((prev) => ({ ...prev, enabledFeatures: [] }));
+                          } else {
+                            setForm((prev) => ({
+                              ...prev,
+                              enabledFeatures: expandFeaturesWithAliases(AVAILABLE_FEATURES.map((f) => f.key)),
+                            }));
+                          }
+                        }}
+                        className="text-[11px] font-bold text-[#5E4BE2] hover:text-[#4a3ab8] hover:underline cursor-pointer transition-colors shrink-0 ml-2"
+                      >
+                        {isAllSelected
+                          ? 'Deselect All (Clear All)'
+                          : `Select All (Unlock All ${AVAILABLE_FEATURES.length} Modules)`}
+                      </button>
+                    );
+                  })()}
                 </div>
 
                 <div className="space-y-4 max-h-[380px] overflow-y-auto p-3.5 border border-slate-200 rounded-xl bg-slate-50/60 scrollbar-thin scrollbar-thumb-slate-300 mt-2">
                   {FEATURE_GROUPS.map((group) => {
                     const groupKeys = group.features.map((f) => f.key);
                     const selectedCount = groupKeys.filter((k) => form.enabledFeatures.includes(k)).length;
-                    const isAllSelected = selectedCount === groupKeys.length;
+                    const isGroupAllSelected = selectedCount === groupKeys.length;
 
                     const toggleGroup = () => {
-                      if (isAllSelected) {
+                      const allGroupAliases = groupKeys.flatMap((k) => [k, ...(FEATURE_EXPANSIONS[k] || [])]);
+                      if (isGroupAllSelected) {
                         setForm((prev) => ({
                           ...prev,
-                          enabledFeatures: prev.enabledFeatures.filter((k) => !groupKeys.includes(k)),
+                          enabledFeatures: prev.enabledFeatures.filter((k) => !allGroupAliases.includes(k)),
                         }));
                       } else {
                         setForm((prev) => ({
                           ...prev,
-                          enabledFeatures: Array.from(new Set([...prev.enabledFeatures, ...groupKeys])),
+                          enabledFeatures: Array.from(new Set([...prev.enabledFeatures, ...allGroupAliases])),
                         }));
                       }
                     };
@@ -1140,7 +1230,7 @@ export const PackagesPage: React.FC = () => {
                             onClick={toggleGroup}
                             className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
                           >
-                            {isAllSelected ? 'Deselect Section' : 'Select All in Section'}
+                            {isGroupAllSelected ? 'Deselect Section' : 'Select All in Section'}
                           </button>
                         </div>
                         <p className="text-[10.5px] text-slate-500 mb-2 leading-relaxed">
