@@ -242,7 +242,9 @@ router.put('/:id', async (req, res, next) => {
     if (leaveTypeId !== undefined) data.leaveTypeId = Number(leaveTypeId);
     if (meta !== undefined) data.meta = meta;
 
-    if (startDate && endDate) {
+    if (meta?.isHalfDay) {
+      data.days = 0.5;
+    } else if (startDate && endDate) {
       const s = new Date(startDate);
       const e = new Date(endDate);
       const diffDays = Math.max(1, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1);

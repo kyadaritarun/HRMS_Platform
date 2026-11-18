@@ -452,7 +452,14 @@ export const ApprovalsDeskPage: React.FC = () => {
                       {req.startDate && (
                         <div className="text-[11px] text-slate-500 font-normal mt-0.5">
                           {new Date(req.startDate).toLocaleDateString()} — {new Date(req.endDate || req.startDate).toLocaleDateString()}
-                          {req.days && <span className="font-semibold text-slate-600 ml-1">({req.days} days)</span>}
+                          {req.days && (
+                            <span className="font-semibold text-slate-600 ml-1">
+                              ({req.days} {Number(req.days) === 1 ? 'day' : 'days'}
+                              {req.meta?.isHalfDay || Number(req.days) === 0.5
+                                ? ` • ${req.meta?.halfDayPeriod === 'SECOND_HALF' ? '2nd Half' : '1st Half'}`
+                                : ''})
+                            </span>
+                          )}
                         </div>
                       )}
                     </td>
@@ -639,7 +646,12 @@ export const ApprovalsDeskPage: React.FC = () => {
                       {reviewModal.req.days !== undefined && reviewModal.req.days !== null && (
                         <div>
                           <span className="text-slate-500 font-medium block text-[11px]">Duration</span>
-                          <span className="font-bold text-slate-800">{reviewModal.req.days} Day(s)</span>
+                          <span className="font-bold text-slate-800">
+                            {reviewModal.req.days} Day(s)
+                            {reviewModal.req.meta?.isHalfDay || Number(reviewModal.req.days) === 0.5
+                              ? ` (${reviewModal.req.meta?.halfDayPeriod === 'SECOND_HALF' ? 'Second Half' : 'First Half'})`
+                              : ''}
+                          </span>
                         </div>
                       )}
                       {reviewModal.req.amount !== undefined && reviewModal.req.amount !== null && (
@@ -654,6 +666,16 @@ export const ApprovalsDeskPage: React.FC = () => {
                         <div>
                           <span className="text-slate-500 font-medium block text-[11px]">Leave Category</span>
                           <span className="font-bold text-slate-800">{reviewModal.req.leaveType.name}</span>
+                        </div>
+                      )}
+                      {(reviewModal.req.meta?.notifyName || reviewModal.req.meta?.notifyEmail) && (
+                        <div>
+                          <span className="text-slate-500 font-medium block text-[11px]">Notified Colleague</span>
+                          <span className="font-bold text-slate-800">
+                            {reviewModal.req.meta.notifyName
+                              ? `${reviewModal.req.meta.notifyName} (${reviewModal.req.meta.notifyEmail})`
+                              : reviewModal.req.meta.notifyEmail}
+                          </span>
                         </div>
                       )}
                       {reviewModal.req.type === 'REGULARIZATION' && (

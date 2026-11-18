@@ -18,6 +18,7 @@ import {
   IconEdit,
   IconPaperclip,
   IconExternalLink,
+  IconClock,
 } from '@tabler/icons-react';
 
 interface RequestItem {
@@ -69,6 +70,11 @@ export const MyLeavesPage: React.FC = () => {
   const [editingReqId, setEditingReqId] = useState<number | null>(null);
   const [viewReq, setViewReq] = useState<RequestItem | null>(null);
 
+  // Employees for colleague notification
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [notifySearch, setNotifySearch] = useState('');
+  const [isEmployeeDropdownOpen, setIsEmployeeDropdownOpen] = useState(false);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedTypeFilter]);
@@ -83,16 +89,26 @@ export const MyLeavesPage: React.FC = () => {
 
   const [form, setForm] = useState<{
     leaveTypeId: string;
+    leaveMode: 'FULL_DAY' | 'CUSTOM';
+    halfDayPeriod: 'FIRST_HALF' | 'SECOND_HALF';
     startDate: string;
     endDate: string;
     reason: string;
+    notifyUserId?: number;
+    notifyEmail?: string;
+    notifyName?: string;
     attachmentUrl?: string;
     attachmentName?: string;
   }>({
     leaveTypeId: '',
+    leaveMode: 'FULL_DAY',
+    halfDayPeriod: 'SECOND_HALF',
     startDate: new Date().toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0],
     reason: '',
+    notifyUserId: undefined,
+    notifyEmail: '',
+    notifyName: '',
     attachmentUrl: '',
     attachmentName: '',
   });
@@ -100,12 +116,14 @@ export const MyLeavesPage: React.FC = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [reqRes, typesRes] = await Promise.all([
+      const [reqRes, typesRes, empRes] = await Promise.all([
         api.get('/requests?type=LEAVE&scope=mine&pageSize=100'),
         api.get('/company/leave-types'),
+        api.get('/employees?pageSize=100').catch(() => ({ data: { items: [] } })),
       ]);
       setRequests(reqRes.data?.items || []);
       setLeaveTypes(typesRes.data?.leaveTypes || []);
+      setEmployees(empRes.data?.items || []);
     } catch (err) {
       console.error('Failed to load leaves:', err);
     } finally {
@@ -117,17 +135,35 @@ export const MyLeavesPage: React.FC = () => {
     fetchData();
   }, []);
 
+  const filteredEmployees = useMemo(() => {
+    if (!notifySearch.trim()) return employees;
+    const q = notifySearch.toLowerCase();
+    return employees.filter((e) => {
+      const name = `${e.firstName || ''} ${e.lastName || ''}`.toLowerCase();
+      const email = (e.email || '').toLowerCase();
+      const job = (e.jobTitle || '').toLowerCase();
+      return name.includes(q) || email.includes(q) || job.includes(q);
+    });
+  }, [employees, notifySearch]);
+
   const handleOpenNew = () => {
     setEditingReqId(null);
     const todayStr = getTodayDateString();
     setForm({
-      leaveTypeId: '',
+      leaveTypeId: mappedQuotas[0]?.id ? String(mappedQuotas[0].id) : '',
+      leaveMode: 'FULL_DAY',
+      halfDayPeriod: 'SECOND_HALF',
       startDate: todayStr,
       endDate: todayStr,
       reason: '',
+      notifyUserId: undefined,
+      notifyEmail: '',
+      notifyName: '',
       attachmentUrl: '',
       attachmentName: '',
     });
+    setNotifySearch('');
+    setIsEmployeeDropdownOpen(false);
     setError(null);
     setIsModalOpen(true);
   };
@@ -135,14 +171,22 @@ export const MyLeavesPage: React.FC = () => {
   const handleOpenEdit = (req: RequestItem) => {
     setEditingReqId(req.id);
     const meta = (req as any).meta || {};
+    const isHalf = Boolean(meta.isHalfDay) || Number(req.days) === 0.5;
     setForm({
       leaveTypeId: String((req as any).leaveTypeId || req.leaveType?.id || ''),
+      leaveMode: isHalf ? 'CUSTOM' : 'FULL_DAY',
+      halfDayPeriod: meta.halfDayPeriod || 'SECOND_HALF',
       startDate: req.startDate ? req.startDate.split('T')[0] : new Date().toISOString().split('T')[0],
       endDate: req.endDate ? req.endDate.split('T')[0] : new Date().toISOString().split('T')[0],
       reason: req.reason || '',
+      notifyUserId: meta.notifyUserId,
+      notifyEmail: meta.notifyEmail || '',
+      notifyName: meta.notifyName || '',
       attachmentUrl: meta.attachmentUrl || '',
       attachmentName: meta.attachmentName || '',
     });
+    setNotifySearch('');
+    setIsEmployeeDropdownOpen(false);
     setError(null);
     setIsModalOpen(true);
   };
@@ -162,6 +206,15 @@ export const MyLeavesPage: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
+  const calculateFullDays = (start: string, end: string) => {
+    if (!start || !end) return 1;
+    const s = new Date(start);
+    const e = new Date(end);
+    const diffTime = e.getTime() - s.getTime();
+    if (diffTime < 0) return 1;
+    return Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  };
+
   const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.leaveTypeId || !form.reason.trim()) {
@@ -175,7 +228,10 @@ export const MyLeavesPage: React.FC = () => {
       return;
     }
 
-    if (form.endDate < form.startDate) {
+    const isCustomHalf = form.leaveMode === 'CUSTOM';
+    const effectiveEndDate = isCustomHalf ? form.startDate : form.endDate;
+
+    if (!isCustomHalf && effectiveEndDate < form.startDate) {
       setError('End date cannot be before start date.');
       return;
     }
@@ -183,14 +239,26 @@ export const MyLeavesPage: React.FC = () => {
     setError(null);
     setIsSubmitting(true);
     try {
+      const selectedLt = mappedQuotas.find((q) => String(q.id) === form.leaveTypeId);
+      const categoryName = selectedLt?.name || 'Leave';
+      const periodLabel = form.halfDayPeriod === 'FIRST_HALF' ? 'First Half' : 'Second Half';
+
       const payload: any = {
         type: 'LEAVE',
         leaveTypeId: Number(form.leaveTypeId),
         startDate: form.startDate,
-        endDate: form.endDate,
+        endDate: effectiveEndDate,
+        days: isCustomHalf ? 0.5 : undefined,
         reason: form.reason.trim(),
-        title: `Leave application (${form.startDate} to ${form.endDate})`,
+        title: isCustomHalf
+          ? `${categoryName} Application - 0.5 day (${periodLabel}) on ${form.startDate}`
+          : `${categoryName} Application (${form.startDate} to ${effectiveEndDate})`,
         meta: {
+          isHalfDay: isCustomHalf,
+          halfDayPeriod: isCustomHalf ? form.halfDayPeriod : undefined,
+          notifyUserId: form.notifyUserId || undefined,
+          notifyEmail: form.notifyEmail?.trim() || undefined,
+          notifyName: form.notifyName || undefined,
           attachmentUrl: form.attachmentUrl || undefined,
           attachmentName: form.attachmentName || undefined,
         },
@@ -206,12 +274,19 @@ export const MyLeavesPage: React.FC = () => {
       setEditingReqId(null);
       setForm({
         leaveTypeId: '',
+        leaveMode: 'FULL_DAY',
+        halfDayPeriod: 'SECOND_HALF',
         startDate: todayStr,
         endDate: todayStr,
         reason: '',
+        notifyUserId: undefined,
+        notifyEmail: '',
+        notifyName: '',
         attachmentUrl: '',
         attachmentName: '',
       });
+      setNotifySearch('');
+      setIsEmployeeDropdownOpen(false);
       fetchData();
     } catch (err: any) {
       setError(err.response?.data?.message || err.response?.data?.error || 'Failed to submit leave');
@@ -694,7 +769,15 @@ export const MyLeavesPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-xs font-semibold text-slate-700 whitespace-nowrap">
-                      {formatDateRange(req.startDate, req.endDate)}
+                      <div className="flex flex-col">
+                        <span>{formatDateRange(req.startDate, req.endDate)}</span>
+                        {(req.meta?.isHalfDay || Number(req.days) === 0.5) && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-md mt-1 w-fit">
+                            <IconClock className="w-3 h-3 text-amber-600" />
+                            <span>0.5 Day • {req.meta?.halfDayPeriod === 'SECOND_HALF' ? '2nd Half' : '1st Half'}</span>
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(req.status)}</td>
                     <td className="px-6 py-4 text-xs text-slate-600 font-medium whitespace-nowrap">
@@ -840,18 +923,18 @@ export const MyLeavesPage: React.FC = () => {
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Leave Category <span className="text-rose-500">*</span>
+                      Select type of leave you want to apply <span className="text-rose-500">*</span>
                     </label>
                     <select
                       required
                       value={form.leaveTypeId}
                       onChange={(e) => setForm({ ...form, leaveTypeId: e.target.value })}
-                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800 cursor-pointer"
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800 cursor-pointer font-medium"
                     >
                       <option value="">Select leave category</option>
                       {mappedQuotas.map((q) => (
                         <option key={q.id || q.code} value={q.id}>
-                          {q.name} ({q.remaining} remaining)
+                          {q.name} - {q.remaining} days available
                         </option>
                       ))}
                       {mappedQuotas.length === 0 && (
@@ -860,54 +943,246 @@ export const MyLeavesPage: React.FC = () => {
                     </select>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        Start Date <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        required
-                        min={editingReqId ? undefined : getTodayDateString()}
-                        value={form.startDate}
-                        onChange={(e) => {
-                          const newStart = e.target.value;
-                          setForm((prev) => ({
-                            ...prev,
-                            startDate: newStart,
-                            endDate: prev.endDate < newStart ? newStart : prev.endDate,
-                          }));
-                        }}
-                        className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        End Date <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        required
-                        min={form.startDate || getTodayDateString()}
-                        value={form.endDate}
-                        onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                        className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800"
-                      />
+                  {/* Day Type Toggle: Full day vs Custom (Half day) */}
+                  <div>
+                    <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200/80">
+                      <button
+                        type="button"
+                        onClick={() => setForm((prev) => ({ ...prev, leaveMode: 'FULL_DAY' }))}
+                        className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                          form.leaveMode === 'FULL_DAY'
+                            ? 'bg-white text-slate-900 shadow-xs'
+                            : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        Full day
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setForm((prev) => ({ ...prev, leaveMode: 'CUSTOM' }))}
+                        className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                          form.leaveMode === 'CUSTOM'
+                            ? 'bg-white text-slate-900 shadow-xs'
+                            : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        Custom
+                      </button>
                     </div>
                   </div>
 
+                  {form.leaveMode === 'CUSTOM' ? (
+                    <div className="space-y-3.5 p-4 rounded-2xl bg-indigo-50/30 border border-indigo-100/80 animate-in fade-in duration-150">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                          On Date <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          min={editingReqId ? undefined : getTodayDateString()}
+                          value={form.startDate}
+                          onChange={(e) => {
+                            const d = e.target.value;
+                            setForm((prev) => ({ ...prev, startDate: d, endDate: d }));
+                          }}
+                          className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-[#5E4BE2] text-slate-800 font-semibold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                          Session / Half <span className="text-rose-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <select
+                            value={form.halfDayPeriod}
+                            onChange={(e) =>
+                              setForm((prev) => ({
+                                ...prev,
+                                halfDayPeriod: e.target.value as any,
+                              }))
+                            }
+                            className="w-full px-3.5 py-2.5 text-xs bg-white border border-indigo-200 rounded-xl focus:outline-hidden focus:border-[#5E4BE2] focus:ring-2 focus:ring-[#5E4BE2]/20 text-slate-800 font-bold cursor-pointer shadow-2xs appearance-none pr-9"
+                          >
+                            <option value="FIRST_HALF">First Half (Morning Session)</option>
+                            <option value="SECOND_HALF">Second Half (Afternoon Session)</option>
+                          </select>
+                          <IconChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-indigo-100 text-xs font-medium text-slate-600 shadow-2xs">
+                        <IconClock className="w-4 h-4 text-[#5E4BE2] shrink-0" />
+                        <span>
+                          You are requesting for <strong className="text-slate-900 font-bold">0.5 days</strong> of leave ({form.halfDayPeriod === 'FIRST_HALF' ? 'First Half' : 'Second Half'})
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3.5 animate-in fade-in duration-150">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                            Start Date <span className="text-rose-500">*</span>
+                          </label>
+                          <input
+                            type="date"
+                            required
+                            min={editingReqId ? undefined : getTodayDateString()}
+                            value={form.startDate}
+                            onChange={(e) => {
+                              const newStart = e.target.value;
+                              setForm((prev) => ({
+                                ...prev,
+                                startDate: newStart,
+                                endDate: prev.endDate < newStart ? newStart : prev.endDate,
+                              }));
+                            }}
+                            className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                            End Date <span className="text-rose-500">*</span>
+                          </label>
+                          <input
+                            type="date"
+                            required
+                            min={form.startDate || getTodayDateString()}
+                            value={form.endDate}
+                            onChange={(e) => setForm((prev) => ({ ...prev, endDate: e.target.value }))}
+                            className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800"
+                          />
+                        </div>
+                      </div>
+
+                      {form.startDate && form.endDate && (
+                        <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs font-medium text-slate-600">
+                          <IconClock className="w-4 h-4 text-[#5E4BE2] shrink-0" />
+                          <span>
+                            You are requesting for{' '}
+                            <strong className="text-slate-900 font-bold">
+                              {calculateFullDays(form.startDate, form.endDate)} days
+                            </strong>{' '}
+                            of leave
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Reason for Absence <span className="text-rose-500">*</span>
+                      Note <span className="text-rose-500">*</span>
                     </label>
                     <textarea
                       required
                       rows={3}
-                      placeholder="Provide context for your manager..."
+                      placeholder="Type here..."
                       value={form.reason}
                       onChange={(e) => setForm({ ...form, reason: e.target.value })}
                       className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800 resize-none"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Notify
+                    </label>
+
+                    {form.notifyName || form.notifyEmail ? (
+                      <div className="flex items-center justify-between p-2 px-3 rounded-xl bg-indigo-50/70 border border-indigo-200/80 text-xs text-slate-800">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-6 h-6 rounded-lg bg-[#5E4BE2] text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                            {(form.notifyName || form.notifyEmail)?.[0] || 'U'}
+                          </div>
+                          <span className="font-bold text-slate-900 truncate">
+                            {form.notifyName || form.notifyEmail}
+                          </span>
+                          {form.notifyName && form.notifyEmail && (
+                            <span className="text-[11px] text-slate-500 font-normal truncate">
+                              ({form.notifyEmail})
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setForm((prev) => ({
+                              ...prev,
+                              notifyUserId: undefined,
+                              notifyEmail: '',
+                              notifyName: '',
+                            }));
+                            setNotifySearch('');
+                          }}
+                          className="p-1 rounded-lg hover:bg-indigo-100 text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
+                        >
+                          <IconX className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Search employee..."
+                          value={notifySearch}
+                          onFocus={() => setIsEmployeeDropdownOpen(true)}
+                          onChange={(e) => {
+                            setNotifySearch(e.target.value);
+                            setIsEmployeeDropdownOpen(true);
+                          }}
+                          className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] text-slate-800"
+                        />
+
+                        {isEmployeeDropdownOpen && (
+                          <div className="absolute left-0 right-0 top-full mt-1.5 max-h-48 overflow-y-auto bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-30 animate-in fade-in zoom-in-95 duration-100">
+                            {filteredEmployees.length === 0 ? (
+                              <div className="p-3 text-center text-xs text-slate-400">
+                                {notifySearch ? 'No colleagues found matching name/email' : 'Start typing to search colleagues'}
+                              </div>
+                            ) : (
+                              filteredEmployees.slice(0, 8).map((emp) => {
+                                const fullName = `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || emp.username || emp.email;
+                                return (
+                                  <button
+                                    key={emp.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setForm((prev) => ({
+                                        ...prev,
+                                        notifyUserId: emp.id,
+                                        notifyEmail: emp.email,
+                                        notifyName: fullName,
+                                      }));
+                                      setNotifySearch('');
+                                      setIsEmployeeDropdownOpen(false);
+                                    }}
+                                    className="w-full px-3 py-2 text-left hover:bg-slate-50 flex items-center justify-between gap-2 text-xs transition-colors cursor-pointer"
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <div className="w-6 h-6 rounded-lg bg-indigo-50 border border-indigo-100 text-[#5E4BE2] flex items-center justify-center text-[10px] font-bold shrink-0">
+                                        {emp.firstName?.[0] || 'U'}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <div className="font-bold text-slate-800 truncate">{fullName}</div>
+                                        <div className="text-[10px] text-slate-400 truncate">{emp.email}</div>
+                                      </div>
+                                    </div>
+                                    {emp.jobTitle && (
+                                      <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md shrink-0">
+                                        {emp.jobTitle}
+                                      </span>
+                                    )}
+                                  </button>
+                                );
+                              })
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Attachment Field */}
@@ -1009,9 +1284,24 @@ export const MyLeavesPage: React.FC = () => {
                   <div>
                     <span className="text-slate-500 block font-medium">Duration</span>
                     <span className="font-semibold text-slate-800 mt-0.5 block">
-                      {viewReq.days ? `${viewReq.days} day(s)` : '1 day'}
+                      {viewReq.meta?.isHalfDay || Number(viewReq.days) === 0.5
+                        ? `0.5 day (${viewReq.meta?.halfDayPeriod === 'SECOND_HALF' ? 'Second Half' : 'First Half'})`
+                        : viewReq.days
+                        ? `${viewReq.days} day(s)`
+                        : '1 day'}
                     </span>
                   </div>
+
+                  {(viewReq.meta?.notifyName || viewReq.meta?.notifyEmail) && (
+                    <div>
+                      <span className="text-slate-500 block font-medium">Notified Colleague</span>
+                      <span className="font-semibold text-slate-800 mt-0.5 block">
+                        {viewReq.meta.notifyName
+                          ? `${viewReq.meta.notifyName} (${viewReq.meta.notifyEmail})`
+                          : viewReq.meta.notifyEmail}
+                      </span>
+                    </div>
+                  )}
 
                   <div>
                     <span className="text-slate-500 block font-medium">Approver Name</span>

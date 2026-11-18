@@ -159,8 +159,11 @@ export async function createRequest(opts: {
       throw new AppError(404, 'LEAVE_TYPE_NOT_FOUND', 'Active leave type not found');
     }
 
+    const isHalfDay = Boolean(opts.meta?.isHalfDay);
+    const halfDayPeriod = opts.meta?.halfDayPeriod || 'FIRST_HALF';
+
     // Check overlap with pending or approved leaves
-    const overlap = await prisma.request.findFirst({
+    const overlaps = await prisma.request.findMany({
       where: {
         userId: opts.userId,
         type: 'LEAVE',
@@ -174,15 +177,26 @@ export async function createRequest(opts: {
       },
     });
 
-    if (overlap) {
+    for (const ov of overlaps) {
+      const ovMeta = (ov.meta as any) || {};
+      const isOvHalf = Boolean(ovMeta.isHalfDay) || Number(ov.days) === 0.5;
+      const isSameDate =
+        parsedStartDate &&
+        ov.startDate &&
+        parsedStartDate.toISOString().split('T')[0] === ov.startDate.toISOString().split('T')[0];
+
+      // If both are half-days on the exact same date with different periods (FIRST_HALF vs SECOND_HALF), allow them to coexist!
+      if (isSameDate && isOvHalf && isHalfDay) {
+        const ovPeriod = ovMeta.halfDayPeriod || 'FIRST_HALF';
+        if (ovPeriod !== halfDayPeriod) {
+          continue;
+        }
+      }
+
       throw new AppError(400, 'LEAVE_OVERLAP', 'A leave request already exists overlapping these dates');
     }
 
-    const isHalfDay = Boolean(opts.meta?.isHalfDay);
     if (isHalfDay) {
-      if (!leaveType.allowHalfDay) {
-        throw new AppError(400, 'HALF_DAY_NOT_ALLOWED', 'Half-day leaves are not allowed for this leave type');
-      }
       finalDays = 0.5;
     } else {
       // Calculate count of working days excluding weekends and holidays
@@ -341,6 +355,47 @@ export async function createRequest(opts: {
         sourceId: String(request.id),
       },
     });
+  }
+
+  // 4b. Notify peer / colleague if requested in meta.notifyUserId or meta.notifyEmail
+  const notifyTarget = opts.meta?.notifyUserId || opts.meta?.notifyEmail?.trim();
+  if (opts.type === 'LEAVE' && notifyTarget) {
+    try {
+      let targetUser = null;
+      if (typeof notifyTarget === 'number' || (!isNaN(Number(notifyTarget)) && !String(notifyTarget).includes('@'))) {
+        targetUser = await prisma.user.findFirst({
+          where: { id: Number(notifyTarget), companyId: opts.companyId, isActive: true },
+          select: { id: true, email: true, firstName: true },
+        });
+      }
+      if (!targetUser && typeof notifyTarget === 'string' && notifyTarget.includes('@')) {
+        targetUser = await prisma.user.findFirst({
+          where: {
+            email: { equals: notifyTarget.toLowerCase() },
+            companyId: opts.companyId,
+            isActive: true,
+          },
+          select: { id: true, email: true, firstName: true },
+        });
+      }
+
+      if (targetUser && targetUser.id !== user.id) {
+        await prisma.notification.create({
+          data: {
+            companyId: opts.companyId,
+            userId: targetUser.id,
+            kind: 'LEAVE',
+            title: `Team Leave Notice: ${user.firstName} ${user.lastName}`,
+            message: `${user.firstName} ${user.lastName} submitted a leave request (${opts.title || opts.reason}). You were tagged to be notified.`,
+            url: '/leaves',
+            sourceType: 'Request',
+            sourceId: String(request.id),
+          },
+        });
+      }
+    } catch (notifyErr) {
+      console.warn('Failed to dispatch colleague leave notification:', notifyErr);
+    }
   }
 
   await logActivity({
