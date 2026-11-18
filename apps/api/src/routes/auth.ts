@@ -77,7 +77,8 @@ router.post('/login', authRateLimiter, validateBody(LoginSchema), async (req, re
       }
     }
 
-    const { accessToken, refreshToken } = generateTokens(user);
+    const isRemember = Boolean(req.body.rememberMe);
+    const { accessToken, refreshToken } = generateTokens(user, isRemember);
 
     // Set secure HTTP-only cookies
     res.cookie('accessToken', accessToken, {
@@ -87,11 +88,12 @@ router.post('/login', authRateLimiter, validateBody(LoginSchema), async (req, re
       maxAge: 15 * 60 * 1000, // 15 mins
     });
 
+    const refreshMaxAge = isRemember ? 7 * 24 * 60 * 60 * 1000 : 12 * 60 * 60 * 1000;
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: refreshMaxAge,
     });
 
     let enabledFeatures = (user.company?.package?.enabledFeatures as string[]) || [];
@@ -187,7 +189,8 @@ router.post('/refresh', async (req, res, next) => {
       return next(new AppError(401, 'INVALID_TOKEN_USER', 'User not found or inactive'));
     }
 
-    const { accessToken, refreshToken: newRefreshToken } = generateTokens(user);
+    const isRemember = Boolean(payload.rememberMe);
+    const { accessToken, refreshToken: newRefreshToken } = generateTokens(user, isRemember);
 
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
@@ -196,11 +199,12 @@ router.post('/refresh', async (req, res, next) => {
       maxAge: 15 * 60 * 1000,
     });
 
+    const refreshMaxAge = isRemember ? 7 * 24 * 60 * 60 * 1000 : 12 * 60 * 60 * 1000;
     res.cookie('refreshToken', newRefreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: refreshMaxAge,
     });
 
     return res.json({

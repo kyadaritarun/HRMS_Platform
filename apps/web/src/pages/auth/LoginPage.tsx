@@ -34,7 +34,7 @@ export const LoginPage: React.FC = () => {
     }
   }, [searchParams]);
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => localStorage.getItem('remember_me') === 'true');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [remainingAttempts, setRemainingAttempts] = useState<number | null>(null);
@@ -81,7 +81,7 @@ export const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const data = await login(credentials);
+      const data = await login({ ...credentials, rememberMe });
       setRemainingAttempts(null);
       setLockoutSeconds(null);
       if (data.user.mustChangePassword) {

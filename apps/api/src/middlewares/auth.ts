@@ -12,18 +12,23 @@ export interface TokenPayload {
   email: string;
   role: Role;
   companyId: number | null;
+  rememberMe?: boolean;
 }
 
-export function generateTokens(user: { id: number; email: string; role: Role; companyId: number | null }) {
+export function generateTokens(
+  user: { id: number; email: string; role: Role; companyId: number | null },
+  rememberMe: boolean = false
+) {
   const payload: TokenPayload = {
     userId: user.id,
     email: user.email,
     role: user.role,
     companyId: user.companyId,
+    rememberMe,
   };
 
   const accessToken = jwt.sign(payload, JWT_SECRET, { expiresIn: '15m' });
-  const refreshToken = jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn: '7d' });
+  const refreshToken = jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn: rememberMe ? '7d' : '12h' });
 
   return { accessToken, refreshToken };
 }

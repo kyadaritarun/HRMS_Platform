@@ -63,10 +63,10 @@ describe('LoginPage Finance Landing Redirection Tests', () => {
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledWith({
+      expect(mockLogin).toHaveBeenCalledWith(expect.objectContaining({
         login: 'finance@kyadari.com',
         password: 'Admin@123!',
-      });
+      }));
       // Verifies it redirects to the Dashboard (/employee/dashboard) instead of /payroll/attendance-salary
       expect(mockNavigate).toHaveBeenCalledWith('/employee/dashboard');
       expect(mockNavigate).not.toHaveBeenCalledWith('/payroll/attendance-salary');
@@ -104,10 +104,10 @@ describe('LoginPage Finance Landing Redirection Tests', () => {
     fireEvent.click(screen.getByRole('button', { name: /Login/i }));
 
     await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledWith({
+      expect(mockLogin).toHaveBeenCalledWith(expect.objectContaining({
         login: 'sushanth@uptrixglobal.com',
         password: 'Password@123',
-      });
+      }));
       expect(mockNavigate).toHaveBeenCalledWith('/employee/dashboard');
       expect(mockNavigate).not.toHaveBeenCalledWith('/payroll/attendance-salary');
     });
@@ -143,10 +143,10 @@ describe('LoginPage Finance Landing Redirection Tests', () => {
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledWith({
+      expect(mockLogin).toHaveBeenCalledWith(expect.objectContaining({
         login: 'tarun@uptrixglobal.com',
         password: 'Password@123',
-      });
+      }));
       // Verifies IT redirects to Dashboard (/employee/dashboard) instead of /company/assets
       expect(mockNavigate).toHaveBeenCalledWith('/employee/dashboard');
       expect(mockNavigate).not.toHaveBeenCalledWith('/company/assets');
@@ -184,10 +184,10 @@ describe('LoginPage Finance Landing Redirection Tests', () => {
     fireEvent.click(screen.getByRole('button', { name: /Login/i }));
 
     await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledWith({
+      expect(mockLogin).toHaveBeenCalledWith(expect.objectContaining({
         login: 'tarun@uptrixglobal.com',
         password: 'Password@123',
-      });
+      }));
       expect(mockNavigate).toHaveBeenCalledWith('/employee/dashboard');
       expect(mockNavigate).not.toHaveBeenCalledWith('/company/assets');
     });

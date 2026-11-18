@@ -42,7 +42,7 @@ interface AuthContextType {
   features: string[];
   token: string | null;
   isLoading: boolean;
-  login: (credentials: { login: string; password: string }) => Promise<any>;
+  login: (credentials: { login: string; password: string; rememberMe?: boolean }) => Promise<any>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   hasFeature: (feature: string) => boolean;
@@ -89,12 +89,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [token]);
 
-  const login = async (credentials: { login: string; password: string }) => {
+  const login = async (credentials: { login: string; password: string; rememberMe?: boolean }) => {
     const res = await api.post('/auth/login', credentials);
     const { user: loggedInUser, token: authToken, refreshToken, features: enabledFeatures, company: userCompany } = res.data;
 
     localStorage.setItem('token', authToken);
     if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+    if (typeof credentials.rememberMe === 'boolean') {
+      localStorage.setItem('remember_me', String(credentials.rememberMe));
+    }
     if (userCompany) {
       localStorage.setItem('companySubdomain', userCompany.subdomain);
       localStorage.setItem('companyId', String(userCompany.id));
