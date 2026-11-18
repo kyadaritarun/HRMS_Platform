@@ -2292,6 +2292,7 @@ const INITIAL_CLAIM_PRESETS = [
 router.get('/claims/categories', async (req, res, next) => {
   try {
     const companyId = req.user!.companyId!;
+    const showAll = req.query.all === 'true' || req.query.includeInactive === 'true';
     const company = await prisma.company.findUnique({
       where: { id: companyId },
       select: { settings: true },
@@ -2307,7 +2308,10 @@ router.get('/claims/categories', async (req, res, next) => {
       });
     }
 
-    return res.json({ categories: settings.claimCategories });
+    const categories: any[] = settings.claimCategories;
+    const filtered = showAll ? categories : categories.filter((c: any) => c.isActive !== false);
+
+    return res.json({ categories: filtered });
   } catch (error) {
     next(error);
   }

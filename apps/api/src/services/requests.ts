@@ -277,6 +277,26 @@ export async function createRequest(opts: {
     if (!opts.amount || opts.amount <= 0) {
       throw new AppError(400, 'AMOUNT_REQUIRED', 'Claim amount must be greater than zero');
     }
+    const catName = opts.meta?.category;
+    if (catName && catName !== 'General') {
+      const company = await prisma.company.findUnique({
+        where: { id: opts.companyId },
+        select: { settings: true },
+      });
+      const settings = (company?.settings as any) || {};
+      if (Array.isArray(settings.claimCategories)) {
+        const matchingCat = settings.claimCategories.find(
+          (c: any) => c.name?.toLowerCase().trim() === catName.toLowerCase().trim()
+        );
+        if (matchingCat && matchingCat.isActive === false) {
+          throw new AppError(
+            400,
+            'CATEGORY_INACTIVE',
+            `Claim category "${matchingCat.name}" is currently deactivated and cannot accept new claims.`
+          );
+        }
+      }
+    }
   } else if (opts.type === 'GOAL') {
     const cycleId = opts.meta?.cycleId;
     const requestedWeight = Number(opts.meta?.weight) || 0;

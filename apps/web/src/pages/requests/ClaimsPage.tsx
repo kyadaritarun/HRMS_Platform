@@ -55,6 +55,7 @@ interface ClaimCategory {
   id: string;
   name: string;
   description?: string;
+  isActive?: boolean;
 }
 
 export const ClaimsPage: React.FC = () => {
@@ -1060,11 +1061,13 @@ export const ClaimsPage: React.FC = () => {
                         className="w-full px-3.5 py-2.5 text-xs font-medium bg-slate-50/70 border border-slate-200/80 rounded-xl text-slate-700 appearance-none focus:outline-hidden focus:border-[#5E4BE2] focus:ring-2 focus:ring-[#5E4BE2]/20 transition-all cursor-pointer"
                       >
                         <option value="">Select category</option>
-                        {categories.map((c) => (
-                          <option key={c.id} value={c.name}>
-                            {c.name}
-                          </option>
-                        ))}
+                        {categories
+                          .filter((c) => c.isActive !== false)
+                          .map((c) => (
+                            <option key={c.id} value={c.name}>
+                              {c.name}
+                            </option>
+                          ))}
                         {categories.length === 0 && (
                           <>
                             <option value="Travel & Accommodation">Travel & Accommodation</option>

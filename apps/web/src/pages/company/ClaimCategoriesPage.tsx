@@ -68,7 +68,7 @@ export const ClaimCategoriesPage: React.FC = () => {
   const fetchCategories = async () => {
     setIsLoading(true);
     try {
-      const res = await api.get('/company/claims/categories');
+      const res = await api.get('/company/claims/categories?all=true');
       setCategories(res.data?.categories || []);
     } catch (err) {
       console.error('Failed to load claim categories:', err);
@@ -278,9 +278,9 @@ export const ClaimCategoriesPage: React.FC = () => {
               <IconReceipt2 className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-900">All Claim Categories</h2>
+              <h2 className="text-sm font-bold text-slate-900">Expense Policy Directory</h2>
               <p className="text-xs text-slate-500 font-medium mt-0.5">
-                View and manage expense reimbursement categories, caps, and mandatory receipts.
+                View and manage corporate reimbursement rules, spending caps, and mandatory bill proofs.
               </p>
             </div>
           </div>

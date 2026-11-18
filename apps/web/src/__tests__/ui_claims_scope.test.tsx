@@ -181,5 +181,67 @@ describe('Claims Scope UI Tests for HR and Self Service', () => {
     expect(screen.getByRole('option', { name: 'Scope: All Company' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Scope: Assigned to Me' })).toBeInTheDocument();
   });
+
+  it('4. Deactivated (inactive) categories are not visible in "File Expense Claim" drawer', async () => {
+    vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
+      user: {
+        id: 10,
+        role: 'EMPLOYEE',
+        firstName: 'John',
+        lastName: 'Employee',
+        email: 'john@uptrix.test',
+      } as any,
+      company: null,
+      features: ['claim_process_management'],
+      token: 'mock-token',
+      isLoading: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+      hasFeature: () => true,
+      hasHrPermission: () => false,
+    });
+
+    (api.get as any).mockImplementation((url: string) => {
+      if (url === '/requests') {
+        return Promise.resolve({ data: { items: [], total: 0 } });
+      }
+      if (url === '/company/claims/categories') {
+        return Promise.resolve({
+          data: {
+            categories: [
+              { id: 'cat-1', name: 'Active Travel', isActive: true },
+              { id: 'cat-2', name: 'Inactive Old Tech', isActive: false },
+            ],
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/claims']}>
+        <ClaimsPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('New Claim')).toBeInTheDocument();
+    });
+
+    // Open "File Expense Claim" drawer
+    const fileBtn = screen.getByText('New Claim');
+    fileBtn.click();
+
+    await waitFor(() => {
+      expect(screen.getByText('File Expense Claim')).toBeInTheDocument();
+    });
+
+    // Active category MUST be present
+    expect(screen.getByRole('option', { name: 'Active Travel' })).toBeInTheDocument();
+
+    // Deactivated category MUST NOT be present
+    expect(screen.queryByRole('option', { name: 'Inactive Old Tech' })).not.toBeInTheDocument();
+  });
 });
 
