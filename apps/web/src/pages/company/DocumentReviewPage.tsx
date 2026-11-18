@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import api from '../../api/client';
+import { api, getFileUrl } from '../../api/client';
 import {
   IconFolderCheck,
   IconCheck,
@@ -36,6 +36,22 @@ interface DocumentItem {
     department?: { name: string };
   };
 }
+
+const resolveDocUrl = (url?: string | null) => {
+  if (!url) return '';
+  if (url.includes('amazonaws.com')) {
+    const filename = url.split('/uploads/').pop() || url.split('/').pop();
+    return `/uploads/${filename}`;
+  }
+  if (url.includes('/uploads/')) {
+    const parts = url.split('/uploads/');
+    return `/uploads/${parts[parts.length - 1]}`;
+  }
+  if (url.startsWith('/')) {
+    return url;
+  }
+  return getFileUrl(url);
+};
 
 export const DocumentReviewPage: React.FC = () => {
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
@@ -471,7 +487,7 @@ export const DocumentReviewPage: React.FC = () => {
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
                 {doc.fileUrl ? (
                   <a
-                    href={doc.fileUrl}
+                    href={resolveDocUrl(doc.fileUrl)}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-2xs transition-all"
@@ -506,42 +522,49 @@ export const DocumentReviewPage: React.FC = () => {
         )}
       </div>
 
-      {/* Document Review & Decision Modal Portal */}
-      {reviewModal.open && reviewModal.doc
+      {/* Document Review & Decision Right-Side Slide-Over Drawer Portal */}
+      {reviewModal.open && reviewModal.doc && typeof document !== 'undefined'
         ? createPortal(
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
+            <div className="fixed inset-0 z-50 overflow-hidden">
               <div
-                className="bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden my-auto"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {/* Modal Header */}
-                <div className="p-6 border-b border-slate-100 flex items-start justify-between bg-slate-50/50">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0">
-                      <IconFolderCheck className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-base font-black text-slate-900 tracking-tight">
-                          Review & Authenticate Document
-                        </h3>
-                        {getStatusBadge(reviewModal.doc.status)}
+                className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+                onClick={() => setReviewModal({ open: false, decision: '', note: '' })}
+              />
+              <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+                <div
+                  className="w-screen max-w-2xl bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 pointer-events-auto animate-in slide-in-from-right duration-200"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Drawer Header */}
+                  <div className="p-6 border-b border-slate-100 flex items-start justify-between bg-slate-50/50 sticky top-0 z-10">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5E4BE2] shrink-0">
+                        <IconFolderCheck className="w-6 h-6" />
                       </div>
-                      <p className="text-xs text-slate-500 font-medium mt-0.5">
-                        Verify employee compliance proof and submit your authentication decision.
-                      </p>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-base font-black text-slate-900 tracking-tight">
+                            Review & Authenticate Document
+                          </h3>
+                          {getStatusBadge(reviewModal.doc.status)}
+                        </div>
+                        <p className="text-xs text-slate-500 font-medium mt-0.5">
+                          Verify employee compliance proof and submit your authentication decision.
+                        </p>
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setReviewModal({ open: false, decision: '', note: '' })}
+                      className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 font-medium hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
+                    >
+                      <IconX className="w-4 h-4" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setReviewModal({ open: false, decision: '', note: '' })}
-                    className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 font-medium hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
-                  >
-                    <IconX className="w-4 h-4" />
-                  </button>
-                </div>
 
-                {/* Modal Body */}
-                <form onSubmit={handleReviewSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
+                  {/* Drawer Body */}
+                  <form onSubmit={handleReviewSubmit} className="flex-1 overflow-y-auto p-6 space-y-5 flex flex-col justify-between">
+                    <div className="space-y-5">
                   {/* Employee Submitter Info Card */}
                   <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-3">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
@@ -636,7 +659,7 @@ export const DocumentReviewPage: React.FC = () => {
                       </span>
                       {reviewModal.doc.fileUrl && (
                         <a
-                          href={reviewModal.doc.fileUrl}
+                          href={resolveDocUrl(reviewModal.doc.fileUrl)}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-1 text-xs font-bold text-[#5E4BE2] hover:text-[#4938B8] transition-colors"
@@ -651,12 +674,12 @@ export const DocumentReviewPage: React.FC = () => {
                       isImageFile(reviewModal.doc.fileUrl) ? (
                         <div className="rounded-xl border border-slate-200 overflow-hidden bg-slate-100 flex flex-col items-center justify-center p-3 relative group">
                           <img
-                            src={reviewModal.doc.fileUrl}
+                            src={resolveDocUrl(reviewModal.doc.fileUrl)}
                             alt={reviewModal.doc.title}
                             className="max-h-72 w-auto object-contain rounded-lg shadow-2xs"
                           />
                           <a
-                            href={reviewModal.doc.fileUrl}
+                            href={resolveDocUrl(reviewModal.doc.fileUrl)}
                             target="_blank"
                             rel="noreferrer"
                             className="mt-2.5 inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 hover:text-slate-900 bg-white/90 border border-slate-200/80 px-2.5 py-1 rounded-lg shadow-2xs transition-colors"
@@ -666,29 +689,41 @@ export const DocumentReviewPage: React.FC = () => {
                           </a>
                         </div>
                       ) : (
-                        <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 text-[#5E4BE2] flex items-center justify-center shrink-0">
-                              <IconFileText className="w-5 h-5" />
-                            </div>
-                            <div className="min-w-0">
-                              <div className="text-xs font-bold text-slate-800 truncate">
-                                {reviewModal.doc.title}
+                        <div className="space-y-3">
+                          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 text-[#5E4BE2] flex items-center justify-center shrink-0">
+                                <IconFileText className="w-5 h-5" />
                               </div>
-                              <div className="text-[11px] text-slate-500 font-medium">
-                                Digital Document Attachment (PDF / Document File)
+                              <div className="min-w-0">
+                                <div className="text-xs font-bold text-slate-800 truncate">
+                                  {reviewModal.doc.title}
+                                </div>
+                                <div className="text-[11px] text-slate-500 font-medium">
+                                  Digital Document Attachment (PDF / Document File)
+                                </div>
                               </div>
                             </div>
+                            <a
+                              href={resolveDocUrl(reviewModal.doc.fileUrl)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#5E4BE2] hover:bg-[#4E3BC8] text-white text-xs font-bold transition-colors shadow-2xs shrink-0"
+                            >
+                              <IconExternalLink className="w-3.5 h-3.5" />
+                              <span>Open File</span>
+                            </a>
                           </div>
-                          <a
-                            href={reviewModal.doc.fileUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#5E4BE2] hover:bg-[#4E3BC8] text-white text-xs font-bold transition-colors shadow-2xs shrink-0"
-                          >
-                            <IconExternalLink className="w-3.5 h-3.5" />
-                            <span>Open File</span>
-                          </a>
+
+                          {reviewModal.doc.fileUrl.toLowerCase().includes('.pdf') && (
+                            <div className="rounded-xl border border-slate-200 overflow-hidden bg-slate-100">
+                              <iframe
+                                src={`${resolveDocUrl(reviewModal.doc.fileUrl)}#toolbar=1`}
+                                className="w-full h-72 border-none bg-white"
+                                title={reviewModal.doc.title}
+                              />
+                            </div>
+                          )}
                         </div>
                       )
                     ) : (
@@ -773,54 +808,57 @@ export const DocumentReviewPage: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Sticky Footer Actions */}
-                  <div className="sticky bottom-0 -mx-6 -mb-6 p-4 bg-white/95 backdrop-blur-xs border-t border-slate-100 flex items-center justify-end gap-2.5 mt-4">
-                    <button
-                      type="button"
-                      onClick={() => setReviewModal({ open: false, decision: '', note: '' })}
-                      className="px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer"
-                    >
-                      Close
-                    </button>
+                    </div>
 
-                    {reviewModal.doc.status === 'PENDING' && (
+                    {/* Sticky Footer Actions */}
+                    <div className="sticky bottom-0 -mx-6 -mb-6 p-4 px-6 bg-white/95 backdrop-blur-xs border-t border-slate-100 flex items-center justify-end gap-2.5 mt-auto z-10">
                       <button
-                        type="submit"
-                        disabled={
-                          isSubmitting ||
-                          !reviewModal.decision ||
-                          (reviewModal.decision === 'REJECTED' && !reviewModal.note.trim())
-                        }
-                        className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl text-white shadow-xs transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-                          reviewModal.decision === 'VERIFIED'
-                            ? 'bg-emerald-600 hover:bg-emerald-700'
-                            : reviewModal.decision === 'REJECTED'
-                            ? 'bg-rose-600 hover:bg-rose-700'
-                            : 'bg-slate-700 hover:bg-slate-800'
-                        }`}
+                        type="button"
+                        onClick={() => setReviewModal({ open: false, decision: '', note: '' })}
+                        className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer"
                       >
-                        {isSubmitting ? (
-                          <span>Submitting Decision...</span>
-                        ) : (
-                          <>
-                            {reviewModal.decision === 'VERIFIED' ? (
-                              <IconCheck className="w-4 h-4" />
-                            ) : reviewModal.decision === 'REJECTED' ? (
-                              <IconX className="w-4 h-4" />
-                            ) : null}
-                            <span>
-                              {reviewModal.decision === 'VERIFIED'
-                                ? 'Approve & Verify Document'
-                                : reviewModal.decision === 'REJECTED'
-                                ? 'Confirm Rejection'
-                                : 'Select Decision Action'}
-                            </span>
-                          </>
-                        )}
+                        Close
                       </button>
-                    )}
-                  </div>
-                </form>
+
+                      {reviewModal.doc.status === 'PENDING' && (
+                        <button
+                          type="submit"
+                          disabled={
+                            isSubmitting ||
+                            !reviewModal.decision ||
+                            (reviewModal.decision === 'REJECTED' && !reviewModal.note.trim())
+                          }
+                          className={`inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl text-white shadow-xs transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                            reviewModal.decision === 'VERIFIED'
+                              ? 'bg-emerald-600 hover:bg-emerald-700'
+                              : reviewModal.decision === 'REJECTED'
+                              ? 'bg-rose-600 hover:bg-rose-700'
+                              : 'bg-slate-700 hover:bg-slate-800'
+                          }`}
+                        >
+                          {isSubmitting ? (
+                            <span>Submitting Decision...</span>
+                          ) : (
+                            <>
+                              {reviewModal.decision === 'VERIFIED' ? (
+                                <IconCheck className="w-4 h-4" />
+                              ) : reviewModal.decision === 'REJECTED' ? (
+                                <IconX className="w-4 h-4" />
+                              ) : null}
+                              <span>
+                                {reviewModal.decision === 'VERIFIED'
+                                  ? 'Approve & Verify Document'
+                                  : reviewModal.decision === 'REJECTED'
+                                  ? 'Confirm Rejection'
+                                  : 'Select Decision Action'}
+                              </span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </form>
+                </div>
               </div>
             </div>,
             document.body
