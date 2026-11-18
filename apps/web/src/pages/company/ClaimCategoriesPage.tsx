@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../../api/client';
+import TablePagination from '../../components/common/TablePagination';
 import {
   IconReceipt2,
   IconPlus,
   IconCheck,
   IconX,
   IconAlertCircle,
-  IconCash,
   IconFileCertificate,
   IconSearch,
   IconPencil,
   IconTrash,
+  IconPlayerPause,
+  IconPlayerPlay,
 } from '@tabler/icons-react';
 
 interface ClaimCategory {
@@ -31,7 +33,28 @@ export const ClaimCategoriesPage: React.FC = () => {
   const [categoryToDelete, setCategoryToDelete] = useState<ClaimCategory | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [search, setSearch] = useState('');
-  const [filterType, setFilterType] = useState<'ALL' | 'RECEIPT_REQUIRED' | 'CAPPED'>('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Floating Toast Notification
+  const [toast, setToast] = useState<{
+    type: 'success' | 'error';
+    title: string;
+    message: string;
+  } | null>(null);
+
+  // Auto dismiss toast after 4.5 seconds
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => {
+      setToast(null);
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const [form, setForm] = useState({
     name: '',
@@ -91,10 +114,20 @@ export const ClaimCategoriesPage: React.FC = () => {
           ...form,
           maxLimit: Number(form.maxLimit) || 0,
         });
+        setToast({
+          type: 'success',
+          title: 'Category Updated',
+          message: `Claim category "${form.name.trim()}" was updated successfully.`,
+        });
       } else {
         await api.post('/company/claims/categories', {
           ...form,
           maxLimit: Number(form.maxLimit) || 0,
+        });
+        setToast({
+          type: 'success',
+          title: 'Category Created',
+          message: `Claim category "${form.name.trim()}" was created successfully.`,
         });
       }
       setIsModalOpen(false);
@@ -108,216 +141,178 @@ export const ClaimCategoriesPage: React.FC = () => {
     }
   };
 
+  const handleToggleActive = async (cat: ClaimCategory) => {
+    const nextActive = cat.isActive === false;
+    try {
+      await api.put(`/company/claims/categories/${cat.id}`, {
+        ...cat,
+        isActive: nextActive,
+      });
+      fetchCategories();
+      setToast({
+        type: 'success',
+        title: nextActive ? 'Category Activated' : 'Category Deactivated',
+        message: `Claim category "${cat.name}" is now ${nextActive ? 'Active' : 'Inactive'}.`,
+      });
+    } catch (err: any) {
+      setToast({
+        type: 'error',
+        title: 'Action Failed',
+        message: err.response?.data?.error || 'Failed to update category status',
+      });
+    }
+  };
+
   const handleDelete = async () => {
     if (!categoryToDelete) return;
+    const catName = categoryToDelete.name;
     setIsDeleting(true);
     try {
       await api.delete(`/company/claims/categories/${categoryToDelete.id}`);
       setCategoryToDelete(null);
       fetchCategories();
+      setToast({
+        type: 'success',
+        title: 'Category Deleted',
+        message: `Claim category "${catName}" has been deleted.`,
+      });
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to delete category');
+      const errMsg = err.response?.data?.error || 'Failed to delete category';
+      setToast({
+        type: 'error',
+        title: 'Delete Failed',
+        message: errMsg,
+      });
     } finally {
       setIsDeleting(false);
     }
   };
 
-  // KPI Calculations
-  const totalCount = categories.length;
-  const activeCount = categories.filter((c) => c.isActive !== false).length;
-  const receiptMandatoryCount = categories.filter((c) => c.requiresReceipt).length;
-  const cappedCount = categories.filter((c) => c.maxLimit > 0).length;
-
   // Filtered categories
   const filteredCategories = useMemo(() => {
     return categories.filter((cat) => {
       const q = search.toLowerCase().trim();
-      const matchesSearch =
+      return (
         !q ||
         cat.name.toLowerCase().includes(q) ||
-        (cat.description && cat.description.toLowerCase().includes(q));
-      if (!matchesSearch) return false;
-
-      if (filterType === 'RECEIPT_REQUIRED') return cat.requiresReceipt;
-      if (filterType === 'CAPPED') return cat.maxLimit > 0;
-      return true;
+        (cat.description && cat.description.toLowerCase().includes(q))
+      );
     });
-  }, [categories, search, filterType]);
+  }, [categories, search]);
+
+  // Paginated categories
+  const paginatedCategories = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredCategories.slice(start, start + pageSize);
+  }, [filteredCategories, currentPage, pageSize]);
 
   return (
-    <div className="space-y-6">
-      {/* Header with Breadcrumb & Action Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-6 pb-12">
+      {/* Top Banner (Hero Header) */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Claim Categories</h1>
-          <p className="text-xs text-slate-400 font-medium mt-0.5">
-            Application &gt; Claim &amp; Reimbursement Categories
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <IconReceipt2 className="w-5 h-5 text-indigo-600 shrink-0" />
+            <span>Claim Categories</span>
+          </h1>
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
+            Configure expense reimbursement categories, maximum claim limits, and receipt requirements.
           </p>
         </div>
 
+        {/* Primary CTA */}
         <button
           onClick={handleOpenAdd}
-          className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:opacity-95 text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition-all cursor-pointer shrink-0"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer shrink-0"
         >
           <IconPlus className="w-4 h-4" />
           <span>Add Claim Category</span>
         </button>
       </div>
 
-      {/* 4 Stat Cards Strip (matching Tenants & Companies sample) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Total Categories */}
-        <div className="relative overflow-hidden bg-white rounded-2xl border border-slate-100 p-5 shadow-xs flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
-              <IconReceipt2 className="w-6 h-6" />
+      {/* Floating Status Notification */}
+      {toast && (
+        <div className="fixed top-6 right-6 z-50 max-w-sm sm:max-w-md w-[calc(100%-3rem)] pointer-events-auto animate-in slide-in-from-top-4 fade-in duration-200">
+          <div
+            className={`p-4 rounded-2xl border shadow-xl flex items-start gap-3 backdrop-blur-md transition-all ${
+              toast.type === 'error'
+                ? 'bg-rose-50/95 border-rose-200 text-rose-950 shadow-rose-900/10'
+                : 'bg-emerald-50/95 border-emerald-200 text-emerald-950 shadow-emerald-900/10'
+            }`}
+          >
+            <div
+              className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                toast.type === 'error' ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'
+              }`}
+            >
+              {toast.type === 'error' ? (
+                <IconAlertCircle className="w-5 h-5 stroke-[2.2]" />
+              ) : (
+                <IconCheck className="w-5 h-5 stroke-[2.2]" />
+              )}
             </div>
-            <div>
-              <span className="text-xs font-semibold text-slate-500">Total Categories</span>
-              <div className="text-2xl font-black text-slate-900 mt-0.5 leading-none">
-                {totalCount}
-              </div>
-              <p className="text-[11px] font-medium text-blue-600 mt-1">
-                Registered policies
-              </p>
-            </div>
-          </div>
-          <svg className="absolute bottom-0 right-0 w-32 h-10 pointer-events-none opacity-40" viewBox="0 0 120 40" fill="none">
-            <path d="M0 35 C30 35, 60 10, 120 20 L120 40 L0 40 Z" fill="#93C5FD" />
-          </svg>
-        </div>
 
-        {/* Card 2: Active Policies */}
-        <div className="relative overflow-hidden bg-white rounded-2xl border border-slate-100 p-5 shadow-xs flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
-              <IconCheck className="w-6 h-6" />
+            <div className="flex-1 min-w-0 pt-0.5">
+              <p className="font-bold text-xs leading-snug">{toast.title}</p>
+              <p className="mt-0.5 text-[11px] font-medium leading-relaxed opacity-90">{toast.message}</p>
             </div>
-            <div>
-              <span className="text-xs font-semibold text-slate-500">Active Policies</span>
-              <div className="text-2xl font-black text-slate-900 mt-0.5 leading-none">
-                {activeCount}
-              </div>
-              <p className="text-[11px] font-medium text-emerald-600 mt-1">
-                Ready for claims
-              </p>
-            </div>
-          </div>
-          <div className="w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center shrink-0 self-start">
-            <IconCheck className="w-3.5 h-3.5" />
-          </div>
-          <svg className="absolute bottom-0 right-0 w-32 h-10 pointer-events-none opacity-40" viewBox="0 0 120 40" fill="none">
-            <path d="M0 35 C30 35, 60 10, 120 20 L120 40 L0 40 Z" fill="#86EFAC" />
-          </svg>
-        </div>
 
-        {/* Card 3: Proof Required */}
-        <div className="relative overflow-hidden bg-white rounded-2xl border border-slate-100 p-5 shadow-xs flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
-              <IconFileCertificate className="w-6 h-6" />
-            </div>
-            <div>
-              <span className="text-xs font-semibold text-slate-500">Proof Required</span>
-              <div className="text-2xl font-black text-slate-900 mt-0.5 leading-none">
-                {receiptMandatoryCount}
-              </div>
-              <p className="text-[11px] font-medium text-amber-600 mt-1">
-                Bill upload enforced
-              </p>
-            </div>
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              className="p-1 -mr-1 text-slate-500 font-medium hover:text-slate-600 rounded-lg hover:bg-black/5 transition-colors cursor-pointer shrink-0"
+              title="Dismiss"
+            >
+              <IconX className="w-4 h-4" />
+            </button>
           </div>
-          <svg className="absolute bottom-0 right-0 w-32 h-10 pointer-events-none opacity-40" viewBox="0 0 120 40" fill="none">
-            <path d="M0 35 C30 35, 60 10, 120 20 L120 40 L0 40 Z" fill="#FDE68A" />
-          </svg>
         </div>
-
-        {/* Card 4: Capped Allowances */}
-        <div className="relative overflow-hidden bg-white rounded-2xl border border-slate-100 p-5 shadow-xs flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 shrink-0">
-              <IconCash className="w-6 h-6" />
-            </div>
-            <div>
-              <span className="text-xs font-semibold text-slate-500">Capped Allowances</span>
-              <div className="text-2xl font-black text-slate-900 mt-0.5 leading-none">
-                {cappedCount}
-              </div>
-              <p className="text-[11px] font-medium text-rose-600 mt-1">
-                Budget caps applied
-              </p>
-            </div>
-          </div>
-          <svg className="absolute bottom-0 right-0 w-32 h-10 pointer-events-none opacity-40" viewBox="0 0 120 40" fill="none">
-            <path d="M0 35 C30 35, 60 10, 120 20 L120 40 L0 40 Z" fill="#FECDD3" />
-          </svg>
-        </div>
-      </div>
+      )}
 
       {/* Main Table Container Card */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
-        {/* Filter Pills & Search Bar (matching Tenants & Companies) */}
-        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
-          {/* Pill Tabs */}
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => setFilterType('ALL')}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                filterType === 'ALL'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              All Categories ({totalCount})
-            </button>
-            <button
-              onClick={() => setFilterType('RECEIPT_REQUIRED')}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-                filterType === 'RECEIPT_REQUIRED'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-amber-100/70 text-amber-800 hover:bg-amber-100'
-              }`}
-            >
-              Receipt Required ({receiptMandatoryCount})
-            </button>
-            <button
-              onClick={() => setFilterType('CAPPED')}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-                filterType === 'CAPPED'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-emerald-100/70 text-emerald-800 hover:bg-emerald-100'
-              }`}
-            >
-              Capped ({cappedCount})
-            </button>
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
+        {/* Section Header & Search Controls */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+              <IconReceipt2 className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">All Claim Categories</h2>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                View and manage expense reimbursement categories, caps, and mandatory receipts.
+              </p>
+            </div>
           </div>
 
-          {/* Search Box on right */}
-          <div className="relative">
-            <IconSearch className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search claim categories by name or keyword..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-8 py-2 text-xs bg-slate-50 border border-slate-200 rounded-full focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] focus:ring-2 focus:ring-[#5E4BE2]/10 text-slate-800 placeholder-slate-400 w-full sm:w-64 transition-all"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <IconX className="w-3.5 h-3.5" />
-              </button>
-            )}
+          {/* Right Controls: Search Box */}
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="relative w-full sm:w-64">
+              <IconSearch className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search claim categories by name or keyword..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-8 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-indigo-500 text-slate-800 placeholder-slate-400"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <IconX className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Table Content */}
-        <div className="overflow-x-auto border border-slate-100 rounded-2xl overflow-hidden">
-          <table className="w-full min-w-[850px] text-left text-xs">
-            <thead className="bg-slate-50/90 text-xs font-bold text-slate-700 border-b border-slate-100">
+        {/* Data Table */}
+        <div className="overflow-x-auto border border-slate-200/80 rounded-2xl shadow-2xs overflow-hidden">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-[#e5e7eb] text-xs font-bold text-slate-900 border-b border-slate-300">
               <tr>
                 <th className="px-5 py-3.5 whitespace-nowrap">Category Name</th>
                 <th className="px-5 py-3.5">Description &amp; Guidelines</th>
@@ -329,7 +324,7 @@ export const ClaimCategoriesPage: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
+                Array.from({ length: 4 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
@@ -363,13 +358,13 @@ export const ClaimCategoriesPage: React.FC = () => {
                     <p className="text-sm font-semibold text-slate-700">No Claim Categories Found</p>
                     <p className="text-xs text-slate-400 font-medium mt-1">
                       {search
-                        ? 'Try adjusting your search query or filter.'
+                        ? 'Try adjusting your search query.'
                         : 'Add your first company expense category to let employees submit claims.'}
                     </p>
                   </td>
                 </tr>
               ) : (
-                filteredCategories.map((cat) => (
+                paginatedCategories.map((cat) => (
                   <tr key={cat.id} className="hover:bg-slate-50/60 transition-colors">
                     {/* Category Name with Rounded Box */}
                     <td className="px-5 py-4 whitespace-nowrap">
@@ -398,27 +393,27 @@ export const ClaimCategoriesPage: React.FC = () => {
                     {/* Proof Required */}
                     <td className="px-5 py-4 whitespace-nowrap">
                       {cat.requiresReceipt ? (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80">
                           <IconFileCertificate className="w-3.5 h-3.5 text-amber-600" />
                           Mandatory Bill Proof
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200/60">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200/60">
                           Optional / Non-taxable
                         </span>
                       )}
                     </td>
 
-                    {/* Status with Colored Dot (matching In Process style) */}
+                    {/* Status */}
                     <td className="px-5 py-4 whitespace-nowrap">
                       {cat.isActive !== false ? (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                           Active
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-500 border border-slate-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                           Inactive
                         </span>
                       )}
@@ -427,21 +422,45 @@ export const ClaimCategoriesPage: React.FC = () => {
                     {/* Actions */}
                     <td className="px-5 py-4 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1.5">
+                        {/* Edit Button */}
                         <button
                           type="button"
                           onClick={() => handleOpenEdit(cat)}
                           title="Edit Category"
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-[#5E4BE2] hover:bg-indigo-50 transition-colors cursor-pointer"
+                          className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-300 text-slate-700 hover:text-blue-600 flex items-center justify-center shadow-2xs transition-all cursor-pointer"
                         >
-                          <IconPencil className="w-4 h-4" />
+                          <IconPencil className="w-4 h-4 stroke-[1.8]" />
                         </button>
+
+                        {/* Toggle Status Button */}
+                        {cat.isActive !== false ? (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleActive(cat)}
+                            title="Deactivate Category"
+                            className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-amber-50 hover:border-amber-300 text-slate-600 hover:text-amber-700 flex items-center justify-center shadow-2xs transition-all cursor-pointer"
+                          >
+                            <IconPlayerPause className="w-4 h-4 stroke-[1.8]" />
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleActive(cat)}
+                            title="Reactivate Category"
+                            className="w-8 h-8 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center justify-center shadow-2xs transition-all cursor-pointer"
+                          >
+                            <IconPlayerPlay className="w-4 h-4 stroke-[1.8]" />
+                          </button>
+                        )}
+
+                        {/* Delete Button */}
                         <button
                           type="button"
                           onClick={() => setCategoryToDelete(cat)}
                           title="Delete Category"
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                          className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-300 text-rose-600 hover:text-rose-700 flex items-center justify-center shadow-2xs transition-all cursor-pointer"
                         >
-                          <IconTrash className="w-4 h-4" />
+                          <IconTrash className="w-4 h-4 stroke-[1.8]" />
                         </button>
                       </div>
                     </td>
@@ -452,39 +471,24 @@ export const ClaimCategoriesPage: React.FC = () => {
           </table>
         </div>
 
-        {/* Footer Pagination (matching Tenants & Companies sample) */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 text-xs text-slate-500 font-medium">
-          <div>
-            Showing 1 - {filteredCategories.length} of {categories.length} entries
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              disabled
-              className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-400 font-medium text-xs disabled:opacity-50 cursor-not-allowed"
-            >
-              &lt; Prev
-            </button>
-            <button
-              type="button"
-              className="w-7 h-7 rounded-lg bg-[#5E4BE2] text-white font-bold text-xs flex items-center justify-center shadow-xs"
-            >
-              1
-            </button>
-            <button
-              type="button"
-              disabled
-              className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-400 font-medium text-xs disabled:opacity-50 cursor-not-allowed"
-            >
-              Next &gt;
-            </button>
-          </div>
-        </div>
+        {/* Real Table Pagination Component */}
+        <TablePagination
+          currentPage={currentPage}
+          totalItems={filteredCategories.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[5, 10, 20, 50]}
+          itemName="claim categories"
+        />
       </div>
 
       {/* Delete Category Confirmation Dialog */}
       {categoryToDelete && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center mx-auto">
               <IconAlertCircle className="w-6 h-6" />
@@ -521,7 +525,7 @@ export const ClaimCategoriesPage: React.FC = () => {
       {isModalOpen && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[9999] overflow-hidden">
           <div
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
             onClick={() => setIsModalOpen(false)}
           />
           <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
@@ -633,7 +637,7 @@ export const ClaimCategoriesPage: React.FC = () => {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-5 py-2 text-xs font-bold text-white bg-gradient-to-r from-[#5E4BE2] to-[#4B39C3] hover:from-[#5340D4] hover:to-[#4130B4] disabled:opacity-50 shadow-xs cursor-pointer transition-all"
+                    className="px-5 py-2 text-xs font-bold text-white bg-[#5E4BE2] hover:bg-[#4D3BC9] rounded-xl disabled:opacity-50 shadow-xs cursor-pointer transition-colors"
                   >
                     {isSubmitting ? 'Saving...' : editingId ? 'Update Category' : 'Add Category'}
                   </button>

@@ -40,14 +40,13 @@ describe('Claim Categories Page UI Tests', () => {
     });
   });
 
-  it('1. Renders Claim Categories page with header, KPIs, and table', async () => {
+  it('1. Renders Claim Categories page with header and table', async () => {
     render(<ClaimCategoriesPage />);
 
     expect(screen.getByText('Claim Categories')).toBeInTheDocument();
-    expect(screen.getByText('Total Categories')).toBeInTheDocument();
-    expect(screen.getByText('Active Policies')).toBeInTheDocument();
-    expect(screen.getAllByText('Proof Required').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('Capped Allowances')).toBeInTheDocument();
+    expect(screen.queryByText('Total Categories')).not.toBeInTheDocument();
+    expect(screen.queryByText('Active Policies')).not.toBeInTheDocument();
+    expect(screen.queryByText('Capped Allowances')).not.toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText('Travel & Transport')).toBeInTheDocument();
@@ -73,18 +72,18 @@ describe('Claim Categories Page UI Tests', () => {
     expect(screen.queryByText('Food & Meals')).not.toBeInTheDocument();
   });
 
-  it('3. Filters categories by filter tabs', async () => {
+  it('3. Filters categories by keyword in description', async () => {
     render(<ClaimCategoriesPage />);
 
     await waitFor(() => {
       expect(screen.getByText('Travel & Transport')).toBeInTheDocument();
     });
 
-    const receiptTab = screen.getByText(/Receipt Required/);
-    fireEvent.click(receiptTab);
+    const searchInput = screen.getByPlaceholderText(/Search claim categories/);
+    fireEvent.change(searchInput, { target: { value: 'dinner' } });
 
-    expect(screen.getByText('Travel & Transport')).toBeInTheDocument();
-    expect(screen.queryByText('Food & Meals')).not.toBeInTheDocument();
+    expect(screen.getByText('Food & Meals')).toBeInTheDocument();
+    expect(screen.queryByText('Travel & Transport')).not.toBeInTheDocument();
   });
 
   it('4. Opens Add Category drawer and submits new category', async () => {
@@ -167,6 +166,56 @@ describe('Claim Categories Page UI Tests', () => {
 
     await waitFor(() => {
       expect(api.delete).toHaveBeenCalledWith('/company/claims/categories/cat-travel');
+    });
+  });
+
+  it('7. Toggles active/inactive status of a category', async () => {
+    (api.put as any).mockResolvedValueOnce({
+      data: { success: true },
+    });
+
+    render(<ClaimCategoriesPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Travel & Transport')).toBeInTheDocument();
+    });
+
+    const pauseBtns = screen.getAllByTitle('Deactivate Category');
+    expect(pauseBtns.length).toBeGreaterThanOrEqual(1);
+
+    fireEvent.click(pauseBtns[0]);
+
+    await waitFor(() => {
+      expect(api.put).toHaveBeenCalledWith(
+        '/company/claims/categories/cat-travel',
+        expect.objectContaining({
+          isActive: false,
+        })
+      );
+    });
+  });
+
+  it('8. Renders TablePagination and updates items on page', async () => {
+    const manyCategories = Array.from({ length: 15 }, (_, i) => ({
+      id: `cat-${i}`,
+      name: `Category ${i + 1}`,
+      maxLimit: 1000 * (i + 1),
+      requiresReceipt: i % 2 === 0,
+      description: `Description for category ${i + 1}`,
+      isActive: true,
+    }));
+
+    (api.get as any).mockResolvedValueOnce({
+      data: { categories: manyCategories },
+    });
+
+    render(<ClaimCategoriesPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Category 1')).toBeInTheDocument();
+      expect(screen.getByText('Category 10')).toBeInTheDocument();
+      // Page 1 should not show Category 11 by default with pageSize=10
+      expect(screen.queryByText('Category 11')).not.toBeInTheDocument();
     });
   });
 });
