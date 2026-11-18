@@ -839,7 +839,7 @@ router.patch(
               }
             }
             if (data.role === 'HR') {
-              const hasHr = enabled.some((f) => ['hr_operations', 'leave_management', 'time_attendance_management'].includes(f));
+              const hasHr = enabled.some((f) => ['hr_operations', 'leave_management', 'time_attendance_management', 'hr', 'employees', 'human_resources'].includes(f));
               if (!hasHr) {
                 return next(
                   new AppError(
@@ -880,6 +880,29 @@ router.patch(
         }
       }
 
+      if (data.managerId !== undefined) {
+        if (data.managerId === empId) {
+          return next(new AppError(400, 'INVALID_MANAGER', 'An employee cannot report to themselves'));
+        }
+        if (data.managerId !== null) {
+          const mgr = await prisma.user.findFirst({
+            where: { id: data.managerId, companyId, isActive: true },
+          });
+          if (!mgr) {
+            return next(new AppError(400, 'INVALID_MANAGER', 'Selected reporting manager does not exist in this organization'));
+          }
+        }
+      }
+
+      if (data.departmentId !== undefined && data.departmentId !== null) {
+        const dept = await prisma.department.findFirst({
+          where: { id: data.departmentId, companyId },
+        });
+        if (!dept) {
+          return next(new AppError(400, 'INVALID_DEPARTMENT', 'Selected department does not exist in this organization'));
+        }
+      }
+
       const updateData: any = { ...data };
       if (data.joiningDate) updateData.joiningDate = new Date(data.joiningDate);
       if (data.dateOfBirth) updateData.dateOfBirth = new Date(data.dateOfBirth);
@@ -902,6 +925,10 @@ router.patch(
       const updated = await prisma.user.update({
         where: { id: empId },
         data: updateData,
+        include: {
+          department: { select: { id: true, name: true } },
+          manager: { select: { id: true, firstName: true, lastName: true } },
+        },
       });
 
       await logActivity({

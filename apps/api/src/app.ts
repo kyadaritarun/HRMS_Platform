@@ -36,12 +36,9 @@ export const app = express();
 // Security and standard parsers
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
-  contentSecurityPolicy: {
-    directives: {
-      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      'img-src': ["'self'", 'data:', 'https:'],
-    },
-  },
+  crossOriginEmbedderPolicy: false,
+  frameguard: false,
+  contentSecurityPolicy: false,
 }));
 
 const configuredOrigins = (process.env.CORS_ORIGIN || '')
@@ -113,6 +110,9 @@ app.get(['/uploads/:filename(*)', '/api/v1/uploads/:filename(*)'], async (req, r
     filename = filename.replace(/^uploads\//, '');
   }
   const s3Key = filename.startsWith('image/') ? filename : `uploads/${filename}`;
+
+  res.removeHeader('X-Frame-Options');
+  res.setHeader('Access-Control-Allow-Origin', '*');
 
   if (isS3Configured()) {
     try {

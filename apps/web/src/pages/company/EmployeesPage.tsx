@@ -58,7 +58,9 @@ interface Employee {
   address?: string;
   workingAddress?: string;
   shiftTiming?: string;
+  departmentId?: number | null;
   department?: { id: number; name: string };
+  managerId?: number | null;
   manager?: { id: number; firstName: string; lastName: string };
   createdAt: string;
   isActive?: boolean;
@@ -105,6 +107,7 @@ export const EmployeesPage: React.FC = () => {
     phone: '',
     jobTitle: '',
     departmentId: '',
+    managerId: '',
     role: 'EMPLOYEE',
     workMode: 'WFO',
     employmentType: 'PERMANENT',
@@ -123,6 +126,7 @@ export const EmployeesPage: React.FC = () => {
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editError, setEditError] = useState('');
   const [companyShifts, setCompanyShifts] = useState<ShiftTiming[]>([]);
+  const [managers, setManagers] = useState<{ id: number; firstName: string; lastName: string; jobTitle?: string; role?: string }[]>([]);
 
   // Offboard confirmation modal state
   const [offboardTarget, setOffboardTarget] = useState<Employee | null>(null);
@@ -181,13 +185,16 @@ export const EmployeesPage: React.FC = () => {
 
   const fetchDepartments = async () => {
     try {
-      const [deptRes, shiftRes] = await Promise.all([
+      const [deptRes, shiftRes, empsRes] = await Promise.all([
         api.get('/company/departments'),
         api.get('/company/shifts').catch(() => ({ data: { shifts: [] } })),
+        api.get('/employees', { params: { status: 'ACTIVE', pageSize: 100 } }).catch(() => ({ data: { items: [] } })),
       ]);
       setDepartments(deptRes.data?.departments || []);
       const loadedShifts = Array.isArray(shiftRes.data?.shifts) ? shiftRes.data.shifts : [];
       setCompanyShifts(loadedShifts);
+      const loadedManagers = Array.isArray(empsRes.data?.items) ? empsRes.data.items : [];
+      setManagers(loadedManagers);
     } catch (err) {
       console.error('Failed to load departments or shifts:', err);
     }
@@ -214,7 +221,8 @@ export const EmployeesPage: React.FC = () => {
       lastName: emp.lastName || '',
       phone: emp.phone || '',
       jobTitle: emp.jobTitle || '',
-      departmentId: emp.department?.id ? String(emp.department.id) : '',
+      departmentId: emp.department?.id ? String(emp.department.id) : (emp.departmentId ? String(emp.departmentId) : ''),
+      managerId: emp.manager?.id ? String(emp.manager.id) : (emp.managerId ? String(emp.managerId) : ''),
       role: emp.role || 'EMPLOYEE',
       workMode: emp.workMode === 'WFH' || emp.workMode === 'REMOTE' ? 'WFH' : 'WFO',
       employmentType: emp.employmentType === 'CONTRACT' ? 'CONTRACT' : 'PERMANENT',
@@ -250,15 +258,12 @@ export const EmployeesPage: React.FC = () => {
         firstName: editForm.firstName.trim(),
         lastName: editForm.lastName.trim(),
         phone: editForm.phone.trim(),
+        jobTitle: editForm.jobTitle.trim(),
+        departmentId: editForm.departmentId ? Number(editForm.departmentId) : null,
+        managerId: editForm.managerId ? Number(editForm.managerId) : null,
         role: isCompanyAdmin
-          ? (editForm.role === 'HR' && hasHrModule
-              ? 'HR'
-              : editForm.role === 'FINANCE' && hasFinanceModule
-              ? 'FINANCE'
-              : editForm.role === 'IT' && hasItModule
-              ? 'IT'
-              : 'EMPLOYEE')
-          : 'EMPLOYEE',
+          ? (editTarget.role === 'COMPANY_ADMIN' ? 'COMPANY_ADMIN' : editForm.role || editTarget.role)
+          : editTarget.role,
         workMode: editForm.workMode,
         employmentType: editForm.employmentType,
         shiftTiming: selectedShiftTiming,
@@ -276,7 +281,7 @@ export const EmployeesPage: React.FC = () => {
       }
       await api.patch(`/employees/${editTarget.id}`, payload);
       setEditTarget(null);
-      await Promise.all([fetchEmployees(), fetchCounts()]);
+      await Promise.all([fetchEmployees(), fetchCounts(), fetchDepartments()]);
     } catch (err: any) {
       setEditError(err.response?.data?.message || 'Failed to update employee details');
     } finally {
@@ -1391,58 +1396,102 @@ export const EmployeesPage: React.FC = () => {
                       />
                     </div>
 
-                    {/* Designation / Job Title (Read-only) */}
+                    {/* Designation / Job Title (Editable) */}
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-[11px] font-bold text-slate-700">Designation / Job Title</label>
-                        <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">Read-only</span>
-                      </div>
+                      <label htmlFor="edit-job-title" className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Designation / Job Title
+                      </label>
                       <input
+                        id="edit-job-title"
                         type="text"
-                        disabled
-                        readOnly
-                        value={editForm.jobTitle || '—'}
-                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200 rounded-xl cursor-not-allowed select-none"
+                        value={editForm.jobTitle}
+                        onChange={(e) => setEditForm({ ...editForm, jobTitle: e.target.value })}
+                        placeholder="e.g. Marketing Lead, Software Engineer"
+                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2]"
                       />
                     </div>
 
-                    {/* Department (Read-only) */}
+                    {/* Department (Editable) */}
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-[11px] font-bold text-slate-700">Department</label>
-                        <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">Read-only</span>
-                      </div>
-                      <input
-                        type="text"
-                        disabled
-                        readOnly
-                        value={departments.find((d) => String(d.id) === String(editForm.departmentId))?.name || editTarget?.department?.name || 'Unassigned'}
-                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200 rounded-xl cursor-not-allowed select-none"
-                      />
+                      <label htmlFor="edit-department" className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Department
+                      </label>
+                      <select
+                        id="edit-department"
+                        value={editForm.departmentId}
+                        onChange={(e) => setEditForm({ ...editForm, departmentId: e.target.value })}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] cursor-pointer"
+                      >
+                        <option value="">Unassigned</option>
+                        {departments.map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Reporting Manager (Editable) */}
+                    <div>
+                      <label htmlFor="edit-reporting-manager" className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Reporting Manager
+                      </label>
+                      <select
+                        id="edit-reporting-manager"
+                        value={editForm.managerId}
+                        onChange={(e) => setEditForm({ ...editForm, managerId: e.target.value })}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] cursor-pointer"
+                      >
+                        <option value="">Direct to CEO / None</option>
+                        {managers
+                          .filter((m) => m.id !== editTarget?.id)
+                          .concat(
+                            editTarget?.manager &&
+                              !managers.some((m) => m.id === editTarget.manager!.id) &&
+                              editTarget.manager.id !== editTarget.id
+                              ? [
+                                  {
+                                    id: editTarget.manager.id,
+                                    firstName: editTarget.manager.firstName,
+                                    lastName: editTarget.manager.lastName,
+                                    jobTitle: 'Manager',
+                                  },
+                                ]
+                              : []
+                          )
+                          .map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.firstName} {m.lastName} {m.jobTitle ? `(${m.jobTitle})` : ''}
+                            </option>
+                          ))}
+                      </select>
                     </div>
 
                     {/* System Role (Editable) */}
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">System Role</label>
+                      <label htmlFor="edit-system-role" className="block text-[11px] font-bold text-slate-700 mb-1">
+                        System Role
+                      </label>
                       <select
-                        value={isHr ? 'EMPLOYEE' : (editForm.role === 'COMPANY_ADMIN' ? 'EMPLOYEE' : editForm.role)}
+                        id="edit-system-role"
+                        value={isHr ? (editTarget?.role || 'EMPLOYEE') : (editTarget?.role === 'COMPANY_ADMIN' ? 'COMPANY_ADMIN' : editForm.role)}
                         onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-                        disabled={isHr}
-                        className={`w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] ${isHr ? 'cursor-not-allowed opacity-80' : ''}`}
+                        disabled={isHr || editTarget?.role === 'COMPANY_ADMIN'}
+                        className={`w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2]/20 focus:border-[#5E4BE2] ${isHr || editTarget?.role === 'COMPANY_ADMIN' ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'}`}
                       >
                         <option value="EMPLOYEE">Staff Employee</option>
                         {isCompanyAdmin && (
                           <>
-                            <option value="HR" disabled={!hasHrModule}>
-                              HR {!hasHrModule ? '(Requires HR Module in Plan 🔒)' : ''}
-                            </option>
-                            <option value="FINANCE" disabled={!hasFinanceModule}>
-                              Finance {!hasFinanceModule ? '(Requires Finance Module in Plan 🔒)' : ''}
-                            </option>
-                            <option value="IT" disabled={!hasItModule}>
-                              IT {!hasItModule ? '(Requires IT Module in Plan 🔒)' : ''}
-                            </option>
+                            <option value="HR">HR Manager / HR</option>
+                            <option value="FINANCE">Finance</option>
+                            <option value="IT">IT</option>
+                            {editTarget?.role === 'COMPANY_ADMIN' && (
+                              <option value="COMPANY_ADMIN">Company Admin (Apex)</option>
+                            )}
                           </>
+                        )}
+                        {!isCompanyAdmin && editTarget?.role && editTarget.role !== 'EMPLOYEE' && (
+                          <option value={editTarget.role}>{editTarget.role}</option>
                         )}
                       </select>
                     </div>

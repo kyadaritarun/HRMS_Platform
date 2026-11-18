@@ -35,10 +35,17 @@ router.get('/', async (req, res, next) => {
 
     const enriched = policies.map((p) => {
       const acceptances = Array.isArray(p.acceptances) ? (p.acceptances as any[]) : [];
-      const hasAccepted = acceptances.some((a) => a.userId === userId && a.version === p.version);
+      const userAcceptance = acceptances.find(
+        (a) => a.userId === userId && String(a.version) === String(p.version)
+      );
+      const hasAccepted = Boolean(userAcceptance);
       return {
         ...p,
+        category: p.policyType,
+        content: p.body,
         hasAccepted,
+        acknowledged: hasAccepted,
+        acknowledgedAt: userAcceptance?.at || null,
       };
     });
 
@@ -48,8 +55,8 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-// POST /policies/:id/accept (Accept policy version)
-router.post('/:id/accept', async (req, res, next) => {
+// POST /policies/:id/accept or /policies/:id/acknowledge (Accept / Acknowledge policy version)
+router.post(['/:id/accept', '/:id/acknowledge'], async (req, res, next) => {
   try {
     const userId = req.user!.id;
     const companyId = req.user!.companyId!;
@@ -65,7 +72,9 @@ router.post('/:id/accept', async (req, res, next) => {
       }
 
       const acceptances = Array.isArray(policy.acceptances) ? (policy.acceptances as any[]) : [];
-      const alreadyAccepted = acceptances.some((a) => a.userId === userId && a.version === policy.version);
+      const alreadyAccepted = acceptances.some(
+        (a) => a.userId === userId && String(a.version) === String(policy.version)
+      );
 
       if (alreadyAccepted) {
         return policy;
@@ -97,7 +106,12 @@ router.post('/:id/accept', async (req, res, next) => {
       message: `Accepted policy '${updated.title}' v${updated.version}`,
     });
 
-    return res.json({ success: true, policy: updated });
+    return res.json({
+      success: true,
+      policy: updated,
+      acknowledged: true,
+      acknowledgedAt: new Date().toISOString(),
+    });
   } catch (error) {
     next(error);
   }
@@ -123,6 +137,10 @@ router.post(
       const policyType = data.category || data.policyType || 'HR';
       let fileUrl: string | null = null;
       if (req.file) {
+        const isPdf = req.file.mimetype === 'application/pdf' || req.file.originalname.toLowerCase().endsWith('.pdf');
+        if (!isPdf) {
+          return next(new AppError(400, 'INVALID_FILE_TYPE', 'Only PDF policy documents (.pdf) are allowed.'));
+        }
         fileUrl = `/uploads/${req.file.filename}`;
       } else if (data.documentUrl) {
         fileUrl = data.documentUrl.includes('amazonaws.com')
@@ -208,6 +226,10 @@ router.patch(
       delete updateData.isMandatory;
 
       if (req.file) {
+        const isPdf = req.file.mimetype === 'application/pdf' || req.file.originalname.toLowerCase().endsWith('.pdf');
+        if (!isPdf) {
+          return next(new AppError(400, 'INVALID_FILE_TYPE', 'Only PDF policy documents (.pdf) are allowed.'));
+        }
         updateData.documentUrl = `/uploads/${req.file.filename}`;
       } else if (data.documentUrl && data.documentUrl.includes('amazonaws.com')) {
         updateData.documentUrl = `/uploads/${data.documentUrl.split('/uploads/').pop()}`;

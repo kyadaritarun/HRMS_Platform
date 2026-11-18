@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import api from '../../api/client';
+import { api, getFileUrl } from '../../api/client';
 import {
   IconFileText,
   IconCheck,
@@ -12,6 +12,8 @@ import {
   IconSearch,
   IconExternalLink,
   IconFileTypePdf,
+  IconPhoto,
+  IconDownload,
 } from '@tabler/icons-react';
 
 interface PolicyItem {
@@ -38,7 +40,20 @@ export const PoliciesPage: React.FC = () => {
     setIsLoading(true);
     try {
       const res = await api.get('/policies');
-      setPolicies(res.data?.policies || []);
+      const raw = res.data?.policies || [];
+      const mapped: PolicyItem[] = raw.map((pol: any) => ({
+        id: pol.id,
+        title: pol.title,
+        category: pol.category || pol.policyType || 'General Policy',
+        content: pol.content || pol.body || '',
+        version: String(pol.version || '1'),
+        isMandatory: Boolean(pol.isMandatory),
+        acknowledged: Boolean(pol.acknowledged ?? pol.hasAccepted),
+        acknowledgedAt: pol.acknowledgedAt || null,
+        documentUrl: pol.documentUrl || null,
+      }));
+      setPolicies(mapped);
+      return mapped;
     } catch (err) {
       console.error('Failed to load policies:', err);
     } finally {
@@ -53,13 +68,36 @@ export const PoliciesPage: React.FC = () => {
   const handleAcknowledge = async (id: number) => {
     setAcknowledgingId(id);
     try {
-      await api.post(`/policies/${id}/acknowledge`);
-      fetchPolicies();
-      if (viewingPolicy && viewingPolicy.id === id) {
-        setViewingPolicy({ ...viewingPolicy, acknowledged: true, acknowledgedAt: new Date().toISOString() });
+      try {
+        await api.post(`/policies/${id}/acknowledge`);
+      } catch (firstErr: any) {
+        if (firstErr.response?.status === 404) {
+          await api.post(`/policies/${id}/accept`);
+        } else {
+          throw firstErr;
+        }
       }
+
+      const nowIso = new Date().toISOString();
+
+      // Optimistically update list
+      setPolicies((prev) =>
+        prev.map((pol) =>
+          pol.id === id ? { ...pol, acknowledged: true, acknowledgedAt: nowIso } : pol
+        )
+      );
+
+      // Optimistically update viewing policy if open in drawer
+      setViewingPolicy((prev) =>
+        prev && prev.id === id
+          ? { ...prev, acknowledged: true, acknowledgedAt: nowIso }
+          : prev
+      );
+
+      await fetchPolicies();
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to acknowledge policy');
+      console.error('Failed to acknowledge policy:', err);
+      alert(err.response?.data?.message || err.response?.data?.error || 'Failed to acknowledge policy');
     } finally {
       setAcknowledgingId(null);
     }
@@ -71,7 +109,11 @@ export const PoliciesPage: React.FC = () => {
   const filteredPolicies = useMemo(() => {
     return policies.filter((pol) => {
       const q = search.toLowerCase().trim();
-      const matchesSearch = !q || pol.title.toLowerCase().includes(q) || pol.content.toLowerCase().includes(q) || pol.category.toLowerCase().includes(q);
+      const matchesSearch =
+        !q ||
+        pol.title.toLowerCase().includes(q) ||
+        pol.content.toLowerCase().includes(q) ||
+        pol.category.toLowerCase().includes(q);
       if (!matchesSearch) return false;
 
       if (filterStatus === 'PENDING') return !pol.acknowledged;
@@ -86,7 +128,11 @@ export const PoliciesPage: React.FC = () => {
       const filename = url.split('/uploads/').pop() || url.split('/').pop();
       return `/uploads/${filename}`;
     }
-    if (url.startsWith('/uploads/')) {
+    if (url.includes('/uploads/')) {
+      const parts = url.split('/uploads/');
+      return `/uploads/${parts[parts.length - 1]}`;
+    }
+    if (url.startsWith('/')) {
       return url;
     }
     if (url.startsWith('http://') || url.startsWith('https://')) {
@@ -243,7 +289,7 @@ export const PoliciesPage: React.FC = () => {
                           className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-[#5E4BE2] font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
                         >
                           <IconEye className="w-3.5 h-3.5" />
-                          <span>Read Full Text</span>
+                          <span>Read Policies</span>
                         </button>
                         {!pol.acknowledged && (
                           <button
@@ -274,7 +320,7 @@ export const PoliciesPage: React.FC = () => {
           />
           <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
             <div
-              className="w-screen max-w-2xl bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 pointer-events-auto animate-in slide-in-from-right duration-200 overflow-y-auto"
+              className="w-screen max-w-3xl bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 pointer-events-auto animate-in slide-in-from-right duration-200 overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Drawer Header */}
@@ -285,7 +331,7 @@ export const PoliciesPage: React.FC = () => {
                   </div>
                   <div>
                     <span className="text-[10px] font-bold text-[#5E4BE2] uppercase tracking-wider">
-                      {viewingPolicy.category} • Version {viewingPolicy.version}
+                      {viewingPolicy.category || 'General Policy'} • Version {viewingPolicy.version}
                     </span>
                     <h2 className="text-base font-bold text-slate-900 mt-0.5">
                       {viewingPolicy.title}
@@ -301,46 +347,89 @@ export const PoliciesPage: React.FC = () => {
               </div>
 
               {/* Drawer Content */}
-              <div className="p-6 flex-1 overflow-y-auto space-y-4 text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line">
-                {viewingPolicy.documentUrl && (
-                  <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-50/90 to-purple-50/50 border border-indigo-100 shadow-2xs flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-white text-[#5E4BE2] shadow-2xs border border-indigo-100 flex items-center justify-center shrink-0">
-                        {viewingPolicy.documentUrl.toLowerCase().includes('.pdf') ? (
-                          <IconFileTypePdf className="w-5 h-5 text-rose-600" />
-                        ) : (
-                          <IconFileText className="w-5 h-5 text-[#5E4BE2]" />
-                        )}
+              <div className="p-6 flex-1 overflow-y-auto space-y-4 text-xs sm:text-sm text-slate-700 leading-relaxed">
+                {viewingPolicy.documentUrl ? (() => {
+                  const docUrl = getDocumentPreviewUrl(viewingPolicy.documentUrl);
+                  const isPdf = viewingPolicy.documentUrl.toLowerCase().includes('.pdf');
+                  const isImage = /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(viewingPolicy.documentUrl);
+                  const isWord = /\.(docx?|msword)(\?.*)?$/i.test(viewingPolicy.documentUrl);
+
+                  if (isImage) {
+                    return (
+                      <div className="rounded-2xl border border-slate-200 overflow-hidden bg-slate-50 p-4 flex flex-col items-center justify-center min-h-[400px]">
+                        <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-2xs max-w-full">
+                          <img
+                            src={docUrl}
+                            alt={viewingPolicy.title}
+                            className="max-h-[640px] w-auto max-w-full rounded-lg object-contain"
+                          />
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 block">
-                          Official Attached Document
+                    );
+                  }
+
+                  if (isWord) {
+                    return (
+                      <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50/60 to-indigo-50/40 p-8 flex flex-col items-center justify-center text-center space-y-3">
+                        <div className="w-14 h-14 rounded-2xl bg-white border border-blue-200 text-blue-600 shadow-xs flex items-center justify-center">
+                          <IconFileText className="w-7 h-7" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-900">Microsoft Word Document</h4>
+                          <p className="text-xs text-slate-500 font-medium max-w-md mt-1">
+                            This policy is attached as a Word document (.doc / .docx). Click below to view or download the complete policy.
+                          </p>
+                        </div>
+                        <a
+                          href={docUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white text-xs font-bold shadow-xs transition-colors"
+                        >
+                          <IconExternalLink className="w-4 h-4" />
+                          <span>Open Word Document</span>
+                        </a>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="rounded-2xl border border-slate-200 overflow-hidden bg-slate-100 shadow-xs flex flex-col flex-1 min-h-[580px]">
+                      <div className="bg-slate-100/90 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between text-xs text-slate-600 font-medium">
+                        <span className="flex items-center gap-1.5 font-bold text-slate-700">
+                          {isPdf ? (
+                            <IconFileTypePdf className="w-4 h-4 text-rose-500" />
+                          ) : (
+                            <IconFileText className="w-4 h-4 text-[#5E4BE2]" />
+                          )}
+                          Document Preview
                         </span>
-                        <h4 className="text-xs font-bold text-slate-900 truncate mt-0.5">
-                          {viewingPolicy.title}
-                        </h4>
+                        <a
+                          href={docUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#5E4BE2] hover:text-[#4d3cc9] flex items-center gap-1 text-[11px] font-bold"
+                        >
+                          <span>Open in new window</span>
+                          <IconExternalLink className="w-3 h-3" />
+                        </a>
                       </div>
+                      <iframe
+                        src={`${docUrl}#toolbar=1`}
+                        className="w-full h-[580px] sm:h-[680px] border-none bg-white"
+                        title={viewingPolicy.title}
+                      />
                     </div>
-
-                    <a
-                      href={getDocumentPreviewUrl(viewingPolicy.documentUrl)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#5E4BE2] hover:bg-[#4d3cc9] text-white text-xs font-bold shadow-xs transition-colors shrink-0 cursor-pointer"
-                    >
-                      <IconExternalLink className="w-3.5 h-3.5" />
-                      <span>Open Document</span>
-                    </a>
-                  </div>
-                )}
-
-                {viewingPolicy.content ? (
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 whitespace-pre-line leading-relaxed">
+                  );
+                })() : viewingPolicy.content ? (
+                  <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 whitespace-pre-line leading-relaxed text-slate-800 text-xs sm:text-sm">
                     {viewingPolicy.content}
                   </div>
-                ) : !viewingPolicy.documentUrl ? (
-                  <div className="text-slate-500 font-medium text-xs">No document or text content available.</div>
-                ) : null}
+                ) : (
+                  <div className="text-slate-500 font-medium text-xs p-8 text-center bg-slate-50 rounded-xl border border-slate-100">
+                    No document or text content available.
+                  </div>
+                )}
               </div>
 
               {/* Drawer Footer */}
@@ -349,7 +438,7 @@ export const PoliciesPage: React.FC = () => {
                   {viewingPolicy.acknowledged ? (
                     <span className="text-emerald-700 font-semibold flex items-center gap-1.5">
                       <IconShieldCheck className="w-4 h-4 text-emerald-600" />
-                      Signed on {new Date(viewingPolicy.acknowledgedAt || '').toLocaleDateString()}
+                      Signed on {viewingPolicy.acknowledgedAt ? new Date(viewingPolicy.acknowledgedAt).toLocaleDateString() : 'Today'}
                     </span>
                   ) : (
                     <span>By clicking acknowledge, you certify that you have read and agree to comply.</span>

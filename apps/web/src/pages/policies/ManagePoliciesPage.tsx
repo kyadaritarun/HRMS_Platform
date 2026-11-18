@@ -166,6 +166,12 @@ export const ManagePoliciesPage: React.FC = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      const isPdf = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
+      if (!isPdf) {
+        setFormError('Only PDF documents are allowed. Please select a .pdf file.');
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
       if (file.size > 10 * 1024 * 1024) {
         setFormError('File size exceeds the 10MB limit. Please upload a smaller document.');
         return;
@@ -180,6 +186,11 @@ export const ManagePoliciesPage: React.FC = () => {
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (file) {
+      const isPdf = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
+      if (!isPdf) {
+        setFormError('Only PDF documents are allowed. Please drop a .pdf file.');
+        return;
+      }
       if (file.size > 10 * 1024 * 1024) {
         setFormError('File size exceeds the 10MB limit. Please upload a smaller document.');
         return;
@@ -214,8 +225,16 @@ export const ManagePoliciesPage: React.FC = () => {
     }
 
     if (!attachedFile && !existingDocumentUrl) {
-      setFormError('Please attach a policy document (PDF, DOC, DOCX).');
+      setFormError('Please attach an official policy document (PDF format required).');
       return;
+    }
+
+    if (attachedFile) {
+      const isPdf = attachedFile.name.toLowerCase().endsWith('.pdf') || attachedFile.type === 'application/pdf';
+      if (!isPdf) {
+        setFormError('Only PDF documents (.pdf) are allowed.');
+        return;
+      }
     }
 
     setFormError(null);
@@ -1075,14 +1094,14 @@ export const ManagePoliciesPage: React.FC = () => {
                           Attach Policy Document <span className="text-rose-500">*</span>
                         </label>
                         <span className="text-[11px] text-slate-500 font-medium">
-                          PDF, DOC, DOCX (Max 10MB)
+                          PDF only (Max 10MB)
                         </span>
                       </div>
 
                       <input
                         ref={fileInputRef}
                         type="file"
-                        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        accept=".pdf,application/pdf"
                         className="hidden"
                         onChange={handleFileChange}
                       />
@@ -1198,7 +1217,7 @@ export const ManagePoliciesPage: React.FC = () => {
                             Click to browse or drag and drop your document
                           </p>
                           <p className="text-[11px] text-slate-500 font-medium mt-1">
-                            Upload official policy PDF, DOC, or DOCX document (up to 10MB)
+                            Upload official policy PDF document (up to 10MB)
                           </p>
                         </div>
                       )}
