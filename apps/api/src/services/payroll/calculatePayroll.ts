@@ -179,6 +179,7 @@ export function calculateEmployeePayroll(
   let paidLeaveDays = 0;
   let unpaidLeaveDays = 0;
   const leaveDateKeys = new Set<string>();
+  const halfLeaveDateKeys = new Set<string>();
 
   for (const leave of input.leaves || []) {
     if (!leave.startDate) continue;
@@ -203,6 +204,8 @@ export function calculateEmployeePayroll(
 
         if (!leave.isHalfDay) {
           leaveDateKeys.add(key);
+        } else {
+          halfLeaveDateKeys.add(key);
         }
       }
     }
@@ -214,7 +217,11 @@ export function calculateEmployeePayroll(
   for (const wd of elapsedWorkableDates) {
     const key = toDateKey(wd);
     if (!presentDateKeys.has(key) && !leaveDateKeys.has(key)) {
-      absentDays++;
+      if (halfLeaveDateKeys.has(key)) {
+        absentDays += 0.5;
+      } else {
+        absentDays++;
+      }
     }
   }
 
