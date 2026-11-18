@@ -240,10 +240,10 @@ export const EventEmailsModal: React.FC<EventEmailsModalProps> = ({ isOpen, onCl
                         }
                         className="text-xs p-2.5 rounded-xl border border-indigo-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5E4BE2] text-slate-800 font-medium cursor-pointer"
                       >
-                        <option value={0}>On the morning of the holiday (Same Day)</option>
-                        <option value={1}>1 Day before the holiday (Recommended)</option>
+                        <option value={1}>1 Day before the holiday (Default & Recommended)</option>
                         <option value={2}>2 Days before the holiday</option>
                         <option value={3}>3 Days before the holiday</option>
+                        <option value={0}>On the morning of the holiday (Same Day)</option>
                       </select>
                     </div>
 

@@ -1,11 +1,11 @@
 import prisma from '../lib/prisma.js';
 import { sendEmail } from '../lib/mailer.js';
-import { toDateKey } from '../lib/dates.js';
+import { toDateKey, parseDateKey } from '../lib/dates.js';
 
 export interface EventEmailSettings {
   autoBirthdayEmails: boolean;
   autoHolidayEmails: boolean;
-  holidayNoticeDays: number; // e.g. 1 means notify 1 day in advance + day of
+  holidayNoticeDays: number; // e.g. 1 means notify 1 day in advance (1 day prior)
   customBirthdayMessage?: string;
   customHolidayMessage?: string;
 }
@@ -17,6 +17,26 @@ export const DEFAULT_EVENT_EMAIL_SETTINGS: EventEmailSettings = {
   customBirthdayMessage: '',
   customHolidayMessage: '',
 };
+
+/**
+ * Calculates calendar day difference between a holiday date and a reference date (today).
+ * Uses UTC date keys to eliminate any timezone drift.
+ * Returns:
+ *   1  -> exactly 1 day prior (tomorrow is the holiday)
+ *   0  -> today is the holiday
+ *   >1 -> more than 1 day prior
+ *   <0 -> holiday has already passed
+ */
+export function calculateHolidayNoticeDiffDays(
+  holidayDate: Date | string,
+  referenceDate: Date | string = new Date()
+): number {
+  const holidayKey = toDateKey(holidayDate);
+  const refKey = toDateKey(referenceDate);
+  const holidayUtc = parseDateKey(holidayKey);
+  const refUtc = parseDateKey(refKey);
+  return Math.round((holidayUtc.getTime() - refUtc.getTime()) / (1000 * 60 * 60 * 24));
+}
 
 /**
  * Generates an elegant, celebratory HTML email template for employee birthdays
@@ -463,18 +483,14 @@ export async function runAutomatedEventEmails(): Promise<{
 
       // 2. AUTOMATED UPCOMING HOLIDAY EMAILS
       if (eventSettings.autoHolidayEmails) {
-        const noticeDays = eventSettings.holidayNoticeDays || 1;
-        const maxUpcomingDate = new Date(today);
-        maxUpcomingDate.setDate(maxUpcomingDate.getDate() + noticeDays);
-        maxUpcomingDate.setHours(23, 59, 59, 999);
-
-        const startOfToday = new Date(today);
-        startOfToday.setHours(0, 0, 0, 0);
+        // Default notice window is strictly 1 day prior
+        const noticeDays = typeof eventSettings.holidayNoticeDays === 'number' ? eventSettings.holidayNoticeDays : 1;
 
         for (const h of company.holidays) {
-          const hDate = new Date(h.date);
-          // Check if holiday is between today and today + noticeDays
-          if (hDate >= startOfToday && hDate <= maxUpcomingDate) {
+          const diffDays = calculateHolidayNoticeDiffDays(h.date, today);
+
+          // Strictly send upcoming holiday announcement 1 day prior (diffDays === noticeDays, defaulting to 1)
+          if (diffDays === noticeDays) {
             const result = await sendHolidayAnnouncement({
               companyId: company.id,
               holidayId: h.id,
@@ -483,7 +499,7 @@ export async function runAutomatedEventEmails(): Promise<{
             if (result.success && result.recipientsCount > 0) {
               totalHolidays += result.recipientsCount;
               console.log(
-                `[Event Emails Job] Sent holiday announcement for "${h.name}" to ${result.recipientsCount} employee(s) at ${company.name}`
+                `[Event Emails Job] Sent holiday announcement for "${h.name}" (${diffDays} day(s) prior) to ${result.recipientsCount} employee(s) at ${company.name}`
               );
             }
           }

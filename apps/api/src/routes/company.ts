@@ -24,6 +24,7 @@ import {
   sendHolidayAnnouncement,
   runAutomatedEventEmails,
   DEFAULT_EVENT_EMAIL_SETTINGS,
+  calculateHolidayNoticeDiffDays,
 } from '../services/eventEmailService.js';
 
 const router = Router();
@@ -456,12 +457,15 @@ router.post(
         message: `Added holiday: ${name} on ${date}`,
       });
 
-      // Automatically dispatch holiday announcement email to all employees once configured
-      sendHolidayAnnouncement({
-        companyId,
-        holidayId: holiday.id,
-        isManual: false,
-      }).catch((err) => console.error('[Holiday Email Dispatch Error]', err.message));
+      // Dispatch holiday announcement email only if the holiday is 1 day prior
+      const diffDays = calculateHolidayNoticeDiffDays(holiday.date, new Date());
+      if (diffDays === 1) {
+        sendHolidayAnnouncement({
+          companyId,
+          holidayId: holiday.id,
+          isManual: false,
+        }).catch((err) => console.error('[Holiday Email Dispatch Error]', err.message));
+      }
 
       return res.status(201).json({ holiday });
     } catch (error) {
@@ -495,12 +499,15 @@ router.patch(
         data,
       });
 
-      // Automatically dispatch updated holiday announcement to all employees
-      sendHolidayAnnouncement({
-        companyId,
-        holidayId: updated.id,
-        isManual: false,
-      }).catch((err) => console.error('[Holiday Email Dispatch Error]', err.message));
+      // Dispatch updated holiday announcement email only if the holiday is 1 day prior
+      const updateDiffDays = calculateHolidayNoticeDiffDays(updated.date, new Date());
+      if (updateDiffDays === 1) {
+        sendHolidayAnnouncement({
+          companyId,
+          holidayId: updated.id,
+          isManual: false,
+        }).catch((err) => console.error('[Holiday Email Dispatch Error]', err.message));
+      }
 
       return res.json({ holiday: updated });
     } catch (error) {

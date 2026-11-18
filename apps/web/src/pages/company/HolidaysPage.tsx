@@ -1300,7 +1300,7 @@ export const HolidaysPage: React.FC = () => {
                     <div className="text-xs text-slate-700">
                       <span className="font-bold block text-slate-900">Automatic Email Announcement</span>
                       <span className="text-[11px] text-slate-500 font-medium">
-                        Holiday announcement emails are automatically sent to all active employees by the server once configured.
+                        Upcoming holiday announcement emails are automatically sent to all active employees 1 day prior to the holiday.
                       </span>
                     </div>
                   </div>

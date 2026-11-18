@@ -1115,7 +1115,7 @@ export const CompanyDashboard: React.FC = () => {
               <div className="flex items-center gap-2">
                 <IconGift className="w-4 h-4 text-purple-600" />
                 <h3 className="font-bold text-slate-900 text-sm">Upcoming Events</h3>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-[#5E4BE2] border border-indigo-200/60" title="Holiday announcement emails are automatically sent by server once configured">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-[#5E4BE2] border border-indigo-200/60" title="Holiday announcement emails are automatically sent 1 day prior to the holiday">
                   Auto Email
                 </span>
               </div>
