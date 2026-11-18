@@ -40,7 +40,8 @@ router.post('/login', authRateLimiter, validateBody(LoginSchema), async (req, re
     });
 
     if (!user) {
-      return next(new AppError(401, 'INVALID_CREDENTIALS', 'Invalid email/username or password'));
+      const remainingAttempts = (req as any).rateLimit?.remaining;
+      return next(new AppError(401, 'INVALID_CREDENTIALS', 'Invalid email/username or password', { remainingAttempts }));
     }
 
     let isMatch = await bcrypt.compare(password, user.passwordHash);
@@ -58,7 +59,8 @@ router.post('/login', authRateLimiter, validateBody(LoginSchema), async (req, re
       }
     }
     if (!isMatch) {
-      return next(new AppError(401, 'INVALID_CREDENTIALS', 'Invalid email/username or password'));
+      const remainingAttempts = (req as any).rateLimit?.remaining;
+      return next(new AppError(401, 'INVALID_CREDENTIALS', 'Invalid email/username or password', { remainingAttempts }));
     }
 
     if (!user.isActive) {

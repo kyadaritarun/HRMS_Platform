@@ -1,12 +1,22 @@
 import axios from 'axios';
 
-const defaultRemoteApiUrl = 'https://hrms-server.tarunkyadari.in';
-const rawApiUrl =
-  import.meta.env.VITE_API_URL ||
-  (typeof window !== 'undefined' &&
-  !['localhost', '127.0.0.1'].includes(window.location.hostname)
-    ? defaultRemoteApiUrl
-    : '');
+const getApiBaseUrl = (): string => {
+  // 1. Check build-time or environment variable VITE_API_URL
+  const envApiUrl = (import.meta.env.VITE_API_URL || '').trim();
+  if (envApiUrl) {
+    return envApiUrl.replace(/\/+$/, '');
+  }
+
+  // 2. Runtime global variable if injected via window.__API_URL__
+  if (typeof window !== 'undefined' && (window as any).__API_URL__) {
+    return String((window as any).__API_URL__).trim().replace(/\/+$/, '');
+  }
+
+  // 3. Fallback to relative path (empty string) so requests go to /api/v1 on current origin / reverse proxy
+  return '';
+};
+
+const rawApiUrl = getApiBaseUrl();
 const normalizedApiUrl = rawApiUrl.replace(/\/+$/, '');
 export const API_BASE_URL = normalizedApiUrl ? `${normalizedApiUrl}/api/v1` : '/api/v1';
 

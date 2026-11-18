@@ -38,8 +38,11 @@ export function rateLimiter(options: RateLimitOptions) {
           await redis.expire(key, windowSeconds);
         }
 
+        const remaining = Math.max(0, maxRequests - current);
+        (req as any).rateLimit = { limit: maxRequests, remaining, current };
+
         res.setHeader('X-RateLimit-Limit', maxRequests);
-        res.setHeader('X-RateLimit-Remaining', Math.max(0, maxRequests - current));
+        res.setHeader('X-RateLimit-Remaining', remaining);
 
         if (current > maxRequests) {
           const ttl = await redis.ttl(key);
@@ -49,6 +52,7 @@ export function rateLimiter(options: RateLimitOptions) {
             error: 'RATE_LIMIT_EXCEEDED',
             message,
             retryAfter,
+            remainingAttempts: 0,
           });
         }
 
@@ -69,8 +73,11 @@ export function rateLimiter(options: RateLimitOptions) {
       entry.count++;
     }
 
+    const remaining = Math.max(0, maxRequests - entry.count);
+    (req as any).rateLimit = { limit: maxRequests, remaining, current: entry.count };
+
     res.setHeader('X-RateLimit-Limit', maxRequests);
-    res.setHeader('X-RateLimit-Remaining', Math.max(0, maxRequests - entry.count));
+    res.setHeader('X-RateLimit-Remaining', remaining);
 
     if (entry.count > maxRequests) {
       const retryAfter = Math.max(1, Math.ceil((entry.expiresAt - now) / 1000));
@@ -79,6 +86,7 @@ export function rateLimiter(options: RateLimitOptions) {
         error: 'RATE_LIMIT_EXCEEDED',
         message,
         retryAfter,
+        remainingAttempts: 0,
       });
     }
 
@@ -87,11 +95,12 @@ export function rateLimiter(options: RateLimitOptions) {
 }
 
 /**
- * Auth Rate Limiter: 15 login/reset attempts per 15 minutes.
+ * Auth Rate Limiter: Default 5 login/reset attempts per 15 minutes (configurable via AUTH_RATE_LIMIT_MAX).
  */
+const maxAuthAttempts = parseInt(process.env.AUTH_RATE_LIMIT_MAX || '5', 10) || 5;
 export const authRateLimiter = rateLimiter({
   windowSeconds: 900,
-  maxRequests: 15,
+  maxRequests: maxAuthAttempts,
   prefix: 'rl:auth',
   message: 'Too many authentication attempts. Please wait 15 minutes before trying again.',
 });

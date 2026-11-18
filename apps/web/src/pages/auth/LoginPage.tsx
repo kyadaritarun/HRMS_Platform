@@ -37,6 +37,35 @@ export const LoginPage: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [remainingAttempts, setRemainingAttempts] = useState<number | null>(null);
+  const [lockoutSeconds, setLockoutSeconds] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (lockoutSeconds === null || lockoutSeconds <= 0) return;
+
+    const interval = setInterval(() => {
+      setLockoutSeconds((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(interval);
+          setError(null);
+          setRemainingAttempts(null);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [lockoutSeconds]);
+
+  const formatLockoutTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins > 0) {
+      return `${mins}m ${secs < 10 ? '0' : ''}${secs}s`;
+    }
+    return `${secs}s`;
+  };
 
   // Forgot password modal state
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -46,11 +75,15 @@ export const LoginPage: React.FC = () => {
   const [forgotError, setForgotError] = useState<string | null>(null);
 
   const handleAuth = async (credentials: { login: string; password: string }) => {
+    if (lockoutSeconds && lockoutSeconds > 0) return;
+
     setError(null);
     setLoading(true);
 
     try {
       const data = await login(credentials);
+      setRemainingAttempts(null);
+      setLockoutSeconds(null);
       if (data.user.mustChangePassword) {
         navigate('/change-password');
       } else if (data.user.role === 'PRODUCT_SUPER_ADMIN') {
@@ -59,7 +92,37 @@ export const LoginPage: React.FC = () => {
         navigate('/employee/dashboard');
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Invalid credentials or connection error');
+      const status = err.response?.status;
+      const respData = err.response?.data;
+      const remaining = typeof respData?.remainingAttempts === 'number'
+        ? respData.remainingAttempts
+        : (typeof respData?.details?.remainingAttempts === 'number'
+            ? respData.details.remainingAttempts
+            : (err.response?.headers?.['x-ratelimit-remaining']
+                ? parseInt(err.response.headers['x-ratelimit-remaining'], 10)
+                : null));
+
+      if (status === 429) {
+        const retry = respData?.retryAfter
+          ? parseInt(respData.retryAfter, 10)
+          : (err.response?.headers?.['retry-after']
+              ? parseInt(err.response.headers['retry-after'], 10)
+              : 900);
+        setRemainingAttempts(0);
+        setLockoutSeconds(retry || 900);
+        setError('Too many failed authentication attempts. Please wait before trying again.');
+      } else {
+        setRemainingAttempts(remaining);
+        if (remaining !== null && remaining <= 3 && remaining > 0) {
+          setError(
+            remaining === 1
+              ? 'Invalid credentials. Warning: Only 1 attempt remaining before temporary lockout!'
+              : `Invalid credentials. Warning: Only ${remaining} attempts remaining before temporary lockout.`
+          );
+        } else {
+          setError(respData?.error || respData?.message || 'Invalid credentials or connection error');
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -212,13 +275,66 @@ export const LoginPage: React.FC = () => {
               </p>
             </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="mb-3 p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium flex items-center gap-2">
-                <IconAlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
-                <span>{error}</span>
+            {/* Lockout or Error Banner */}
+            {lockoutSeconds && lockoutSeconds > 0 ? (
+              <div className="mb-3.5 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-900 text-xs font-medium space-y-1.5 animate-pulse">
+                <div className="flex items-center gap-2 font-bold text-amber-900">
+                  <IconLock className="w-4 h-4 text-amber-700 shrink-0" />
+                  <span>Security Lockout Active</span>
+                </div>
+                <p className="text-[11px] text-amber-800 leading-relaxed">
+                  Too many failed login attempts. Try again in{' '}
+                  <span className="font-mono font-bold text-amber-950 underline">{formatLockoutTime(lockoutSeconds)}</span>.
+                </p>
               </div>
-            )}
+            ) : error ? (
+              <div
+                className={`mb-3.5 p-3 rounded-2xl text-xs font-medium flex items-start gap-2.5 transition-all ${
+                  remainingAttempts !== null && remainingAttempts <= 3 && remainingAttempts > 0
+                    ? remainingAttempts === 1
+                      ? 'bg-rose-100/90 border border-rose-300 text-rose-950'
+                      : 'bg-amber-50 border border-amber-300 text-amber-950'
+                    : 'bg-rose-50 border border-rose-200 text-rose-700'
+                }`}
+              >
+                <IconAlertCircle
+                  className={`w-4 h-4 shrink-0 mt-0.5 ${
+                    remainingAttempts !== null && remainingAttempts <= 3 && remainingAttempts > 0
+                      ? remainingAttempts === 1
+                        ? 'text-rose-700'
+                        : 'text-amber-700'
+                      : 'text-rose-500'
+                  }`}
+                />
+                <div className="flex-1 space-y-1">
+                  <div className="font-semibold leading-tight">{error}</div>
+                  {remainingAttempts !== null && remainingAttempts <= 3 && remainingAttempts > 0 && (
+                    <div className="flex items-center gap-1.5 pt-1">
+                      <span className="text-[10px] uppercase tracking-wider font-bold text-slate-500">
+                        Attempts Left:
+                      </span>
+                      <div className="flex gap-1 items-center">
+                        {[1, 2, 3].map((dot) => (
+                          <span
+                            key={dot}
+                            className={`w-2 h-2 rounded-full transition-all ${
+                              dot <= remainingAttempts
+                                ? remainingAttempts === 1
+                                  ? 'bg-rose-600 ring-2 ring-rose-200'
+                                  : 'bg-amber-600 ring-2 ring-amber-200'
+                                : 'bg-slate-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-700">
+                        ({remainingAttempts} {remainingAttempts === 1 ? 'attempt' : 'attempts'} left)
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : null}
 
             {/* Login Form */}
             <form onSubmit={handleSubmit} className="space-y-3">
@@ -279,10 +395,15 @@ export const LoginPage: React.FC = () => {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={loading}
-                className="w-full mt-1 py-2.5 px-5 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#4f46e5] hover:bg-[#4338ca] active:scale-[0.99] transition-all shadow-md shadow-indigo-600/25 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                disabled={loading || Boolean(lockoutSeconds && lockoutSeconds > 0)}
+                className="w-full mt-1 py-2.5 px-5 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#4f46e5] hover:bg-[#4338ca] active:scale-[0.99] transition-all shadow-md shadow-indigo-600/25 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {loading ? (
+                {lockoutSeconds && lockoutSeconds > 0 ? (
+                  <>
+                    <IconLock className="w-4 h-4" />
+                    <span>Locked ({formatLockoutTime(lockoutSeconds)})</span>
+                  </>
+                ) : loading ? (
                   <>
                     <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     <span>Signing in...</span>

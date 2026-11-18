@@ -28,14 +28,13 @@ export interface PasswordResetNoticeParams {
  * Dynamically resolves the base URL of the deployed frontend web application.
  * Priority:
  * 1. Explicit production APP_URL (if configured and not localhost)
- * 2. Origin header from incoming browser request (e.g. https://hrms.tarunkyadari.in)
+ * 2. Origin header from incoming browser request (e.g. https://app.example.com)
  * 3. Referer header from incoming browser request
  * 4. Company custom domain (e.g. https://xyz.com)
  * 5. Explicit production FRONTEND_URL
  * 6. X-Forwarded-Host or Host header (if not localhost)
  * 7. APP_DOMAIN environment variable
- * 8. Production fallback (https://hrms.tarunkyadari.in) when in production mode
- * 9. Localhost fallback (http://localhost:3000) for local development
+ * 8. Localhost fallback (http://localhost:3000) for local development
  */
 export function resolveAppUrl(
   req?: Request | any,
@@ -92,21 +91,17 @@ export function resolveAppUrl(
     return `${proto}://${host.split(',')[0].trim()}`.replace(/\/$/, '');
   }
 
-  // 7. APP_DOMAIN environment variable (e.g. hrms.tarunkyadari.in)
+  // 7. APP_DOMAIN environment variable
   const envDomain = process.env.APP_DOMAIN?.trim();
   if (envDomain && !envDomain.includes('localhost') && !envDomain.includes('127.0.0.1')) {
     return `https://${envDomain.replace(/^https?:\/\//, '').replace(/\/$/, '')}`;
   }
 
-  // 8. If running in production mode, default to known production domain
-  if (process.env.NODE_ENV === 'production') {
-    return 'https://hrms.tarunkyadari.in';
-  }
-
-  // 9. Localhost fallback
+  // 8. Explicit FRONTEND_URL or APP_URL fallback
   if (envFrontendUrl) return envFrontendUrl.replace(/\/$/, '');
   if (envAppUrl) return envAppUrl.replace(/\/$/, '');
 
+  // 9. Localhost fallback
   return 'http://localhost:3000';
 }
 

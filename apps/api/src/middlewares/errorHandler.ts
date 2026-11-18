@@ -19,10 +19,12 @@ export function errorHandler(err: any, req: Request, res: Response, _next: NextF
   const requestId = req.id || (req.headers['x-request-id'] as string) || undefined;
 
   if (err instanceof AppError) {
+    const remainingAttempts = err.details?.remainingAttempts ?? (req as any).rateLimit?.remaining;
     return res.status(err.statusCode).json({
       code: err.code,
       error: err.message,
       details: err.details,
+      remainingAttempts: typeof remainingAttempts === 'number' ? remainingAttempts : undefined,
       requestId,
     });
   }

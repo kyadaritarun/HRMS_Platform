@@ -49,16 +49,19 @@ app.use(helmet({
   contentSecurityPolicy: false,
 }));
 
-const configuredOrigins = (process.env.CORS_ORIGIN || '')
-  .split(',')
-  .map((s) => s.trim())
-  .filter(Boolean);
+const configuredOrigins = [
+  ...(process.env.CORS_ORIGIN || '').split(','),
+  process.env.FRONTEND_URL,
+  process.env.APP_URL,
+]
+  .map((s) => s?.trim())
+  .filter(Boolean) as string[];
 
-const allowedOrigins = [
+const defaultAllowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
-  'https://hrms.tarunkyadari.in',
-  'http://hrms.tarunkyadari.in',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5173',
   ...configuredOrigins,
 ];
 
@@ -66,20 +69,29 @@ app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (e.g. server-to-server, curl, mobile) or matching origins
-      if (
-        !origin ||
-        allowedOrigins.includes(origin) ||
-        origin.endsWith('.localhost:3000') ||
-        origin.endsWith('.tarunkyadari.in') ||
-        origin === 'https://hrms.tarunkyadari.in' ||
-        origin === 'http://hrms.tarunkyadari.in'
-      ) {
-        callback(null, true);
-      } else {
-        callback(null, true); // Permissive fallback
+      if (!origin || defaultAllowedOrigins.includes(origin)) {
+        return callback(null, true);
       }
+
+      // If APP_DOMAIN is configured (e.g. "company.com"), allow origin and any subdomain of it
+      const appDomain = process.env.APP_DOMAIN?.trim();
+      if (appDomain) {
+        const cleanDomain = appDomain.replace(/^https?:\/\//, '').replace(/\/$/, '');
+        try {
+          const originHost = new URL(origin).hostname;
+          if (originHost === cleanDomain || originHost.endsWith(`.${cleanDomain}`)) {
+            return callback(null, true);
+          }
+        } catch {
+          // ignore url parse failure
+        }
+      }
+
+      // Permissive fallback for custom domains and reverse proxy setups
+      callback(null, true);
     },
     credentials: true,
+    exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'Retry-After', 'X-Request-Id'],
   })
 );
 
