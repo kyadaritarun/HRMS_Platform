@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import api from '../../api/client';
+import api, { getFileUrl } from '../../api/client';
 import TablePagination from '../../components/common/TablePagination';
 import {
   IconFileText,
@@ -358,18 +358,7 @@ export const ManagePoliciesPage: React.FC = () => {
 
   // Helper to ensure policy documents stream through API proxy rather than hitting private S3 URLs directly
   const getDocumentPreviewUrl = (url?: string | null) => {
-    if (!url) return '';
-    if (url.includes('amazonaws.com')) {
-      const filename = url.split('/uploads/').pop() || url.split('/').pop();
-      return `/uploads/${filename}`;
-    }
-    if (url.startsWith('/uploads/')) {
-      return url;
-    }
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
-    }
-    return `/uploads/${url.replace(/^\/+/, '')}`;
+    return getFileUrl(url);
   };
 
   // Helper for Category Presentation

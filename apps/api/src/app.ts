@@ -84,6 +84,10 @@ const handleImageStreaming = async (req: express.Request, res: express.Response)
   const filename = req.params.filename;
   const s3Key = `image/${filename}`;
 
+  res.removeHeader('X-Frame-Options');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Security-Policy', "frame-ancestors *");
+
   if (isS3Configured()) {
     try {
       const s3Stream = await getS3FileStream(s3Key);
@@ -113,6 +117,7 @@ app.get(['/uploads/:filename(*)', '/api/v1/uploads/:filename(*)'], async (req, r
 
   res.removeHeader('X-Frame-Options');
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Security-Policy', "frame-ancestors *");
 
   if (isS3Configured()) {
     try {

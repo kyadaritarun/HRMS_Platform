@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import api from '../../api/client';
+import api, { getFileUrl } from '../../api/client';
 import {
   IconFolder,
   IconPlus,
@@ -509,7 +509,7 @@ export const MyDocumentsPage: React.FC = () => {
                 {/* View File */}
                 {doc.fileUrl ? (
                   <a
-                    href={doc.fileUrl}
+                    href={getFileUrl(doc.fileUrl)}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition-all"
@@ -530,7 +530,9 @@ export const MyDocumentsPage: React.FC = () => {
                 {/* Download Button */}
                 {doc.fileUrl ? (
                   <a
-                    href={doc.fileUrl}
+                    href={getFileUrl(doc.fileUrl)}
+                    target="_blank"
+                    rel="noreferrer"
                     download
                     className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 flex items-center justify-center shadow-xs transition-all cursor-pointer"
                     title="Download document"

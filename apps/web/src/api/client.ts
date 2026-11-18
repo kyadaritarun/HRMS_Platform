@@ -1,21 +1,52 @@
 import axios from 'axios';
 
-const rawApiUrl = import.meta.env.VITE_API_URL || '';
+const defaultRemoteApiUrl = 'https://hrms-server.tarunkyadari.in';
+const rawApiUrl =
+  import.meta.env.VITE_API_URL ||
+  (typeof window !== 'undefined' &&
+  !['localhost', '127.0.0.1'].includes(window.location.hostname)
+    ? defaultRemoteApiUrl
+    : '');
 const normalizedApiUrl = rawApiUrl.replace(/\/+$/, '');
 export const API_BASE_URL = normalizedApiUrl ? `${normalizedApiUrl}/api/v1` : '/api/v1';
 
 export const getFileUrl = (path?: string | null): string => {
   if (!path) return '';
-  if (path.includes('.amazonaws.com/uploads/')) {
-    const filename = path.split('.amazonaws.com/uploads/')[1];
+  if (path.startsWith('blob:') || path.startsWith('data:')) return path;
+
+  // If local development URL points to localhost:5000 in production, replace with normalizedApiUrl
+  if (normalizedApiUrl && path.includes('localhost:5000')) {
+    path = path.replace(/https?:\/\/localhost:5000/, normalizedApiUrl);
+  }
+
+  // AWS S3 uploads: stream via backend proxy endpoint to avoid CORS / X-Frame-Options issues
+  if (path.includes('amazonaws.com')) {
+    if (path.includes('/uploads/')) {
+      const filename = path.split('/uploads/').pop();
+      return normalizedApiUrl ? `${normalizedApiUrl}/uploads/${filename}` : `/uploads/${filename}`;
+    }
+    if (path.includes('/image/')) {
+      const filename = path.split('/image/').pop();
+      return normalizedApiUrl ? `${normalizedApiUrl}/image/${filename}` : `/image/${filename}`;
+    }
+    const filename = path.split('/').pop();
     return normalizedApiUrl ? `${normalizedApiUrl}/uploads/${filename}` : `/uploads/${filename}`;
   }
-  if (path.includes('.amazonaws.com/image/')) {
-    const filename = path.split('.amazonaws.com/image/')[1];
-    return normalizedApiUrl ? `${normalizedApiUrl}/image/${filename}` : `/image/${filename}`;
+
+  // If already an absolute http/https URL pointing to an external source or already pointing to normalizedApiUrl
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
   }
-  if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  return normalizedApiUrl ? `${normalizedApiUrl}${path.startsWith('/') ? '' : '/'}${path}` : path;
+
+  // Ensure relative path starts with '/'
+  let cleanPath = path.startsWith('/') ? path : `/${path}`;
+
+  // If it's a bare filename like "123-file.pdf", route it to "/uploads/123-file.pdf"
+  if (!cleanPath.startsWith('/uploads/') && !cleanPath.startsWith('/image/') && !cleanPath.startsWith('/images/')) {
+    cleanPath = `/uploads${cleanPath}`;
+  }
+
+  return normalizedApiUrl ? `${normalizedApiUrl}${cleanPath}` : cleanPath;
 };
 
 export const api = axios.create({

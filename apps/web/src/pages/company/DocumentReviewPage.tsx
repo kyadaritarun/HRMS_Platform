@@ -38,18 +38,6 @@ interface DocumentItem {
 }
 
 const resolveDocUrl = (url?: string | null) => {
-  if (!url) return '';
-  if (url.includes('amazonaws.com')) {
-    const filename = url.split('/uploads/').pop() || url.split('/').pop();
-    return `/uploads/${filename}`;
-  }
-  if (url.includes('/uploads/')) {
-    const parts = url.split('/uploads/');
-    return `/uploads/${parts[parts.length - 1]}`;
-  }
-  if (url.startsWith('/')) {
-    return url;
-  }
   return getFileUrl(url);
 };
 
