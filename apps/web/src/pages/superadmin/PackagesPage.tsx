@@ -1165,7 +1165,12 @@ export const PackagesPage: React.FC = () => {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <div>
-                    <label className="block text-xs font-bold text-slate-900">Included Modules &amp; Role Permissions</label>
+                    <div className="flex items-center gap-2">
+                      <label className="block text-xs font-bold text-slate-900">Included Modules &amp; Role Permissions</label>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                        {AVAILABLE_FEATURES.filter((f) => form.enabledFeatures.includes(f.key)).length}/{AVAILABLE_FEATURES.length} Modules ({form.enabledFeatures.length} features active)
+                      </span>
+                    </div>
                     <span className="text-[11px] text-slate-500 font-medium">
                       Select operations, roles, and employee self-service capabilities for this package:
                     </span>
