@@ -95,3 +95,5 @@ export async function sendEmail(opts: SendMailOptions): Promise<{ success: boole
     return { success: false, error: err.message };
   }
 }
+
+export { queueEmail } from '../services/emailQueue.js';

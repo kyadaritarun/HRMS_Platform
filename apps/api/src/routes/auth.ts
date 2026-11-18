@@ -9,11 +9,12 @@ import { logActivity } from '../services/activityLog.js';
 import { sendEmail } from '../lib/mailer.js';
 import jwt from 'jsonwebtoken';
 import { uploadProfileImage } from '../lib/storage.js';
+import { authRateLimiter } from '../middlewares/rateLimiter.js';
 
 const router = Router();
 
 // POST /auth/login
-router.post('/login', validateBody(LoginSchema), async (req, res, next) => {
+router.post('/login', authRateLimiter, validateBody(LoginSchema), async (req, res, next) => {
   try {
     const { login, password } = req.body;
 
@@ -257,7 +258,7 @@ router.post('/change-password', authMiddleware, validateBody(ChangePasswordSchem
 });
 
 // POST /auth/forgot-password
-router.post('/forgot-password', validateBody(ForgotPasswordSchema), async (req, res, next) => {
+router.post('/forgot-password', authRateLimiter, validateBody(ForgotPasswordSchema), async (req, res, next) => {
   try {
     const { email } = req.body;
     const user = await prisma.user.findUnique({

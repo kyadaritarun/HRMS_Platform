@@ -7,7 +7,7 @@ import { roleGuard } from '../middlewares/roleGuard.js';
 import { hrPermission } from '../middlewares/hrPermission.js';
 import { validateBody } from '../middlewares/validate.js';
 import { AppError } from '../middlewares/errorHandler.js';
-import { upload } from '../lib/storage.js';
+import { upload, getS3PresignedUrl } from '../lib/storage.js';
 import { RejectDocumentSchema, UploadDocumentSchema } from '../schemas/document.js';
 import { logActivity } from '../services/activityLog.js';
 
@@ -255,6 +255,33 @@ router.patch('/:id', upload.single('file'), async (req, res, next) => {
     });
 
     return res.json({ document: updated });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /documents/:id/presigned-url - Part 3: Direct S3 Presigned URL download
+router.get('/:id/presigned-url', async (req, res, next) => {
+  try {
+    const docId = Number(req.params.id);
+    const doc = await prisma.document.findUnique({
+      where: { id: docId },
+    });
+
+    if (!doc || !doc.fileUrl) {
+      return res.status(404).json({ error: 'Document or file not found' });
+    }
+
+    const filename = doc.fileUrl.split('/uploads/').pop()?.split('/').pop();
+    if (!filename) {
+      return res.status(400).json({ error: 'Invalid document key' });
+    }
+
+    const presigned = await getS3PresignedUrl(`uploads/${filename}`, 900); // 15 mins
+    return res.json({
+      presignedUrl: presigned || doc.fileUrl,
+      expiresInSeconds: 900,
+    });
   } catch (error) {
     next(error);
   }

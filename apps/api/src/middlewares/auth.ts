@@ -40,6 +40,10 @@ export async function authMiddleware(req: Request, _res: Response, next: NextFun
       token = req.headers.authorization.split(' ')[1];
     }
 
+    if (!token && typeof req.query?.token === 'string') {
+      token = req.query.token;
+    }
+
     if (!token) {
       return next(new AppError(401, 'UNAUTHORIZED', 'Authentication token required'));
     }

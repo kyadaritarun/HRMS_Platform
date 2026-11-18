@@ -10,6 +10,7 @@ import { validateBody } from '../middlewares/validate.js';
 import { AppError } from '../middlewares/errorHandler.js';
 import { CheckInSchema, CheckOutSchema } from '../schemas/attendance.js';
 import { checkIn, checkOut, generateAttendanceExcel } from '../services/attendance.js';
+import { punchRateLimiter } from '../middlewares/rateLimiter.js';
 
 const router = Router();
 
@@ -18,6 +19,7 @@ router.use(authMiddleware, tenantMatchMiddleware, policyComplianceMiddleware);
 // POST /attendance/check-in
 router.post(
   '/check-in',
+  punchRateLimiter,
   featureGuard('time_attendance_management'),
   validateBody(CheckInSchema),
   async (req, res, next) => {
@@ -51,6 +53,7 @@ router.post(
 // POST /attendance/check-out
 router.post(
   '/check-out',
+  punchRateLimiter,
   featureGuard('time_attendance_management'),
   validateBody(CheckOutSchema),
   async (req, res, next) => {

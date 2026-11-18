@@ -30,8 +30,16 @@ import { getHelplineConfig } from './services/helplineService.js';
 
 import fs from 'fs';
 import { isS3Configured, getS3FileStream } from './lib/storage.js';
+import prisma from './lib/prisma.js';
+import redis, { isRedisReady } from './lib/redis.js';
+import { getActiveConnectionCount } from './services/realtimeService.js';
+
+import { requestIdMiddleware } from './middlewares/requestId.js';
 
 export const app = express();
+
+// Assign and propagate X-Request-Id correlation ID
+app.use(requestIdMiddleware);
 
 // Security and standard parsers
 app.use(helmet({
@@ -143,6 +151,68 @@ app.use(tenantMiddleware);
 // Health check endpoint
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Deep telemetry & diagnostic health check
+app.get(['/health/system', '/api/v1/health/system'], async (_req, res) => {
+  const dbStart = Date.now();
+  let dbStatus = 'healthy';
+  let dbLatencyMs = 0;
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    dbLatencyMs = Date.now() - dbStart;
+  } catch {
+    dbStatus = 'degraded';
+  }
+
+  const redisStart = Date.now();
+  let redisStatus = 'offline';
+  let redisLatencyMs = 0;
+  if (isRedisReady() && redis) {
+    try {
+      await redis.ping();
+      redisStatus = 'healthy';
+      redisLatencyMs = Date.now() - redisStart;
+    } catch {
+      redisStatus = 'degraded';
+    }
+  }
+
+  const memory = process.memoryUsage();
+  const uptimeSeconds = Math.floor(process.uptime());
+  const isHealthy = dbStatus === 'healthy';
+
+  return res.status(isHealthy ? 200 : 503).json({
+    status: isHealthy ? 'healthy' : 'degraded',
+    version: '2.0.0',
+    timestamp: new Date().toISOString(),
+    uptimeSeconds,
+    services: {
+      database: {
+        status: dbStatus,
+        latencyMs: dbLatencyMs,
+        provider: 'PostgreSQL',
+      },
+      cacheAndQueue: {
+        status: redisStatus,
+        latencyMs: redisLatencyMs,
+        provider: 'Redis (ioredis + BullMQ)',
+      },
+      storage: {
+        status: isS3Configured() ? 'healthy' : 'fallback_or_disabled',
+        provider: 'AWS S3',
+      },
+      realtimeSSE: {
+        status: 'active',
+        activeConnections: getActiveConnectionCount(),
+      },
+    },
+    system: {
+      memoryRssMb: Math.round(memory.rss / (1024 * 1024)),
+      memoryHeapUsedMb: Math.round(memory.heapUsed / (1024 * 1024)),
+      nodeVersion: process.version,
+    },
+  });
 });
 
 // Mount API routes

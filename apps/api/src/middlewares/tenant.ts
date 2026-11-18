@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma.js';
 import { AppError } from './errorHandler.js';
+import { getOrSetCache } from '../services/cacheService.js';
 
 const RESERVED_SUBDOMAINS = ['app', 'api', 'admin', 'www', 'hrms', 'hrms_server', 'hrms-server', 'server'];
+const TENANT_CACHE_TTL = 300; // 5 minutes
 
 export async function tenantMiddleware(req: Request, _res: Response, next: NextFunction) {
   try {
@@ -33,9 +35,11 @@ export async function tenantMiddleware(req: Request, _res: Response, next: NextF
     }
 
     if (headerCompanyId) {
-      const company = await prisma.company.findUnique({
-        where: { id: headerCompanyId },
-        include: { package: true },
+      const company = await getOrSetCache(`tenant:id:${headerCompanyId}`, TENANT_CACHE_TTL, async () => {
+        return await prisma.company.findUnique({
+          where: { id: headerCompanyId },
+          include: { package: true },
+        });
       });
       if (company) {
         req.company = company as any;
@@ -44,9 +48,12 @@ export async function tenantMiddleware(req: Request, _res: Response, next: NextF
     }
 
     if (subdomain) {
-      const company = await prisma.company.findUnique({
-        where: { subdomain },
-        include: { package: true },
+      const cleanSub = subdomain.toLowerCase();
+      const company = await getOrSetCache(`tenant:subdomain:${cleanSub}`, TENANT_CACHE_TTL, async () => {
+        return await prisma.company.findUnique({
+          where: { subdomain: cleanSub },
+          include: { package: true },
+        });
       });
 
       if (company) {
@@ -57,9 +64,11 @@ export async function tenantMiddleware(req: Request, _res: Response, next: NextF
         return next();
       }
     } else if (customDomain) {
-      const company = await prisma.company.findUnique({
-        where: { customDomain },
-        include: { package: true },
+      const company = await getOrSetCache(`tenant:custom:${customDomain}`, TENANT_CACHE_TTL, async () => {
+        return await prisma.company.findUnique({
+          where: { customDomain },
+          include: { package: true },
+        });
       });
 
       if (company) {

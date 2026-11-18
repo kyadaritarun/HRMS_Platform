@@ -28,4 +28,8 @@ try {
   redis = null;
 }
 
+export const isRedisReady = (): boolean => {
+  return redis !== null && redis.status === 'ready';
+};
+
 export default redis;

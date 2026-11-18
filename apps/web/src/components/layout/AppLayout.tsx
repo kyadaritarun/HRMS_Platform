@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { useAuth } from '../../context/AuthContext';
-import api, { getFileUrl } from '../../api/client';
+import api, { getFileUrl, API_BASE_URL } from '../../api/client';
 import {
   IconBell,
   IconLogout,
@@ -115,7 +115,53 @@ export const AppLayout: React.FC = () => {
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 45000);
-    return () => clearInterval(interval);
+
+    // Part 2: Real-time Server-Sent Events (SSE) notification stream
+    let eventSource: EventSource | null = null;
+    if (user?.id && typeof window !== 'undefined' && 'EventSource' in window) {
+      try {
+        const token = localStorage.getItem('token') || '';
+        const streamUrl = `${API_BASE_URL}/notifications/stream?token=${encodeURIComponent(token)}`;
+        eventSource = new EventSource(streamUrl, { withCredentials: true });
+
+        eventSource.addEventListener('notification', (event) => {
+          try {
+            const newNotif: NotificationItem = JSON.parse(event.data);
+            if (!newNotif || !newNotif.id) return;
+
+            setNotifications((prev) => {
+              if (prev.some((n) => n.id === newNotif.id)) return prev;
+              return [newNotif, ...prev];
+            });
+
+            // Instant desktop push alert if enabled
+            if (
+              typeof window !== 'undefined' &&
+              'Notification' in window &&
+              Notification.permission === 'granted'
+            ) {
+              try {
+                new window.Notification(newNotif.title, {
+                  body: newNotif.message,
+                  icon: '/favicon.ico',
+                });
+              } catch {}
+            }
+          } catch {}
+        });
+
+        eventSource.onerror = () => {
+          // Automatic browser reconnect is handled natively by EventSource
+        };
+      } catch {}
+    }
+
+    return () => {
+      clearInterval(interval);
+      if (eventSource) {
+        eventSource.close();
+      }
+    };
   }, [user?.id]);
 
   // Live punch-in attendance session & timer beside profile

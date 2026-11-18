@@ -3,10 +3,45 @@ import prisma from '../lib/prisma.js';
 import { authMiddleware } from '../middlewares/auth.js';
 import { tenantMatchMiddleware } from '../middlewares/tenantMatch.js';
 import { policyComplianceMiddleware } from '../middlewares/policyCompliance.js';
+import { addRealtimeClient, removeRealtimeClient } from '../services/realtimeService.js';
 
 const router = Router();
 
 router.use(authMiddleware, tenantMatchMiddleware, policyComplianceMiddleware);
+
+// GET /notifications/stream - Server-Sent Events (SSE) live push stream
+router.get('/stream', (req, res) => {
+  const user = req.user;
+  if (!user) {
+    return res.status(401).end();
+  }
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no',
+    'Access-Control-Allow-Origin': req.headers.origin || '*',
+    'Access-Control-Allow-Credentials': 'true',
+  });
+
+  res.write(`event: connected\ndata: ${JSON.stringify({ userId: user.id, timestamp: Date.now() })}\n\n`);
+
+  addRealtimeClient(user.id, res);
+
+  const pingInterval = setInterval(() => {
+    try {
+      res.write(':ping\n\n');
+    } catch {
+      clearInterval(pingInterval);
+    }
+  }, 25000);
+
+  req.on('close', () => {
+    clearInterval(pingInterval);
+    removeRealtimeClient(user.id, res);
+  });
+});
 
 function enrichNotificationUrl(n: any): string {
   if (n.url && typeof n.url === 'string' && n.url.trim() !== '') {

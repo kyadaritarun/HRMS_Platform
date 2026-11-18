@@ -15,12 +15,15 @@ export class AppError extends Error {
   }
 }
 
-export function errorHandler(err: any, _req: Request, res: Response, _next: NextFunction) {
+export function errorHandler(err: any, req: Request, res: Response, _next: NextFunction) {
+  const requestId = req.id || (req.headers['x-request-id'] as string) || undefined;
+
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({
       code: err.code,
       error: err.message,
       details: err.details,
+      requestId,
     });
   }
 
@@ -29,15 +32,17 @@ export function errorHandler(err: any, _req: Request, res: Response, _next: Next
       code: 'VALIDATION_ERROR',
       error: 'Validation failed',
       details: err.flatten(),
+      requestId,
     });
   }
 
-  console.error('[Unhandled Error]', err);
+  console.error(`[Unhandled Error] [${requestId || 'no-id'}]`, err);
 
   const statusCode = err.status || err.statusCode || 500;
   return res.status(statusCode).json({
     code: err.code || 'INTERNAL_SERVER_ERROR',
     error: err.message || 'An unexpected error occurred',
     details: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+    requestId,
   });
 }
