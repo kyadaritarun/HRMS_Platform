@@ -14,7 +14,7 @@ export interface EmailJobPayload {
   templateKey?: string;
 }
 
-const QUEUE_NAME = 'hrms-email-queue';
+const QUEUE_NAME = `hrms-email-queue-${process.env.NODE_ENV || 'production'}`;
 
 export let emailQueue: Queue<EmailJobPayload> | null = null;
 export let emailWorker: Worker<EmailJobPayload> | null = null;

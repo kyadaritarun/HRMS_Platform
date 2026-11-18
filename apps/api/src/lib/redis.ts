@@ -1,6 +1,8 @@
 import Redis from 'ioredis';
 
-const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+const rawRedisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+// Force IPv4 127.0.0.1 instead of 'localhost' to prevent Node.js 18+ ::1 IPv6 resolution failures
+const redisUrl = rawRedisUrl.replace('://localhost', '://127.0.0.1');
 
 export let redis: Redis | null = null;
 
@@ -8,10 +10,18 @@ try {
   redis = new Redis(redisUrl, {
     maxRetriesPerRequest: null,
     lazyConnect: true,
+    family: 4, // Force IPv4
     retryStrategy(times) {
-      if (times > 3) return null; // stop retrying if redis is not running
-      return Math.min(times * 100, 2000);
+      if (process.env.NODE_ENV === 'test') {
+        if (times > 1) return null;
+        return 50;
+      }
+      return Math.min(times * 200, 3000);
     },
+  });
+
+  redis.on('ready', () => {
+    console.log('[Redis] Connected and ready');
   });
 
   redis.on('error', (err) => {

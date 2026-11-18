@@ -7,7 +7,7 @@ interface ClientEntry {
   res: Response;
 }
 
-const REALTIME_CHANNEL = 'hrms:realtime:events';
+const REALTIME_CHANNEL = `hrms:realtime:events:${process.env.NODE_ENV || 'production'}`;
 
 // Map of userId -> Set of active Express Response streams
 const userClients = new Map<number, Set<Response>>();
