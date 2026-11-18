@@ -166,4 +166,72 @@ describe('Shift & Schedule Management - Leave Visibility & Protection', () => {
       expect(screen.getByText('⏳ Pending')).toBeInTheDocument();
     });
   });
+
+  it('3. In 6 days work / 1 day week off, Bulk Assign applies shift to working days and preserves WO on weekly off', async () => {
+    let capturedAssignments: any[] = [];
+    (api.post as any).mockImplementation((url: string, body: any) => {
+      if (url.includes('/bulk-assign')) {
+        capturedAssignments = body.assignments || [];
+        return Promise.resolve({ data: { success: true } });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    (api.get as any).mockImplementation((url: string) => {
+      if (url.includes('/employees')) {
+        return Promise.resolve({ data: { items: mockEmployees, total: 1 } });
+      }
+      if (url.includes('/company/shifts')) {
+        return Promise.resolve({ data: { shifts: mockShifts } });
+      }
+      if (url.includes('/company/settings')) {
+        return Promise.resolve({
+          data: { company: { workingDays: 'mon,tue,wed,thu,fri,sat' } },
+        });
+      }
+      if (url.includes('/company/roster')) {
+        return Promise.resolve({
+          data: {
+            rosterMap: {},
+            assignments: [],
+            leaveMap: {},
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    const { getByText } = render(
+      <MemoryRouter>
+        <ShiftRosterPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(getByText('Tarun Kumar')).toBeInTheDocument();
+    });
+
+    // Open Bulk Assign modal
+    const bulkBtn = getByText('Bulk Assign');
+    bulkBtn.click();
+
+    // Click "Apply to This Week"
+    await waitFor(() => {
+      expect(getByText('Apply to This Week')).toBeInTheDocument();
+    });
+
+    const applyBtn = getByText('Apply to This Week');
+    applyBtn.click();
+
+    await waitFor(() => {
+      expect(capturedAssignments.length).toBe(7);
+    });
+
+    // Verify 6 days are 'GEN' and Sunday (7th day) is 'WO'
+    const genDays = capturedAssignments.filter((a) => a.shiftTiming === 'GEN');
+    const woDays = capturedAssignments.filter((a) => a.shiftTiming === 'WO');
+
+    expect(genDays.length).toBe(6);
+    expect(woDays.length).toBe(1);
+  });
 });

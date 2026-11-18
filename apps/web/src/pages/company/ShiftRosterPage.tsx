@@ -309,7 +309,7 @@ export const ShiftRosterPage: React.FC = () => {
         }
 
         const isOff = !isDateWorkableInSchedule(d, companyWorkingDays);
-        const assignedCode = isOff && offCode ? offCode : bulkShiftCode;
+        const assignedCode = isOff ? (offCode || 'WO') : bulkShiftCode;
         updated[key] = assignedCode;
         const matched = shifts.find((s) => s.code === assignedCode);
         assignmentPayload.push({
@@ -1046,19 +1046,19 @@ export const ShiftRosterPage: React.FC = () => {
                           const isDayWeeklyOff = !isDateWorkableInSchedule(d, companyWorkingDays);
                           const leaveInfo = leaveMap[key];
 
-                          let displayCode = currentCode || (isDayWeeklyOff ? 'WO' : '-');
+                          const isWeeklyOff = currentCode === 'WO' || (isDayWeeklyOff && !currentCode);
+                          let displayCode = isWeeklyOff ? 'WO' : (currentCode || '-');
                           let cellTitle = activeShift
                             ? `${activeShift.code}: ${activeShift.name} (${activeShift.startTime} - ${activeShift.endTime})`
-                            : isDayWeeklyOff
+                            : isWeeklyOff
                             ? 'Scheduled Weekly Off (WO)'
                             : 'Select shift';
-                          let cellClasses =
-                            activeShift?.color ||
-                            (currentCode
-                              ? 'bg-slate-100 text-slate-700 border-slate-200'
-                              : isDayWeeklyOff
-                              ? 'bg-slate-100/90 text-slate-500 border-slate-200/90'
-                              : 'bg-slate-50 text-slate-600 border-slate-200/80 hover:bg-slate-100');
+                          let cellClasses = isWeeklyOff
+                            ? 'bg-slate-100/90 text-slate-500 border-slate-200/90'
+                            : activeShift?.color ||
+                              (currentCode
+                                ? 'bg-slate-100 text-slate-700 border-slate-200'
+                                : 'bg-slate-50 text-slate-600 border-slate-200/80 hover:bg-slate-100');
 
                           if (leaveInfo) {
                             if (leaveInfo.status === 'APPROVED') {
@@ -1433,6 +1433,23 @@ export const ShiftRosterPage: React.FC = () => {
                 >
                   <span>- (Unassign)</span>
                   {!currentActiveCode && <IconCheck className="w-3.5 h-3.5 text-indigo-600" />}
+                </button>
+
+                {/* Explicit Weekly Off Option */}
+                <button
+                  type="button"
+                  onClick={() => onSelectShift('WO')}
+                  className={`w-full px-2.5 py-1.5 text-xs font-semibold rounded-lg text-left flex items-center justify-between transition-colors cursor-pointer ${
+                    currentActiveCode === 'WO' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 truncate min-w-0">
+                    <span className="px-1.5 py-0.5 rounded text-[11px] font-bold shrink-0 bg-slate-200 text-slate-700 border border-slate-300">
+                      WO
+                    </span>
+                    <span className="text-xs text-slate-700 truncate">Weekly Off</span>
+                  </div>
+                  {currentActiveCode === 'WO' && <IconCheck className="w-3.5 h-3.5 text-indigo-600 shrink-0 ml-1.5" />}
                 </button>
 
                 {/* Defined Shifts */}
