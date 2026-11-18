@@ -55,6 +55,10 @@ interface PunchDetail {
     code: string;
     color: string;
     days: number;
+    status?: string;
+    reason?: string;
+    isHalfDay?: boolean;
+    halfDayPeriod?: string | null;
   };
 }
 
@@ -366,6 +370,10 @@ export const DailyPunchReportPage: React.FC = () => {
               <span>Approved Leave</span>
             </div>
             <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+              <span>Pending Leave</span>
+            </div>
+            <div className="flex items-center gap-1.5">
               <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200">WO</span>
               <span>Weekly Off</span>
             </div>
@@ -519,6 +527,17 @@ export const DailyPunchReportPage: React.FC = () => {
                                   </span>
                                 </div>
                               ) : null}
+
+                              {/* Half Day / Leave indicator if employee also took leave on punch day */}
+                              {punch.isOnLeave && punch.leave && (
+                                <div>
+                                  <span className="inline-block px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                                    {punch.leave.isHalfDay
+                                      ? `½ Leave (${punch.leave.halfDayPeriod === 'FIRST_HALF' ? '1st Half' : '2nd Half'})`
+                                      : `Leave (${punch.leave.code})`}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           </td>
                         );
@@ -541,16 +560,35 @@ export const DailyPunchReportPage: React.FC = () => {
                       }
 
                       if (punch.isOnLeave && punch.leave) {
+                        const isPending = punch.leave.status === 'PENDING';
                         return (
                           <td
                             key={col.dateKey}
-                            className="py-2.5 px-2 text-center border-r border-slate-100 bg-purple-50/40"
+                            onClick={() => setInspectedPunch({ employee: emp, date: col, punch })}
+                            className={`py-2.5 px-2 text-center border-r border-slate-100 cursor-pointer transition-colors ${
+                              isPending
+                                ? 'bg-amber-50/50 hover:bg-amber-100/70'
+                                : 'bg-purple-50/40 hover:bg-purple-100/70'
+                            }`}
+                            title="Click to view leave request details"
                           >
                             <span
-                              className="inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200/80"
-                              title={`${punch.leave.name} (${punch.leave.days} Day)`}
+                              className={`inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold border shadow-2xs ${
+                                isPending
+                                  ? 'bg-amber-100 text-amber-800 border-amber-200/90'
+                                  : 'bg-purple-100 text-purple-800 border-purple-200/80'
+                              }`}
+                              title={`${isPending ? 'Pending Leave' : 'Approved Leave'}: ${punch.leave.name} (${
+                                punch.leave.isHalfDay
+                                  ? 'Half Day - ' + (punch.leave.halfDayPeriod === 'FIRST_HALF' ? '1st Half' : '2nd Half')
+                                  : punch.leave.days + ' Day'
+                              })`}
                             >
-                              Leave ({punch.leave.code})
+                              {isPending
+                                ? `Pending (${punch.leave.code})`
+                                : punch.leave.isHalfDay
+                                ? `½ Leave (${punch.leave.halfDayPeriod === 'FIRST_HALF' ? '1st Half' : '2nd Half'})`
+                                : `Leave (${punch.leave.code})`}
                             </span>
                           </td>
                         );
@@ -637,58 +675,108 @@ export const DailyPunchReportPage: React.FC = () => {
             </div>
 
             <div className="space-y-3 text-xs">
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 grid grid-cols-2 gap-3">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Punch-In Time</span>
-                  <div className="font-mono font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                    <span>{inspectedPunch.punch.checkIn || '-'}</span>
-                    {inspectedPunch.punch.isLate && (
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                        Late
-                      </span>
-                    )}
+              {/* Leave Details Card (if employee was on leave) */}
+              {inspectedPunch.punch.isOnLeave && inspectedPunch.punch.leave && (
+                <div className={`p-4 rounded-xl border space-y-2.5 ${
+                  inspectedPunch.punch.leave.status === 'PENDING'
+                    ? 'bg-amber-50/80 border-amber-200 text-amber-900'
+                    : 'bg-purple-50/80 border-purple-200 text-purple-900'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold flex items-center gap-1.5 text-xs">
+                      <IconCalendar className="w-4 h-4 text-purple-600" />
+                      <span>Leave Information</span>
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                      inspectedPunch.punch.leave.status === 'PENDING'
+                        ? 'bg-amber-200 text-amber-800'
+                        : 'bg-purple-200 text-purple-800'
+                    }`}>
+                      {inspectedPunch.punch.leave.status === 'PENDING' ? 'Pending Approval' : 'Approved Leave'}
+                    </span>
                   </div>
-                </div>
 
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Punch-Out Time</span>
-                  <div className="font-mono font-bold text-slate-900 text-sm">
-                    {inspectedPunch.punch.checkOut ? (
-                      inspectedPunch.punch.checkOut
-                    ) : inspectedPunch.punch.isMissingPunch ? (
-                      <span className="text-rose-600 font-semibold text-xs flex items-center gap-1">
-                        <IconAlertTriangle className="w-3.5 h-3.5" /> Missing Checkout
+                  <div className="grid grid-cols-2 gap-3 text-xs pt-1 border-t border-purple-200/60">
+                    <div>
+                      <span className="text-[10px] text-slate-500 font-semibold block">Leave Category</span>
+                      <span className="font-bold text-slate-900">{inspectedPunch.punch.leave.name} ({inspectedPunch.punch.leave.code})</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-500 font-semibold block">Leave Session</span>
+                      <span className="font-bold text-slate-900">
+                        {inspectedPunch.punch.leave.isHalfDay
+                          ? `Half Day (0.5d) - ${inspectedPunch.punch.leave.halfDayPeriod === 'FIRST_HALF' ? 'First Half' : 'Second Half'}`
+                          : `Full Day (${inspectedPunch.punch.leave.days}d)`}
                       </span>
-                    ) : (
-                      <span className="text-emerald-600 font-semibold text-xs">
-                        Shift in Progress (Active)
-                      </span>
-                    )}
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Duration</span>
-                  <span className="font-bold text-indigo-700 text-sm">
-                    {inspectedPunch.punch.durationHours || 0} Hours
-                  </span>
+                  {inspectedPunch.punch.leave.reason && (
+                    <div className="pt-1 text-[11px] text-slate-600 bg-white/70 p-2 rounded-lg border border-purple-100">
+                      <span className="font-semibold text-slate-700">Reason: </span>
+                      <span>"{inspectedPunch.punch.leave.reason}"</span>
+                    </div>
+                  )}
                 </div>
+              )}
 
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Work Mode</span>
-                  <span className="font-bold text-slate-800 capitalize">
-                    {inspectedPunch.punch.workMode || 'WFO'}
-                  </span>
-                </div>
-              </div>
+              {/* Punch-In & Out Timings */}
+              {inspectedPunch.punch.hasPunch && (
+                <>
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 grid grid-cols-2 gap-3">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Punch-In Time</span>
+                      <div className="font-mono font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                        <span>{inspectedPunch.punch.checkIn || '-'}</span>
+                        {inspectedPunch.punch.isLate && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                            Late
+                          </span>
+                        )}
+                      </div>
+                    </div>
 
-              {inspectedPunch.punch.note && (
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Punch Note</span>
-                  <p className="text-slate-700">{inspectedPunch.punch.note}</p>
-                </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Punch-Out Time</span>
+                      <div className="font-mono font-bold text-slate-900 text-sm">
+                        {inspectedPunch.punch.checkOut ? (
+                          inspectedPunch.punch.checkOut
+                        ) : inspectedPunch.punch.isMissingPunch ? (
+                          <span className="text-rose-600 font-semibold text-xs flex items-center gap-1">
+                            <IconAlertTriangle className="w-3.5 h-3.5" /> Missing Checkout
+                          </span>
+                        ) : (
+                          <span className="text-emerald-600 font-semibold text-xs">
+                            Shift in Progress (Active)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Duration</span>
+                      <span className="font-bold text-indigo-700 text-sm">
+                        {inspectedPunch.punch.durationHours || 0} Hours
+                      </span>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Work Mode</span>
+                      <span className="font-bold text-slate-800 capitalize">
+                        {inspectedPunch.punch.workMode || 'WFO'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {inspectedPunch.punch.note && (
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Punch Note</span>
+                      <p className="text-slate-700">{inspectedPunch.punch.note}</p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 

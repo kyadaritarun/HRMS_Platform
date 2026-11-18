@@ -317,13 +317,13 @@ router.get('/daily-punch', async (req, res, next) => {
       orderBy: { checkIn: 'asc' },
     });
 
-    // Query Approved Leaves overlapping this date range
+    // Query Approved & Pending Leaves overlapping this date range
     const leaveRequests = await prisma.request.findMany({
       where: {
         companyId,
         userId: { in: employeeIds },
         type: 'LEAVE',
-        status: 'APPROVED',
+        status: { in: ['APPROVED', 'PENDING'] },
         startDate: { lte: queryEnd },
         endDate: { gte: queryStart },
       },
@@ -439,12 +439,12 @@ router.get('/daily-punch', async (req, res, next) => {
         const isToday = col.dateKey === toDateKey(today);
         const isFuture = col.rawDate > today;
 
-        // Check if employee has approved leave on this date
+        // Check if employee has approved or pending leave on this date
         const onLeave = leaveRequests.find((req) => {
           if (req.userId !== emp.id) return false;
           if (!req.startDate || !req.endDate) return false;
-          const startKey = toTimezoneDateKey(req.startDate, timezone);
-          const endKey = toTimezoneDateKey(req.endDate, timezone);
+          const startKey = toDateKey(req.startDate);
+          const endKey = toDateKey(req.endDate);
           return col.dateKey >= startKey && col.dateKey <= endKey;
         });
 
@@ -479,6 +479,9 @@ router.get('/daily-punch', async (req, res, next) => {
           const isOngoing = Boolean(!att.checkOut && isToday && !isTodayShiftEnded);
           if (isMissingPunch) totalMissingCheckouts++;
 
+          const onLeaveMeta = onLeave ? ((onLeave.meta as any) || {}) : {};
+          const isHalf = Boolean(onLeaveMeta.isHalfDay) || (onLeave ? Number(onLeave.days) === 0.5 : false);
+
           punchesByDate[col.dateKey] = {
             hasPunch: true,
             checkIn: checkInTime,
@@ -491,10 +494,26 @@ router.get('/daily-punch', async (req, res, next) => {
             isLate,
             isMissingPunch,
             isOngoing,
-            isOnLeave: false,
+            isOnLeave: Boolean(onLeave),
+            leave: onLeave
+              ? {
+                  id: onLeave.id,
+                  name: onLeave.leaveType?.name || onLeave.title || 'Leave',
+                  code: onLeave.leaveType?.code || 'LV',
+                  color: onLeave.leaveType?.color || 'purple',
+                  days: Number(onLeave.days) || 1,
+                  status: onLeave.status,
+                  reason: onLeave.reason,
+                  isHalfDay: isHalf,
+                  halfDayPeriod: onLeaveMeta.halfDayPeriod || null,
+                }
+              : undefined,
             isWeekend: isEmployeeWeekend,
           };
         } else if (onLeave) {
+          const onLeaveMeta = (onLeave.meta as any) || {};
+          const isHalf = Boolean(onLeaveMeta.isHalfDay) || Number(onLeave.days) === 0.5;
+
           punchesByDate[col.dateKey] = {
             hasPunch: false,
             isOnLeave: true,
@@ -504,6 +523,10 @@ router.get('/daily-punch', async (req, res, next) => {
               code: onLeave.leaveType?.code || 'LV',
               color: onLeave.leaveType?.color || 'purple',
               days: Number(onLeave.days) || 1,
+              status: onLeave.status,
+              reason: onLeave.reason,
+              isHalfDay: isHalf,
+              halfDayPeriod: onLeaveMeta.halfDayPeriod || null,
             },
             isWeekend: isEmployeeWeekend,
           };
@@ -737,7 +760,7 @@ router.get('/daily-punch/export', async (req, res, next) => {
           companyId,
           userId: { in: employeeIds },
           type: 'LEAVE',
-          status: 'APPROVED',
+          status: { in: ['APPROVED', 'PENDING'] },
           startDate: { lte: queryEnd },
           endDate: { gte: queryStart },
         },
@@ -818,8 +841,8 @@ router.get('/daily-punch/export', async (req, res, next) => {
         const onLeave = leaveRequests.find((req) => {
           if (req.userId !== emp.id) return false;
           if (!req.startDate || !req.endDate) return false;
-          const s = toTimezoneDateKey(req.startDate, timezone);
-          const e = toTimezoneDateKey(req.endDate, timezone);
+          const s = toDateKey(req.startDate);
+          const e = toDateKey(req.endDate);
           return col.dateKey >= s && col.dateKey <= e;
         });
 
@@ -862,7 +885,11 @@ router.get('/daily-punch/export', async (req, res, next) => {
           }
           rowData.push(`In: ${inT}${lateFlag}\nOut: ${outT}`);
         } else if (onLeave) {
-          rowData.push(`Leave (${onLeave.leaveType?.code || 'LV'})`);
+          const reqMeta = (onLeave.meta as any) || {};
+          const isHalf = Boolean(reqMeta.isHalfDay) || Number(onLeave.days) === 0.5;
+          const statusText = onLeave.status === 'PENDING' ? 'Pending ' : '';
+          const halfText = isHalf ? ` (Half Day - ${reqMeta.halfDayPeriod === 'SECOND_HALF' ? '2nd Half' : '1st Half'})` : '';
+          rowData.push(`${statusText}Leave: ${onLeave.leaveType?.name || 'Leave'}${halfText}`);
         } else if (isWeeklyOff) {
           rowData.push('Weekly Off');
         } else if (isPast) {

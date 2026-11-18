@@ -24,6 +24,7 @@ import {
   IconLoader2,
   IconSearch,
   IconChevronDown,
+  IconAlertTriangle,
 } from '@tabler/icons-react';
 
 export interface ShiftTiming {
@@ -77,11 +78,14 @@ export const ShiftRosterPage: React.FC = () => {
 
   // Roster assignments map from PostgreSQL: `empId_dateStr` -> shiftCode
   const [rosterMap, setRosterMap] = useState<Record<string, string>>({});
+  // Approved & Pending Leaves map: `empId_dateStr` -> leave detail
+  const [leaveMap, setLeaveMap] = useState<Record<string, any>>({});
 
   const fetchRoster = async () => {
     try {
       const res = await api.get('/company/roster');
       setRosterMap(res.data?.rosterMap || {});
+      setLeaveMap(res.data?.leaveMap || {});
     } catch (err) {
       console.error('Failed to load roster:', err);
     }
@@ -289,14 +293,24 @@ export const ShiftRosterPage: React.FC = () => {
     const offShift = shifts.find((s) => s.startTime === '-' && s.endTime === '-');
     const offCode = offShift ? offShift.code : '';
     const assignmentPayload: any[] = [];
+    let preservedLeaveCount = 0;
 
     employees.forEach((emp) => {
       if (bulkDepartment !== 'ALL' && emp.department?.name !== bulkDepartment) return;
       currentWeekDates.forEach((d) => {
         const dateStr = toLocalDateKey(d);
+        const key = `${emp.id}_${dateStr}`;
+        const empLeave = leaveMap[key];
+
+        // Do NOT overwrite approved full-day leave with a work shift!
+        if (empLeave && empLeave.status === 'APPROVED' && !empLeave.isHalfDay) {
+          preservedLeaveCount++;
+          return;
+        }
+
         const isOff = !isDateWorkableInSchedule(d, companyWorkingDays);
         const assignedCode = isOff && offCode ? offCode : bulkShiftCode;
-        updated[`${emp.id}_${dateStr}`] = assignedCode;
+        updated[key] = assignedCode;
         const matched = shifts.find((s) => s.code === assignedCode);
         assignmentPayload.push({
           employeeId: emp.id,
@@ -314,6 +328,13 @@ export const ShiftRosterPage: React.FC = () => {
       await api.post('/company/roster/bulk-assign', { assignments: assignmentPayload });
       window.dispatchEvent(new Event('attendance-updated'));
       localStorage.setItem('attendance_sync_ts', Date.now().toString());
+      if (preservedLeaveCount > 0) {
+        setSaveSuccessMessage(
+          `Weekly shifts bulk-assigned successfully! Preserved ${preservedLeaveCount} approved leave day(s).`
+        );
+      } else {
+        setSaveSuccessMessage('Weekly shifts bulk-assigned successfully!');
+      }
     } catch (err) {
       console.error('Failed to bulk assign roster:', err);
     }
@@ -857,6 +878,18 @@ export const ShiftRosterPage: React.FC = () => {
                       })}
                     </div>
 
+                    {/* Leave Indicators Info */}
+                    <div className="pt-2 border-t border-slate-100 space-y-1 text-[11px]">
+                      <div className="flex items-center gap-2 p-1.5 rounded-lg bg-purple-50 text-purple-900 border border-purple-200/60 font-semibold">
+                        <span className="w-5 h-5 rounded-md bg-purple-200 text-purple-800 text-[10px] font-black flex items-center justify-center shrink-0">LV</span>
+                        <span>Approved Leave (Preserved from shift overwrite)</span>
+                      </div>
+                      <div className="flex items-center gap-2 p-1.5 rounded-lg bg-amber-50 text-amber-900 border border-amber-200/60 font-semibold">
+                        <span className="w-5 h-5 rounded-md bg-amber-200 text-amber-800 text-[10px] font-black flex items-center justify-center shrink-0">⏳</span>
+                        <span>Pending Leave (Awaiting HR / Manager approval)</span>
+                      </div>
+                    </div>
+
                     {/* Footer Link to Shift Rules */}
                     <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] px-1">
                       <span className="text-slate-500 font-medium">Configure hours or rules:</span>
@@ -1011,28 +1044,57 @@ export const ShiftRosterPage: React.FC = () => {
                           };
 
                           const isDayWeeklyOff = !isDateWorkableInSchedule(d, companyWorkingDays);
-                          const displayCode = currentCode || (isDayWeeklyOff ? 'WO' : '-');
+                          const leaveInfo = leaveMap[key];
+
+                          let displayCode = currentCode || (isDayWeeklyOff ? 'WO' : '-');
+                          let cellTitle = activeShift
+                            ? `${activeShift.code}: ${activeShift.name} (${activeShift.startTime} - ${activeShift.endTime})`
+                            : isDayWeeklyOff
+                            ? 'Scheduled Weekly Off (WO)'
+                            : 'Select shift';
+                          let cellClasses =
+                            activeShift?.color ||
+                            (currentCode
+                              ? 'bg-slate-100 text-slate-700 border-slate-200'
+                              : isDayWeeklyOff
+                              ? 'bg-slate-100/90 text-slate-500 border-slate-200/90'
+                              : 'bg-slate-50 text-slate-600 border-slate-200/80 hover:bg-slate-100');
+
+                          if (leaveInfo) {
+                            if (leaveInfo.status === 'APPROVED') {
+                              if (leaveInfo.isHalfDay) {
+                                displayCode = currentCode
+                                  ? `½ LV • ${currentCode}`
+                                  : `½ LV (${leaveInfo.halfDayPeriod === 'FIRST_HALF' ? '1st' : '2nd'})`;
+                                cellClasses = 'bg-purple-100 text-purple-900 border-purple-300 font-bold hover:bg-purple-200';
+                                cellTitle = `Approved Half-Day Leave: ${leaveInfo.type} (${
+                                  leaveInfo.halfDayPeriod === 'FIRST_HALF' ? 'First Half' : 'Second Half'
+                                })${leaveInfo.reason ? ' - ' + leaveInfo.reason : ''}${currentCode ? ' | Shift: ' + currentCode : ''}`;
+                              } else {
+                                displayCode = currentCode ? `${currentCode} (LV)` : '🌴 On Leave';
+                                cellClasses = 'bg-purple-100/90 text-purple-900 border-purple-300 font-bold hover:bg-purple-200';
+                                cellTitle = `Approved Leave: ${leaveInfo.type} (Full Day)${
+                                  leaveInfo.reason ? ' - ' + leaveInfo.reason : ''
+                                }${currentCode ? ' | Assigned Shift: ' + currentCode : ''}`;
+                              }
+                            } else if (leaveInfo.status === 'PENDING') {
+                              displayCode = currentCode ? `${currentCode} (⏳)` : '⏳ Pending';
+                              cellClasses = 'bg-amber-100 text-amber-900 border-amber-300 font-bold hover:bg-amber-200';
+                              cellTitle = `Pending Leave Request: ${leaveInfo.type} (${leaveInfo.days}d) - Awaiting Approval${
+                                leaveInfo.reason ? ' - ' + leaveInfo.reason : ''
+                              }${currentCode ? ' | Shift: ' + currentCode : ''}`;
+                            }
+                          }
 
                           return (
                             <td key={dateStr} className="px-2 py-2.5 text-center">
                               <button
                                 type="button"
                                 onClick={openMenuForCell}
-                                title={
-                                  activeShift
-                                    ? `${activeShift.code}: ${activeShift.name} (${activeShift.startTime} - ${activeShift.endTime})`
-                                    : isDayWeeklyOff
-                                    ? 'Scheduled Weekly Off (WO)'
-                                    : 'Select shift'
-                                }
-                                className={`w-full py-1.5 px-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-between gap-1 shadow-2xs cursor-pointer ${
-                                  activeShift?.color ||
-                                  (currentCode
-                                    ? 'bg-slate-100 text-slate-700 border-slate-200'
-                                    : isDayWeeklyOff
-                                    ? 'bg-slate-100/90 text-slate-500 border-slate-200/90'
-                                    : 'bg-slate-50 text-slate-600 border-slate-200/80 hover:bg-slate-100')
-                                } ${isOpen ? 'ring-2 ring-indigo-500/40' : ''}`}
+                                title={cellTitle}
+                                className={`w-full py-1.5 px-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-between gap-1 shadow-2xs cursor-pointer ${cellClasses} ${
+                                  isOpen ? 'ring-2 ring-indigo-500/40' : ''
+                                }`}
                               >
                                 <span className="truncate">{displayCode}</span>
                                 <IconChevronDown className={`w-3.5 h-3.5 shrink-0 opacity-60 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -1277,10 +1339,12 @@ export const ShiftRosterPage: React.FC = () => {
       {/* ===================== ROSTER CELL SHIFT SELECTOR POPOVER ===================== */}
       {activeCellMenu && typeof document !== 'undefined' && createPortal(
         (() => {
-          const menuWidth = 180;
+          const key = `${activeCellMenu.empId}_${activeCellMenu.dateStr}`;
+          const activeLeave = leaveMap[key];
+          const menuWidth = activeLeave ? 250 : 180;
           const rect = activeCellMenu.anchorRect;
           const spaceBelow = window.innerHeight - rect.bottom;
-          const openUpward = spaceBelow < 180 && rect.top > 180;
+          const openUpward = spaceBelow < (activeLeave ? 260 : 180) && rect.top > (activeLeave ? 260 : 180);
 
           let left = rect.left;
           if (left + menuWidth > window.innerWidth - 12) {
@@ -1298,7 +1362,25 @@ export const ShiftRosterPage: React.FC = () => {
               : { top: `${rect.bottom + 4}px` }),
           };
 
-          const currentActiveCode = rosterMap[`${activeCellMenu.empId}_${activeCellMenu.dateStr}`] || '';
+          const currentActiveCode = rosterMap[key] || '';
+
+          const onSelectShift = (code: string) => {
+            if (code && activeLeave) {
+              if (activeLeave.status === 'APPROVED' && !activeLeave.isHalfDay) {
+                const confirmed = window.confirm(
+                  `Employee "${activeCellMenu.empName}" is on approved leave (${activeLeave.type}) on ${activeCellMenu.dateLabel}.\n\nAre you sure you want to assign shift "${code}" and override this leave day?`
+                );
+                if (!confirmed) return;
+              } else if (activeLeave.status === 'PENDING') {
+                const confirmed = window.confirm(
+                  `Employee "${activeCellMenu.empName}" has a pending leave request for "${activeLeave.type}" on ${activeCellMenu.dateLabel}.\n\nDo you want to proceed with assigning shift "${code}"?`
+                );
+                if (!confirmed) return;
+              }
+            }
+            handleSetShift(activeCellMenu.empId, activeCellMenu.dateStr, code);
+            setActiveCellMenu(null);
+          };
 
           return (
             <div className="fixed inset-0 z-[9999]">
@@ -1311,16 +1393,40 @@ export const ShiftRosterPage: React.FC = () => {
               {/* Simple, compact dropdown menu */}
               <div
                 style={cardStyle}
-                className="shift-popover-card bg-white rounded-xl border border-slate-200 shadow-xl p-1 z-10 animate-in fade-in zoom-in-95 duration-100"
+                className="shift-popover-card bg-white rounded-xl border border-slate-200 shadow-xl p-1.5 z-10 animate-in fade-in zoom-in-95 duration-100"
                 onClick={(e) => e.stopPropagation()}
               >
+                {/* Leave Warning / Info Banner */}
+                {activeLeave && (
+                  <div className={`p-2.5 mb-2 rounded-lg border text-xs ${
+                    activeLeave.status === 'PENDING'
+                      ? 'bg-amber-50 border-amber-200 text-amber-900'
+                      : 'bg-purple-50 border-purple-200 text-purple-900'
+                  }`}>
+                    <div className="flex items-center gap-1.5 font-bold">
+                      <IconAlertTriangle className={`w-3.5 h-3.5 shrink-0 ${activeLeave.status === 'PENDING' ? 'text-amber-600' : 'text-purple-600'}`} />
+                      <span>{activeLeave.status === 'PENDING' ? 'Pending Leave Request' : 'Employee on Leave'}</span>
+                    </div>
+                    <div className="text-[11px] font-semibold mt-1">
+                      {activeLeave.type} • {activeLeave.isHalfDay ? (activeLeave.halfDayPeriod === 'FIRST_HALF' ? 'First Half (0.5d)' : 'Second Half (0.5d)') : 'Full Day (1.0d)'}
+                    </div>
+                    {activeLeave.reason && (
+                      <div className="text-[10px] opacity-80 italic mt-0.5 truncate" title={activeLeave.reason}>
+                        "{activeLeave.reason}"
+                      </div>
+                    )}
+                    {activeLeave.status === 'APPROVED' && !activeLeave.isHalfDay && (
+                      <div className="mt-1.5 pt-1 text-[10px] text-purple-800 font-medium border-t border-purple-200/60 leading-tight">
+                        ⚠️ Assigning a shift will override this approved leave day.
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Clear / Unassigned Option */}
                 <button
                   type="button"
-                  onClick={() => {
-                    handleSetShift(activeCellMenu.empId, activeCellMenu.dateStr, '');
-                    setActiveCellMenu(null);
-                  }}
+                  onClick={() => onSelectShift('')}
                   className={`w-full px-2.5 py-1.5 text-xs font-semibold rounded-lg text-left flex items-center justify-between transition-colors cursor-pointer ${
                     !currentActiveCode ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-100'
                   }`}
@@ -1336,10 +1442,7 @@ export const ShiftRosterPage: React.FC = () => {
                     <button
                       key={s.id}
                       type="button"
-                      onClick={() => {
-                        handleSetShift(activeCellMenu.empId, activeCellMenu.dateStr, s.code);
-                        setActiveCellMenu(null);
-                      }}
+                      onClick={() => onSelectShift(s.code)}
                       className={`w-full px-2 py-1.5 text-xs font-semibold rounded-lg text-left flex items-center justify-between transition-colors cursor-pointer ${
                         isSelected ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-700 hover:bg-slate-100'
                       }`}

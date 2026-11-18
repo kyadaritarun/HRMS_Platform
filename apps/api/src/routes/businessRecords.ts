@@ -5,6 +5,7 @@ import { tenantMatchMiddleware } from '../middlewares/tenantMatch.js';
 import { policyComplianceMiddleware } from '../middlewares/policyCompliance.js';
 import { roleGuard } from '../middlewares/roleGuard.js';
 import { AppError } from '../middlewares/errorHandler.js';
+import { toDateKey } from '../lib/dates.js';
 
 export const businessCompanyRouter = Router();
 export const businessPayrollRouter = Router();
@@ -832,13 +833,57 @@ businessCompanyRouter.get('/roster', roleGuard('COMPANY_ADMIN', 'HR', 'EMPLOYEE'
       };
     }
 
-    const assignments = await prisma.rosterAssignment.findMany({ where });
+    const leaveWhere: any = {
+      companyId,
+      type: 'LEAVE',
+      status: { in: ['APPROVED', 'PENDING'] },
+    };
+    if (startDate && endDate) {
+      leaveWhere.startDate = { lte: new Date(`${String(endDate)}T23:59:59.999Z`) };
+      leaveWhere.endDate = { gte: new Date(`${String(startDate)}T00:00:00.000Z`) };
+    }
+
+    const [assignments, leaveRequests] = await Promise.all([
+      prisma.rosterAssignment.findMany({ where }),
+      prisma.request.findMany({
+        where: leaveWhere,
+        include: {
+          leaveType: { select: { id: true, name: true, code: true, color: true } },
+        },
+      }),
+    ]);
+
     const rosterMap: Record<string, string> = {};
     for (const a of assignments) {
       rosterMap[`${a.employeeId}_${a.date}`] = a.shiftTiming;
     }
 
-    return res.json({ success: true, rosterMap, assignments });
+    const leaveMap: Record<string, any> = {};
+    for (const req of leaveRequests) {
+      if (!req.startDate || !req.endDate) continue;
+      const meta = (req.meta as any) || {};
+      const isHalf = Boolean(meta.isHalfDay) || Number(req.days) === 0.5;
+
+      const cur = new Date(req.startDate);
+      const end = new Date(req.endDate);
+      while (cur <= end) {
+        const dKey = toDateKey(cur);
+        leaveMap[`${req.userId}_${dKey}`] = {
+          id: req.id,
+          type: req.leaveType?.name || req.title || 'Leave',
+          code: req.leaveType?.code || 'LV',
+          color: req.leaveType?.color || 'purple',
+          status: req.status,
+          days: Number(req.days) || 1,
+          reason: req.reason,
+          isHalfDay: isHalf,
+          halfDayPeriod: meta.halfDayPeriod || null,
+        };
+        cur.setUTCDate(cur.getUTCDate() + 1);
+      }
+    }
+
+    return res.json({ success: true, rosterMap, assignments, leaveMap });
   } catch (error) {
     next(error);
   }
