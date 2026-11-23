@@ -23,11 +23,34 @@ router.get('/', async (req, res, next) => {
         kind: 'KUDOS',
       },
       include: {
-        user: { select: { id: true, firstName: true, lastName: true, email: true, jobTitle: true } },
+        user: { select: { id: true, firstName: true, lastName: true, email: true, jobTitle: true, profilePhoto: true } },
       },
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
+
+    const senderIds = Array.from(
+      new Set(
+        kudos
+          .map((k) => {
+            try {
+              const p = typeof k.payload === 'string' ? JSON.parse(k.payload) : (k.payload || {});
+              return p.senderId ? Number(p.senderId) : null;
+            } catch {
+              return null;
+            }
+          })
+          .filter((id): id is number => typeof id === 'number' && !isNaN(id))
+      )
+    );
+
+    const senders = senderIds.length > 0
+      ? await prisma.user.findMany({
+          where: { id: { in: senderIds } },
+          select: { id: true, firstName: true, lastName: true, jobTitle: true, profilePhoto: true },
+        })
+      : [];
+    const senderMap = new Map(senders.map((s) => [s.id, s]));
 
     const enriched = kudos.map((k) => {
       let p: any = {};
@@ -37,9 +60,10 @@ router.get('/', async (req, res, next) => {
         p = {};
       }
 
+      const senderUser = p.senderId ? senderMap.get(Number(p.senderId)) : null;
       const senderNameParts = (p.senderName || '').trim().split(' ');
-      const senderFirstName = senderNameParts[0] || 'Teammate';
-      const senderLastName = senderNameParts.slice(1).join(' ') || '';
+      const senderFirstName = senderUser?.firstName || senderNameParts[0] || 'Teammate';
+      const senderLastName = senderUser?.lastName || senderNameParts.slice(1).join(' ') || '';
 
       return {
         ...k,
@@ -50,7 +74,11 @@ router.get('/', async (req, res, next) => {
           id: p.senderId,
           firstName: senderFirstName,
           lastName: senderLastName,
-          name: p.senderName || `${senderFirstName} ${senderLastName}`.trim(),
+          name: senderUser
+            ? `${senderUser.firstName} ${senderUser.lastName}`.trim()
+            : (p.senderName || `${senderFirstName} ${senderLastName}`.trim()),
+          profilePhoto: senderUser?.profilePhoto || p.senderPhoto || null,
+          jobTitle: senderUser?.jobTitle || '',
         },
       };
     });
@@ -65,12 +93,14 @@ router.get('/', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   try {
     const senderId = req.user!.id;
-    const senderName = `${req.user!.firstName} ${req.user!.lastName}`;
+    const senderName = `${req.user!.firstName} ${req.user!.lastName}`.trim();
+    const senderPhoto = req.user!.profilePhoto || null;
     const companyId = req.user!.companyId!;
-    const recipientId = req.body.recipientId || req.body.receiverId;
+    const rawRecipient = req.body.recipientId || req.body.receiverId;
+    const recipientId = Number(rawRecipient);
     const { badge, message } = req.body;
 
-    if (!recipientId || !badge) {
+    if (!recipientId || isNaN(recipientId) || !badge) {
       return next(new AppError(400, 'BADGE_OR_RECIPIENT_REQUIRED', 'Recipient and badge are required'));
     }
 
@@ -92,6 +122,7 @@ router.post('/', async (req, res, next) => {
         payload: {
           senderId,
           senderName,
+          senderPhoto,
           badge,
           message: message || '',
         },

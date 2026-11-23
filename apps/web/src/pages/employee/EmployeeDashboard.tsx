@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -32,9 +33,24 @@ import {
   IconCircleCheck,
   IconCircleX,
   IconCalendarStats,
+  IconHeartHandshake,
+  IconFlame,
+  IconBulb,
+  IconTrophy,
+  IconPlus,
+  IconX,
 } from '@tabler/icons-react';
 import api from '../../api/client';
 import { getHolidayIcon } from '../../utils/holidayIcons';
+import {
+  APPRECIATION_BADGES,
+  getBadgeMeta,
+  getAppreciationReceiverName,
+  getAppreciationSenderName,
+  getAppreciationMessage,
+  getAppreciationInitials,
+  formatAppreciationDate,
+} from '../../utils/appreciations';
 
 interface LeaveBalanceItem {
   code: string;
@@ -64,19 +80,28 @@ interface UpcomingBirthdayItem {
   isToday?: boolean;
 }
 
-interface OnLeaveItem {
+interface DashboardAppreciation {
   id: number;
-  user?: {
-    id: number;
-    firstName: string;
-    lastName: string;
+  badge?: string;
+  message?: string;
+  title?: string;
+  createdAt: string;
+  payload?: any;
+  receiver?: {
+    id?: number;
+    firstName?: string;
+    lastName?: string;
+    name?: string;
     jobTitle?: string;
     profilePhoto?: string | null;
-    department?: { name: string };
   };
-  leaveType?: {
-    name: string;
-    code: string;
+  sender?: {
+    id?: number;
+    firstName?: string;
+    lastName?: string;
+    name?: string;
+    jobTitle?: string;
+    profilePhoto?: string | null;
   };
 }
 
@@ -805,7 +830,17 @@ export const EmployeeDashboard: React.FC = () => {
   const [leaveBalances, setLeaveBalances] = useState<LeaveBalanceItem[]>([]);
   const [upcomingHolidays, setUpcomingHolidays] = useState<UpcomingHolidayItem[]>([]);
   const [upcomingBirthdays, setUpcomingBirthdays] = useState<UpcomingBirthdayItem[]>([]);
-  const [onLeaveToday, setOnLeaveToday] = useState<OnLeaveItem[]>([]);
+  const [appreciations, setAppreciations] = useState<DashboardAppreciation[]>([]);
+  const [allColleagues, setAllColleagues] = useState<any[]>([]);
+  const [isKudosModalOpen, setIsKudosModalOpen] = useState(false);
+  const [kudosBadgeMode, setKudosBadgeMode] = useState<'preset' | 'custom'>('preset');
+  const [kudosForm, setKudosForm] = useState({
+    receiverId: '',
+    badge: 'Rockstar Delivery',
+    message: '',
+  });
+  const [isSubmittingKudos, setIsSubmittingKudos] = useState(false);
+  const [kudosSuccessMsg, setKudosSuccessMsg] = useState<string | null>(null);
   const [isLoadingWidgets, setIsLoadingWidgets] = useState(true);
 
   // Calendar State
@@ -852,7 +887,7 @@ export const EmployeeDashboard: React.FC = () => {
         typesRes,
         holiRes,
         empsRes,
-        leavesTodayRes,
+        appreciationsRes,
         myLeavesRes,
         rosterRes,
         shiftsRes,
@@ -863,7 +898,7 @@ export const EmployeeDashboard: React.FC = () => {
         api.get('/company/leave-types').catch(() => ({ data: { leaveTypes: [] } })),
         api.get('/company/holidays').catch(() => ({ data: { holidays: [] } })),
         api.get('/employees?pageSize=100').catch(() => ({ data: { items: [] } })),
-        api.get('/requests/today-leaves').catch(() => ({ data: { leaves: [] } })),
+        api.get('/appreciations').catch(() => ({ data: { appreciations: [] } })),
         api.get('/requests?type=LEAVE&scope=mine').catch(() => ({ data: { items: [] } })),
         api.get('/company/roster').catch(() => ({ data: { rosterMap: {} } })),
         api.get('/company/shifts').catch(() => ({ data: { shifts: [] } })),
@@ -964,13 +999,44 @@ export const EmployeeDashboard: React.FC = () => {
         .slice(0, 4);
       setUpcomingBirthdays(bdays);
 
-      // 4. Real On Leave Today
-      const leaves = leavesTodayRes.data?.leaves || [];
-      setOnLeaveToday(leaves);
+      // 4. Real Appreciations
+      const appList = appreciationsRes.data?.appreciations || [];
+      setAppreciations(appList);
+      setAllColleagues(rawEmployees);
     } catch (err) {
       console.error('Failed to load real dashboard widgets:', err);
     } finally {
       setIsLoadingWidgets(false);
+    }
+  };
+
+  const handleSendKudosFromDashboard = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!kudosForm.receiverId || !kudosForm.badge.trim() || !kudosForm.message.trim()) {
+      alert('Please select a colleague, provide an appreciation badge, and write a message.');
+      return;
+    }
+    setIsSubmittingKudos(true);
+    try {
+      await api.post('/appreciations', {
+        recipientId: Number(kudosForm.receiverId),
+        receiverId: Number(kudosForm.receiverId),
+        badge: kudosForm.badge.trim(),
+        message: kudosForm.message.trim(),
+      });
+      setIsKudosModalOpen(false);
+      setKudosForm({ receiverId: '', badge: 'Rockstar Delivery', message: '' });
+      setKudosBadgeMode('preset');
+      setKudosSuccessMsg('Appreciation sent successfully!');
+      setTimeout(() => setKudosSuccessMsg(null), 4000);
+
+      // Immediately refresh appreciations
+      const appRes = await api.get('/appreciations').catch(() => ({ data: { appreciations: [] } }));
+      setAppreciations(appRes.data?.appreciations || []);
+    } catch (err: any) {
+      alert(err.response?.data?.error || err.response?.data?.message || 'Failed to send appreciation');
+    } finally {
+      setIsSubmittingKudos(false);
     }
   };
 
@@ -2080,62 +2146,138 @@ export const EmployeeDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* ===================== 3. TEAM & COMMUNITY (ON LEAVE, BIRTHDAYS, LEAVE BALANCES) ===================== */}
+      {/* ===================== 3. TEAM & COMMUNITY (APPRECIATIONS, BIRTHDAYS, LEAVE BALANCES) ===================== */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* On Leave Today */}
+        {/* Appreciations */}
         <div className="p-5 sm:p-6 bg-white rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between space-y-4">
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0">
-                  <IconUsers className="w-4 h-4" />
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center shrink-0">
+                  <IconHeartHandshake className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-slate-900 leading-tight">On Leave Today</h4>
-                  <p className="text-[11px] text-slate-500 font-medium">Team availability</p>
+                  <h4 className="text-sm font-bold text-slate-900 leading-tight">Appreciations</h4>
+                  <p className="text-[11px] text-slate-500 font-medium">Peer recognitions & kudos</p>
                 </div>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70">
-                {onLeaveToday.length} Out
-              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setIsKudosModalOpen(true)}
+                  className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-lg bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white shadow-2xs transition-colors cursor-pointer"
+                  title="Give Kudos"
+                >
+                  <IconSparkles className="w-3 h-3" />
+                  <span>Give Kudos</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/appreciations')}
+                  className="text-[10px] font-bold text-slate-500 hover:text-indigo-600 px-1.5 py-0.5 rounded-md hover:bg-slate-100 transition-colors cursor-pointer"
+                  title="View All Appreciations"
+                >
+                  View All
+                </button>
+              </div>
             </div>
 
-            {onLeaveToday.length === 0 ? (
-              <div className="mt-4 p-4 rounded-xl bg-slate-50/70 border border-slate-200/60 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                  <IconCheck className="w-5 h-5 stroke-[2.5]" />
+            {kudosSuccessMsg && (
+              <div className="mb-2 p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-semibold flex items-center gap-2">
+                <IconCircleCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>{kudosSuccessMsg}</span>
+              </div>
+            )}
+
+            {appreciations.length === 0 ? (
+              <div className="mt-4 p-4 rounded-xl bg-slate-50/70 border border-slate-200/60 flex flex-col items-center justify-center text-center gap-2 py-6">
+                <div className="w-10 h-10 rounded-full bg-indigo-50 text-[#5E4BE2] flex items-center justify-center">
+                  <IconHeartHandshake className="w-5 h-5 stroke-[2]" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-900">All team members are present</div>
-                  <div className="text-[11px] text-slate-500 font-medium">100% team availability today 🎉</div>
+                  <div className="text-xs font-bold text-slate-900">No appreciations yet</div>
+                  <div className="text-[11px] text-slate-500 font-medium max-w-xs mt-0.5">
+                    Recognize a teammate for their hard work and contributions!
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setIsKudosModalOpen(true)}
+                  className="mt-1 text-[11px] font-bold text-[#5E4BE2] hover:text-[#4D3BC9] bg-white border border-indigo-200 px-3 py-1 rounded-lg shadow-2xs hover:bg-indigo-50 transition-all cursor-pointer"
+                >
+                  + Give First Kudos
+                </button>
               </div>
             ) : (
               <div className="mt-3 divide-y divide-slate-100 max-h-56 overflow-y-auto pr-1">
-                {onLeaveToday.map((item) => (
-                  <div key={item.id} className="py-2.5 flex items-center justify-between group px-1 hover:bg-slate-50/60 rounded-xl transition-colors">
-                    <div className="flex items-center gap-3">
-                      {item.user?.profilePhoto ? (
-                        <img src={item.user.profilePhoto} alt="" className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0" />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-indigo-50 text-[#5E4BE2] border border-indigo-100 font-bold text-xs flex items-center justify-center shrink-0">
-                          {item.user?.firstName?.[0] || 'U'}
+                {appreciations.map((item) => {
+                  const senderName = getAppreciationSenderName(item);
+                  const receiverName = getAppreciationReceiverName(item);
+                  const badgeMeta = getBadgeMeta(item.badge, item.payload);
+                  const BadgeIcon = badgeMeta.icon;
+                  const messageText = getAppreciationMessage(item);
+                  const senderPhoto = item.sender?.profilePhoto;
+                  const senderInitials = getAppreciationInitials(senderName);
+                  const isSenderMe = Boolean(user?.id && item.sender?.id === user.id);
+                  const isReceiverMe = Boolean(
+                    user?.id && (item.receiver?.id === user.id || (item as any).user?.id === user.id)
+                  );
+                  const dateStr = formatAppreciationDate(item.createdAt);
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="py-2.5 flex items-start gap-2.5 group px-1 hover:bg-slate-50/60 rounded-xl transition-colors"
+                    >
+                      <div className="relative shrink-0 mt-0.5">
+                        {senderPhoto ? (
+                          <img
+                            src={senderPhoto}
+                            alt=""
+                            className="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-2xs"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-indigo-50 text-[#5E4BE2] border border-indigo-100 font-bold text-xs flex items-center justify-center">
+                            {senderInitials}
+                          </div>
+                        )}
+                        <span className="absolute -bottom-1 -right-1 text-[9px] bg-white rounded-full border border-slate-200 px-0.5 leading-none shadow-2xs">
+                          👏
+                        </span>
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs leading-snug">
+                          <span className={`font-bold ${isSenderMe ? 'text-[#5E4BE2]' : 'text-slate-900'}`}>
+                            {isSenderMe ? 'You' : senderName}
+                          </span>
+                          <span className="text-slate-500 font-normal"> gave appreciation to </span>
+                          <span className={`font-bold ${isReceiverMe ? 'text-[#5E4BE2]' : 'text-slate-900'}`}>
+                            {isReceiverMe ? 'You' : receiverName}
+                          </span>
                         </div>
-                      )}
-                      <div>
-                        <div className="text-xs font-bold text-slate-800">
-                          {item.user?.firstName} {item.user?.lastName}
+
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                          <span
+                            className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md border ${badgeMeta.color}`}
+                          >
+                            <BadgeIcon className="w-2.5 h-2.5 shrink-0" />
+                            <span>{badgeMeta.label}</span>
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-medium">
+                            • {dateStr}
+                          </span>
                         </div>
-                        <div className="text-[10px] text-slate-500 font-medium">
-                          {item.user?.jobTitle || item.user?.department?.name || 'On Leave'}
-                        </div>
+
+                        {messageText && (
+                          <p className="mt-1 text-[11px] text-slate-600 italic line-clamp-1 bg-slate-50/80 px-2 py-0.5 rounded border border-slate-100">
+                            &ldquo;{messageText}&rdquo;
+                          </p>
+                        )}
                       </div>
                     </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200/70">
-                      {item.leaveType?.name || 'Leave'}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -2267,6 +2409,189 @@ export const EmployeeDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Give Kudos Drawer / Modal */}
+      {isKudosModalOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] overflow-hidden">
+          <div
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsKudosModalOpen(false)}
+          />
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+            <div
+              className="w-screen max-w-md bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 pointer-events-auto animate-in slide-in-from-right duration-200 overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drawer Header */}
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                    <IconSparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">
+                      Employee Recognition
+                    </span>
+                    <h2 className="text-base font-bold text-slate-900 mt-0.5">
+                      Recognize a Colleague
+                    </h2>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsKudosModalOpen(false)}
+                  className="p-1.5 rounded-lg text-slate-500 font-medium hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <IconX className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Form Body */}
+              <form onSubmit={handleSendKudosFromDashboard} className="p-6 space-y-5 flex-1 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Select Teammate <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      required
+                      value={kudosForm.receiverId}
+                      onChange={(e) => setKudosForm({ ...kudosForm, receiverId: e.target.value })}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] font-medium text-slate-800"
+                    >
+                      <option value="">Choose colleague...</option>
+                      {allColleagues
+                        .filter((e) => !user?.id || e.id !== user.id)
+                        .map((e) => (
+                          <option key={e.id} value={e.id}>
+                            {e.firstName} {e.lastName} ({e.jobTitle || 'Team'})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-semibold text-slate-700">
+                        Appreciation Badge <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setKudosBadgeMode('preset');
+                            setKudosForm({ ...kudosForm, badge: 'Rockstar Delivery' });
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                            kudosBadgeMode === 'preset'
+                              ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                              : 'text-slate-500 hover:text-slate-700'
+                          }`}
+                        >
+                          Preset Badges
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setKudosBadgeMode('custom');
+                            setKudosForm({ ...kudosForm, badge: '' });
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                            kudosBadgeMode === 'custom'
+                              ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                              : 'text-slate-500 hover:text-slate-700'
+                          }`}
+                        >
+                          Custom Badge
+                        </button>
+                      </div>
+                    </div>
+
+                    {kudosBadgeMode === 'preset' ? (
+                      <div className="grid grid-cols-1 gap-2 pt-1">
+                        {APPRECIATION_BADGES.map((b) => {
+                          const Icon = b.icon;
+                          const isSelected = kudosForm.badge === b.label;
+                          return (
+                            <button
+                              key={b.key}
+                              type="button"
+                              onClick={() => setKudosForm({ ...kudosForm, badge: b.label })}
+                              className={`p-2.5 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                                isSelected
+                                  ? 'border-[#5E4BE2] bg-indigo-50/50 shadow-2xs ring-1 ring-[#5E4BE2]'
+                                  : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/60'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <div className={`p-1.5 rounded-lg border ${b.color}`}>
+                                  <Icon className="w-3.5 h-3.5 shrink-0" />
+                                </div>
+                                <div>
+                                  <div className="text-xs font-bold text-slate-900">{b.label}</div>
+                                </div>
+                              </div>
+                              {isSelected && <IconCheck className="w-4 h-4 text-[#5E4BE2] stroke-[3]" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Bug Squashing Champ, Visionary..."
+                        value={kudosForm.badge}
+                        onChange={(e) => setKudosForm({ ...kudosForm, badge: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] font-medium text-slate-800"
+                      />
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Recognition Message <span className="text-rose-500">*</span>
+                    </label>
+                    <textarea
+                      required
+                      rows={3}
+                      placeholder="What did they do that was awesome? (e.g. Thanks for staying late to help deploy the client hotfix...)"
+                      value={kudosForm.message}
+                      onChange={(e) => setKudosForm({ ...kudosForm, message: e.target.value })}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-[#5E4BE2] font-medium text-slate-800 resize-none leading-relaxed"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsKudosModalOpen(false)}
+                    className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingKudos}
+                    className="px-5 py-2 bg-[#5E4BE2] hover:bg-[#4D3BC9] disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    {isSubmittingKudos ? (
+                      <span>Sending...</span>
+                    ) : (
+                      <>
+                        <IconSparkles className="w-3.5 h-3.5" />
+                        <span>Send Kudos</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };
