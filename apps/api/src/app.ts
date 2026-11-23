@@ -101,7 +101,10 @@ app.use(cookieParser());
 
 // File serving for profile images: Stream directly from AWS S3 'image/' folder
 const handleImageStreaming = async (req: express.Request, res: express.Response) => {
-  const filename = req.params.filename;
+  let filename = req.params.filename || '';
+  if (filename.startsWith('image/')) {
+    filename = filename.replace(/^image\//, '');
+  }
   const s3Key = `image/${filename}`;
 
   res.removeHeader('X-Frame-Options');
@@ -110,7 +113,10 @@ const handleImageStreaming = async (req: express.Request, res: express.Response)
 
   if (isS3Configured()) {
     try {
-      const s3Stream = await getS3FileStream(s3Key);
+      let s3Stream = await getS3FileStream(s3Key);
+      if (!s3Stream || !s3Stream.Body) {
+        s3Stream = await getS3FileStream(filename);
+      }
       if (s3Stream && s3Stream.Body) {
         if (s3Stream.ContentType) res.setHeader('Content-Type', s3Stream.ContentType);
         if (s3Stream.ContentLength) res.setHeader('Content-Length', s3Stream.ContentLength);

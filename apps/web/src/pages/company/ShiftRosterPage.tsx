@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import api from '../../api/client';
+import api, { getFileUrl } from '../../api/client';
 import TablePagination from '../../components/common/TablePagination';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -992,7 +992,7 @@ export const ShiftRosterPage: React.FC = () => {
                           <div className="flex items-center gap-3">
                             {emp.profilePhoto ? (
                               <img
-                                src={emp.profilePhoto}
+                                src={getFileUrl(emp.profilePhoto)}
                                 alt={`${emp.firstName} ${emp.lastName}`}
                                 className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-slate-200"
                               />

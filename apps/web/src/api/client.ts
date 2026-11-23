@@ -33,14 +33,14 @@ export const getFileUrl = (path?: string | null): string => {
   if (path.includes('amazonaws.com')) {
     if (path.includes('/uploads/')) {
       const filename = path.split('/uploads/').pop();
-      return normalizedApiUrl ? `${normalizedApiUrl}/uploads/${filename}` : `/uploads/${filename}`;
+      return normalizedApiUrl ? `${normalizedApiUrl}/uploads/${filename}` : `/api/v1/uploads/${filename}`;
     }
     if (path.includes('/image/')) {
       const filename = path.split('/image/').pop();
-      return normalizedApiUrl ? `${normalizedApiUrl}/image/${filename}` : `/image/${filename}`;
+      return normalizedApiUrl ? `${normalizedApiUrl}/image/${filename}` : `/api/v1/image/${filename}`;
     }
     const filename = path.split('/').pop();
-    return normalizedApiUrl ? `${normalizedApiUrl}/uploads/${filename}` : `/uploads/${filename}`;
+    return normalizedApiUrl ? `${normalizedApiUrl}/uploads/${filename}` : `/api/v1/uploads/${filename}`;
   }
 
   // If already an absolute http/https URL pointing to an external source or already pointing to normalizedApiUrl
@@ -49,14 +49,27 @@ export const getFileUrl = (path?: string | null): string => {
   }
 
   // Ensure relative path starts with '/'
-  let cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
 
-  // If it's a bare filename like "123-file.pdf", route it to "/uploads/123-file.pdf"
-  if (!cleanPath.startsWith('/uploads/') && !cleanPath.startsWith('/image/') && !cleanPath.startsWith('/images/')) {
-    cleanPath = `/uploads${cleanPath}`;
+  // If already prefixed with /api/v1/
+  if (cleanPath.startsWith('/api/v1/')) {
+    return normalizedApiUrl ? `${normalizedApiUrl}${cleanPath}` : cleanPath;
   }
 
-  return normalizedApiUrl ? `${normalizedApiUrl}${cleanPath}` : cleanPath;
+  // If it's an image route: /image/... or /images/...
+  if (cleanPath.startsWith('/image/') || cleanPath.startsWith('/images/')) {
+    const filename = cleanPath.replace(/^\/images?\//, '');
+    return normalizedApiUrl ? `${normalizedApiUrl}/image/${filename}` : `/api/v1/image/${filename}`;
+  }
+
+  // If it's an upload route: /uploads/...
+  if (cleanPath.startsWith('/uploads/')) {
+    const filename = cleanPath.replace(/^\/uploads\//, '');
+    return normalizedApiUrl ? `${normalizedApiUrl}/uploads/${filename}` : `/api/v1/uploads/${filename}`;
+  }
+
+  // If it's a bare filename like "123-file.pdf", route it to uploads
+  return normalizedApiUrl ? `${normalizedApiUrl}/uploads${cleanPath}` : `/api/v1/uploads${cleanPath}`;
 };
 
 export const api = axios.create({

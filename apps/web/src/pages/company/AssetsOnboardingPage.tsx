@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
-import api from '../../api/client';
+import api, { getFileUrl } from '../../api/client';
 import TablePagination from '../../components/common/TablePagination';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -683,7 +683,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
                             <div className="flex items-center gap-3">
                               {emp.profilePhoto ? (
                                 <img
-                                  src={emp.profilePhoto}
+                                  src={getFileUrl(emp.profilePhoto)}
                                   alt={`${emp.firstName} ${emp.lastName}`}
                                   className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-slate-200"
                                 />
@@ -1161,7 +1161,7 @@ export const AssetsOnboardingPage: React.FC<AssetsOnboardingPageProps> = ({ init
                   <div className="flex items-center gap-3.5 pr-8">
                     {emp.profilePhoto ? (
                       <img
-                        src={emp.profilePhoto}
+                        src={getFileUrl(emp.profilePhoto)}
                         alt={`${emp.firstName} ${emp.lastName}`}
                         className="w-12 h-12 rounded-2xl object-cover shrink-0 ring-2 ring-white/30 shadow-sm"
                       />

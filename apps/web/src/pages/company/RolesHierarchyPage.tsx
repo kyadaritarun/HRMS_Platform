@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import api from '../../api/client';
+import api, { getFileUrl } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import {
   IconNetwork,
@@ -167,7 +167,7 @@ const OrgChartNode: React.FC<OrgChartNodeProps> = ({
             >
               {node.profilePhoto ? (
                 <img
-                  src={node.profilePhoto}
+                  src={getFileUrl(node.profilePhoto)}
                   alt={fullName}
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -1050,7 +1050,7 @@ export const RolesHierarchyPage: React.FC = () => {
                             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#5E4BE2] to-indigo-500 text-white flex items-center justify-center font-bold text-xs shadow-2xs shrink-0 overflow-hidden relative border border-slate-100">
                               {u.profilePhoto ? (
                                 <img
-                                  src={u.profilePhoto}
+                                  src={getFileUrl(u.profilePhoto)}
                                   alt={`${u.firstName} ${u.lastName}`}
                                   className="w-full h-full object-cover"
                                   onError={(e) => {

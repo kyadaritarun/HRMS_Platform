@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import api from '../../api/client';
+import api, { getFileUrl } from '../../api/client';
 import TablePagination from '../../components/common/TablePagination';
 import {
   IconShieldCheck,
@@ -700,7 +700,7 @@ export const BackgroundVerificationPage: React.FC = () => {
                       <div className="flex items-center gap-3">
                         {r.profilePhoto ? (
                           <img
-                            src={r.profilePhoto}
+                            src={getFileUrl(r.profilePhoto)}
                             alt={r.name}
                             className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-slate-200"
                           />

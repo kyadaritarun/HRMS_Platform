@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import TablePagination from '../../components/common/TablePagination';
-import api from '../../api/client';
+import api, { getFileUrl } from '../../api/client';
 import {
   IconSchool,
   IconPlus,
@@ -591,7 +591,7 @@ export const EmployeeTrainingPage: React.FC = () => {
                       <div className="flex items-center gap-3">
                         {enr.profilePhoto ? (
                           <img
-                            src={enr.profilePhoto}
+                            src={getFileUrl(enr.profilePhoto)}
                             alt={enr.employeeName}
                             className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-slate-200"
                           />

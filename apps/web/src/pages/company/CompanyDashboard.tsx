@@ -715,20 +715,6 @@ export const CompanyDashboard: React.FC = () => {
   // Photo resolver for employee profile images
   const resolvePhotoUrl = (photo?: string | null): string | null => {
     if (!photo) return null;
-    if (photo.includes('.amazonaws.com/image/')) {
-      const filename = photo.split('.amazonaws.com/image/')[1];
-      return getFileUrl(`/image/${filename}`);
-    }
-    if (photo.includes('.amazonaws.com/uploads/')) {
-      const filename = photo.split('.amazonaws.com/uploads/')[1];
-      return getFileUrl(`/uploads/${filename}`);
-    }
-    if (photo.startsWith('/image/') || photo.startsWith('/uploads/')) {
-      return getFileUrl(photo);
-    }
-    if (photo.startsWith('http://') || photo.startsWith('https://')) {
-      return photo;
-    }
     return getFileUrl(photo);
   };
 

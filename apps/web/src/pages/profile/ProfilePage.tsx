@@ -140,15 +140,7 @@ export const ProfilePage: React.FC = () => {
 
   const getAvatarUrl = (url?: string | null): string | undefined => {
     if (!url) return undefined;
-    if (url.includes('.amazonaws.com/image/')) {
-      const filename = url.split('.amazonaws.com/image/')[1];
-      return getFileUrl(`/image/${filename}`);
-    }
-    if (url.includes('.amazonaws.com/uploads/')) {
-      const filename = url.split('.amazonaws.com/uploads/')[1];
-      return getFileUrl(`/uploads/${filename}`);
-    }
-    return url;
+    return getFileUrl(url);
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -288,9 +280,10 @@ export const ProfilePage: React.FC = () => {
                 className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl ${getAvatarColor(displayName || user?.email)} flex items-center justify-center font-bold text-lg border-2 border-white shadow-sm shrink-0 cursor-pointer overflow-hidden relative transition-all group-hover:shadow-md`}
                 title="Click to change profile image (saved in AWS S3 image folder)"
               >
-                {getAvatarUrl(user?.profilePhoto) ? (
+                {getAvatarUrl(profile?.profilePhoto || user?.profilePhoto) ? (
                   <img
-                    src={getAvatarUrl(user?.profilePhoto)}
+                    key={profile?.profilePhoto || user?.profilePhoto}
+                    src={getAvatarUrl(profile?.profilePhoto || user?.profilePhoto)}
                     alt={displayName}
                     className="w-full h-full object-cover"
                     onError={(e) => {

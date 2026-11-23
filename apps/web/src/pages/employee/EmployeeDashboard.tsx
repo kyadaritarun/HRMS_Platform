@@ -41,7 +41,7 @@ import {
   IconPlus,
   IconX,
 } from '@tabler/icons-react';
-import api from '../../api/client';
+import api, { getFileUrl } from '../../api/client';
 import { getHolidayIcon } from '../../utils/holidayIcons';
 import {
   APPRECIATION_BADGES,
@@ -2258,7 +2258,7 @@ export const EmployeeDashboard: React.FC = () => {
                       <div className="relative shrink-0 mt-0.5">
                         {senderPhoto ? (
                           <img
-                            src={senderPhoto}
+                            src={getFileUrl(senderPhoto)}
                             alt=""
                             className="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-2xs"
                           />
@@ -2340,7 +2340,7 @@ export const EmployeeDashboard: React.FC = () => {
                   >
                     <div className="flex items-center gap-3">
                       {bday.profilePhoto ? (
-                        <img src={bday.profilePhoto} alt="" className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0" />
+                        <img src={getFileUrl(bday.profilePhoto)} alt="" className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0" />
                       ) : (
                         <div className="w-8 h-8 rounded-full bg-pink-50 text-pink-600 border border-pink-100 font-bold text-xs flex items-center justify-center shrink-0">
                           {bday.initials}

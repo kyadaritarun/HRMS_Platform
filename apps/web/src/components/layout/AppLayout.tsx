@@ -738,13 +738,8 @@ export const AppLayout: React.FC = () => {
                 <div className={`w-9 h-9 rounded-full ${getAvatarColor(user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user?.email || 'User')} font-bold text-sm flex items-center justify-center shadow-xs shrink-0 overflow-hidden`}>
                   {user?.profilePhoto ? (
                     <img
-                      src={
-                        user.profilePhoto.includes('.amazonaws.com/image/')
-                          ? getFileUrl(`/image/${user.profilePhoto.split('.amazonaws.com/image/')[1]}`)
-                          : user.profilePhoto.includes('.amazonaws.com/uploads/')
-                          ? getFileUrl(`/uploads/${user.profilePhoto.split('.amazonaws.com/uploads/')[1]}`)
-                          : user.profilePhoto
-                      }
+                      key={user.profilePhoto}
+                      src={getFileUrl(user.profilePhoto)}
                       alt="Avatar"
                       className="w-full h-full object-cover"
                       onError={(e) => {
