@@ -14,6 +14,7 @@ import {
   IconCheck,
   IconChevronLeft,
   IconChevronRight,
+  IconChevronDown,
   IconUsers,
   IconCake,
   IconGift,
@@ -831,6 +832,7 @@ export const EmployeeDashboard: React.FC = () => {
   const [upcomingHolidays, setUpcomingHolidays] = useState<UpcomingHolidayItem[]>([]);
   const [upcomingBirthdays, setUpcomingBirthdays] = useState<UpcomingBirthdayItem[]>([]);
   const [appreciations, setAppreciations] = useState<DashboardAppreciation[]>([]);
+  const [appreciationFilter, setAppreciationFilter] = useState<'today' | '7days'>('today');
   const [allColleagues, setAllColleagues] = useState<any[]>([]);
   const [isKudosModalOpen, setIsKudosModalOpen] = useState(false);
   const [kudosBadgeMode, setKudosBadgeMode] = useState<'preset' | 'custom'>('preset');
@@ -1359,6 +1361,31 @@ export const EmployeeDashboard: React.FC = () => {
   const totalAvailableLeaves = useMemo(() => {
     return leaveBalances.reduce((sum, item) => sum + (Number(item.balance) || 0), 0);
   }, [leaveBalances]);
+
+  // Filter appreciations: "Today only" vs "Last 7 days" (strict max cutoff of 7 days)
+  const { todayAppreciationsCount, weekAppreciationsCount, filteredAppreciations } = useMemo(() => {
+    const now = new Date();
+    // Midnight of current day (00:00:00.000 local time)
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    // 7 days ago timestamp (inclusive of 7 full 24h days)
+    const sevenDaysAgo = todayStart - 6 * 24 * 60 * 60 * 1000;
+
+    const last7DaysItems = appreciations.filter((item) => {
+      const itemTime = new Date(item.createdAt).getTime();
+      return !isNaN(itemTime) && itemTime >= sevenDaysAgo;
+    });
+
+    const todayItems = last7DaysItems.filter((item) => {
+      const itemTime = new Date(item.createdAt).getTime();
+      return itemTime >= todayStart;
+    });
+
+    return {
+      todayAppreciationsCount: todayItems.length,
+      weekAppreciationsCount: last7DaysItems.length,
+      filteredAppreciations: appreciationFilter === 'today' ? todayItems : last7DaysItems,
+    };
+  }, [appreciations, appreciationFilter]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
@@ -2161,24 +2188,17 @@ export const EmployeeDashboard: React.FC = () => {
                   <p className="text-[11px] text-slate-500 font-medium">Peer recognitions & kudos</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setIsKudosModalOpen(true)}
-                  className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-lg bg-[#5E4BE2] hover:bg-[#4D3BC9] text-white shadow-2xs transition-colors cursor-pointer"
-                  title="Give Kudos"
+              {/* Dropdown filter for Today / Last 7 Days in place of Give Kudos & View All */}
+              <div className="relative">
+                <select
+                  value={appreciationFilter}
+                  onChange={(e) => setAppreciationFilter(e.target.value as 'today' | '7days')}
+                  className="appearance-none bg-slate-50 hover:bg-slate-100/80 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl pl-3 pr-7 py-1.5 focus:outline-hidden focus:border-[#5E4BE2] focus:bg-white shadow-2xs cursor-pointer transition-colors"
                 >
-                  <IconSparkles className="w-3 h-3" />
-                  <span>Give Kudos</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate('/appreciations')}
-                  className="text-[10px] font-bold text-slate-500 hover:text-indigo-600 px-1.5 py-0.5 rounded-md hover:bg-slate-100 transition-colors cursor-pointer"
-                  title="View All Appreciations"
-                >
-                  View All
-                </button>
+                  <option value="today">Today</option>
+                  <option value="7days">Last 7 Days</option>
+                </select>
+                <IconChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
 
@@ -2189,15 +2209,21 @@ export const EmployeeDashboard: React.FC = () => {
               </div>
             )}
 
-            {appreciations.length === 0 ? (
+            {filteredAppreciations.length === 0 ? (
               <div className="mt-4 p-4 rounded-xl bg-slate-50/70 border border-slate-200/60 flex flex-col items-center justify-center text-center gap-2 py-6">
                 <div className="w-10 h-10 rounded-full bg-indigo-50 text-[#5E4BE2] flex items-center justify-center">
                   <IconHeartHandshake className="w-5 h-5 stroke-[2]" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-900">No appreciations yet</div>
+                  <div className="text-xs font-bold text-slate-900">
+                    {appreciationFilter === 'today'
+                      ? 'No appreciations given today yet'
+                      : 'No appreciations in the last 7 days'}
+                  </div>
                   <div className="text-[11px] text-slate-500 font-medium max-w-xs mt-0.5">
-                    Recognize a teammate for their hard work and contributions!
+                    {appreciationFilter === 'today'
+                      ? 'Be the first to appreciate a teammate today! 🎉'
+                      : 'Recognize a teammate for their hard work and contributions!'}
                   </div>
                 </div>
                 <button
@@ -2205,12 +2231,12 @@ export const EmployeeDashboard: React.FC = () => {
                   onClick={() => setIsKudosModalOpen(true)}
                   className="mt-1 text-[11px] font-bold text-[#5E4BE2] hover:text-[#4D3BC9] bg-white border border-indigo-200 px-3 py-1 rounded-lg shadow-2xs hover:bg-indigo-50 transition-all cursor-pointer"
                 >
-                  + Give First Kudos
+                  {appreciationFilter === 'today' ? '+ Give Today’s First Kudos' : '+ Give Kudos'}
                 </button>
               </div>
             ) : (
               <div className="mt-3 divide-y divide-slate-100 max-h-56 overflow-y-auto pr-1">
-                {appreciations.map((item) => {
+                {filteredAppreciations.map((item) => {
                   const senderName = getAppreciationSenderName(item);
                   const receiverName = getAppreciationReceiverName(item);
                   const badgeMeta = getBadgeMeta(item.badge, item.payload);
